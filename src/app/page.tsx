@@ -69,20 +69,14 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="flex items-center justify-between p-4 bg-card text-card-foreground sticky top-0 z-10 shadow-md">
-        <div className="w-10">
-          <div className="h-8 w-8 bg-foreground text-background rounded-full flex items-center justify-center font-bold text-lg">
-            D
-          </div>
-        </div>
-        <h1 className="text-xl font-bold text-foreground">Áreas de Gestión</h1>
-        <div className="w-10 flex justify-end">
+        <div className="w-10 flex justify-start">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <User className="h-6 w-6" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="start" className="w-56">
               <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <div className="p-2">
@@ -96,6 +90,12 @@ export default function Home() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+        <h1 className="text-xl font-bold text-foreground">Áreas de Gestión</h1>
+        <div className="w-10">
+          <div className="h-8 w-8 bg-foreground text-background rounded-full flex items-center justify-center font-bold text-lg">
+            D
+          </div>
         </div>
       </header>
       
