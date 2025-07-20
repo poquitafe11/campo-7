@@ -14,12 +14,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Validate that the configuration keys are present
-if (!firebaseConfig.projectId || !firebaseConfig.apiKey) {
-    throw new Error("Firebase configuration is missing. Please check your .env file.");
-}
-
-
 // Initialize Firebase
 let app;
 if (!getApps().length) {
