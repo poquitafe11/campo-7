@@ -80,13 +80,13 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const personalSchema = z.object({
+const asistenteSchema = z.object({
     dni: z.string().min(1, "El DNI es requerido"),
     nombre: z.string().min(1, "El nombre es requerido"),
     cargo: z.string().min(1, "El cargo es requerido"),
 });
 
-type Personal = z.infer<typeof personalSchema>;
+type Asistente = z.infer<typeof asistenteSchema>;
 
 function normalizeKey(key: string): string {
     return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '');
@@ -131,9 +131,9 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 }
 
                 const batch = writeBatch(db);
-                normalizedData.forEach((personal) => {
-                    const docRef = doc(db, 'maestro-personal', personal.dni);
-                    batch.set(docRef, { nombre: personal.nombre, cargo: personal.cargo }, { merge: true });
+                normalizedData.forEach((asistente) => {
+                    const docRef = doc(db, 'asistentes', asistente.dni);
+                    batch.set(docRef, { nombre: asistente.nombre, cargo: asistente.cargo }, { merge: true });
                 });
 
                 await batch.commit();
@@ -153,9 +153,9 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
 
 export default function AsistentesPage() {
-  const [data, setData] = useState<Personal[]>([]);
+  const [data, setData] = useState<Asistente[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingPersonal, setEditingPersonal] = useState<Personal | null>(null);
+  const [editingAsistente, setEditingAsistente] = useState<Asistente | null>(null);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const { toast } = useToast();
@@ -165,9 +165,9 @@ export default function AsistentesPage() {
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, "maestro-personal"), (snapshot) => {
-      const personalData = snapshot.docs.map(doc => ({ dni: doc.id, ...doc.data() })) as Personal[];
-      setData(personalData);
+    const unsubscribe = onSnapshot(collection(db, "asistentes"), (snapshot) => {
+      const asistenteData = snapshot.docs.map(doc => ({ dni: doc.id, ...doc.data() })) as Asistente[];
+      setData(asistenteData);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
@@ -182,8 +182,8 @@ export default function AsistentesPage() {
     return () => unsubscribe();
   }, [toast]);
 
-  const form = useForm<z.infer<typeof personalSchema>>({
-    resolver: zodResolver(personalSchema),
+  const form = useForm<z.infer<typeof asistenteSchema>>({
+    resolver: zodResolver(asistenteSchema),
     defaultValues: { dni: "", nombre: "", cargo: "" }
   });
   
@@ -198,8 +198,8 @@ export default function AsistentesPage() {
     const dataToExport = table.getFilteredRowModel().rows.map(row => row.original);
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
     const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, "Maestro de Personal");
-    xlsx.writeFile(workbook, "MaestroDePersonal.xlsx");
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Maestro de Asistentes");
+    xlsx.writeFile(workbook, "MaestroDeAsistentes.xlsx");
   };
 
   const handleConfirmUpload = async () => {
@@ -221,7 +221,7 @@ export default function AsistentesPage() {
 
   const handleDelete = async (dni: string) => {
     try {
-        await deleteDoc(doc(db, "maestro-personal", dni));
+        await deleteDoc(doc(db, "asistentes", dni));
         toast({ title: "Éxito", description: "Registro eliminado correctamente." });
     } catch (error) {
         toast({ title: "Error", description: "No se pudo eliminar el registro.", variant: "destructive" });
@@ -233,8 +233,8 @@ export default function AsistentesPage() {
     if (data.length === 0) return;
     try {
       const batch = writeBatch(db);
-      data.forEach((personal) => {
-        const docRef = doc(db, "maestro-personal", personal.dni);
+      data.forEach((asistente) => {
+        const docRef = doc(db, "asistentes", asistente.dni);
         batch.delete(docRef);
       });
       await batch.commit();
@@ -245,23 +245,23 @@ export default function AsistentesPage() {
     }
   };
 
-  const handleEdit = (personal: Personal) => {
-    setEditingPersonal(personal);
-    form.reset(personal);
+  const handleEdit = (asistente: Asistente) => {
+    setEditingAsistente(asistente);
+    form.reset(asistente);
   };
 
-  const onSubmit = async (values: z.infer<typeof personalSchema>) => {
+  const onSubmit = async (values: z.infer<typeof asistenteSchema>) => {
     try {
-        const docRef = doc(db, "maestro-personal", values.dni);
+        const docRef = doc(db, "asistentes", values.dni);
         
         await setDoc(docRef, { nombre: values.nombre, cargo: values.cargo }, { merge: true });
 
-        if (editingPersonal) {
-            if (editingPersonal.dni !== values.dni) {
-                await deleteDoc(doc(db, "maestro-personal", editingPersonal.dni));
+        if (editingAsistente) {
+            if (editingAsistente.dni !== values.dni) {
+                await deleteDoc(doc(db, "asistentes", editingAsistente.dni));
             }
             toast({ title: "Éxito", description: "Registro actualizado correctamente." });
-            setEditingPersonal(null);
+            setEditingAsistente(null);
         } else {
             toast({ title: "Éxito", description: "Registro creado correctamente." });
             setCreateDialogOpen(false);
@@ -273,7 +273,7 @@ export default function AsistentesPage() {
     }
   };
 
-  const columns = useMemo<ColumnDef<Personal>[]>(
+  const columns = useMemo<ColumnDef<Asistente>[]>(
     () => [
       { accessorKey: "dni", header: "DNI" },
       { accessorKey: "nombre", header: "Nombre" },
@@ -326,7 +326,7 @@ export default function AsistentesPage() {
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel>DNI</FormLabel><FormControl><Input {...field} disabled={!!editingPersonal} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel>DNI</FormLabel><FormControl><Input {...field} disabled={!!editingAsistente} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="cargo" render={({ field }) => ( <FormItem><FormLabel>Cargo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
     </div>
@@ -387,7 +387,7 @@ export default function AsistentesPage() {
                           </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
-                          <DialogHeader><DialogTitle>Agregar Nuevo Personal</DialogTitle></DialogHeader>
+                          <DialogHeader><DialogTitle>Agregar Nuevo Asistente</DialogTitle></DialogHeader>
                           <Form {...form}>
                               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                   {renderFormFields()}
@@ -484,16 +484,16 @@ export default function AsistentesPage() {
               </div>
           </div>
 
-          <Dialog open={!!editingPersonal} onOpenChange={(open) => {
-              if (!open) setEditingPersonal(null);
+          <Dialog open={!!editingAsistente} onOpenChange={(open) => {
+              if (!open) setEditingAsistente(null);
           }}>
               <DialogContent className="sm:max-w-md">
-                  <DialogHeader><DialogTitle>Editar Personal</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>Editar Asistente</DialogTitle></DialogHeader>
                   <Form {...form}>
                       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                           {renderFormFields()}
                           <DialogFooter>
-                              <DialogClose asChild><Button type="button" variant="secondary" onClick={() => setEditingPersonal(null)}>Cancelar</Button></DialogClose>
+                              <DialogClose asChild><Button type="button" variant="secondary" onClick={() => setEditingAsistente(null)}>Cancelar</Button></DialogClose>
                               <Button type="submit">Guardar Cambios</Button>
                           </DialogFooter>
                       </form>
