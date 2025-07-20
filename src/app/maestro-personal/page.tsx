@@ -311,6 +311,7 @@ export default function MaestroPersonalPage() {
         ),
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -505,5 +506,3 @@ export default function MaestroPersonalPage() {
     </TooltipProvider>
   );
 }
-
-    
