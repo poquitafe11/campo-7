@@ -34,7 +34,6 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  AlertTriangle,
   Loader2,
   CheckCircle,
   X
@@ -76,6 +75,7 @@ import {
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 type Labor = {
@@ -327,6 +327,7 @@ export default function MaestroLaboresPage() {
         ),
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [data]
   );
 
@@ -351,7 +352,7 @@ export default function MaestroLaboresPage() {
             placeholder="Buscar por descripción..."
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="max-w-sm w-full"
+            className="max-w-sm w-full h-9"
           />
           <div className="flex gap-2 w-full sm:w-auto">
             <input
@@ -361,19 +362,30 @@ export default function MaestroLaboresPage() {
               accept=".xlsx, .xls, .csv"
               onChange={handleFileSelect}
             />
-            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="flex-grow sm:flex-grow-0">
-              <FileUp className="mr-2 h-4 w-4" />
-              Seleccionar Excel
-            </Button>
-            <Button onClick={handleDownload} variant="outline" disabled={data.length === 0} className="flex-grow sm:flex-grow-0">
-              <FileDown className="mr-2 h-4 w-4" /> 
-              Descargar
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="icon" className="h-9 w-9">
+                  <FileUp className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Seleccionar Excel</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleDownload} variant="outline" size="icon" disabled={data.length === 0} className="h-9 w-9">
+                  <FileDown className="h-4 w-4" /> 
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Descargar Excel</p>
+              </TooltipContent>
+            </Tooltip>
              <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={data.length === 0} className="flex-grow sm:flex-grow-0">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Eliminar Todo
+                <Button variant="destructive" size="icon" disabled={data.length === 0} className="h-9 w-9">
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -400,9 +412,9 @@ export default function MaestroLaboresPage() {
             <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
               <X className="h-4 w-4" />
             </Button>
-            <Button onClick={handleConfirmUpload} disabled={isUploading}>
+            <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-              {isUploading ? 'Subiendo...' : 'Confirmar y Subir'}
+              {isUploading ? 'Subiendo...' : 'Confirmar'}
             </Button>
           </div>
         )}
@@ -456,7 +468,7 @@ export default function MaestroLaboresPage() {
                 value={`${table.getState().pagination.pageSize}`}
                 onValueChange={(value) => table.setPageSize(Number(value))}
               >
-                <SelectTrigger className="w-[70px]">
+                <SelectTrigger className="w-[70px] h-9">
                   <SelectValue placeholder={table.getState().pagination.pageSize} />
                 </SelectTrigger>
                 <SelectContent>
@@ -480,6 +492,7 @@ export default function MaestroLaboresPage() {
                 size="icon"
                 onClick={() => table.setPageIndex(0)}
                 disabled={!table.getCanPreviousPage()}
+                className="h-9 w-9"
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -488,6 +501,7 @@ export default function MaestroLaboresPage() {
                 size="icon"
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
+                className="h-9 w-9"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -499,6 +513,7 @@ export default function MaestroLaboresPage() {
                 size="icon"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
+                className="h-9 w-9"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -507,6 +522,7 @@ export default function MaestroLaboresPage() {
                 size="icon"
                 onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                 disabled={!table.getCanNextPage()}
+                className="h-9 w-9"
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>
@@ -561,5 +577,3 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
-
-    

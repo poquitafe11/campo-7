@@ -83,6 +83,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const loteSchema = z.object({
     lote: z.string().min(1, "El lote es requerido"),
@@ -493,7 +494,7 @@ export default function MaestroLotesPage() {
                 onChange={(event) =>
                   table.getColumn('lote')?.setFilterValue(event.target.value)
                 }
-                className="max-w-sm w-full"
+                className="max-w-sm w-full h-9"
             />
             <div className="flex gap-2 w-full sm:w-auto">
                 <input
@@ -503,20 +504,34 @@ export default function MaestroLotesPage() {
                   accept=".xlsx, .xls, .csv"
                   onChange={handleFileSelect}
                 />
-                <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="flex-grow sm:flex-grow-0">
-                  <FileUp className="mr-2 h-4 w-4" />
-                  Seleccionar Excel
-                </Button>
-                <Button onClick={handleDownload} variant="outline" disabled={table.getRowModel().rows.length === 0} className="flex-grow sm:flex-grow-0">
-                  <FileDown className="mr-2 h-4 w-4" /> 
-                  Descargar
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="icon" className="h-9 w-9">
+                      <FileUp className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Seleccionar Excel</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={handleDownload} variant="outline" size="icon" disabled={table.getRowModel().rows.length === 0} className="h-9 w-9">
+                      <FileDown className="h-4 w-4" /> 
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Descargar Excel</p>
+                  </TooltipContent>
+                </Tooltip>
+
                 <Dialog open={isCreateDialogOpen} onOpenChange={(isOpen) => {
                     setCreateDialogOpen(isOpen);
                     if (!isOpen) form.reset({ ha: 0, densidad: 0, haProd: 0, plantasTotal: 0, plantasProd: 0, lote: '', cuartel: '', variedad: '', campana: '' });
                 }}>
                     <DialogTrigger asChild>
-                        <Button className="flex-grow sm:flex-grow-0">
+                        <Button size="sm">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Agregar Lote
                         </Button>
@@ -536,13 +551,19 @@ export default function MaestroLotesPage() {
                 </Dialog>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive" disabled={data.length === 0} className="flex-grow sm:flex-grow-0">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Eliminar Todo
-                        </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="destructive" size="icon" disabled={data.length === 0} className="h-9 w-9">
+                              <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Eliminar Todo</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará permanentemente los {data.length} registros.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogHeader><AlertDialogTitle>¿Estás absolutely seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará permanentemente los {data.length} registros.</AlertDialogDescription></AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction onClick={handleDeleteAll}>Sí, eliminar todo</AlertDialogAction>
@@ -558,9 +579,9 @@ export default function MaestroLotesPage() {
             <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
               <X className="h-4 w-4" />
             </Button>
-            <Button onClick={handleConfirmUpload} disabled={isUploading}>
+            <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-              {isUploading ? 'Subiendo...' : 'Confirmar y Subir'}
+              {isUploading ? 'Subiendo...' : 'Confirmar'}
             </Button>
           </div>
         )}
@@ -595,7 +616,7 @@ export default function MaestroLotesPage() {
         <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <Select value={`${table.getState().pagination.pageSize}`} onValueChange={(value) => table.setPageSize(Number(value))}>
-                <SelectTrigger className="w-[70px]"><SelectValue placeholder={table.getState().pagination.pageSize} /></SelectTrigger>
+                <SelectTrigger className="w-[70px] h-9"><SelectValue placeholder={table.getState().pagination.pageSize} /></SelectTrigger>
                 <SelectContent>{[10, 20, 50, 100].map((pageSize) => ( <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem> ))}</SelectContent>
               </Select>
                <span className="text-sm text-muted-foreground">
@@ -605,11 +626,11 @@ export default function MaestroLotesPage() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}><ChevronsLeft className="h-4 w-4" /></Button>
-              <Button variant="outline" size="icon" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}><ChevronLeft className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronsLeft className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronLeft className="h-4 w-4" /></Button>
               <span className="text-sm">Página {table.getPageCount() > 0 ? table.getState().pagination.pageIndex + 1 : 0} de {table.getPageCount()}</span>
-              <Button variant="outline" size="icon" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}><ChevronRight className="h-4 w-4" /></Button>
-              <Button variant="outline" size="icon" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}><ChevronsRight className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronRight className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronsRight className="h-4 w-4" /></Button>
             </div>
         </div>
 
