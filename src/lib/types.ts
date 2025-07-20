@@ -62,3 +62,47 @@ export interface AppState {
   qualityControl: QualityControlData[];
   biologicalControl: BiologicalControlData[];
 }
+
+// Asistencia
+export type Assistant = {
+  id: string;
+  assistantName: string;
+  personnelCount: number;
+  absentCount: number;
+};
+
+export type Labor = {
+  codigo: string;
+  descripcion: string;
+};
+
+export type LoteData = {
+  id: string;
+  lote: string;
+  cuartel: string;
+  variedad: string;
+  ha: number;
+  densidad: number;
+  haProd: number;
+  plantasTotal: number;
+  plantasProd: number;
+  fechaCianamida: Date;
+  campana: string;
+};
+
+export type AttendanceRecord = {
+  id: string;
+  date: string;
+  lote: string;
+  variedad: string;
+  fechaCianamida: Date;
+  campana: string;
+  code?: string;
+  labor: string;
+  assistants: Assistant[];
+  totals: {
+    personnelCount: number;
+    absentCount: number;
+  };
+  registeredBy: string | null;
+};

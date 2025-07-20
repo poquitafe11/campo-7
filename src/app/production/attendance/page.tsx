@@ -10,7 +10,7 @@ const attendanceFeatures = [
     icon: <UserCheck className="h-8 w-8 text-primary" />,
     title: "Registro de Asistencia",
     description: "Registra la asistencia diaria del personal.",
-    href: "#", // Placeholder link
+    href: "/production/attendance/daily-entry",
   },
   {
     icon: <Database className="h-8 w-8 text-primary" />,
