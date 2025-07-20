@@ -90,6 +90,57 @@ function normalizeKey(key: string): string {
     return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '');
 }
 
+async function processAndUploadFile(file: File): Promise<{ count: number }> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const workbook = xlsx.read(e.target?.result, { type: "binary" });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[] = xlsx.utils.sheet_to_json(worksheet);
+
+                const normalizedData = json.map(row => {
+                    let codigo: string | null = null;
+                    let descripcion: string | null = null;
+                    for (const key in row) {
+                        const normalizedKey = normalizeKey(key);
+                        if (normalizedKey.includes('codigo')) {
+                            codigo = String(row[key]);
+                        }
+                        if (normalizedKey.includes('descripci')) {
+                            descripcion = String(row[key]);
+                        }
+                    }
+                    return { codigo, descripcion };
+                }).filter((row): row is { codigo: string; descripcion: string } => row.codigo !== null && row.descripcion !== null && row.codigo.trim() !== '' && row.descripcion.trim() !== '');
+
+                if (normalizedData.length === 0) {
+                    return reject(new Error("El archivo no contiene las columnas requeridas ('Codigo' y 'Descripcion') o está vacío. Por favor, revisa el archivo e inténtalo de nuevo."));
+                }
+
+                const batch = writeBatch(db);
+                normalizedData.forEach((labor) => {
+                    const docRef = doc(db, "maestro-labores", labor.codigo);
+                    batch.set(docRef, { descripcion: labor.descripcion });
+                });
+
+                await batch.commit();
+                resolve({ count: normalizedData.length });
+
+            } catch (error) {
+                console.error("Error processing or uploading file: ", error);
+                reject(new Error("Hubo un error al procesar o cargar el archivo a Firebase."));
+            }
+        };
+        reader.onerror = () => {
+            reject(new Error("Error al leer el archivo."));
+        };
+        reader.readAsBinaryString(file);
+    });
+}
+
+
 export default function MaestroLaboresPage() {
   const [data, setData] = useState<Labor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,68 +175,24 @@ export default function MaestroLaboresPage() {
     resolver: zodResolver(laborSchema),
   });
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     setUploadError(null);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const workbook = xlsx.read(e.target?.result, { type: "binary" });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const json: any[] = xlsx.utils.sheet_to_json(worksheet);
-
-            const normalizedData = json.map(row => {
-                let codigo: string | null = null;
-                let descripcion: string | null = null;
-                for (const key in row) {
-                    const normalizedKey = normalizeKey(key);
-                    if (normalizedKey.includes('codigo')) {
-                        codigo = String(row[key]);
-                    }
-                    if (normalizedKey.includes('descripci')) {
-                        descripcion = String(row[key]);
-                    }
-                }
-                return { codigo, descripcion };
-            }).filter((row): row is { codigo: string; descripcion: string } => row.codigo !== null && row.descripcion !== null && row.codigo !== '' && row.descripcion !== '');
-
-            if (normalizedData.length === 0) {
-                setUploadError("El archivo no contiene las columnas requeridas ('Codigo' y 'Descripcion') o está vacío. Por favor, revisa el archivo e inténtalo de nuevo.");
-                return;
-            }
-
-            const batch = writeBatch(db);
-            normalizedData.forEach((labor) => {
-                const docRef = doc(db, "maestro-labores", labor.codigo);
-                batch.set(docRef, { descripcion: labor.descripcion });
-            });
-
-            await batch.commit();
-            toast({ title: "Éxito", description: `${normalizedData.length} registros cargados correctamente en Firebase.` });
-
-        } catch (error) {
-            console.error("Error processing or uploading file: ", error);
-            setUploadError("Hubo un error al procesar o cargar el archivo a Firebase.");
-        } finally {
-            setIsUploading(false);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
-    };
-    reader.onerror = () => {
-        setUploadError("Error al leer el archivo.");
+    try {
+        const { count } = await processAndUploadFile(file);
+        toast({ title: "Éxito", description: `${count} registros cargados correctamente en Firebase.` });
+    } catch (error: any) {
+        setUploadError(error.message);
+    } finally {
         setIsUploading(false);
         if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+            fileInputRef.current.value = '';
         }
-    };
-    reader.readAsBinaryString(file);
+    }
   };
 
   const handleDownload = () => {
@@ -264,7 +271,8 @@ export default function MaestroLaboresPage() {
         ),
       },
     ],
-    [form] // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   const table = useReactTable({
