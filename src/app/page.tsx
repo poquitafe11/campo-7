@@ -15,7 +15,13 @@ import {
   Bug,
   LogOut,
   PanelLeft,
-  Circle
+  Circle,
+  BookText,
+  Layers,
+  Users,
+  CircleDollarSign,
+  LifeBuoy,
+  UserPlus
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -83,6 +89,34 @@ export default function Home() {
                 <p className="text-xs text-muted-foreground">Admin</p>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuLabel>Maestros</DropdownMenuLabel>
+              <DropdownMenuItem>
+                <BookText className="mr-2 h-4 w-4" />
+                <span>Maestro de Labores</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Layers className="mr-2 h-4 w-4" />
+                <span>Datos de Lotes</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Users className="mr-2 h-4 w-4" />
+                <span>Maestro de Personal</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <CircleDollarSign className="mr-2 h-4 w-4" />
+                <span>Presupuesto</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+               <DropdownMenuLabel>Configuración</DropdownMenuLabel>
+              <DropdownMenuItem>
+                <LifeBuoy className="mr-2 h-4 w-4" />
+                <span>Asistentes</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <UserPlus className="mr-2 h-4 w-4" />
+                <span>Agregar Usuarios</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Cerrar sesión</span>
@@ -99,7 +133,7 @@ export default function Home() {
       </header>
       
       <main className="flex-grow p-4">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {features.map((feature) => (
             <Link href={feature.href} key={feature.title} className="block">
               <Card className="aspect-square flex flex-col items-center justify-center p-2 transition-transform hover:scale-105 hover:shadow-lg rounded-xl bg-card">
