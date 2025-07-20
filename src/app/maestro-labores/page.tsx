@@ -35,7 +35,9 @@ import {
   ChevronsLeft,
   ChevronsRight,
   AlertTriangle,
-  Loader2
+  Loader2,
+  CheckCircle,
+  X
 } from "lucide-react";
 import {
   AlertDialog,
@@ -91,53 +93,55 @@ function normalizeKey(key: string): string {
 }
 
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const workbook = xlsx.read(e.target?.result, { type: "binary" });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = xlsx.utils.sheet_to_json(worksheet);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const workbook = xlsx.read(e.target?.result, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = xlsx.utils.sheet_to_json(worksheet);
 
-                const normalizedData = json.map(row => {
-                    let codigo: string | null = null;
-                    let descripcion: string | null = null;
-                    for (const key in row) {
-                        const normalizedKey = normalizeKey(key);
-                        if (normalizedKey.includes('codigo')) {
-                            codigo = String(row[key]);
-                        }
-                        if (normalizedKey.includes('descripci')) {
-                            descripcion = String(row[key]);
-                        }
-                    }
-                    return { codigo, descripcion };
-                }).filter((row): row is { codigo: string; descripcion: string } => row.codigo !== null && row.descripcion !== null && row.codigo.trim() !== '' && row.descripcion.trim() !== '');
-
-                if (normalizedData.length === 0) {
-                    return reject(new Error("El archivo no contiene las columnas requeridas ('Codigo' y 'Descripcion') o está vacío. Por favor, revisa el archivo e inténtalo de nuevo."));
-                }
-
-                const batch = writeBatch(db);
-                normalizedData.forEach((labor) => {
-                    const docRef = doc(db, "maestro-labores", labor.codigo);
-                    batch.set(docRef, { descripcion: labor.descripcion }, { merge: true });
-                });
-
-                await batch.commit();
-                resolve({ count: normalizedData.length });
-
-            } catch (error) {
-                console.error("Error processing or uploading file: ", error);
-                reject(new Error("Hubo un error al procesar o cargar el archivo a Firebase."));
+        const normalizedData = json.map(row => {
+          let codigo: string | null = null;
+          let descripcion: string | null = null;
+          for (const key in row) {
+            const normalizedKey = normalizeKey(key);
+            if (normalizedKey.includes('codigo')) {
+              codigo = String(row[key]);
             }
-        };
-        reader.onerror = (error) => {
-            reject(new Error("Error al leer el archivo."));
-        };
-        reader.readAsBinaryString(file);
-    });
+            if (normalizedKey.includes('descripci')) {
+              descripcion = String(row[key]);
+            }
+          }
+          return { codigo, descripcion };
+        }).filter((row): row is { codigo: string; descripcion: string } => 
+          row.codigo !== null && row.descripcion !== null && row.codigo.trim() !== '' && row.descripcion.trim() !== ''
+        );
+
+        if (normalizedData.length === 0) {
+          return reject(new Error("El archivo no contiene las columnas requeridas ('Codigo' y 'Descripcion') o está vacío. Por favor, revisa el archivo e inténtalo de nuevo."));
+        }
+
+        const batch = writeBatch(db);
+        normalizedData.forEach((labor) => {
+          const docRef = doc(db, 'maestro-labores', labor.codigo);
+          batch.set(docRef, { descripcion: labor.descripcion }, { merge: true });
+        });
+
+        await batch.commit();
+        resolve({ count: normalizedData.length });
+
+      } catch (error) {
+        console.error('Error processing or uploading file: ', error);
+        reject(new Error('Hubo un error al procesar o cargar el archivo a Firebase.'));
+      }
+    };
+    reader.onerror = (error) => {
+      reject(new Error('Error al leer el archivo.'));
+    };
+    reader.readAsBinaryString(file);
+  });
 }
 
 
@@ -149,6 +153,7 @@ export default function MaestroLaboresPage() {
   const [globalFilter, setGlobalFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -183,23 +188,30 @@ export default function MaestroLaboresPage() {
     resolver: zodResolver(laborSchema),
   });
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!selectedFile) return;
 
     setIsUploading(true);
     setUploadError(null);
 
     try {
-        const { count } = await processAndUploadFile(file);
-        toast({ title: "Éxito", description: `${count} registros cargados correctamente en Firebase.` });
+      const { count } = await processAndUploadFile(selectedFile);
+      toast({ title: "Éxito", description: `${count} registros cargados correctamente.` });
     } catch (error: any) {
-        setUploadError(error.message);
+      setUploadError(error.message);
     } finally {
-        setIsUploading(false);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+      setIsUploading(false);
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -213,7 +225,7 @@ export default function MaestroLaboresPage() {
   const handleDelete = async (codigo: string) => {
     try {
         await deleteDoc(doc(db, "maestro-labores", codigo));
-        toast({ title: "Éxito", description: "Labor eliminada correctamente de Firebase." });
+        toast({ title: "Éxito", description: "Labor eliminada correctamente." });
     } catch (error) {
         toast({ title: "Error", description: "No se pudo eliminar la labor.", variant: "destructive" });
         console.error("Error deleting document: ", error);
@@ -234,7 +246,7 @@ export default function MaestroLaboresPage() {
             const docRef = doc(db, "maestro-labores", editingLabor.codigo);
             await setDoc(docRef, { descripcion: values.descripcion }, { merge: true });
             setEditingLabor(null);
-            toast({ title: "Éxito", description: "Labor actualizada correctamente en Firebase." });
+            toast({ title: "Éxito", description: "Labor actualizada correctamente." });
         } catch (error) {
             toast({ title: "Error", description: "No se pudo actualizar la labor.", variant: "destructive" });
             console.error("Error updating document: ", error);
@@ -299,30 +311,44 @@ export default function MaestroLaboresPage() {
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <PageHeader title="Maestro de Labores" />
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <Input
             placeholder="Buscar por descripción..."
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="max-w-sm"
+            className="max-w-sm w-full"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <input
               type="file"
               ref={fileInputRef}
               className="hidden"
               accept=".xlsx, .xls, .csv"
-              onChange={handleFileUpload}
+              onChange={handleFileSelect}
             />
-            <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
-              {data.length > 0 ? 'Actualizar' : 'Cargar Excel'}
+            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="flex-grow sm:flex-grow-0">
+              <FileUp className="mr-2 h-4 w-4" />
+              Seleccionar Excel
             </Button>
-            <Button onClick={handleDownload} variant="outline" disabled={data.length === 0}>
-              <FileDown className="mr-2 h-4 w-4" /> Descargar
+            <Button onClick={handleDownload} variant="outline" disabled={data.length === 0} className="flex-grow sm:flex-grow-0">
+              <FileDown className="mr-2 h-4 w-4" /> 
+              Descargar
             </Button>
           </div>
         </div>
+        
+        {selectedFile && (
+          <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
+            <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
+            <Button onClick={() => setSelectedFile(null)} variant="ghost" size="icon">
+              <X className="h-4 w-4" />
+            </Button>
+            <Button onClick={handleConfirmUpload} disabled={isUploading}>
+              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+              {isUploading ? 'Subiendo...' : 'Confirmar y Subir'}
+            </Button>
+          </div>
+        )}
 
         <AlertDialog open={!!uploadError} onOpenChange={() => setUploadError(null)}>
           <AlertDialogContent>
