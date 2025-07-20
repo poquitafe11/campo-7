@@ -236,7 +236,15 @@ export default function MaestroLotesPage() {
         const fechaCianamida = docData.fechaCianamida?.toDate ? docData.fechaCianamida.toDate() : (docData.fechaCianamida ? parseISO(docData.fechaCianamida) : new Date());
         return { id: doc.id, ...docData, fechaCianamida } as Lote;
       });
-      setData(lotesData);
+      const sortedData = lotesData.sort((a, b) => {
+          const loteA = parseInt(a.lote, 10);
+          const loteB = parseInt(b.lote, 10);
+          if (!isNaN(loteA) && !isNaN(loteB)) {
+            return loteA - loteB;
+          }
+          return a.lote.localeCompare(b.lote);
+      });
+      setData(sortedData);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
