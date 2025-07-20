@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -13,6 +13,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import * as xlsx from "xlsx";
 import {
   Table,
   TableBody,
@@ -33,6 +34,10 @@ import {
   ChevronsRight,
   PlusCircle,
   CalendarIcon,
+  FileUp,
+  Loader2,
+  CheckCircle,
+  X,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -92,6 +97,111 @@ const loteSchema = z.object({
 
 type Lote = z.infer<typeof loteSchema> & { id: string };
 
+function normalizeKey(key: string): string {
+    return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '').replace(/\./g, '');
+}
+
+function parseExcelDate(excelDate: number | string): Date {
+    if (typeof excelDate === 'string') {
+        return new Date(excelDate);
+    }
+    // Excel date (serial number) to JS Date
+    return new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+}
+
+async function processAndUploadFile(file: File): Promise<{ count: number }> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                if (!e.target?.result) {
+                    return reject(new Error('No se pudo leer el archivo.'));
+                }
+                const workbook = xlsx.read(e.target.result, { type: 'binary', cellDates: true });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[] = xlsx.utils.sheet_to_json(worksheet, { raw: false });
+
+                if (json.length === 0) {
+                    return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
+                }
+                
+                const header = Object.keys(json[0]);
+                const keyMap: { [key: string]: string } = {};
+
+                Object.keys(loteSchema.shape).forEach(field => {
+                    const normalizedField = normalizeKey(field);
+                    const foundKey = header.find(h => normalizeKey(h) === normalizedField);
+                    if (foundKey) {
+                        keyMap[field] = foundKey;
+                    }
+                });
+
+                if (!keyMap.lote) {
+                     return reject(new Error("El archivo debe contener una columna para 'Lote'."));
+                }
+               
+                const normalizedData = json.map(row => {
+                    try {
+                        const loteData: any = {};
+                        for (const field in keyMap) {
+                            const excelKey = keyMap[field];
+                            let value = row[excelKey];
+                            const fieldSchema = (loteSchema.shape as any)[field];
+
+                            if (value === undefined || value === null || String(value).trim() === '') continue;
+
+                            if (fieldSchema instanceof z.ZodDate) {
+                                loteData[field] = parseExcelDate(value);
+                            } else if (fieldSchema instanceof z.ZodNumber) {
+                                loteData[field] = parseFloat(String(value));
+                            } else {
+                                loteData[field] = String(value);
+                            }
+                        }
+                        // Use lote as the document ID
+                        const id = loteData.lote;
+                        if (!id) return null;
+
+                        const validatedData = loteSchema.partial().parse(loteData);
+                        return { ...validatedData, id };
+
+                    } catch(err) {
+                        console.warn('Fila omitida por error de parseo:', row, err);
+                        return null;
+                    }
+                }).filter(Boolean);
+
+
+                if (normalizedData.length === 0) {
+                    return reject(new Error("No se encontraron datos válidos en el archivo. Verifique las columnas y el contenido."));
+                }
+
+                const batch = writeBatch(db);
+                normalizedData.forEach((lote) => {
+                  if (lote && lote.id) {
+                    const docRef = doc(db, 'maestro-lotes', lote.id);
+                    batch.set(docRef, lote, { merge: true });
+                  }
+                });
+
+                await batch.commit();
+                resolve({ count: normalizedData.length });
+
+            } catch (error: any) {
+                console.error('Error processing or uploading file: ', error);
+                reject(new Error(error.message || 'Hubo un error al procesar o subir el archivo.'));
+            }
+        };
+        reader.onerror = (error) => {
+            console.error('FileReader error: ', error);
+            reject(new Error('Error al leer el archivo.'));
+        };
+        reader.readAsBinaryString(file);
+    });
+}
+
+
 export default function MaestroLotesPage() {
   const [data, setData] = useState<Lote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,13 +209,15 @@ export default function MaestroLotesPage() {
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     const unsubscribe = onSnapshot(collection(db, "maestro-lotes"), (snapshot) => {
       const lotesData = snapshot.docs.map(doc => {
         const docData = doc.data();
-        // Firestore timestamp to JS Date
         const fechaCianamida = docData.fechaCianamida?.toDate ? docData.fechaCianamida.toDate() : (docData.fechaCianamida ? parseISO(docData.fechaCianamida) : new Date());
         return { id: doc.id, ...docData, fechaCianamida } as Lote;
       });
@@ -134,6 +246,30 @@ export default function MaestroLotesPage() {
         plantasProd: 0,
     }
   });
+  
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!selectedFile) return;
+    setIsUploading(true);
+    try {
+      const { count } = await processAndUploadFile(selectedFile);
+      toast({ title: "Éxito", description: `${count} registros cargados/actualizados.` });
+    } catch (error: any) {
+      toast({ title: "Error al Cargar", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -177,7 +313,9 @@ export default function MaestroLotesPage() {
             toast({ title: "Éxito", description: "Lote actualizado correctamente." });
             setEditingLote(null);
         } else {
-            await addDoc(collection(db, "maestro-lotes"), values);
+            // Using lote as ID to avoid duplicates
+            const docRef = doc(db, "maestro-lotes", values.lote);
+            await setDoc(docRef, values);
             toast({ title: "Éxito", description: "Lote creado correctamente." });
             setCreateDialogOpen(false);
         }
@@ -297,6 +435,17 @@ export default function MaestroLotesPage() {
                 className="max-w-sm w-full"
             />
             <div className="flex gap-2 w-full sm:w-auto">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleFileSelect}
+                />
+                <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="flex-grow sm:flex-grow-0">
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Seleccionar Excel
+                </Button>
                 <Dialog open={isCreateDialogOpen} onOpenChange={setCreateDialogOpen}>
                     <DialogTrigger asChild>
                         <Button className="flex-grow sm:flex-grow-0">
@@ -335,6 +484,19 @@ export default function MaestroLotesPage() {
             </div>
         </div>
 
+        {selectedFile && (
+          <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
+            <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
+            <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
+              <X className="h-4 w-4" />
+            </Button>
+            <Button onClick={handleConfirmUpload} disabled={isUploading}>
+              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+              {isUploading ? 'Subiendo...' : 'Confirmar y Subir'}
+            </Button>
+          </div>
+        )}
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -356,7 +518,7 @@ export default function MaestroLotesPage() {
                   <TableRow key={row.id}>{row.getVisibleCells().map((cell) => ( <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell> ))}</TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No hay datos. Agrega un lote para empezar.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No hay datos. Agrega un lote o sube un archivo para empezar.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
