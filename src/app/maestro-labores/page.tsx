@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -35,6 +35,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   AlertTriangle,
+  Loader2
 } from "lucide-react";
 import {
   AlertDialog,
@@ -71,6 +72,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 
 
 type Labor = {
@@ -84,16 +87,38 @@ const laborSchema = z.object({
 });
 
 function normalizeKey(key: string): string {
-    return key.trim().toLowerCase().replace(/ó/g, 'o'); // "código" -> "codigo"
+    return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, ''); // "código" -> "codigo"
 }
 
 export default function MaestroLaboresPage() {
   const [data, setData] = useState<Labor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const [editingLabor, setEditingLabor] = useState<Labor | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setLoading(true);
+    const unsubscribe = onSnapshot(collection(db, "maestro-labores"), (snapshot) => {
+      const laboresData = snapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() })) as Labor[];
+      setData(laboresData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching data from Firestore: ", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos de Firestore.",
+        variant: "destructive"
+      });
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+
 
   const form = useForm<z.infer<typeof laborSchema>>({
     resolver: zodResolver(laborSchema),
@@ -102,8 +127,9 @@ export default function MaestroLaboresPage() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setIsUploading(true);
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const workbook = xlsx.read(e.target?.result, { type: "binary" });
           const sheetName = workbook.SheetNames[0];
@@ -126,18 +152,27 @@ export default function MaestroLaboresPage() {
 
           if (normalizedData.length === 0) {
               setUploadError("El archivo no contiene las columnas 'Codigo' y 'Descripcion' o está vacío. Por favor, revisa el archivo e inténtalo de nuevo.");
+              setIsUploading(false);
               return;
           }
 
-          setData(prev => [...prev, ...normalizedData]);
-          toast({ title: "Éxito", description: `${normalizedData.length} registros cargados correctamente.` });
+          const batch = writeBatch(db);
+          normalizedData.forEach((labor) => {
+            const docRef = doc(db, "maestro-labores", labor.codigo);
+            batch.set(docRef, { descripcion: labor.descripcion });
+          });
+
+          await batch.commit();
+
+          toast({ title: "Éxito", description: `${normalizedData.length} registros cargados correctamente en Firebase.` });
         } catch (error) {
-            console.error("Error processing file: ", error);
-            setUploadError((error as Error).message);
+            console.error("Error processing or uploading file: ", error);
+            setUploadError("Hubo un error al procesar o cargar el archivo a Firebase.");
         } finally {
             if (fileInputRef.current) {
-                fileInputRef.current.value = ''; // Reset file input
+                fileInputRef.current.value = '';
             }
+            setIsUploading(false);
         }
       };
       reader.readAsBinaryString(file);
@@ -145,17 +180,20 @@ export default function MaestroLaboresPage() {
   };
 
   const handleDownload = () => {
-    const worksheet = xlsx.utils.json_to_sheet(data, { header: ["codigo", "descripcion"] });
-    // Manually set headers to "Codigo" and "Descripcion" for consistency
-    xlsx.utils.sheet_add_aoa(worksheet, [["Codigo", "Descripcion"]], { origin: "A1" });
+    const worksheet = xlsx.utils.json_to_sheet(data.map(d => ({ Codigo: d.codigo, Descripcion: d.descripcion })));
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, "Maestro de Labores");
     xlsx.writeFile(workbook, "MaestroDeLabores.xlsx");
   };
 
-  const handleDelete = (codigo: string) => {
-    setData(data.filter((labor) => labor.codigo !== codigo));
-    toast({ title: "Éxito", description: "Labor eliminada correctamente." });
+  const handleDelete = async (codigo: string) => {
+    try {
+        await deleteDoc(doc(db, "maestro-labores", codigo));
+        toast({ title: "Éxito", description: "Labor eliminada correctamente de Firebase." });
+    } catch (error) {
+        toast({ title: "Error", description: "No se pudo eliminar la labor.", variant: "destructive" });
+        console.error("Error deleting document: ", error);
+    }
   };
   
   const handleEdit = (labor: Labor) => {
@@ -166,11 +204,17 @@ export default function MaestroLaboresPage() {
     });
   };
 
-  const onEditSubmit = (values: z.infer<typeof laborSchema>) => {
+  const onEditSubmit = async (values: z.infer<typeof laborSchema>) => {
     if (editingLabor) {
-        setData(data.map(l => (l.codigo === editingLabor.codigo ? values : l)));
-        setEditingLabor(null);
-        toast({ title: "Éxito", description: "Labor actualizada correctamente." });
+        try {
+            const docRef = doc(db, "maestro-labores", editingLabor.codigo);
+            await setDoc(docRef, { descripcion: values.descripcion }, { merge: true });
+            setEditingLabor(null);
+            toast({ title: "Éxito", description: "Labor actualizada correctamente en Firebase." });
+        } catch (error) {
+            toast({ title: "Error", description: "No se pudo actualizar la labor.", variant: "destructive" });
+            console.error("Error updating document: ", error);
+        }
     }
   };
 
@@ -196,7 +240,7 @@ export default function MaestroLaboresPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Esto eliminará permanentemente la labor.
+                    Esta acción no se puede deshacer. Esto eliminará permanentemente la labor de la base de datos.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -211,7 +255,7 @@ export default function MaestroLaboresPage() {
         ),
       },
     ],
-    [data]
+    []
   );
 
   const table = useReactTable({
@@ -245,8 +289,9 @@ export default function MaestroLaboresPage() {
               accept=".xlsx, .xls, .csv"
               onChange={handleFileUpload}
             />
-            <Button onClick={() => fileInputRef.current?.click()}>
-              <FileUp className="mr-2 h-4 w-4" /> Cargar Excel
+            <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
+              Cargar Excel
             </Button>
             <Button onClick={handleDownload} variant="outline" disabled={data.length === 0}>
               <FileDown className="mr-2 h-4 w-4" /> Descargar
@@ -287,7 +332,13 @@ export default function MaestroLaboresPage() {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
+              {loading ? (
+                <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                    </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                     {row.getVisibleCells().map((cell) => (
@@ -419,5 +470,3 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
-
-    
