@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Assistant } from '@/lib/types';
-import { useToast } from './ui/use-toast';
+import { useToast } from "@/hooks/use-toast";
 
 
 type AssistantMaster = {
