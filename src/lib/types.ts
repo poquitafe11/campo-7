@@ -1,0 +1,64 @@
+import { z } from "zod";
+
+// Production Tracking
+export const ProductionSchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  harvestDate: z.date(),
+  yieldAmount: z.number().positive(),
+  plantingDate: z.date(),
+  cropType: z.string().min(1, "Crop type is required"),
+});
+export type ProductionData = z.infer<typeof ProductionSchema>;
+
+// Health Management
+export const HealthSchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  observationDate: z.date(),
+  disease: z.string().min(1, "Disease/pest name is required"),
+  treatment: z.string().min(1, "Treatment is required"),
+  notes: z.string().optional(),
+});
+export type HealthData = z.infer<typeof HealthSchema>;
+
+// Irrigation Monitoring
+export const IrrigationSchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  irrigationDate: z.date(),
+  waterAmount: z.number().positive(),
+  durationMinutes: z.number().positive(),
+});
+export type IrrigationData = z.infer<typeof IrrigationSchema>;
+
+// Quality Control
+export const QualityControlSchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  sampleDate: z.date(),
+  brix: z.number().min(0),
+  firmness: z.number().min(0),
+  color: z.string().min(1, "Color is required"),
+});
+export type QualityControlData = z.infer<typeof QualityControlSchema>;
+
+// Biological Control
+export const BiologicalControlSchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  releaseDate: z.date(),
+  agent: z.string().min(1, "Agent name is required"),
+  quantity: z.number().positive(),
+  targetPest: z.string().min(1, "Target pest is required"),
+});
+export type BiologicalControlData = z.infer<typeof BiologicalControlSchema>;
+
+// AI Query
+export const QuerySchema = z.object({
+  query: z.string().min(10, "Please enter a more detailed query."),
+});
+export type QueryData = z.infer<typeof QuerySchema>;
+
+export interface AppState {
+  production: ProductionData[];
+  health: HealthData[];
+  irrigation: IrrigationData[];
+  qualityControl: QualityControlData[];
+  biologicalControl: BiologicalControlData[];
+}
