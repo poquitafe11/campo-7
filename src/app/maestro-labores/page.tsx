@@ -120,6 +120,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
         );
 
         if (normalizedData.length === 0) {
+          // Reject the promise if data is invalid, this will be caught by the calling function's catch block.
           return reject(new Error("El archivo no contiene las columnas requeridas ('Codigo' y 'Descripcion') o está vacío. Por favor, revisa el archivo e inténtalo de nuevo."));
         }
 
@@ -134,10 +135,12 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
       } catch (error) {
         console.error('Error processing or uploading file: ', error);
+        // Reject the promise on any error.
         reject(new Error('Hubo un error al procesar o cargar el archivo a Firebase.'));
       }
     };
     reader.onerror = (error) => {
+      // Reject the promise if the file can't be read.
       reject(new Error('Error al leer el archivo.'));
     };
     reader.readAsBinaryString(file);
@@ -207,6 +210,7 @@ export default function MaestroLaboresPage() {
     } catch (error: any) {
       setUploadError(error.message);
     } finally {
+      // This will now reliably be called.
       setIsUploading(false);
       setSelectedFile(null);
       if (fileInputRef.current) {
@@ -521,5 +525,3 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
-
-    
