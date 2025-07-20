@@ -18,7 +18,9 @@ import {
   Users,
   CircleDollarSign,
   LifeBuoy,
-  UserPlus
+  UserPlus,
+  Lightbulb,
+  FileText
 } from "lucide-react";
 import {
   DropdownMenu,
