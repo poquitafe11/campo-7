@@ -87,7 +87,7 @@ const laborSchema = z.object({
 });
 
 function normalizeKey(key: string): string {
-    return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, ''); // "código" -> "codigo"
+    return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '');
 }
 
 export default function MaestroLaboresPage() {
@@ -126,65 +126,66 @@ export default function MaestroLaboresPage() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
-      setUploadError(null);
-      const reader = new FileReader();
-      reader.onload = async (e) => {
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
         try {
-          const workbook = xlsx.read(e.target?.result, { type: "binary" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const json: any[] = xlsx.utils.sheet_to_json(worksheet);
+            const workbook = xlsx.read(e.target?.result, { type: "binary" });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json: any[] = xlsx.utils.sheet_to_json(worksheet);
 
-          const normalizedData: Labor[] = json.map(row => {
-              const normalizedRow: Partial<Labor> = {};
-              for (const key in row) {
-                  const normalizedKey = normalizeKey(key);
-                  if (normalizedKey === 'codigo' || normalizedKey === 'código') {
-                      normalizedRow.codigo = String(row[key]);
-                  }
-                  if (normalizedKey === 'descripcion' || normalizedKey === 'descripción') {
-                      normalizedRow.descripcion = String(row[key]);
-                  }
-              }
-              return normalizedRow as Labor;
-          }).filter(row => row.codigo && row.descripcion);
+            const normalizedData = json.map(row => {
+                let codigo: string | null = null;
+                let descripcion: string | null = null;
+                for (const key in row) {
+                    const normalizedKey = normalizeKey(key);
+                    if (normalizedKey.includes('codigo')) {
+                        codigo = String(row[key]);
+                    }
+                    if (normalizedKey.includes('descripci')) {
+                        descripcion = String(row[key]);
+                    }
+                }
+                return { codigo, descripcion };
+            }).filter((row): row is { codigo: string; descripcion: string } => row.codigo !== null && row.descripcion !== null && row.codigo !== '' && row.descripcion !== '');
 
-          if (normalizedData.length === 0) {
-              setUploadError("El archivo no contiene las columnas 'Codigo' y 'Descripcion' o está vacío. Por favor, revisa el archivo e inténtalo de nuevo.");
-              setIsUploading(false);
-              return;
-          }
+            if (normalizedData.length === 0) {
+                setUploadError("El archivo no contiene las columnas requeridas ('Codigo' y 'Descripcion') o está vacío. Por favor, revisa el archivo e inténtalo de nuevo.");
+                return;
+            }
 
-          const batch = writeBatch(db);
-          normalizedData.forEach((labor) => {
-            const docRef = doc(db, "maestro-labores", labor.codigo);
-            batch.set(docRef, { descripcion: labor.descripcion });
-          });
+            const batch = writeBatch(db);
+            normalizedData.forEach((labor) => {
+                const docRef = doc(db, "maestro-labores", labor.codigo);
+                batch.set(docRef, { descripcion: labor.descripcion });
+            });
 
-          await batch.commit();
+            await batch.commit();
+            toast({ title: "Éxito", description: `${normalizedData.length} registros cargados correctamente en Firebase.` });
 
-          toast({ title: "Éxito", description: `${normalizedData.length} registros cargados correctamente en Firebase.` });
         } catch (error) {
             console.error("Error processing or uploading file: ", error);
             setUploadError("Hubo un error al procesar o cargar el archivo a Firebase.");
         } finally {
+            setIsUploading(false);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
-            setIsUploading(false);
         }
-      };
-      reader.onerror = () => {
+    };
+    reader.onerror = () => {
         setUploadError("Error al leer el archivo.");
         setIsUploading(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-      };
-      reader.readAsBinaryString(file);
-    }
+    };
+    reader.readAsBinaryString(file);
   };
 
   const handleDownload = () => {
@@ -263,7 +264,7 @@ export default function MaestroLaboresPage() {
         ),
       },
     ],
-    [form]
+    [form] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const table = useReactTable({
