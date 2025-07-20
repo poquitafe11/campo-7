@@ -1,7 +1,31 @@
+
+"use client";
+
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tractor, ShieldCheck, Droplets, ClipboardCheck, PanelLeft, Circle, Lightbulb, FileText, Bug } from "lucide-react";
+import { 
+  Tractor, 
+  ShieldCheck, 
+  Droplets, 
+  ClipboardCheck, 
+  PanelLeft, 
+  User, 
+  Lightbulb, 
+  FileText, 
+  Bug,
+  LogOut,
+  Shield,
+  Circle
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const features = [
   {
@@ -45,13 +69,35 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="flex items-center justify-between p-4 bg-card text-card-foreground sticky top-0 z-10 shadow-md">
-        <Button variant="ghost" size="icon">
-          <PanelLeft className="h-6 w-6" />
-        </Button>
+        <div className="w-10">
+          {/* Este es el logo circular de la esquina */}
+          <div className="h-8 w-8 bg-foreground text-background rounded-full flex items-center justify-center font-bold text-lg">
+            D
+          </div>
+        </div>
         <h1 className="text-xl font-bold text-foreground">Áreas de Gestión</h1>
-        <Button variant="ghost" size="icon">
-          <Circle className="h-6 w-6" />
-        </Button>
+        <div className="w-10 flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Circle className="h-6 w-6" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className="p-2">
+                <p className="text-sm font-semibold">Nombre de Usuario</p>
+                <p className="text-xs text-muted-foreground">Admin</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar sesión</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
       
       <main className="flex-grow p-4">
