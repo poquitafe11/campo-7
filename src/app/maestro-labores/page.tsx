@@ -104,13 +104,12 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
         const workbook = xlsx.read(e.target.result, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = xlsx.utils.sheet_to_json(worksheet);
+        const json: any[] = xlsx.utils.sheet_to_json(worksheet, {raw: false});
 
         if (json.length === 0) {
           return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
         }
 
-        // Detectar las claves de código y descripción
         const header = Object.keys(json[0]);
         const codigoKey = header.find(key => normalizeKey(key).includes('codigo'));
         const descripcionKey = header.find(key => normalizeKey(key).includes('descripci'));
@@ -141,7 +140,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
       } catch (error: any) {
         console.error('Error processing or uploading file: ', error);
-        reject(new Error(error.message || 'Hubo un error al procesar o subir el archivo.'));
+        reject(new Error(error.message || 'Hubo un error al procesar o subir el archivo. Revise la consola para más detalles.'));
       }
     };
     reader.onerror = (error) => {
@@ -182,7 +181,7 @@ export default function MaestroLaboresPage() {
       console.error("Error fetching data from Firestore: ", error);
       toast({
           title: "Error de Conexión",
-          description: "No se pudieron cargar los datos de Firestore. Revisa las reglas de seguridad y la conexión.",
+          description: "No se pudieron cargar los datos. Revisa la consola y las reglas de seguridad de Firestore.",
           variant: "destructive"
       });
       setLoading(false);
@@ -199,6 +198,7 @@ export default function MaestroLaboresPage() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setUploadError(null);
       setSelectedFile(file);
     }
   };
@@ -213,7 +213,8 @@ export default function MaestroLaboresPage() {
       const { count } = await processAndUploadFile(selectedFile);
       toast({ title: "Éxito", description: `${count} registros cargados/actualizados correctamente.` });
     } catch (error: any) {
-      setUploadError(error.message);
+      console.error("Upload failed:", error);
+      setUploadError(error.message || "Ocurrió un error desconocido durante la carga.");
     } finally {
       setIsUploading(false);
       setSelectedFile(null);
