@@ -13,7 +13,9 @@ import {
   Lightbulb, 
   FileText, 
   Bug,
-  LogOut
+  LogOut,
+  PanelLeft,
+  Circle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -69,8 +71,8 @@ export default function Home() {
         <div className="w-10 flex justify-start">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <User className="h-6 w-6" />
+              <Button variant="ghost" size="icon">
+                <PanelLeft className="h-6 w-6" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
@@ -89,11 +91,15 @@ export default function Home() {
           </DropdownMenu>
         </div>
         <h1 className="text-xl font-bold text-foreground">Áreas de Gestión</h1>
-        <div className="w-10" />
+        <div className="w-10 flex justify-end">
+           <Button variant="ghost" size="icon" className="rounded-full">
+            <Circle className="h-6 w-6" />
+          </Button>
+        </div>
       </header>
       
       <main className="flex-grow p-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {features.map((feature) => (
             <Link href={feature.href} key={feature.title} className="block">
               <Card className="aspect-square flex flex-col items-center justify-center p-2 transition-transform hover:scale-105 hover:shadow-lg rounded-xl bg-card">
