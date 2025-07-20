@@ -41,7 +41,7 @@ export default function BiologicalControlPage() {
   }
 
   return (
-    <>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <PageHeader title="Biological Control" />
       <Card>
         <CardHeader>
@@ -125,6 +125,6 @@ export default function BiologicalControlPage() {
           </Form>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

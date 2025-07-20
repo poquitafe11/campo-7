@@ -40,7 +40,7 @@ export default function ProductionPage() {
   }
 
   return (
-    <>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <PageHeader title="Production Tracking" />
       <Card>
         <CardHeader>
@@ -137,6 +137,6 @@ export default function ProductionPage() {
           </Form>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

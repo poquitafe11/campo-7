@@ -33,7 +33,7 @@ export default function SummaryPage() {
   };
 
   return (
-    <>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <PageHeader title="Data Summary" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DataCard title="Production" icon={<Sprout className="h-5 w-5" />}>
@@ -90,6 +90,6 @@ export default function SummaryPage() {
           ))}
         </DataCard>
       </div>
-    </>
+    </div>
   );
 }

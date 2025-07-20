@@ -53,7 +53,7 @@ export default function QueriesPage() {
   ].length > 0;
 
   return (
-    <>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <PageHeader title="AI Query Assistant" />
       <Card>
         <CardHeader>
@@ -132,6 +132,6 @@ export default function QueriesPage() {
           )}
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

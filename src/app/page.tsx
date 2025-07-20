@@ -1,63 +1,73 @@
-import { FeatureCard } from "@/components/FeatureCard";
-import { Sprout, HeartPulse, Droplets, BadgeCheck, Bug, BotMessageSquare, ClipboardList } from "lucide-react";
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tractor, ShieldCheck, Droplets, ClipboardCheck, Bug, Lightbulb, PieChart, PanelLeft, CircleUserRound } from "lucide-react";
 
 const features = [
   {
-    icon: <Sprout size={32} />,
-    title: "Production",
-    description: "Track harvest yields and planting schedules.",
+    icon: <Tractor className="h-10 w-10 text-primary" />,
+    title: "Producción",
     href: "/production",
   },
   {
-    icon: <HeartPulse size={32} />,
-    title: "Health",
-    description: "Record plant health, diseases, and treatments.",
+    icon: <ShieldCheck className="h-10 w-10 text-primary" />,
+    title: "Sanidad",
     href: "/health",
   },
   {
-    icon: <Droplets size={32} />,
-    title: "Irrigation",
-    description: "Log irrigation schedules and water usage.",
+    icon: <Droplets className="h-10 w-10 text-primary" />,
+    title: "Riego",
     href: "/irrigation",
   },
   {
-    icon: <BadgeCheck size={32} />,
-    title: "Quality Control",
-    description: "Input parameters for product quality.",
+    icon: <ClipboardCheck className="h-10 w-10 text-primary" />,
+    title: "C. Calidad",
     href: "/quality-control",
   },
   {
-    icon: <Bug size={32} />,
-    title: "Biological Control",
-    description: "Track agents for pest management.",
+    icon: <Bug className="h-10 w-10 text-primary" />,
+    title: "C. Biologico",
     href: "/biological-control",
   },
   {
-    icon: <BotMessageSquare size={32} />,
-    title: "AI Queries",
-    description: "Ask questions about your field data.",
+    icon: <Lightbulb className="h-10 w-10 text-primary" />,
+    title: "Consultas",
     href: "/queries",
   },
   {
-    icon: <ClipboardList size={32} />,
-    title: "Summary",
-    description: "View a summary of all recorded data.",
+    icon: <PieChart className="h-10 w-10 text-primary" />,
+    title: "Resumen",
     href: "/summary",
   },
 ];
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center text-center">
-      <h1 className="text-4xl font-bold text-primary mb-2">Welcome to Brujos</h1>
-      <p className="text-lg text-foreground/80 mb-10 max-w-2xl">
-        Your all-in-one solution for smart field management. Track, analyze, and optimize your agricultural operations with ease.
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full text-left">
-        {features.map((feature) => (
-          <FeatureCard key={feature.title} {...feature} />
-        ))}
-      </div>
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="flex items-center justify-between p-4 bg-primary text-primary-foreground sticky top-0 z-10">
+        <Button variant="ghost" size="icon">
+          <PanelLeft className="h-6 w-6" />
+        </Button>
+        <h1 className="text-xl font-semibold">Áreas de Gestión</h1>
+        <Button variant="ghost" size="icon">
+          <CircleUserRound className="h-6 w-6" />
+        </Button>
+      </header>
+      
+      <main className="flex-grow p-4">
+        <div className="grid grid-cols-2 gap-4">
+          {features.map((feature) => (
+            <Link href={feature.href} key={feature.title}>
+              <Card className="aspect-square flex flex-col items-center justify-center p-4 transition-transform hover:scale-105 hover:shadow-lg">
+                <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
+                  {feature.icon}
+                  <p className="font-semibold text-center text-card-foreground">{feature.title}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </main>
     </div>
   );
 }

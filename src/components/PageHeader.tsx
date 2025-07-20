@@ -12,7 +12,7 @@ export function PageHeader({ title }: PageHeaderProps) {
   const router = useRouter();
 
   return (
-    <header className="flex items-center gap-4 mb-6">
+    <header className="flex items-center gap-4 mb-6 sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-4">
       <Button
         variant="outline"
         size="icon"

@@ -42,7 +42,7 @@ export default function HealthPage() {
   }
 
   return (
-    <>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <PageHeader title="Health Management" />
       <Card>
         <CardHeader>
@@ -124,6 +124,6 @@ export default function HealthPage() {
           </Form>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

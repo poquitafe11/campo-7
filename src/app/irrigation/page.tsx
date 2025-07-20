@@ -40,7 +40,7 @@ export default function IrrigationPage() {
   }
 
   return (
-    <>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <PageHeader title="Irrigation Monitoring" />
       <Card>
         <CardHeader>
@@ -111,6 +111,6 @@ export default function IrrigationPage() {
           </Form>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }
