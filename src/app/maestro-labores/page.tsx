@@ -122,7 +122,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const batch = writeBatch(db);
                 normalizedData.forEach((labor) => {
                     const docRef = doc(db, "maestro-labores", labor.codigo);
-                    batch.set(docRef, { descripcion: labor.descripcion });
+                    batch.set(docRef, { descripcion: labor.descripcion }, { merge: true });
                 });
 
                 await batch.commit();
@@ -487,3 +487,5 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
+
+    
