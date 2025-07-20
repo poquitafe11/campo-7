@@ -239,6 +239,35 @@ export default function MaestroLaboresPage() {
     }
   };
   
+  const handleDeleteAll = async () => {
+    if (data.length === 0) {
+      toast({
+        title: "No hay nada que eliminar",
+        description: "La base de datos ya está vacía.",
+      });
+      return;
+    }
+    try {
+      const batch = writeBatch(db);
+      data.forEach((labor) => {
+        const docRef = doc(db, "maestro-labores", labor.codigo);
+        batch.delete(docRef);
+      });
+      await batch.commit();
+      toast({
+        title: "Éxito",
+        description: `Se eliminaron ${data.length} registros.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron eliminar todos los registros.",
+        variant: "destructive",
+      });
+      console.error("Error deleting all documents: ", error);
+    }
+  };
+
   const handleEdit = (labor: Labor) => {
     setEditingLabor(labor);
     form.reset({
@@ -340,6 +369,28 @@ export default function MaestroLaboresPage() {
               <FileDown className="mr-2 h-4 w-4" /> 
               Descargar
             </Button>
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={data.length === 0} className="flex-grow sm:flex-grow-0">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar Todo
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Esto eliminará permanentemente los {data.length} registros de la base de datos.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAll}>
+                    Sí, eliminar todo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
         
