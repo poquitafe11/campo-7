@@ -75,7 +75,7 @@ import {
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 type Labor = {
@@ -94,62 +94,61 @@ function normalizeKey(key: string): string {
 
 
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
 
-    reader.onload = async (e) => {
-      try {
-        if (!e.target?.result) {
-          return reject(new Error('No se pudo leer el archivo.'));
-        }
-        const workbook = xlsx.read(e.target.result, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = xlsx.utils.sheet_to_json(worksheet, {raw: false});
+        reader.onload = async (e) => {
+            try {
+                if (!e.target?.result) {
+                    return reject(new Error('No se pudo leer el archivo.'));
+                }
+                const workbook = xlsx.read(e.target.result, { type: 'binary' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[] = xlsx.utils.sheet_to_json(worksheet, { raw: false });
 
-        if (json.length === 0) {
-          return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
-        }
+                if (json.length === 0) {
+                    return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
+                }
 
-        const header = Object.keys(json[0]);
-        const codigoKey = header.find(key => normalizeKey(key).includes('codigo'));
-        const descripcionKey = header.find(key => normalizeKey(key).includes('descripci'));
+                const header = Object.keys(json[0]);
+                const codigoKey = header.find(key => normalizeKey(key).includes('codigo'));
+                const descripcionKey = header.find(key => normalizeKey(key).includes('descripci'));
 
-        if (!codigoKey || !descripcionKey) {
-          return reject(new Error("El archivo debe contener una columna para 'Código' y otra para 'Descripción'."));
-        }
+                if (!codigoKey || !descripcionKey) {
+                    return reject(new Error("El archivo debe contener una columna para 'Código' y otra para 'Descripción'."));
+                }
 
-        const normalizedData = json.map(row => {
-          const codigo = String(row[codigoKey] || '').trim();
-          const descripcion = String(row[descripcionKey] || '').trim();
-          return { codigo, descripcion };
-        }).filter(item => item.codigo && item.descripcion);
+                const normalizedData = json.map(row => {
+                    const codigo = String(row[codigoKey] || '').trim();
+                    const descripcion = String(row[descripcionKey] || '').trim();
+                    return { codigo, descripcion };
+                }).filter(item => item.codigo && item.descripcion);
 
+                if (normalizedData.length === 0) {
+                    return reject(new Error("No se encontraron datos válidos con código y descripción en el archivo."));
+                }
 
-        if (normalizedData.length === 0) {
-          return reject(new Error("No se encontraron datos válidos con código y descripción en el archivo."));
-        }
+                const batch = writeBatch(db);
+                normalizedData.forEach((labor) => {
+                    const docRef = doc(db, 'maestro-labores', labor.codigo);
+                    batch.set(docRef, { descripcion: labor.descripcion }, { merge: true });
+                });
 
-        const batch = writeBatch(db);
-        normalizedData.forEach((labor) => {
-          const docRef = doc(db, 'maestro-labores', labor.codigo);
-          batch.set(docRef, { descripcion: labor.descripcion }, { merge: true });
-        });
+                await batch.commit();
+                resolve({ count: normalizedData.length });
 
-        await batch.commit();
-        resolve({ count: normalizedData.length });
-
-      } catch (error: any) {
-        console.error('Error processing or uploading file: ', error);
-        reject(new Error(error.message || 'Hubo un error al procesar o subir el archivo. Revise la consola para más detalles.'));
-      }
-    };
-    reader.onerror = (error) => {
-      console.error('FileReader error: ', error);
-      reject(new Error('Error al leer el archivo.'));
-    };
-    reader.readAsBinaryString(file);
-  });
+            } catch (error: any) {
+                console.error('Error processing or uploading file: ', error);
+                reject(new Error(error.message || 'Hubo un error al procesar o subir el archivo. Revise la consola para más detalles.'));
+            }
+        };
+        reader.onerror = (error) => {
+            console.error('FileReader error: ', error);
+            reject(new Error('Error al leer el archivo.'));
+        };
+        reader.readAsBinaryString(file);
+    });
 }
 
 
@@ -344,236 +343,245 @@ export default function MaestroLaboresPage() {
   });
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Maestro de Labores" />
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Input
-            placeholder="Buscar por descripción..."
-            value={globalFilter ?? ""}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            className="max-w-sm w-full h-9"
-          />
-          <div className="flex gap-2 w-full sm:w-auto">
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept=".xlsx, .xls, .csv"
-              onChange={handleFileSelect}
+    <TooltipProvider>
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <PageHeader title="Maestro de Labores" />
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <Input
+              placeholder="Buscar por descripción..."
+              value={globalFilter ?? ""}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="max-w-sm w-full h-9"
             />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="icon" className="h-9 w-9">
-                  <FileUp className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Seleccionar Excel</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handleDownload} variant="outline" size="icon" disabled={data.length === 0} className="h-9 w-9">
-                  <FileDown className="h-4 w-4" /> 
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Descargar Excel</p>
-              </TooltipContent>
-            </Tooltip>
-             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="icon" disabled={data.length === 0} className="h-9 w-9">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Esto eliminará permanentemente los {data.length} registros de la base de datos.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAll}>
-                    Sí, eliminar todo
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".xlsx, .xls, .csv"
+                onChange={handleFileSelect}
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9">
+                    <FileUp className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Seleccionar Excel</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleDownload} variant="outline" size="sm" disabled={data.length === 0} className="h-9">
+                    <FileDown className="h-4 w-4" /> 
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Descargar Excel</p>
+                </TooltipContent>
+              </Tooltip>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="destructive" size="sm" disabled={data.length === 0} className="h-9">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Eliminar Todo</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción no se puede deshacer. Esto eliminará permanentemente los {data.length} registros de la base de datos.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteAll}>
+                      Sí, eliminar todo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
-        </div>
-        
-        {selectedFile && (
-          <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
-            <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
-            <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
-              <X className="h-4 w-4" />
-            </Button>
-            <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
-              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-              {isUploading ? 'Subiendo...' : 'Confirmar'}
-            </Button>
-          </div>
-        )}
+          
+          {selectedFile && (
+            <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
+              <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
+              <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
+                <X className="h-4 w-4" />
+              </Button>
+              <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
+                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                {isUploading ? 'Subiendo...' : 'Confirmar'}
+              </Button>
+            </div>
+          )}
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                    </TableCell>
-                </TableRow>
-              ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No hay datos. Sube un archivo de Excel para empezar.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                      <TableCell colSpan={columns.length} className="h-24 text-center">
+                          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                      </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      No hay datos. Sube un archivo de Excel para empezar.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Select
+                  value={`${table.getState().pagination.pageSize}`}
+                  onValueChange={(value) => table.setPageSize(Number(value))}
+                >
+                  <SelectTrigger className="w-[70px] h-9">
+                    <SelectValue placeholder={table.getState().pagination.pageSize} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50, 100].map((pageSize) => (
+                      <SelectItem key={pageSize} value={`${pageSize}`}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">
+                  Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-
+                  {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{" "}
+                  de {table.getFilteredRowModel().rows.length}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => table.setPageIndex(0)}
+                  disabled={!table.getCanPreviousPage()}
+                  className="h-9 w-9"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                  className="h-9 w-9"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm">
+                  Página {table.getPageCount() > 0 ? table.getState().pagination.pageIndex + 1 : 0} de {table.getPageCount()}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                  className="h-9 w-9"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                  disabled={!table.getCanNextPage()}
+                  className="h-9 w-9"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+          </div>
+
+          <Dialog open={!!editingLabor} onOpenChange={(open) => !open && setEditingLabor(null)}>
+              <DialogContent>
+                  <DialogHeader>
+                      <DialogTitle>Editar Labor</DialogTitle>
+                  </DialogHeader>
+                  <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-4">
+                          <FormField
+                              control={form.control}
+                              name="codigo"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Código</FormLabel>
+                                      <FormControl>
+                                          <Input {...field} disabled />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={form.control}
+                              name="descripcion"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Descripción</FormLabel>
+                                      <FormControl>
+                                          <Input {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <DialogFooter>
+                              <DialogClose asChild>
+                                  <Button type="button" variant="secondary">Cancelar</Button>
+                              </DialogClose>
+                              <Button type="submit">Guardar Cambios</Button>
+                          </DialogFooter>
+                      </form>
+                  </Form>
+              </DialogContent>
+          </Dialog>
+
         </div>
-        
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => table.setPageSize(Number(value))}
-              >
-                <SelectTrigger className="w-[70px] h-9">
-                  <SelectValue placeholder={table.getState().pagination.pageSize} />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 20, 50, 100].map((pageSize) => (
-                    <SelectItem key={pageSize} value={`${pageSize}`}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-               <span className="text-sm text-muted-foreground">
-                Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-
-                {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{" "}
-                de {table.getFilteredRowModel().rows.length}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-                className="h-9 w-9"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="h-9 w-9"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">
-                Página {table.getPageCount() > 0 ? table.getState().pagination.pageIndex + 1 : 0} de {table.getPageCount()}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="h-9 w-9"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-                className="h-9 w-9"
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-        </div>
-
-        <Dialog open={!!editingLabor} onOpenChange={(open) => !open && setEditingLabor(null)}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Editar Labor</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="codigo"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Código</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} disabled />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="descripcion"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Descripción</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="secondary">Cancelar</Button>
-                            </DialogClose>
-                            <Button type="submit">Guardar Cambios</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
