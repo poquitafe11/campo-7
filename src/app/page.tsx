@@ -147,7 +147,7 @@ export default function Home() {
       </header>
       
       <main className="flex-grow p-4">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
           {features.map((feature) => (
             <Link href={feature.href} key={feature.title} className="block">
               <Card className="aspect-square flex flex-col items-center justify-center p-2 transition-transform hover:scale-105 hover:shadow-lg rounded-xl bg-card">
