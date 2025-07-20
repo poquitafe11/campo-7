@@ -169,7 +169,6 @@ export default function MaestroLaboresPage() {
     const unsubscribe = onSnapshot(collection(db, "maestro-labores"), (snapshot) => {
       const laboresData = snapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() })) as Labor[];
       const sortedData = laboresData.sort((a, b) => {
-          // Intenta convertir a número para ordenar, si falla, ordena como texto
           const codeA = parseInt(a.codigo, 10);
           const codeB = parseInt(b.codigo, 10);
           if (!isNaN(codeA) && !isNaN(codeB)) {
@@ -181,11 +180,19 @@ export default function MaestroLaboresPage() {
       setLoading(false);
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
-      toast({
-        title: "Error de Conexión",
-        description: "No se pudieron cargar los datos. Revisa tus reglas de seguridad en Firebase.",
-        variant: "destructive"
-      });
+      if (error.code === 'permission-denied') {
+        toast({
+            title: "Error de Permisos",
+            description: "No se pudieron cargar los datos. Revisa tus reglas de seguridad en Firebase.",
+            variant: "destructive"
+        });
+      } else {
+        toast({
+            title: "Error de Conexión",
+            description: "No se pudieron cargar los datos de Firestore.",
+            variant: "destructive"
+        });
+      }
       setLoading(false);
     });
 
@@ -529,5 +536,3 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
-
-    
