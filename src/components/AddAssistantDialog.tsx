@@ -102,7 +102,7 @@ export default function AddAssistantDialog({
       fetchAssistants();
       form.reset({
         assistantDni: isSpecialLabor ? 'special' : '',
-        personnelCount: 0,
+        personnelCount: isSpecialLabor ? 1 : 0,
         absentCount: 0,
       });
     }
@@ -149,7 +149,7 @@ export default function AddAssistantDialog({
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Asistente/Encargado</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSpecialLabor}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isSpecialLabor}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Seleccione un asistente" />

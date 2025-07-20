@@ -63,7 +63,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, getDocs, doc, writeBatch, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, query, where, getDoc } from 'firebase/firestore';
 
 
 const assistantInFormSchema = z.object({
@@ -184,14 +184,17 @@ export default function RegistroAsistenciaPage() {
     loadMasterData();
     
      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-        if (currentUser && db) {
-            const usersRef = collection(db, 'asistentes');
-            const q = query(usersRef, where('dni', '==', currentUser.email));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                const userDoc = querySnapshot.docs[0];
-                setUserProfile(userDoc.data() as { nombre: string });
-            } else {
+        if (currentUser && currentUser.email && db) {
+            try {
+                const userDocRef = doc(db, 'asistentes', currentUser.email);
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                    setUserProfile(userDocSnap.data() as { nombre: string });
+                } else {
+                    setUserProfile({ nombre: currentUser.email || 'Usuario' });
+                }
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
                 setUserProfile({ nombre: currentUser.email || 'Usuario' });
             }
         }
