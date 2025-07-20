@@ -28,7 +28,7 @@ const productionFeatures = [
     icon: <Users className="h-8 w-8 text-primary" />,
     title: "Asistencia de Personal",
     description: "Gestiona la asistencia y el rendimiento del equipo.",
-    href: "#", // Placeholder link
+    href: "/production/attendance",
   },
 ];
 
