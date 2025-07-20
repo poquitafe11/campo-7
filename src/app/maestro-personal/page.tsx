@@ -110,9 +110,9 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 }
 
                 const header = Object.keys(json[0]);
-                const dniKey = header.find(key => normalizeKey(key) === 'dni');
-                const nombreKey = header.find(key => normalizeKey(key) === 'nombre');
-                const cargoKey = header.find(key => normalizeKey(key) === 'cargo');
+                const dniKey = header.find(key => normalizeKey(key).includes('dni'));
+                const nombreKey = header.find(key => normalizeKey(key).includes('nombre'));
+                const cargoKey = header.find(key => normalizeKey(key).includes('cargo'));
 
                 if (!dniKey || !nombreKey || !cargoKey) {
                   return reject(new Error("El archivo debe contener columnas para 'DNI', 'Nombre' y 'Cargo'."));
@@ -283,12 +283,12 @@ export default function MaestroPersonalPage() {
         header: "Acciones",
         cell: ({ row }) => (
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={() => handleEdit(row.original)}>
+            <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)}>
               <Pencil className="h-4 w-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="icon">
+                <Button variant="destructive" size="sm">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -505,3 +505,5 @@ export default function MaestroPersonalPage() {
     </TooltipProvider>
   );
 }
+
+    

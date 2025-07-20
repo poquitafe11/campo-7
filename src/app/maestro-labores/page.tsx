@@ -298,12 +298,12 @@ export default function MaestroLaboresPage() {
         header: "Acciones",
         cell: ({ row }) => (
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={() => handleEdit(row.original)}>
+            <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)}>
               <Pencil className="h-4 w-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="icon">
+                <Button variant="destructive" size="sm">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -585,3 +585,5 @@ export default function MaestroLaboresPage() {
     </TooltipProvider>
   );
 }
+
+    
