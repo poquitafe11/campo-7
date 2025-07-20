@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
 import { ClipboardList, BarChart3, Users, BookUser } from "lucide-react";
 
@@ -10,7 +10,7 @@ const productionFeatures = [
     icon: <ClipboardList className="h-8 w-8 text-primary" />,
     title: "Parte Diario",
     description: "Registra el parte diario de actividades y novedades.",
-    href: "#", // Placeholder link
+    href: "/production/daily-report",
   },
   {
     icon: <BookUser className="h-8 w-8 text-primary" />,
