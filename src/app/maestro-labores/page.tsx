@@ -128,6 +128,7 @@ export default function MaestroLaboresPage() {
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
+      setUploadError(null);
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
