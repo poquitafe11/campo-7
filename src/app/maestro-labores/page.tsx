@@ -97,7 +97,10 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const workbook = xlsx.read(e.target?.result, { type: 'binary' });
+        if (!e.target?.result) {
+            return reject(new Error('No se pudo leer el archivo.'));
+        }
+        const workbook = xlsx.read(e.target.result, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const json: any[] = xlsx.utils.sheet_to_json(worksheet);
@@ -120,7 +123,6 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
         );
 
         if (normalizedData.length === 0) {
-          // Reject the promise if data is invalid, this will be caught by the calling function's catch block.
           return reject(new Error("El archivo no contiene las columnas requeridas ('Codigo' y 'Descripcion') o está vacío. Por favor, revisa el archivo e inténtalo de nuevo."));
         }
 
@@ -135,12 +137,11 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
       } catch (error) {
         console.error('Error processing or uploading file: ', error);
-        // Reject the promise on any error.
-        reject(new Error('Hubo un error al procesar o cargar el archivo a Firebase.'));
+        reject(new Error('Hubo un error al procesar el archivo.'));
       }
     };
     reader.onerror = (error) => {
-      // Reject the promise if the file can't be read.
+      console.error('FileReader error: ', error);
       reject(new Error('Error al leer el archivo.'));
     };
     reader.readAsBinaryString(file);
@@ -210,7 +211,6 @@ export default function MaestroLaboresPage() {
     } catch (error: any) {
       setUploadError(error.message);
     } finally {
-      // This will now reliably be called.
       setIsUploading(false);
       setSelectedFile(null);
       if (fileInputRef.current) {
@@ -296,7 +296,7 @@ export default function MaestroLaboresPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [data] 
   );
 
   const table = useReactTable({
@@ -344,7 +344,7 @@ export default function MaestroLaboresPage() {
         {selectedFile && (
           <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
             <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
-            <Button onClick={() => setSelectedFile(null)} variant="ghost" size="icon">
+            <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
               <X className="h-4 w-4" />
             </Button>
             <Button onClick={handleConfirmUpload} disabled={isUploading}>
