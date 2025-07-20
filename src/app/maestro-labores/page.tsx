@@ -34,6 +34,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  AlertTriangle,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -82,11 +83,16 @@ const laborSchema = z.object({
     descripcion: z.string().min(1, "La descripción es requerida"),
 });
 
+function normalizeKey(key: string): string {
+    return key.trim().toLowerCase().replace(/ó/g, 'o'); // "código" -> "codigo"
+}
+
 export default function MaestroLaboresPage() {
   const [data, setData] = useState<Labor[]>([]);
   const [editingLabor, setEditingLabor] = useState<Labor | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof laborSchema>>({
@@ -104,36 +110,44 @@ export default function MaestroLaboresPage() {
           const worksheet = workbook.Sheets[sheetName];
           const json: any[] = xlsx.utils.sheet_to_json(worksheet);
 
-          const requiredKeys = ["codigo", "descripcion"];
-          const normalizedData = json.map(row => {
+          const normalizedData: Labor[] = json.map(row => {
               const normalizedRow: Partial<Labor> = {};
               for (const key in row) {
-                  const normalizedKey = key.trim().toLowerCase();
-                  if(requiredKeys.includes(normalizedKey)) {
-                      normalizedRow[normalizedKey as keyof Labor] = String(row[key]);
+                  const normalizedKey = normalizeKey(key);
+                  if (normalizedKey === 'codigo' || normalizedKey === 'código') {
+                      normalizedRow.codigo = String(row[key]);
+                  }
+                  if (normalizedKey === 'descripcion' || normalizedKey === 'descripción') {
+                      normalizedRow.descripcion = String(row[key]);
                   }
               }
               return normalizedRow as Labor;
           }).filter(row => row.codigo && row.descripcion);
 
           if (normalizedData.length === 0) {
-              throw new Error("El archivo no contiene las columnas 'Codigo' y 'Descripcion' o está vacío.");
+              setUploadError("El archivo no contiene las columnas 'Codigo' y 'Descripcion' o está vacío. Por favor, revisa el archivo e inténtalo de nuevo.");
+              return;
           }
 
           setData(prev => [...prev, ...normalizedData]);
-          toast({ title: "Éxito", description: "Archivo cargado correctamente." });
+          toast({ title: "Éxito", description: `${normalizedData.length} registros cargados correctamente.` });
         } catch (error) {
             console.error("Error processing file: ", error);
-            toast({ variant: "destructive", title: "Error", description: (error as Error).message });
+            setUploadError((error as Error).message);
+        } finally {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ''; // Reset file input
+            }
         }
       };
       reader.readAsBinaryString(file);
-      event.target.value = ''; // Reset file input
     }
   };
 
   const handleDownload = () => {
-    const worksheet = xlsx.utils.json_to_sheet(data);
+    const worksheet = xlsx.utils.json_to_sheet(data, { header: ["codigo", "descripcion"] });
+    // Manually set headers to "Codigo" and "Descripcion" for consistency
+    xlsx.utils.sheet_add_aoa(worksheet, [["Codigo", "Descripcion"]], { origin: "A1" });
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, "Maestro de Labores");
     xlsx.writeFile(workbook, "MaestroDeLabores.xlsx");
@@ -240,6 +254,23 @@ export default function MaestroLaboresPage() {
           </div>
         </div>
 
+        <AlertDialog open={!!uploadError} onOpenChange={() => setUploadError(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="text-destructive" />
+                Error al Cargar el Archivo
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {uploadError}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setUploadError(null)}>Entendido</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -277,7 +308,7 @@ export default function MaestroLaboresPage() {
           </Table>
         </div>
         
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <Select
                 value={`${table.getState().pagination.pageSize}`}
@@ -295,7 +326,7 @@ export default function MaestroLaboresPage() {
                 </SelectContent>
               </Select>
                <span className="text-sm text-muted-foreground">
-                Fila {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
+                Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-
                 {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{" "}
                 de {table.getFilteredRowModel().rows.length}
               </span>
@@ -319,7 +350,7 @@ export default function MaestroLaboresPage() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm">
-                Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+                Página {table.getPageCount() > 0 ? table.getState().pagination.pageIndex + 1 : 0} de {table.getPageCount()}
               </span>
               <Button
                 variant="outline"
@@ -388,3 +419,5 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
+
+    
