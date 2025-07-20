@@ -9,14 +9,11 @@ import {
   ShieldCheck, 
   Droplets, 
   ClipboardCheck, 
-  PanelLeft, 
   User, 
   Lightbulb, 
   FileText, 
   Bug,
-  LogOut,
-  Shield,
-  Circle
+  LogOut
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -92,15 +89,11 @@ export default function Home() {
           </DropdownMenu>
         </div>
         <h1 className="text-xl font-bold text-foreground">Áreas de Gestión</h1>
-        <div className="w-10">
-          <div className="h-8 w-8 bg-foreground text-background rounded-full flex items-center justify-center font-bold text-lg">
-            D
-          </div>
-        </div>
+        <div className="w-10" />
       </header>
       
       <main className="flex-grow p-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {features.map((feature) => (
             <Link href={feature.href} key={feature.title} className="block">
               <Card className="aspect-square flex flex-col items-center justify-center p-2 transition-transform hover:scale-105 hover:shadow-lg rounded-xl bg-card">
