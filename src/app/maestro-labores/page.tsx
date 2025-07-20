@@ -89,8 +89,9 @@ const laborSchema = z.object({
 });
 
 function normalizeKey(key: string): string {
-    return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '');
+  return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '');
 }
+
 
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
   return new Promise((resolve, reject) => {
@@ -98,32 +99,35 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
     reader.onload = async (e) => {
       try {
         if (!e.target?.result) {
-            return reject(new Error('No se pudo leer el archivo.'));
+          return reject(new Error('No se pudo leer el archivo.'));
         }
         const workbook = xlsx.read(e.target.result, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const json: any[] = xlsx.utils.sheet_to_json(worksheet);
 
+        if (json.length === 0) {
+          return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
+        }
+
+        // Detectar las claves de código y descripción
+        const header = Object.keys(json[0]);
+        const codigoKey = header.find(key => normalizeKey(key).includes('codigo'));
+        const descripcionKey = header.find(key => normalizeKey(key).includes('descripci'));
+
+        if (!codigoKey || !descripcionKey) {
+          return reject(new Error("El archivo debe contener una columna para 'Código' y otra para 'Descripción'."));
+        }
+
         const normalizedData = json.map(row => {
-          let codigo: string | null = null;
-          let descripcion: string | null = null;
-          for (const key in row) {
-            const normalizedKey = normalizeKey(key);
-            if (normalizedKey.includes('codigo')) {
-              codigo = String(row[key]);
-            }
-            if (normalizedKey.includes('descripci')) {
-              descripcion = String(row[key]);
-            }
-          }
+          const codigo = String(row[codigoKey] || '').trim();
+          const descripcion = String(row[descripcionKey] || '').trim();
           return { codigo, descripcion };
-        }).filter((row): row is { codigo: string; descripcion: string } => 
-          row.codigo !== null && row.descripcion !== null && row.codigo.trim() !== '' && row.descripcion.trim() !== ''
-        );
+        }).filter(item => item.codigo && item.descripcion);
+
 
         if (normalizedData.length === 0) {
-          return reject(new Error("El archivo no contiene las columnas requeridas ('Codigo' y 'Descripcion') o está vacío. Por favor, revisa el archivo e inténtalo de nuevo."));
+          return reject(new Error("No se encontraron datos válidos con código y descripción en el archivo."));
         }
 
         const batch = writeBatch(db);
@@ -137,11 +141,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
       } catch (error: any) {
         console.error('Error processing or uploading file: ', error);
-        if (error.code === 'permission-denied') {
-          reject(new Error('Permiso denegado por Firestore. Revisa las reglas de seguridad.'));
-        } else {
-          reject(new Error('Hubo un error al procesar o subir el archivo.'));
-        }
+        reject(new Error(error.message || 'Hubo un error al procesar o subir el archivo.'));
       }
     };
     reader.onerror = (error) => {
@@ -180,19 +180,11 @@ export default function MaestroLaboresPage() {
       setLoading(false);
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
-      if (error.code === 'permission-denied') {
-        toast({
-            title: "Error de Permisos",
-            description: "No se pudieron cargar los datos. Revisa tus reglas de seguridad en Firebase.",
-            variant: "destructive"
-        });
-      } else {
-        toast({
-            title: "Error de Conexión",
-            description: "No se pudieron cargar los datos de Firestore.",
-            variant: "destructive"
-        });
-      }
+      toast({
+          title: "Error de Conexión",
+          description: "No se pudieron cargar los datos de Firestore. Revisa las reglas de seguridad y la conexión.",
+          variant: "destructive"
+      });
       setLoading(false);
     });
 
@@ -536,5 +528,3 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
-
-    
