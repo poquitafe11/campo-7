@@ -176,6 +176,13 @@ export default function MaestroLaboresPage() {
             setIsUploading(false);
         }
       };
+      reader.onerror = () => {
+        setUploadError("Error al leer el archivo.");
+        setIsUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      };
       reader.readAsBinaryString(file);
     }
   };
@@ -256,7 +263,7 @@ export default function MaestroLaboresPage() {
         ),
       },
     ],
-    []
+    [form]
   );
 
   const table = useReactTable({
