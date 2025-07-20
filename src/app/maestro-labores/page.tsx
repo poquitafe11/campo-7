@@ -135,9 +135,13 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
         await batch.commit();
         resolve({ count: normalizedData.length });
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error processing or uploading file: ', error);
-        reject(new Error('Hubo un error al procesar el archivo.'));
+        if (error.code === 'permission-denied') {
+          reject(new Error('Permiso denegado por Firestore. Revisa las reglas de seguridad.'));
+        } else {
+          reject(new Error('Hubo un error al procesar o subir el archivo.'));
+        }
       }
     };
     reader.onerror = (error) => {
@@ -165,20 +169,21 @@ export default function MaestroLaboresPage() {
     const unsubscribe = onSnapshot(collection(db, "maestro-labores"), (snapshot) => {
       const laboresData = snapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() })) as Labor[];
       const sortedData = laboresData.sort((a, b) => {
+          // Intenta convertir a número para ordenar, si falla, ordena como texto
           const codeA = parseInt(a.codigo, 10);
           const codeB = parseInt(b.codigo, 10);
-          if (isNaN(codeA) || isNaN(codeB)) {
-              return a.codigo.localeCompare(b.codigo);
+          if (!isNaN(codeA) && !isNaN(codeB)) {
+            return codeA - codeB;
           }
-          return codeA - codeB;
+          return a.codigo.localeCompare(b.codigo);
       });
       setData(sortedData);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
       toast({
-        title: "Error",
-        description: "No se pudieron cargar los datos de Firestore.",
+        title: "Error de Conexión",
+        description: "No se pudieron cargar los datos. Revisa tus reglas de seguridad en Firebase.",
         variant: "destructive"
       });
       setLoading(false);
@@ -207,7 +212,7 @@ export default function MaestroLaboresPage() {
 
     try {
       const { count } = await processAndUploadFile(selectedFile);
-      toast({ title: "Éxito", description: `${count} registros cargados correctamente.` });
+      toast({ title: "Éxito", description: `${count} registros cargados/actualizados correctamente.` });
     } catch (error: any) {
       setUploadError(error.message);
     } finally {
@@ -295,8 +300,7 @@ export default function MaestroLaboresPage() {
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data] 
+    []
   );
 
   const table = useReactTable({
@@ -525,3 +529,5 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
+
+    
