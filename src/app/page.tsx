@@ -44,21 +44,21 @@ const features = [
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="flex items-center justify-between p-4 bg-primary/10 text-primary-foreground sticky top-0 z-10 shadow-md">
+      <header className="flex items-center justify-between p-4 bg-card text-card-foreground sticky top-0 z-10 shadow-md">
         <Button variant="ghost" size="icon">
           <PanelLeft className="h-6 w-6" />
         </Button>
-        <h1 className="text-xl font-bold">Áreas de Gestión</h1>
+        <h1 className="text-xl font-bold text-foreground">Áreas de Gestión</h1>
         <Button variant="ghost" size="icon">
           <Circle className="h-6 w-6" />
         </Button>
       </header>
       
       <main className="flex-grow p-4">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {features.map((feature) => (
             <Link href={feature.href} key={feature.title} className="block">
-              <Card className="aspect-square flex flex-col items-center justify-center p-2 transition-transform hover:scale-105 hover:shadow-lg rounded-xl">
+              <Card className="aspect-square flex flex-col items-center justify-center p-2 transition-transform hover:scale-105 hover:shadow-lg rounded-xl bg-card">
                 <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
                   {feature.icon}
                   <p className="font-semibold text-center text-card-foreground text-sm">{feature.title}</p>
