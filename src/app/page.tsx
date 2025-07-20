@@ -30,7 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import UserFormDialog from '@/components/UserFormDialog';
 
 const features = [
   {
@@ -71,8 +70,6 @@ const features = [
 ];
 
 export default function Home() {
-  const [isUserFormOpen, setUserFormOpen] = useState(false);
-
   return (
     <>
       <div className="flex flex-col min-h-screen bg-background">
@@ -117,9 +114,11 @@ export default function Home() {
                     <span>Asistentes</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setUserFormOpen(true)}>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  <span>Agregar Usuarios</span>
+                 <DropdownMenuItem asChild>
+                  <Link href="/users">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    <span>Agregar Usuarios</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
@@ -165,7 +164,6 @@ export default function Home() {
           </div>
         </main>
       </div>
-      <UserFormDialog isOpen={isUserFormOpen} onOpenChange={setUserFormOpen} />
     </>
   );
 }

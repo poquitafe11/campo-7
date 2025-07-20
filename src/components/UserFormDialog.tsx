@@ -27,19 +27,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { UserSchema, UserRole } from "@/lib/types";
 import { saveUser } from "@/app/users/actions";
+import { useEffect, useMemo } from "react";
 
 interface UserFormDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   user?: z.infer<typeof UserSchema>;
+  onSuccess: () => void;
+  currentUserRole: UserRole | null;
 }
 
-export default function UserFormDialog({ isOpen, onOpenChange, user }: UserFormDialogProps) {
+const roleHierarchy: { [key in UserRole]: number } = {
+    "Admin": 4,
+    "Jefe": 3,
+    "Supervisor": 2,
+    "Asistente": 1,
+    "Apoyo": 1,
+    "Invitado": 0,
+};
+
+export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, currentUserRole }: UserFormDialogProps) {
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof UserSchema>>({
     resolver: zodResolver(UserSchema),
-    defaultValues: user || {
+    defaultValues: {
       nombre: "",
       dni: "",
       celular: "",
@@ -48,6 +60,22 @@ export default function UserFormDialog({ isOpen, onOpenChange, user }: UserFormD
       active: true,
     },
   });
+  
+  useEffect(() => {
+    if (user) {
+        form.reset(user);
+    } else {
+        form.reset({
+            nombre: "",
+            dni: "",
+            celular: "",
+            email: "",
+            rol: "Invitado",
+            active: true,
+        });
+    }
+  }, [user, form, isOpen])
+
 
   const onSubmit = async (values: z.infer<typeof UserSchema>) => {
     const result = await saveUser(values);
@@ -56,8 +84,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user }: UserFormD
         title: "Éxito",
         description: result.message,
       });
-      onOpenChange(false);
-      form.reset();
+      onSuccess();
     } else {
       toast({
         variant: "destructive",
@@ -66,6 +93,13 @@ export default function UserFormDialog({ isOpen, onOpenChange, user }: UserFormD
       });
     }
   };
+  
+  const availableRoles = useMemo(() => {
+    if (!currentUserRole) return [];
+    const currentUserLevel = roleHierarchy[currentUserRole];
+    return UserRole.options.filter(role => currentUserLevel > roleHierarchy[role]);
+  }, [currentUserRole]);
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -124,7 +158,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user }: UserFormD
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="ejemplo@correo.com" {...field} />
+                    <Input type="email" placeholder="ejemplo@correo.com" {...field} disabled={!!user} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -143,7 +177,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user }: UserFormD
                         </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        {UserRole.options.map((role) => (
+                        {availableRoles.map((role) => (
                             <SelectItem key={role} value={role}>{role}</SelectItem>
                         ))}
                     </SelectContent>
