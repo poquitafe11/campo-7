@@ -36,6 +36,7 @@ import {
   PlusCircle,
   CalendarIcon,
   FileUp,
+  FileDown,
   Loader2,
   CheckCircle,
   X,
@@ -287,6 +288,26 @@ export default function MaestroLotesPage() {
       setSelectedFile(file);
     }
   };
+  
+  const handleDownload = () => {
+    const dataToExport = table.getFilteredRowModel().rows.map(row => row.original);
+    const formattedData = dataToExport.map(lote => ({
+      Lote: lote.lote,
+      Cuartel: lote.cuartel,
+      Variedad: lote.variedad,
+      Ha: lote.ha,
+      Densidad: lote.densidad,
+      'Ha Prod.': lote.haProd,
+      'Plantas Total': lote.plantasTotal,
+      'Plantas Prod.': lote.plantasProd,
+      'Fecha Cianamida': lote.fechaCianamida instanceof Date ? format(lote.fechaCianamida, 'dd/MM/yyyy') : '',
+      Campaña: lote.campana,
+    }));
+    const worksheet = xlsx.utils.json_to_sheet(formattedData);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Maestro de Lotes");
+    xlsx.writeFile(workbook, "MaestroDeLotes.xlsx");
+  };
 
   const handleConfirmUpload = async () => {
     if (!selectedFile) return;
@@ -485,6 +506,10 @@ export default function MaestroLotesPage() {
                 <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="flex-grow sm:flex-grow-0">
                   <FileUp className="mr-2 h-4 w-4" />
                   Seleccionar Excel
+                </Button>
+                <Button onClick={handleDownload} variant="outline" disabled={table.getRowModel().rows.length === 0} className="flex-grow sm:flex-grow-0">
+                  <FileDown className="mr-2 h-4 w-4" /> 
+                  Descargar
                 </Button>
                 <Dialog open={isCreateDialogOpen} onOpenChange={(isOpen) => {
                     setCreateDialogOpen(isOpen);
