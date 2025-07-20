@@ -15,7 +15,6 @@ import {
   Bug,
   LogOut,
   PanelLeft,
-  Circle,
   BookText,
   Layers,
   Users,
@@ -129,7 +128,20 @@ export default function Home() {
         <h1 className="text-xl font-bold text-foreground">Áreas de Gestión</h1>
         <div className="w-10 flex justify-end">
            <Button variant="ghost" size="icon" className="rounded-full">
-            <Circle className="h-6 w-6" />
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
+              ></path>
+            </svg>
           </Button>
         </div>
       </header>
