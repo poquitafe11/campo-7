@@ -9,6 +9,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
+  ColumnFiltersState,
 } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -176,9 +177,9 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                         
                         if (!validatedData.lote || !validatedData.cuartel) return null;
                         
-                        const id = `${validatedData.lote}-${validatedData.cuartel}`;
+                        const id = `${String(validatedData.lote).trim()}-${String(validatedData.cuartel).trim()}`;
                         
-                        return { ...validatedData, id };
+                        return { ...validatedData, id, lote: String(validatedData.lote).trim(), cuartel: String(validatedData.cuartel).trim() };
 
                     } catch(err) {
                         console.warn('Fila omitida por error de parseo:', row, err);
@@ -221,7 +222,7 @@ export default function MaestroLotesPage() {
   const [loading, setLoading] = useState(true);
   const [editingLote, setEditingLote] = useState<Lote | null>(null);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -423,9 +424,9 @@ export default function MaestroLotesPage() {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
-    state: { globalFilter }
+    state: { columnFilters }
   });
 
   const renderFormFields = () => (
@@ -466,9 +467,11 @@ export default function MaestroLotesPage() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <Input
-                placeholder="Buscar en todos los campos..."
-                value={globalFilter ?? ""}
-                onChange={(e) => setGlobalFilter(e.target.value)}
+                placeholder="Buscar por lote..."
+                value={(table.getColumn('lote')?.getFilterValue() as string) ?? ''}
+                onChange={(event) =>
+                  table.getColumn('lote')?.setFilterValue(event.target.value)
+                }
                 className="max-w-sm w-full"
             />
             <div className="flex gap-2 w-full sm:w-auto">
@@ -605,4 +608,3 @@ export default function MaestroLotesPage() {
     </div>
   );
 }
-
