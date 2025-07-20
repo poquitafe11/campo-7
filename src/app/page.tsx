@@ -70,7 +70,6 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-background">
       <header className="flex items-center justify-between p-4 bg-card text-card-foreground sticky top-0 z-10 shadow-md">
         <div className="w-10">
-          {/* Este es el logo circular de la esquina */}
           <div className="h-8 w-8 bg-foreground text-background rounded-full flex items-center justify-center font-bold text-lg">
             D
           </div>
@@ -80,7 +79,7 @@ export default function Home() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
-                <Circle className="h-6 w-6" />
+                <User className="h-6 w-6" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
