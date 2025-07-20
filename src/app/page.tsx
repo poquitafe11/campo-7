@@ -90,9 +90,11 @@ export default function Home() {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Maestros</DropdownMenuLabel>
-              <DropdownMenuItem>
-                <BookText className="mr-2 h-4 w-4" />
-                <span>Maestro de Labores</span>
+              <DropdownMenuItem asChild>
+                <Link href="/maestro-labores">
+                  <BookText className="mr-2 h-4 w-4" />
+                  <span>Maestro de Labores</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Layers className="mr-2 h-4 w-4" />
