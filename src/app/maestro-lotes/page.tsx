@@ -103,11 +103,20 @@ function normalizeKey(key: string): string {
 
 function parseExcelDate(excelDate: number | string): Date {
     if (typeof excelDate === 'string') {
-        return new Date(excelDate);
+        // Attempt to parse ISO string or other common date formats
+        const date = new Date(excelDate);
+        if (!isNaN(date.getTime())) {
+            return date;
+        }
     }
-    // Excel date (serial number) to JS Date
-    return new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+    if (typeof excelDate === 'number') {
+        // Excel date (serial number) to JS Date
+        return new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+    }
+    // Return an invalid date if parsing fails, to be caught by validation
+    return new Date('invalid');
 }
+
 
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
     return new Promise((resolve, reject) => {
@@ -152,14 +161,20 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                             if (value === undefined || value === null || String(value).trim() === '') continue;
 
                             if (fieldSchema instanceof z.ZodDate) {
-                                loteData[field] = parseExcelDate(value);
-                            } else if (fieldSchema instanceof z.ZodNumber) {
-                                loteData[field] = parseFloat(String(value));
+                                const parsedDate = parseExcelDate(value);
+                                if (!isNaN(parsedDate.getTime())) {
+                                    loteData[field] = parsedDate;
+                                }
+                            } else if (fieldSchema._def.typeName === "ZodNumber") {
+                                const num = parseFloat(String(value).replace(',', '.'));
+                                if (!isNaN(num)) {
+                                   loteData[field] = num;
+                                }
                             } else {
                                 loteData[field] = String(value);
                             }
                         }
-                        // Use lote as the document ID
+                        
                         const id = loteData.lote;
                         if (!id) return null;
 
@@ -239,11 +254,16 @@ export default function MaestroLotesPage() {
   const form = useForm<z.infer<typeof loteSchema>>({
     resolver: zodResolver(loteSchema),
     defaultValues: {
+        lote: "",
+        cuartel: "",
+        variedad: "",
         ha: 0,
         densidad: 0,
         haProd: 0,
         plantasTotal: 0,
         plantasProd: 0,
+        campana: "",
+        fechaCianamida: new Date(),
     }
   });
   
@@ -341,7 +361,7 @@ export default function MaestroLotesPage() {
         header: "Fecha Cianamida",
         cell: ({ row }) => {
             const date = row.getValue("fechaCianamida");
-            return date instanceof Date ? format(date, 'dd/MM/yyyy') : "Fecha inválida";
+            return date instanceof Date && !isNaN(date.getTime()) ? format(date, 'dd/MM/yyyy') : "N/A";
         }
       },
       { accessorKey: "campana", header: "Campaña" },
@@ -393,7 +413,7 @@ export default function MaestroLotesPage() {
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem><FormLabel>Lote</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem><FormLabel>Lote</FormLabel><FormControl><Input {...field} disabled={!!editingLote} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="cuartel" render={({ field }) => ( <FormItem><FormLabel>Cuartel</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="variedad" render={({ field }) => ( <FormItem><FormLabel>Variedad</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="ha" render={({ field }) => ( <FormItem><FormLabel>Ha</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
