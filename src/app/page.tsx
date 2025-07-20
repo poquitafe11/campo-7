@@ -101,9 +101,11 @@ export default function Home() {
                   <span>Datos de Lotes</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Users className="mr-2 h-4 w-4" />
-                <span>Maestro de Personal</span>
+              <DropdownMenuItem asChild>
+                <Link href="/maestro-personal">
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Maestro de Personal</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <CircleDollarSign className="mr-2 h-4 w-4" />
