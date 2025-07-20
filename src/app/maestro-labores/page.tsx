@@ -133,7 +133,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 reject(new Error("Hubo un error al procesar o cargar el archivo a Firebase."));
             }
         };
-        reader.onerror = () => {
+        reader.onerror = (error) => {
             reject(new Error("Error al leer el archivo."));
         };
         reader.readAsBinaryString(file);
@@ -308,7 +308,7 @@ export default function MaestroLaboresPage() {
             />
             <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
-              Cargar Excel
+              {data.length > 0 ? 'Actualizar' : 'Cargar Excel'}
             </Button>
             <Button onClick={handleDownload} variant="outline" disabled={data.length === 0}>
               <FileDown className="mr-2 h-4 w-4" /> Descargar
