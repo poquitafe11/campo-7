@@ -155,7 +155,15 @@ export default function MaestroLaboresPage() {
     setLoading(true);
     const unsubscribe = onSnapshot(collection(db, "maestro-labores"), (snapshot) => {
       const laboresData = snapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() })) as Labor[];
-      setData(laboresData);
+      const sortedData = laboresData.sort((a, b) => {
+          const codeA = parseInt(a.codigo, 10);
+          const codeB = parseInt(b.codigo, 10);
+          if (isNaN(codeA) || isNaN(codeB)) {
+              return a.codigo.localeCompare(b.codigo);
+          }
+          return codeA - codeB;
+      });
+      setData(sortedData);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
