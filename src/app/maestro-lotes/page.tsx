@@ -76,7 +76,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, addDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -103,17 +103,14 @@ function normalizeKey(key: string): string {
 
 function parseExcelDate(excelDate: number | string): Date {
     if (typeof excelDate === 'string') {
-        // Attempt to parse ISO string or other common date formats
         const date = new Date(excelDate);
         if (!isNaN(date.getTime())) {
             return date;
         }
     }
     if (typeof excelDate === 'number') {
-        // Excel date (serial number) to JS Date
         return new Date(Math.round((excelDate - 25569) * 86400 * 1000));
     }
-    // Return an invalid date if parsing fails, to be caught by validation
     return new Date('invalid');
 }
 
@@ -146,8 +143,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                     }
                 });
 
-                if (!keyMap.lote) {
-                     return reject(new Error("El archivo debe contener una columna para 'Lote'."));
+                if (!keyMap.lote || !keyMap.cuartel) {
+                     return reject(new Error("El archivo debe contener columnas para 'Lote' y 'Cuartel'."));
                 }
                
                 const normalizedData = json.map(row => {
@@ -171,25 +168,27 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                                    loteData[field] = num;
                                 }
                             } else {
-                                loteData[field] = String(value);
+                                loteData[field] = String(value).trim();
                             }
                         }
                         
-                        const id = loteData.lote;
-                        if (!id) return null;
-
                         const validatedData = loteSchema.partial().parse(loteData);
+                        
+                        if (!validatedData.lote || !validatedData.cuartel) return null;
+                        
+                        const id = `${validatedData.lote}-${validatedData.cuartel}`;
+                        
                         return { ...validatedData, id };
 
                     } catch(err) {
                         console.warn('Fila omitida por error de parseo:', row, err);
                         return null;
                     }
-                }).filter(Boolean);
+                }).filter(item => item && item.lote && item.cuartel);
 
 
                 if (normalizedData.length === 0) {
-                    return reject(new Error("No se encontraron datos válidos en el archivo. Verifique las columnas y el contenido."));
+                    return reject(new Error("No se encontraron datos válidos en el archivo. Verifique que todas las filas tengan Lote y Cuartel."));
                 }
 
                 const batch = writeBatch(db);
@@ -239,10 +238,16 @@ export default function MaestroLotesPage() {
       const sortedData = lotesData.sort((a, b) => {
           const loteA = parseInt(a.lote, 10);
           const loteB = parseInt(b.lote, 10);
-          if (!isNaN(loteA) && !isNaN(loteB)) {
+          const cuartelA = parseInt(a.cuartel, 10);
+          const cuartelB = parseInt(b.cuartel, 10);
+
+          if (loteA !== loteB) {
             return loteA - loteB;
           }
-          return a.lote.localeCompare(b.lote);
+          if (!isNaN(cuartelA) && !isNaN(cuartelB)) {
+             return cuartelA - cuartelB;
+          }
+          return a.cuartel.localeCompare(b.cuartel);
       });
       setData(sortedData);
       setLoading(false);
@@ -302,9 +307,9 @@ export default function MaestroLotesPage() {
   const handleDelete = async (id: string) => {
     try {
         await deleteDoc(doc(db, "maestro-lotes", id));
-        toast({ title: "Éxito", description: "Lote eliminado correctamente." });
+        toast({ title: "Éxito", description: "Registro eliminado correctamente." });
     } catch (error) {
-        toast({ title: "Error", description: "No se pudo eliminar el lote.", variant: "destructive" });
+        toast({ title: "Error", description: "No se pudo eliminar el registro.", variant: "destructive" });
         console.error("Error deleting document: ", error);
     }
   };
@@ -335,21 +340,25 @@ export default function MaestroLotesPage() {
 
   const onSubmit = async (values: z.infer<typeof loteSchema>) => {
     try {
+        const id = `${values.lote}-${values.cuartel}`;
+        const docRef = doc(db, "maestro-lotes", id);
+        
+        await setDoc(docRef, values, { merge: true });
+
         if (editingLote) {
-            const docRef = doc(db, "maestro-lotes", editingLote.id);
-            await setDoc(docRef, values, { merge: true });
-            toast({ title: "Éxito", description: "Lote actualizado correctamente." });
+            // If the ID changed, delete the old document
+            if (editingLote.id !== id) {
+                await deleteDoc(doc(db, "maestro-lotes", editingLote.id));
+            }
+            toast({ title: "Éxito", description: "Registro actualizado correctamente." });
             setEditingLote(null);
         } else {
-            // Using lote as ID to avoid duplicates
-            const docRef = doc(db, "maestro-lotes", values.lote);
-            await setDoc(docRef, values);
-            toast({ title: "Éxito", description: "Lote creado correctamente." });
+            toast({ title: "Éxito", description: "Registro creado correctamente." });
             setCreateDialogOpen(false);
         }
         form.reset({ ha: 0, densidad: 0, haProd: 0, plantasTotal: 0, plantasProd: 0, lote: '', cuartel: '', variedad: '', campana: '' });
     } catch (error) {
-        toast({ title: "Error", description: "No se pudo guardar el lote.", variant: "destructive" });
+        toast({ title: "Error", description: "No se pudo guardar el registro.", variant: "destructive" });
         console.error("Error saving document: ", error);
     }
   };
@@ -391,7 +400,7 @@ export default function MaestroLotesPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Esto eliminará permanentemente el lote.
+                    Esta acción no se puede deshacer. Esto eliminará permanentemente el registro.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -421,7 +430,7 @@ export default function MaestroLotesPage() {
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem><FormLabel>Lote</FormLabel><FormControl><Input {...field} disabled={!!editingLote} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem><FormLabel>Lote</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="cuartel" render={({ field }) => ( <FormItem><FormLabel>Cuartel</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="variedad" render={({ field }) => ( <FormItem><FormLabel>Variedad</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="ha" render={({ field }) => ( <FormItem><FormLabel>Ha</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -474,7 +483,10 @@ export default function MaestroLotesPage() {
                   <FileUp className="mr-2 h-4 w-4" />
                   Seleccionar Excel
                 </Button>
-                <Dialog open={isCreateDialogOpen} onOpenChange={setCreateDialogOpen}>
+                <Dialog open={isCreateDialogOpen} onOpenChange={(isOpen) => {
+                    setCreateDialogOpen(isOpen);
+                    if (!isOpen) form.reset({ ha: 0, densidad: 0, haProd: 0, plantasTotal: 0, plantasProd: 0, lote: '', cuartel: '', variedad: '', campana: '' });
+                }}>
                     <DialogTrigger asChild>
                         <Button className="flex-grow sm:flex-grow-0">
                             <PlusCircle className="mr-2 h-4 w-4" />
@@ -482,7 +494,7 @@ export default function MaestroLotesPage() {
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-3xl">
-                        <DialogHeader><DialogTitle>Agregar Nuevo Lote</DialogTitle></DialogHeader>
+                        <DialogHeader><DialogTitle>Agregar Nuevo Registro</DialogTitle></DialogHeader>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                 {renderFormFields()}
@@ -540,13 +552,13 @@ export default function MaestroLotesPage() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">Cargando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
               ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>{row.getVisibleCells().map((cell) => ( <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell> ))}</TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No hay datos. Agrega un lote o sube un archivo para empezar.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No hay datos. Agrega un registro o sube un archivo para empezar.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -573,9 +585,11 @@ export default function MaestroLotesPage() {
             </div>
         </div>
 
-        <Dialog open={!!editingLote} onOpenChange={(open) => !open && setEditingLote(null)}>
+        <Dialog open={!!editingLote} onOpenChange={(open) => {
+            if (!open) setEditingLote(null);
+        }}>
             <DialogContent className="sm:max-w-3xl">
-                <DialogHeader><DialogTitle>Editar Lote</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Editar Registro</DialogTitle></DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         {renderFormFields()}
@@ -591,3 +605,4 @@ export default function MaestroLotesPage() {
     </div>
   );
 }
+
