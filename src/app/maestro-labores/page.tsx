@@ -96,6 +96,7 @@ function normalizeKey(key: string): string {
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+
     reader.onload = async (e) => {
       try {
         if (!e.target?.result) {
@@ -159,7 +160,6 @@ export default function MaestroLaboresPage() {
   const [editingLabor, setEditingLabor] = useState<Labor | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
@@ -198,7 +198,6 @@ export default function MaestroLaboresPage() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setUploadError(null);
       setSelectedFile(file);
     }
   };
@@ -207,14 +206,13 @@ export default function MaestroLaboresPage() {
     if (!selectedFile) return;
 
     setIsUploading(true);
-    setUploadError(null);
-
+    
     try {
       const { count } = await processAndUploadFile(selectedFile);
       toast({ title: "Éxito", description: `${count} registros cargados/actualizados correctamente.` });
     } catch (error: any) {
       console.error("Upload failed:", error);
-      setUploadError(error.message || "Ocurrió un error desconocido durante la carga.");
+      toast({ title: "Error al Cargar", description: error.message || "Ocurrió un error desconocido.", variant: "destructive" });
     } finally {
       setIsUploading(false);
       setSelectedFile(null);
@@ -300,7 +298,7 @@ export default function MaestroLaboresPage() {
         ),
       },
     ],
-    []
+    [data]
   );
 
   const table = useReactTable({
@@ -357,23 +355,6 @@ export default function MaestroLaboresPage() {
             </Button>
           </div>
         )}
-
-        <AlertDialog open={!!uploadError} onOpenChange={() => setUploadError(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="text-destructive" />
-                Error al Cargar el Archivo
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {uploadError}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={() => setUploadError(null)}>Entendido</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         <div className="rounded-md border">
           <Table>
@@ -529,3 +510,5 @@ export default function MaestroLaboresPage() {
     </div>
   );
 }
+
+    
