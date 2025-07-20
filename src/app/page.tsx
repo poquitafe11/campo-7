@@ -113,9 +113,11 @@ export default function Home() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
                <DropdownMenuLabel>Configuración</DropdownMenuLabel>
-              <DropdownMenuItem>
-                <LifeBuoy className="mr-2 h-4 w-4" />
-                <span>Asistentes</span>
+              <DropdownMenuItem asChild>
+                <Link href="/maestro-personal">
+                  <LifeBuoy className="mr-2 h-4 w-4" />
+                  <span>Asistentes</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <UserPlus className="mr-2 h-4 w-4" />
