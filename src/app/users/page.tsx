@@ -60,7 +60,10 @@ export default function UsersPage() {
         if (usersResult.success) {
             setData(usersResult.data);
         } else if (usersResult.message) {
-            toast({ variant: "destructive", title: "Error", description: usersResult.message });
+            // Only show toast if there's a message and it's not a permission issue already handled by the UI
+            if (!usersResult.message.includes("permiso")) {
+               toast({ variant: "destructive", title: "Error", description: usersResult.message });
+            }
         }
         setLoading(false);
     });
@@ -68,6 +71,7 @@ export default function UsersPage() {
   
   useEffect(() => {
     fetchUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleEdit = (user: User) => {
@@ -144,7 +148,9 @@ export default function UsersPage() {
           </div>
         ),
       },
-    ], []
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   const table = useReactTable({
@@ -159,9 +165,9 @@ export default function UsersPage() {
   }, [currentUserRole]);
 
 
-  if (loading && !data.length) {
+  if (loading || isPending) {
     return (
-        <div className="flex h-screen items-center justify-center">
+        <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex h-[calc(100vh-10rem)] items-center justify-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
     );
@@ -230,4 +236,3 @@ export default function UsersPage() {
     </div>
   );
 }
-

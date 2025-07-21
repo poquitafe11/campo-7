@@ -20,7 +20,6 @@ import {
   BadgeCheck,
   Bug,
   BotMessageSquare,
-  BookText,
   AreaChart
 } from "lucide-react"
 
@@ -33,6 +32,7 @@ const navItems = [
   {
     label: "Maestros",
     icon: <Layers />,
+    href: "/maestros", // Parent href for active state check
     items: [
       { href: "/maestro-lotes", label: "Lotes" },
       { href: "/maestro-labores", label: "Labores" },
@@ -66,7 +66,6 @@ export function SidebarNav() {
 
   const isParentActive = (item: (typeof navItems)[number]) => {
     if (!item.href) return false;
-    if (item.href === "/dashboard") return pathname === item.href;
     // For parent items, check if the current path starts with the item's href
     return item.items && pathname.startsWith(item.href);
   };
@@ -81,7 +80,9 @@ export function SidebarNav() {
         item.items ? (
           <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
-              href={item.href}
+              // A parent button does not need an href if it only toggles
+              // But if it should navigate, it needs one. Let's make it toggle-only for now.
+              // href={item.href}
               isActive={isParentActive(item)}
             >
               {item.icon}

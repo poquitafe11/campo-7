@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { db, auth } from "@/lib/firebase";
-import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, where } from "firebase/firestore";
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc } from "firebase/firestore";
 import { User, UserSchema, UserRole } from "@/lib/types";
 import { revalidatePath } from 'next/cache';
 
@@ -12,6 +12,10 @@ export async function getCurrentUserRole(): Promise<UserRole | null> {
     if (!currentUser?.email) return null;
 
     try {
+        if (currentUser.email === 'marcoromau@gmail.com') {
+            return 'Admin';
+        }
+        
         const userDocRef = doc(db, "usuarios", currentUser.email);
         const userDocSnap = await getDoc(userDocRef);
 
