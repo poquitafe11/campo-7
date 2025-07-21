@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, Loader2, Calendar as CalendarIcon, RefreshCcw, LayoutGrid } from 'lucide-react';
 import { format, differenceInDays, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -19,8 +19,8 @@ import { cn } from '@/lib/utils';
 
 
 interface LoteHeaderInfo {
-  lote: string;
-  cuartel: string;
+  lote: string; // The main lot number (e.g., '81')
+  cuartel: string; // The specific sub-lot (e.g., '73')
   ddc: number | string;
   variedadAbreviada: string;
   campana: string;
@@ -31,7 +31,7 @@ interface PivotData {
   labors: {
     [labor: string]: {
       code?: string;
-      lotes: { [cuartel: string]: number };
+      lotes: { [cuartel: string]: number }; // Data is stored by cuartel for rendering
       totalPersonnel: number;
     };
   };
@@ -78,7 +78,7 @@ export default function AttendanceSummaryPage() {
         const lotes = lotesSnapshot.docs.map(doc => {
             const data = doc.data();
             // Handle Firestore Timestamp
-            const fechaCianamida = data.fechaCianamida?.toDate ? data.fechaCianamida.toDate() : (data.fechaCianamida ? new Date(data.fechaCianamida) : undefined);
+            const fechaCianamida = data.fechaCianamida?.toDate ? data.fechaCianamida.toDate() : (data.fechaCianamida ? parseISO(data.fechaCianamida) : undefined);
             return { id: doc.id, ...data, fechaCianamida } as LoteData
         });
         setLotesMaestro(lotes);
@@ -107,13 +107,17 @@ export default function AttendanceSummaryPage() {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const recordsForDay = allRecords.filter(r => r.date === formattedDate);
     
-    const lotesInRecords = new Set<string>();
+    // Get all unique lot-cuartel combinations that have records for the day
+    const lotesInRecords = new Map<string, LoteData>();
     recordsForDay.forEach(record => {
-      lotesInRecords.add(record.lotName);
+        const loteData = lotesMaestro.find(l => l.lote === record.lotName);
+        if (loteData && !lotesInRecords.has(loteData.id)) {
+            lotesInRecords.set(loteData.id, loteData);
+        }
     });
 
-    const uniqueLotesInMaestro = lotesMaestro
-      .filter(l => lotesInRecords.has(l.lote))
+    // Create sorted header info from the unique lot-cuartel combos
+    const loteHeaders: LoteHeaderInfo[] = Array.from(lotesInRecords.values())
       .sort((a, b) => {
         const loteA = parseInt(a.lote, 10);
         const loteB = parseInt(b.lote, 10);
@@ -121,26 +125,24 @@ export default function AttendanceSummaryPage() {
         const cuartelB = parseInt(b.cuartel, 10);
         if (loteA !== loteB) return loteA - loteB;
         return cuartelA - cuartelB;
+      }).map(loteData => {
+        const variedad = loteData?.variedad || 'N/A';
+        const fechaCianamida = loteData?.fechaCianamida;
+        const campana = loteData?.campana || '';
+
+        let ddc: number | string = '';
+        if (fechaCianamida && isValid(fechaCianamida)) {
+            ddc = differenceInDays(selectedDate, fechaCianamida);
+        }
+        
+        const variedadAbreviada = variedad.substring(0, 2).toUpperCase();
+        
+        return { lote: loteData.lote, cuartel: loteData.cuartel, ddc, variedadAbreviada, campana };
       });
 
-    if (uniqueLotesInMaestro.length === 0) {
-        return { loteHeaders: [], labors: {}, columnTotals: {}, absentTotalsByLote: {}, grandTotalPersonnel: 0, grandTotalAbsent: 0, };
+    if (loteHeaders.length === 0) {
+        return { loteHeaders: [], labors: {}, columnTotals: {}, absentTotalsByLote: {}, grandTotalPersonnel: 0, grandTotalAbsent: 0 };
     }
-    
-    const loteHeaders: LoteHeaderInfo[] = uniqueLotesInMaestro.map(loteData => {
-      const variedad = loteData?.variedad || 'N/A';
-      const fechaCianamida = loteData?.fechaCianamida;
-      const campana = loteData?.campana || '';
-
-      let ddc: number | string = '';
-      if (fechaCianamida && isValid(fechaCianamida)) {
-          ddc = differenceInDays(selectedDate, fechaCianamida);
-      }
-      
-      const variedadAbreviada = variedad.substring(0, 2).toUpperCase();
-      
-      return { lote: loteData.lote, cuartel: loteData.cuartel, ddc, variedadAbreviada, campana };
-    });
 
     const labors: PivotData['labors'] = {};
     const columnTotals: { [cuartel: string]: number } = {};
@@ -251,6 +253,12 @@ export default function AttendanceSummaryPage() {
                   )}
               </PopoverContent>
             </Popover>
+            <Button variant="ghost" size="icon" asChild>
+                <Link href="/dashboard">
+                    <LayoutGrid className="h-5 w-5" />
+                    <span className="sr-only">Menú Principal</span>
+                </Link>
+            </Button>
         </div>
       </header>
       <main className="flex-1 p-4 sm:p-6">
