@@ -94,7 +94,9 @@ export default function AttendanceDatabasePage() {
         accessorKey: 'date',
         header: 'Fecha',
         cell: ({ row }) => {
-            const date = parseISO(row.getValue('date'));
+            const dateValue = row.getValue('date');
+            if (!dateValue || typeof dateValue !== 'string') return "N/A";
+            const date = parseISO(dateValue);
             return format(date, 'dd/MM/yyyy');
         }
       },
@@ -105,6 +107,7 @@ export default function AttendanceDatabasePage() {
         header: 'Asistentes',
         cell: ({ row }) => {
             const assistants: any[] = row.getValue('assistants');
+            if (!assistants || !Array.isArray(assistants)) return "";
             return assistants.map(a => a.assistantName).join(', ');
         }
       },
@@ -167,13 +170,13 @@ export default function AttendanceDatabasePage() {
                         <PopoverTrigger asChild>
                             <Button variant="outline" className="w-full sm:w-auto">
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {table.getColumn('date')?.getFilterValue() ? format(table.getColumn('date')?.getFilterValue() as Date, 'PPP', {locale: es}) : 'Filtrar por Fecha'}
+                                {table.getColumn('date')?.getFilterValue() ? format(parseISO(table.getColumn('date')?.getFilterValue() as string), 'PPP', {locale: es}) : 'Filtrar por Fecha'}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="single"
-                                selected={table.getColumn('date')?.getFilterValue() as Date}
+                                selected={table.getColumn('date')?.getFilterValue() ? parseISO(table.getColumn('date')?.getFilterValue() as string) : undefined}
                                 onSelect={(date) => table.getColumn('date')?.setFilterValue(date ? format(date, 'yyyy-MM-dd') : undefined)}
                                 initialFocus
                                 locale={es}
@@ -181,14 +184,17 @@ export default function AttendanceDatabasePage() {
                         </PopoverContent>
                     </Popover>
                     <Select
-                        value={table.getColumn('lote')?.getFilterValue() as string ?? ''}
-                        onValueChange={value => table.getColumn('lote')?.setFilterValue(value)}
+                        value={table.getColumn('lote')?.getFilterValue() as string ?? 'all'}
+                        onValueChange={value => {
+                            const filterValue = value === 'all' ? undefined : value;
+                            table.getColumn('lote')?.setFilterValue(filterValue);
+                        }}
                     >
                         <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Filtrar por Lote" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">Todos los lotes</SelectItem>
+                            <SelectItem value="all">Todos los lotes</SelectItem>
                             {uniqueLotes.map(lote => (
                                 <SelectItem key={lote} value={lote}>{lote}</SelectItem>
                             ))}
