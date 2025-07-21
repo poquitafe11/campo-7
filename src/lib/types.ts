@@ -110,8 +110,8 @@ export type AttendanceRecord = {
 
 export type SummaryData = {
   date: string;
-  Personnel: number;
-  Absentees: number;
+  Personal: number;
+  Faltas: number;
 };
 
 // Usuarios del sistema
@@ -128,3 +128,23 @@ export const UserSchema = z.object({
 });
 
 export type User = z.infer<typeof UserSchema>;
+
+// Registro de Actividades (Parte Diario)
+export const ActivityRecordSchema = z.object({
+    registerDate: z.date(),
+    campaign: z.string().min(1, "La campaña es requerida."),
+    stage: z.string().min(1, "La etapa es requerida."),
+    lote: z.string().min(1, "El lote es requerido."),
+    code: z.string().optional(),
+    labor: z.string().optional(),
+    performance: z.coerce.number(),
+    personnelCount: z.coerce.number().int().min(1, "Debe haber al menos una persona."),
+    workdayCount: z.coerce.number(),
+    cost: z.coerce.number(),
+    shift: z.string().min(1, "El turno es requerido."),
+    minRange: z.coerce.number(),
+    maxRange: z.coerce.number(),
+    pass: z.coerce.number(),
+    observations: z.string().optional(),
+});
+export type ActivityRecordData = z.infer<typeof ActivityRecordSchema>;
