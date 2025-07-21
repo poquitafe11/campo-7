@@ -1,16 +1,17 @@
+
 "use client";
 
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookText, Layers, LifeBuoy } from "lucide-react";
+import { Users, BookText, Layers, LifeBuoy, Tractor } from "lucide-react";
 
 const quickAccessLinks = [
   {
-    title: "Gestión de Usuarios",
-    description: "Administra los usuarios y sus permisos.",
-    href: "/users",
-    icon: <Users className="h-8 w-8 text-primary" />,
+    title: "Producción",
+    description: "Gestiona la asistencia, partes diarios y actividades.",
+    href: "/production",
+    icon: <Tractor className="h-8 w-8 text-primary" />,
   },
   {
     title: "Maestro de Lotes",
@@ -25,10 +26,10 @@ const quickAccessLinks = [
     icon: <BookText className="h-8 w-8 text-primary" />,
   },
   {
-    title: "Asistentes",
-    description: "Gestiona el personal y los asistentes.",
-    href: "/asistentes",
-    icon: <LifeBuoy className="h-8 w-8 text-primary" />,
+    title: "Gestión de Usuarios",
+    description: "Administra los usuarios y sus permisos.",
+    href: "/users",
+    icon: <Users className="h-8 w-8 text-primary" />,
   },
 ];
 

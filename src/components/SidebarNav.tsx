@@ -28,6 +28,7 @@ const navItems = [
   {
     label: "Maestros",
     icon: <Layers />,
+    href: "/maestros",
     items: [
       { href: "/maestro-lotes", label: "Lotes" },
       { href: "/maestro-labores", label: "Labores" },
@@ -53,6 +54,12 @@ const navItems = [
 export function SidebarNav() {
   const pathname = usePathname()
 
+  const isParentActive = (item: (typeof navItems)[number]) => {
+    if (!item.href) return false;
+    if (item.href === "/dashboard") return pathname === item.href;
+    return pathname.startsWith(item.href);
+  };
+
   return (
     <SidebarMenu>
       {navItems.map((item) =>
@@ -60,7 +67,7 @@ export function SidebarNav() {
           <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
               href={item.href}
-              isActive={item.href ? pathname.startsWith(item.href) : item.items.some((sub) => pathname.startsWith(sub.href))}
+              isActive={isParentActive(item)}
             >
               {item.icon}
               <span>{item.label}</span>
@@ -70,7 +77,7 @@ export function SidebarNav() {
                 <SidebarMenuSubItem key={subItem.href}>
                   <SidebarMenuSubButton
                     href={subItem.href}
-                    isActive={pathname === subItem.href}
+                    isActive={pathname.startsWith(subItem.href)}
                   >
                     {subItem.label}
                   </SidebarMenuSubButton>
@@ -82,7 +89,7 @@ export function SidebarNav() {
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
               href={item.href}
-              isActive={pathname === item.href}
+              isActive={isParentActive(item)}
             >
               {item.icon}
               <span>{item.label}</span>
