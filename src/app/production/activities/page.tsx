@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -71,6 +71,16 @@ export default function ActivitiesPage() {
   });
 
   const codeValue = form.watch('code');
+  
+  const uniqueLotes = useMemo(() => {
+    const lotesMap = new Map<string, LoteData>();
+    lotes.forEach(lote => {
+      if (!lotesMap.has(lote.lote)) {
+        lotesMap.set(lote.lote, lote);
+      }
+    });
+    return Array.from(lotesMap.values());
+  }, [lotes]);
 
   useEffect(() => {
     const loadMasterData = async () => {
@@ -175,7 +185,7 @@ export default function ActivitiesPage() {
                                 <SelectValue placeholder="Selecciona" />
                               </SelectTrigger>
                               <SelectContent>
-                                {lotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
+                                {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </FormControl>
