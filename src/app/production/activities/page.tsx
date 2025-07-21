@@ -141,13 +141,14 @@ export default function ActivitiesPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="rounded-lg border bg-background p-6 shadow-sm">
                 <div className="space-y-6">
+                  
                   <FormField
                     control={form.control}
                     name="registerDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>
-                          <IconWrapper><CalendarIcon className="h-4 w-4" /> Fecha de Registro</IconWrapper>
+                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <CalendarIcon className="h-4 w-4" /> Fecha de Registro
                         </FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -170,71 +171,93 @@ export default function ActivitiesPage() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                    <FormField control={form.control} name="campaign" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Briefcase className="h-4 w-4" /> Campaña</IconWrapper></FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2024-2025">2024-2025</SelectItem><SelectItem value="2025-2026">2025-2026</SelectItem></SelectContent></Select><FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="stage" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Flame className="h-4 w-4" /> Etapa</IconWrapper></FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent><SelectItem value="poda">Poda</SelectItem><SelectItem value="floracion">Floración</SelectItem><SelectItem value="cosecha">Cosecha</SelectItem></SelectContent></Select><FormMessage /> </FormItem> )} />
-                    <FormField
-                      control={form.control}
-                      name="lote"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel><IconWrapper><Sprout className="h-4 w-4" /> Lote</IconWrapper></FormLabel>
-                            <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                    {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <FormField control={form.control} name="code" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Tag className="h-4 w-4" /> Cód.</IconWrapper></FormLabel> <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="labor" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Labor</IconWrapper></FormLabel> <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl> <FormMessage /> </FormItem> )} />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                     <FormField control={form.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList className="h-4 w-4" /> Rendimiento</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                     <FormField control={form.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users className="h-4 w-4" /> # Personas</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                     <FormField control={form.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator className="h-4 w-4" /> # Jornadas (JHU)</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                     <FormField control={form.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator className="h-4 w-4" /> S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                     <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="dia">Día</SelectItem><SelectItem value="noche">Noche</SelectItem></SelectContent></Select> <FormMessage /> </FormItem> )} />
-                  </div>
+                  <FormField 
+                    control={form.control} 
+                    name="campaign" 
+                    render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase className="h-4 w-4" /> Campaña</FormLabel> 
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="2024-2025">2024-2025</SelectItem>
+                            <SelectItem value="2025-2026">2025-2026</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage /> 
+                      </FormItem> 
+                    )} 
+                  />
                   
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                     <FormField control={form.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput className="h-4 w-4" /> Min</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                     <FormField control={form.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileOutput className="h-4 w-4" /> Max</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                  </div>
-                  
-                   <FormField control={form.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw className="h-4 w-4" /> Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                  <FormField 
+                    control={form.control} 
+                    name="stage" 
+                    render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Flame className="h-4 w-4" /> Etapa</FormLabel> 
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="poda">Poda</SelectItem>
+                            <SelectItem value="floracion">Floración</SelectItem>
+                            <SelectItem value="cosecha">Cosecha</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage /> 
+                      </FormItem> 
+                    )} 
+                  />
 
                   <FormField
                     control={form.control}
-                    name="observations"
+                    name="lote"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>
-                          <IconWrapper><ClipboardList className="h-4 w-4" /> Observaciones</IconWrapper>
-                        </FormLabel>
+                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Sprout className="h-4 w-4" /> Lote</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Añade cualquier observación relevante aquí..." className="min-h-[100px]" {...field} />
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <div className="flex justify-end">
+                  <FormField 
+                    control={form.control} 
+                    name="code" 
+                    render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Tag className="h-4 w-4" /> Cód.</FormLabel> 
+                        <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl> 
+                        <FormMessage /> 
+                      </FormItem> 
+                    )} 
+                  />
+                  
+                  <FormField 
+                    control={form.control} 
+                    name="labor" 
+                    render={({ field }) => ( 
+                      <FormItem> 
+                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Wrench className="h-4 w-4" /> Labor</FormLabel> 
+                        <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl> 
+                        <FormMessage /> 
+                      </FormItem> 
+                    )} 
+                  />
+
+                  <div className="flex justify-end pt-4">
                     <Button type="submit">Guardar Ficha</Button>
                   </div>
                 </div>
@@ -246,5 +269,3 @@ export default function ActivitiesPage() {
     </div>
   );
 }
-
-    
