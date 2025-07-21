@@ -15,12 +15,6 @@ import {
   Users,
   LayoutGrid,
   Layers,
-  HeartPulse,
-  Droplets,
-  BadgeCheck,
-  Bug,
-  BotMessageSquare,
-  AreaChart
 } from "lucide-react"
 
 const navItems = [
@@ -48,12 +42,6 @@ const navItems = [
         { href: "/production/daily-report", label: "Parte Diario" },
     ]
   },
-  { href: "/health", icon: <HeartPulse />, label: "Sanidad" },
-  { href: "/irrigation", icon: <Droplets />, label: "Riego" },
-  { href: "/quality-control", icon: <BadgeCheck />, label: "Calidad" },
-  { href: "/biological-control", icon: <Bug />, label: "Biológico" },
-  { href: "/summary", icon: <AreaChart />, label: "Resumen" },
-  { href: "/queries", icon: <BotMessageSquare />, label: "Asistente IA" },
   {
     href: "/users",
     icon: <Users />,
@@ -71,6 +59,7 @@ export function SidebarNav() {
   };
   
   const isChildActive = (href: string) => {
+    // Exact match or starts with the href followed by a slash
     return pathname === href || pathname.startsWith(href + "/");
   };
 
@@ -80,9 +69,6 @@ export function SidebarNav() {
         item.items ? (
           <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
-              // A parent button does not need an href if it only toggles
-              // But if it should navigate, it needs one. Let's make it toggle-only for now.
-              // href={item.href}
               isActive={isParentActive(item)}
             >
               {item.icon}

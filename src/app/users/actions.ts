@@ -59,9 +59,9 @@ export async function getUsers() {
         }
         
         const usersSnapshot = await getDocs(collection(db, "usuarios"));
-        const users = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (User & {id: string})[];
-
-        const visibleUsers = users.filter(user => currentUserLevel > roleHierarchy[user.rol]);
+        const usersData = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (User & {id: string})[];
+        
+        const visibleUsers = usersData.filter(user => currentUserLevel > roleHierarchy[user.rol]);
 
         return { success: true, data: visibleUsers };
 
