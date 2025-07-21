@@ -143,8 +143,8 @@ export default function RegistroAsistenciaPage() {
   const totals = useMemo(() => {
     return assistants.reduce(
       (acc, assistant) => {
-        acc.personnelCount += item.personnelCount;
-        acc.absentCount += item.absentCount;
+        acc.personnelCount += assistant.personnelCount;
+        acc.absentCount += assistant.absentCount;
         return acc;
       },
       { personnelCount: 0, absentCount: 0 }
