@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import {
   Trash2,
   Pencil,
@@ -486,7 +486,7 @@ export default function MaestroLotesPage() {
   return (
     <TooltipProvider>
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <PageHeader title="Maestro de Lotes" />
+        <PageHeaderWithNav title="Maestro de Lotes" />
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <Input

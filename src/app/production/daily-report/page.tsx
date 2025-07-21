@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import { FilePlus2, ClipboardList, Database } from "lucide-react";
 
 const dailyReportFeatures = [
@@ -30,7 +30,7 @@ const dailyReportFeatures = [
 export default function DailyReportPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Parte Diario" />
+      <PageHeaderWithNav title="Parte Diario" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {dailyReportFeatures.map((feature) => (
           <Link href={feature.href} key={feature.title} className="block group">
