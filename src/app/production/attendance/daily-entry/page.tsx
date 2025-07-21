@@ -311,11 +311,11 @@ export default function RegistroAsistenciaPage() {
 
             const record: Omit<AttendanceRecord, 'id'> = {
                 date: formattedDate,
-                lote: loteMasterData.lote,
-                variedad: loteMasterData.variedad,
-                fechaCianamida: loteMasterData.fechaCianamida,
-                campana: loteMasterData.campana,
-                code: laborMasterData?.codigo,
+                lote: loteMasterData.lote || '',
+                variedad: loteMasterData.variedad || '',
+                fechaCianamida: loteMasterData.fechaCianamida || new Date(),
+                campana: loteMasterData.campana || '',
+                code: laborMasterData?.codigo || '',
                 labor,
                 assistants: groupAssistants,
                 totals: groupTotals,
