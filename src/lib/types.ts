@@ -94,7 +94,7 @@ export type LoteData = {
 export type AttendanceRecord = {
   id: string;
   date: string;
-  lote: string;
+  lotName: string;
   variedad: string;
   fechaCianamida: Date;
   campana: string;
@@ -110,6 +110,7 @@ export type AttendanceRecord = {
 
 export type SummaryData = {
   date: string;
+  dateFull: string;
   Personal: number;
   Faltas: number;
 };

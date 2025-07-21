@@ -311,7 +311,7 @@ export default function RegistroAsistenciaPage() {
 
             const record: Omit<AttendanceRecord, 'id'> = {
                 date: formattedDate,
-                lote: loteMasterData.lote || '',
+                lotName: loteMasterData.lote || '',
                 variedad: loteMasterData.variedad || '',
                 fechaCianamida: loteMasterData.fechaCianamida || new Date(),
                 campana: loteMasterData.campana || '',
@@ -369,7 +369,7 @@ export default function RegistroAsistenciaPage() {
         </div>
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/">
+            <Link href="/dashboard">
               <LayoutGrid />
               <span className="sr-only">Volver al Dashboard</span>
             </Link>

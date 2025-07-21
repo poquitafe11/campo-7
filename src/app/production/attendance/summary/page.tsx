@@ -9,7 +9,7 @@ import { es } from 'date-fns/locale';
 import { db } from '@/lib/firebase';
 import { type AttendanceRecord, type SummaryData } from '@/lib/types';
 
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeaderWithNav } from '@/components/PageHeaderWithNav';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   ChartContainer,
@@ -18,9 +18,8 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
-import { Loader2, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Loader2 } from 'lucide-react';
 
 export default function AttendanceSummaryPage() {
   const [data, setData] = useState<AttendanceRecord[]>([]);
@@ -82,21 +81,9 @@ export default function AttendanceSummaryPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur sm:px-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/production/attendance">
-              <ArrowLeft />
-              <span className="sr-only">Volver a Asistencia</span>
-            </Link>
-          </Button>
-          <h1 className="text-lg font-semibold font-headline sm:text-xl">
-            Resumen de Asistencia
-          </h1>
-        </div>
-      </header>
-       <main className="flex-1 p-4 sm:p-6 lg:p-8">
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+       <PageHeaderWithNav title="Resumen de Asistencia" />
+       
         {data.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg bg-muted/50">
             <h3 className="text-xl font-semibold text-muted-foreground">No hay datos de asistencia</h3>
@@ -158,7 +145,6 @@ export default function AttendanceSummaryPage() {
             </div>
           </div>
         )}
-      </main>
     </div>
   );
 }

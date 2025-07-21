@@ -1,32 +1,23 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  useReactTable,
-  ColumnFiltersState,
-} from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import {
   ArrowLeft,
-  CalendarIcon,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
+  Edit,
+  Trash2,
+  Calendar as CalendarIcon,
+  Users,
+  UserX,
+  Filter,
   Loader2,
 } from 'lucide-react';
-
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { type DateRange } from 'react-day-picker';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { type AttendanceRecord, type Assistant } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -36,11 +27,37 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import EditAssistantDialog from '@/components/edit-assistant-dialog';
+import { useToast } from '@/hooks/use-toast';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -48,210 +65,560 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { type AttendanceRecord } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
+
+
+interface GroupedByLaborLot {
+  labor: string;
+  lotName: string;
+  totalPersonnel: number;
+  totalAbsent: number;
+  records: AttendanceRecord[];
+}
+
+interface GroupedByDate {
+  date: string;
+  totalPersonnel: number;
+  totalAbsent: number;
+  details: GroupedByLaborLot[];
+}
+
+interface DynamicFilterOptions {
+  lots: string[];
+  labors: string[];
+  assistants: string[];
+}
+
+const getInitialFilters = () => ({
+  dateRange: { from: undefined, to: undefined } as DateRange,
+  labor: '',
+  lotName: '',
+  assistantName: '',
+});
 
 export default function AttendanceDatabasePage() {
+  const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
+  const [dailyRecords, setDailyRecords] = useState<GroupedByDate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [
+    editingAssistant,
+    setEditingAssistant,
+  ] = useState<{ record: AttendanceRecord; assistant: Assistant } | null>(null);
+
   const { toast } = useToast();
-  const [data, setData] = useState<AttendanceRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState(getInitialFilters());
+  const [popoverFilters, setPopoverFilters] = useState(getInitialFilters());
+
+  const [dynamicOptions, setDynamicOptions] = useState<DynamicFilterOptions>({
+    lots: [],
+    labors: [],
+    assistants: [],
+  });
+  
+  const loadInitialData = useCallback(async () => {
+    setIsLoading(true);
+    if (!db) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Firebase no está disponible.',
+        });
+        setIsLoading(false);
+        return;
+    }
+    try {
+        const querySnapshot = await getDocs(collection(db, 'asistencia'));
+        const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+        setAllRecords(records);
+    } catch (error) {
+        console.error("Error loading attendance records: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudieron cargar los registros de asistencia.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, 'asistencia'), (snapshot) => {
-      const records = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as AttendanceRecord[];
-      setData(records);
-      setLoading(false);
-    }, (error) => {
-        console.error("Error fetching attendance data:", error);
-        toast({
-            variant: "destructive",
-            title: "Error de Carga",
-            description: "No se pudieron cargar los registros de asistencia."
-        });
-        setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
+    loadInitialData();
+  }, [loadInitialData]);
   
-  const uniqueLotes = useMemo(() => {
-    const lotes = new Set(data.map(item => item.lote));
-    return Array.from(lotes).sort();
-  }, [data]);
+  useEffect(() => {
+    if (isLoading) return;
 
-  const columns = useMemo<ColumnDef<AttendanceRecord>[]>(
-    () => [
-      {
-        accessorKey: 'date',
-        header: 'Fecha',
-        cell: ({ row }) => {
-            const dateValue = row.getValue('date');
-            if (!dateValue || typeof dateValue !== 'string') return "N/A";
-            const date = parseISO(dateValue);
-            return format(date, 'dd/MM/yyyy');
-        }
-      },
-      { accessorKey: 'lote', header: 'Lote' },
-      { accessorKey: 'labor', header: 'Labor' },
-      { 
-        accessorKey: 'assistants',
-        header: 'Asistentes',
-        cell: ({ row }) => {
-            const assistants: any[] = row.getValue('assistants');
-            if (!assistants || !Array.isArray(assistants)) return "";
-            return assistants.map(a => a.assistantName).join(', ');
-        }
-      },
-      { 
-        accessorKey: 'totals.personnelCount', 
-        header: 'Nº Personas'
-      },
-       { 
-        accessorKey: 'totals.absentCount', 
-        header: 'Nº Faltos'
-      },
-      { accessorKey: 'registeredBy', header: 'Registrado Por' },
-    ],
-    []
-  );
+    let filtered = allRecords;
 
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      columnFilters,
-      globalFilter,
-    },
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
+    if (activeFilters.dateRange.from) {
+      const fromDate = format(activeFilters.dateRange.from, 'yyyy-MM-dd');
+      filtered = filtered.filter(r => r.date >= fromDate);
+    }
+    if (activeFilters.dateRange.to) {
+        const toDate = format(activeFilters.dateRange.to, 'yyyy-MM-dd');
+        filtered = filtered.filter(r => r.date <= toDate);
+    }
+    if (activeFilters.lotName) {
+      filtered = filtered.filter(r => r.lotName === activeFilters.lotName);
+    }
+    if (activeFilters.labor) {
+      filtered = filtered.filter(r => r.labor === activeFilters.labor);
+    }
+    if (activeFilters.assistantName) {
+      filtered = filtered.filter(r => r.assistants.some(a => a.assistantName === activeFilters.assistantName));
+    }
+
+    const groupedByDate: { [date: string]: AttendanceRecord[] } = filtered.reduce((acc, record) => {
+        (acc[record.date] = acc[record.date] || []).push(record);
+        return acc;
+    }, {} as { [date: string]: AttendanceRecord[] });
+
+    const processedData = Object.entries(groupedByDate).map(([date, records]) => {
+        const validRecords = records.filter(r => r.assistants && r.assistants.length > 0);
+
+        if (validRecords.length === 0) {
+          return null;
+        }
+        
+        let totalPersonnel = 0;
+        let totalAbsent = 0;
+        
+        const detailsGrouped = validRecords.reduce((acc, record) => {
+          const key = `${record.labor}-${record.lotName}`;
+          if (!acc[key]) {
+            acc[key] = {
+              labor: record.labor,
+              lotName: record.lotName || 'N/A',
+              totalPersonnel: 0,
+              totalAbsent: 0,
+              records: []
+            };
+          }
+          acc[key].records.push(record);
+          totalPersonnel += record.totals.personnelCount;
+          totalAbsent += record.totals.absentCount;
+          acc[key].totalPersonnel += record.totals.personnelCount;
+          acc[key].totalAbsent += record.totals.absentCount;
+          return acc;
+        }, {} as Record<string, GroupedByLaborLot>)
+
+        return {
+            date,
+            totalPersonnel,
+            totalAbsent,
+            details: Object.values(detailsGrouped)
+        };
+    }).filter((item): item is GroupedByDate => item !== null)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    setDailyRecords(processedData);
+}, [allRecords, isLoading, activeFilters]);
+
+  const uniqueOptions = useMemo(() => {
+    if (isLoading) return { lots: [], labors: [], assistants: [] };
+    let filtered = allRecords;
+
+    if (popoverFilters.dateRange.from) {
+      const fromDate = format(popoverFilters.dateRange.from, 'yyyy-MM-dd');
+      filtered = filtered.filter(r => r.date >= fromDate);
+    }
+    if (popoverFilters.dateRange.to) {
+        const toDate = format(popoverFilters.dateRange.to, 'yyyy-MM-dd');
+        filtered = filtered.filter(r => r.date <= toDate);
+    }
+    
+    const lots = [...new Set(filtered.map(r => r.lotName).filter(Boolean) as string[])];
+    const labors = [...new Set(filtered.map(r => r.labor))];
+    const assistants = [...new Set(filtered.flatMap(r => r.assistants.map(a => a.assistantName)))];
+    
+    return { lots, labors, assistants };
+  }, [popoverFilters.dateRange, allRecords, isLoading]);
+
+  useEffect(() => {
+    setDynamicOptions(uniqueOptions);
+  }, [uniqueOptions]);
+
+  const handleDeleteAssistant = async (recordId: string, assistantToDelete: Assistant) => {
+    if (!db) return;
+    try {
+        const recordRef = doc(db, 'asistencia', recordId);
+        const record = allRecords.find(r => r.id === recordId);
+
+        if (!record) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Registro no encontrado.' });
+            return;
+        }
+
+        // If this is the last assistant in the record, delete the whole document.
+        if (record.assistants.length === 1) {
+            await deleteDoc(recordRef);
+            toast({ title: 'Éxito', description: 'Registro de asistencia eliminado.' });
+        } else {
+            // Otherwise, just remove the assistant and update totals.
+            const newPersonnelCount = (record.totals.personnelCount || 0) - assistantToDelete.personnelCount;
+            const newAbsentCount = (record.totals.absentCount || 0) - assistantToDelete.absentCount;
+            await updateDoc(recordRef, {
+                assistants: arrayRemove(assistantToDelete),
+                "totals.personnelCount": newPersonnelCount,
+                "totals.absentCount": newAbsentCount,
+            });
+            toast({ title: 'Éxito', description: 'Asistente eliminado del registro.' });
+        }
+        loadInitialData();
+    } catch (error) {
+        console.error("Error deleting assistant from record: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la eliminación.' });
+    }
+  };
+
+  const handleSaveAssistant = async (
+    recordId: string,
+    assistantId: string,
+    updatedData: Omit<Assistant, 'id'>
+  ) => {
+    if (!db) return;
+    try {
+        const recordRef = doc(db, 'asistencia', recordId);
+        const record = allRecords.find(r => r.id === recordId);
+        if (!record) return;
+
+        const newAssistants = record.assistants.map(a => a.id === assistantId ? { ...updatedData, id: assistantId } : a);
+        const newTotals = newAssistants.reduce((acc, curr) => {
+            acc.personnelCount += curr.personnelCount;
+            acc.absentCount += curr.absentCount;
+            return acc;
+        }, { personnelCount: 0, absentCount: 0 });
+
+        await updateDoc(recordRef, { assistants: newAssistants, totals: newTotals });
+        toast({ title: 'Éxito', description: 'Registro actualizado.' });
+        loadInitialData();
+    } catch (error) {
+        console.error("Error updating assistant: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar el registro.' });
+    } finally {
+        setEditingAssistant(null);
+    }
+  };
+
+  const handleApplyFilters = () => {
+    setActiveFilters(popoverFilters);
+    setIsFilterOpen(false);
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters = getInitialFilters();
+    setPopoverFilters(clearedFilters);
+    setActiveFilters(clearedFilters);
+    setIsFilterOpen(false);
+  };
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/production/attendance">
-              <ArrowLeft />
-              <span className="sr-only">Volver a Asistencia</span>
-            </Link>
-          </Button>
-          <h1 className="text-lg font-semibold font-headline sm:text-xl">
-            Base de Datos de Asistencia
-          </h1>
-        </div>
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
+        <PageHeaderWithNav title="Historial de Asistencia" />
       </header>
       <main className="flex-1 p-4 sm:p-6">
-        <div className="space-y-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative w-full sm:max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Buscar en todo..."
-                        value={globalFilter}
-                        onChange={(e) => setGlobalFilter(e.target.value)}
-                        className="pl-9"
-                    />
-                </div>
-                <div className="flex gap-2">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full sm:w-auto">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {table.getColumn('date')?.getFilterValue() ? format(parseISO(table.getColumn('date')?.getFilterValue() as string), 'PPP', {locale: es}) : 'Filtrar por Fecha'}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-row items-start justify-between gap-4">
+              <div>
+                <CardTitle>Registros por Fecha</CardTitle>
+                <CardDescription>
+                  Consulta, filtra y gestiona los registros de asistencia diarios.
+                </CardDescription>
+              </div>
+              <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                  >
+                    <Filter className="h-4 w-4" />
+                    <span className="sr-only">Filtrar</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[90vw] max-w-sm p-4 sm:w-auto" align="end">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">Filtros</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Ajusta los filtros para ver registros específicos.
+                      </p>
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="grid gap-2">
+                        <Label>Rango de Fechas</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              id="date"
+                              variant={'outline'}
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !popoverFilters.dateRange?.from &&
+                                  'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {popoverFilters.dateRange?.from ? (
+                                popoverFilters.dateRange.to ? (
+                                  <>
+                                    {format(
+                                      popoverFilters.dateRange.from,
+                                      'LLL dd, y',
+                                      { locale: es }
+                                    )}{' '}
+                                    -{' '}
+                                    {format(
+                                      popoverFilters.dateRange.to,
+                                      'LLL dd, y',
+                                      { locale: es }
+                                    )}
+                                  </>
+                                ) : (
+                                  format(
+                                    popoverFilters.dateRange.from,
+                                    'LLL dd, y',
+                                    { locale: es }
+                                  )
+                                )
+                              ) : (
+                                <span>Seleccione un rango</span>
+                              )}
                             </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
-                                mode="single"
-                                selected={table.getColumn('date')?.getFilterValue() ? parseISO(table.getColumn('date')?.getFilterValue() as string) : undefined}
-                                onSelect={(date) => table.getColumn('date')?.setFilterValue(date ? format(date, 'yyyy-MM-dd') : undefined)}
-                                initialFocus
-                                locale={es}
+                              initialFocus
+                              mode="range"
+                              defaultMonth={popoverFilters.dateRange?.from}
+                              selected={popoverFilters.dateRange}
+                              onSelect={(range) => {
+                                setPopoverFilters((prev) => ({
+                                  ...prev,
+                                  dateRange:
+                                    range || { from: undefined, to: undefined },
+                                }));
+                              }}
+                              numberOfMonths={1}
+                              locale={es}
                             />
-                        </PopoverContent>
-                    </Popover>
-                    <Select
-                        value={table.getColumn('lote')?.getFilterValue() as string ?? 'all'}
-                        onValueChange={value => {
-                            const filterValue = value === 'all' ? undefined : value;
-                            table.getColumn('lote')?.setFilterValue(filterValue);
-                        }}
-                    >
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filtrar por Lote" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos los lotes</SelectItem>
-                            {uniqueLotes.map(lote => (
-                                <SelectItem key={lote} value={lote}>{lote}</SelectItem>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="grid grid-cols-1 items-center gap-2">
+                        <Label htmlFor="lotName">Lote</Label>
+                        <Select
+                          value={popoverFilters.lotName}
+                          onValueChange={(value) =>
+                            setPopoverFilters((prev) => ({
+                              ...prev,
+                              lotName: value === 'all' ? '' : value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {dynamicOptions.lots.map((lot) => (
+                              <SelectItem key={lot} value={lot}>
+                                {lot}
+                              </SelectItem>
                             ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-1 items-center gap-2">
+                        <Label htmlFor="labor">Labor</Label>
+                        <Select
+                          value={popoverFilters.labor}
+                          onValueChange={(value) =>
+                            setPopoverFilters((prev) => ({
+                              ...prev,
+                              labor: value === 'all' ? '' : value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Todas" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {dynamicOptions.labors.map((labor) => (
+                              <SelectItem key={labor} value={labor}>
+                                {labor}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-1 items-center gap-2">
+                        <Label htmlFor="assistantName">Asistente</Label>
+                        <Select
+                          value={popoverFilters.assistantName}
+                          onValueChange={(value) =>
+                            setPopoverFilters((prev) => ({
+                              ...prev,
+                              assistantName: value === 'all' ? '' : value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {dynamicOptions.assistants.map((assistant) => (
+                              <SelectItem key={assistant} value={assistant}>
+                                {assistant}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearFilters}
+                      >
+                        Limpiar
+                      </Button>
+                      <Button size="sm" onClick={handleApplyFilters}>
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
-
-            <div className="rounded-md border">
-                <Table>
-                <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id}>
-                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                        ))}
-                    </TableRow>
-                    ))}
-                </TableHeader>
-                <TableBody>
-                    {loading ? (
-                    <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
-                    ) : table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                        <TableRow key={row.id}>{row.getVisibleCells().map((cell) => ( <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell> ))}</TableRow>
-                    ))
-                    ) : (
-                    <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No hay registros que coincidan con los filtros.</TableCell></TableRow>
-                    )}
-                </TableBody>
-                </Table>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Select value={`${table.getState().pagination.pageSize}`} onValueChange={(value) => table.setPageSize(Number(value))}>
-                  <SelectTrigger className="w-[70px] h-9"><SelectValue placeholder={table.getState().pagination.pageSize} /></SelectTrigger>
-                  <SelectContent>{[10, 20, 50, 100].map((pageSize) => ( <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem> ))}</SelectContent>
-                </Select>
-                <span className="text-sm text-muted-foreground">
-                  Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-
-                  {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{" "}
-                  de {table.getFilteredRowModel().rows.length}
-                </span>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex h-24 items-center justify-center rounded-lg border border-dashed">
+                <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronsLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="text-sm">Página {table.getPageCount() > 0 ? table.getState().pagination.pageIndex + 1 : 0} de {table.getPageCount()}</span>
-                <Button variant="outline" size="icon" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronRight className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronsRight className="h-4 w-4" /></Button>
+            ) : dailyRecords.length > 0 ? (
+              <Accordion type="multiple" className="w-full space-y-2">
+                {dailyRecords.map((day) => (
+                  <AccordionItem
+                    value={day.date}
+                    key={day.date}
+                    className="rounded-lg border bg-card/50"
+                  >
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex w-full flex-col items-start gap-1 text-left sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="h-5 w-5 text-primary" />
+                          <p className="text-lg font-semibold">
+                            {format(parseISO(day.date), 'PPP', { locale: es })}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 pr-2 text-sm sm:items-center">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            <span>
+                              Total Personas:{' '}
+                              <span className="font-bold text-foreground">
+                                {day.totalPersonnel}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <UserX className="h-4 w-4" />
+                            <span>
+                              Total Faltos:{' '}
+                              <span className="font-bold text-foreground">
+                                {day.totalAbsent}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      {day.details.map((detail, index) => (
+                        <div key={index} className="mt-2 rounded-md border p-4">
+                          <h4 className="font-semibold">{detail.labor} - {detail.lotName}</h4>
+                           <Table>
+                             <TableHeader>
+                               <TableRow>
+                                 <TableHead>Asistente</TableHead>
+                                 <TableHead>Personal</TableHead>
+                                 <TableHead>Faltos</TableHead>
+                                 <TableHead className="text-right">Acciones</TableHead>
+                               </TableRow>
+                             </TableHeader>
+                             <TableBody>
+                               {detail.records.flatMap(r => r.assistants).map(assistant => (
+                                 <TableRow key={assistant.id}>
+                                   <TableCell>{assistant.assistantName}</TableCell>
+                                   <TableCell>{assistant.personnelCount}</TableCell>
+                                   <TableCell>{assistant.absentCount}</TableCell>
+                                   <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingAssistant({ record: detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!, assistant })}>
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                              <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+                                            <AlertDialogDescription>Esta acción eliminará a este asistente de este registro de asistencia. No se puede deshacer.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteAssistant(detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!.id, assistant)}>Eliminar</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                   </TableCell>
+                                 </TableRow>
+                               ))}
+                             </TableBody>
+                           </Table>
+                        </div>
+                      ))}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            ) : (
+              <div className="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-center">
+                <h3 className="text-lg font-semibold">
+                  No se encontraron registros
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Intenta ajustar los filtros o registra nueva asistencia.
+                </p>
               </div>
-          </div>
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
+      <EditAssistantDialog
+        isOpen={!!editingAssistant}
+        setIsOpen={() => setEditingAssistant(null)}
+        editingData={editingAssistant}
+        onSave={handleSaveAssistant}
+      />
     </div>
   );
 }
+

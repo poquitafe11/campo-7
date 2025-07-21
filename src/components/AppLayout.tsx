@@ -17,6 +17,7 @@ import { LogOut, User, Sun, Moon } from 'lucide-react';
 import { SidebarNav } from './SidebarNav';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import ConnectionStatus from './ConnectionStatus';
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -45,6 +46,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </span>
             </div>
           </div>
+          <ConnectionStatus />
         </SidebarHeader>
         <SidebarContent>
             <SidebarNav />
