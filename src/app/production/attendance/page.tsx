@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -16,7 +17,7 @@ const attendanceFeatures = [
     icon: <Database className="h-8 w-8 text-primary" />,
     title: "Base de Asistencia",
     description: "Consulta el historial completo de asistencia.",
-    href: "#", // Placeholder link
+    href: "/production/attendance/database",
   },
   {
     icon: <BarChart3 className="h-8 w-8 text-primary" />,
