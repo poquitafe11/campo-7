@@ -179,16 +179,16 @@ export default function ActivitiesPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel><IconWrapper><Sprout className="h-4 w-4" /> Lote</IconWrapper></FormLabel>
-                          <FormControl>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecciona" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
+                            <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -246,3 +246,5 @@ export default function ActivitiesPage() {
     </div>
   );
 }
+
+    
