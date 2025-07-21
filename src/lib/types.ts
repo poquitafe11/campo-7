@@ -108,6 +108,12 @@ export type AttendanceRecord = {
   registeredBy: string | null;
 };
 
+export type SummaryData = {
+  date: string;
+  Personnel: number;
+  Absentees: number;
+};
+
 // Usuarios del sistema
 export const UserRole = z.enum(["Admin", "Jefe", "Supervisor", "Asistente", "Apoyo", "Invitado"]);
 export type UserRole = z.infer<typeof UserRole>;

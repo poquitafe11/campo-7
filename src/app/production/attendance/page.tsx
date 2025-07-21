@@ -23,7 +23,7 @@ const attendanceFeatures = [
     icon: <BarChart3 className="h-8 w-8 text-primary" />,
     title: "Resumen de Asistencia",
     description: "Visualiza reportes y estadísticas de asistencia.",
-    href: "#", // Placeholder link
+    href: "/production/attendance/summary",
   },
 ];
 
