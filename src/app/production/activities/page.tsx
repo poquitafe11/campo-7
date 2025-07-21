@@ -163,7 +163,26 @@ export default function ActivitiesPage() {
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                     <FormField control={form.control} name="campaign" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Briefcase className="h-4 w-4" /> Campaña</IconWrapper></FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2024-2025">2024-2025</SelectItem><SelectItem value="2025-2026">2025-2026</SelectItem></SelectContent></Select><FormMessage /> </FormItem> )} />
                     <FormField control={form.control} name="stage" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Flame className="h-4 w-4" /> Etapa</IconWrapper></FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent><SelectItem value="poda">Poda</SelectItem><SelectItem value="floracion">Floración</SelectItem><SelectItem value="cosecha">Cosecha</SelectItem></SelectContent></Select><FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Sprout className="h-4 w-4" /> Lote</IconWrapper></FormLabel> <Select onValueChange={field.onChange} value={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Selecciona" /> </SelectTrigger> </FormControl> <SelectContent> {lotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)} </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                    <FormField
+                      control={form.control}
+                      name="lote"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel><IconWrapper><Sprout className="h-4 w-4" /> Lote</IconWrapper></FormLabel>
+                          <FormControl>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecciona" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {lotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
