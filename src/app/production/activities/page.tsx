@@ -23,6 +23,8 @@ import {
   Clock,
   Briefcase,
   Calculator,
+  Plus,
+  TrendingUp
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -41,7 +43,7 @@ import { collection, getDocs } from 'firebase/firestore';
 type ActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
 const IconWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex items-center gap-2 text-muted-foreground">{children}</div>
+  <div className="flex items-center gap-2 text-sm text-muted-foreground">{children}</div>
 );
 
 export default function ActivitiesPage() {
@@ -108,9 +110,9 @@ export default function ActivitiesPage() {
   useEffect(() => {
     if (codeValue) {
       const matchedLabor = labors.find(l => l.codigo === codeValue);
-      form.setValue('labor', matchedLabor?.descripcion || 'Labor (auto-completado)', { shouldValidate: true });
+      form.setValue('labor', matchedLabor?.descripcion || '', { shouldValidate: true });
     } else {
-      form.setValue('labor', 'Labor (auto-completado)', { shouldValidate: true });
+      form.setValue('labor', '', { shouldValidate: true });
     }
   }, [codeValue, labors, form]);
 
@@ -141,24 +143,22 @@ export default function ActivitiesPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="rounded-lg border bg-background p-6 shadow-sm">
                 <div className="space-y-6">
-                  
+                
                   <FormField
                     control={form.control}
                     name="registerDate"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <CalendarIcon className="h-4 w-4" /> Fecha de Registro
-                        </FormLabel>
+                      <FormItem>
+                        <FormLabel><IconWrapper><CalendarIcon /> Fecha de Registro</IconWrapper></FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant={'outline'}
-                                className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                                className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')}
                               >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
                                 {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
@@ -171,91 +171,60 @@ export default function ActivitiesPage() {
                     )}
                   />
 
-                  <FormField 
-                    control={form.control} 
-                    name="campaign" 
-                    render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase className="h-4 w-4" /> Campaña</FormLabel> 
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="2024-2025">2024-2025</SelectItem>
-                            <SelectItem value="2025-2026">2025-2026</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage /> 
-                      </FormItem> 
-                    )} 
-                  />
-                  
-                  <FormField 
-                    control={form.control} 
-                    name="stage" 
-                    render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Flame className="h-4 w-4" /> Etapa</FormLabel> 
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="poda">Poda</SelectItem>
-                            <SelectItem value="floracion">Floración</SelectItem>
-                            <SelectItem value="cosecha">Cosecha</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage /> 
-                      </FormItem> 
-                    )} 
-                  />
+                  <div className="grid grid-cols-6 gap-6">
+                    <div className="col-span-6 sm:col-span-2">
+                       <FormField control={form.control} name="campaign" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Briefcase /> Campaña</IconWrapper></FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2024-2025">2024-2025</SelectItem><SelectItem value="2025-2026">2025-2026</SelectItem></SelectContent></Select><FormMessage /> </FormItem> )} />
+                    </div>
+                    <div className="col-span-6 sm:col-span-2">
+                      <FormField control={form.control} name="stage" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Flame /> Etapa</IconWrapper></FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent><SelectItem value="poda">Poda</SelectItem><SelectItem value="floracion">Floración</SelectItem><SelectItem value="cosecha">Cosecha</SelectItem></SelectContent></Select><FormMessage /> </FormItem> )} />
+                    </div>
+                    <div className="col-span-6 sm:col-span-2">
+                       <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Sprout /> Lote</IconWrapper></FormLabel> <FormControl> <Select onValueChange={field.onChange} value={field.value}> <SelectTrigger> <SelectValue placeholder="Selecciona" /> </SelectTrigger> <SelectContent> {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)} </SelectContent> </Select> </FormControl> <FormMessage /> </FormItem> )} />
+                    </div>
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="lote"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Sprout className="h-4 w-4" /> Lote</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField 
-                    control={form.control} 
-                    name="code" 
-                    render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Tag className="h-4 w-4" /> Cód.</FormLabel> 
-                        <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl> 
-                        <FormMessage /> 
-                      </FormItem> 
-                    )} 
-                  />
+                  <div className="grid grid-cols-6 gap-6">
+                     <div className="col-span-6 sm:col-span-3">
+                        <FormField control={form.control} name="code" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Tag /> Cód.</IconWrapper></FormLabel> <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                     </div>
+                     <div className="col-span-6 sm:col-span-3">
+                         <FormField control={form.control} name="labor" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Wrench /> Labor</IconWrapper></FormLabel> <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl> <FormMessage /> </FormItem> )} />
+                     </div>
+                  </div>
                   
-                  <FormField 
-                    control={form.control} 
-                    name="labor" 
-                    render={({ field }) => ( 
-                      <FormItem> 
-                        <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Wrench className="h-4 w-4" /> Labor</FormLabel> 
-                        <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl> 
-                        <FormMessage /> 
-                      </FormItem> 
-                    )} 
-                  />
+                  <div className="grid grid-cols-6 gap-6">
+                     <div className="col-span-6 sm:col-span-3">
+                        <FormField control={form.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp /> Rendimiento</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                     </div>
+                     <div className="col-span-6 sm:col-span-3">
+                         <FormField control={form.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users /> # Personas</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="1" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-6 gap-6">
+                    <div className="col-span-6 sm:col-span-2">
+                      <FormField control={form.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList /> # Jornadas (JHU)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                    </div>
+                    <div className="col-span-6 sm:col-span-2">
+                      <FormField control={form.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator /> S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                    </div>
+                    <div className="col-span-6 sm:col-span-2">
+                       <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock /> Turno</IconWrapper></FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="dia">Día</SelectItem><SelectItem value="noche">Noche</SelectItem></SelectContent></Select><FormMessage /> </FormItem> )} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-6 gap-6">
+                     <div className="col-span-6 sm:col-span-3">
+                        <FormField control={form.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput /> Min</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                     </div>
+                     <div className="col-span-6 sm:col-span-3">
+                         <FormField control={form.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Plus/> Max</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                     </div>
+                  </div>
+                  
+                  <FormField control={form.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw /> Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+
+                  <FormField control={form.control} name="observations" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Wrench /> Observaciones</IconWrapper></FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )} />
 
                   <div className="flex justify-end pt-4">
                     <Button type="submit">Guardar Ficha</Button>
