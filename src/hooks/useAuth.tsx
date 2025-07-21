@@ -22,16 +22,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await signOut(auth);
-    // State will be cleared by onAuthStateChanged
   }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true);
       if (firebaseUser) {
         setUser(firebaseUser);
         try {
-          // Special case for admin user
           if (firebaseUser.email === 'marcoromau@gmail.com') {
             setProfile({
               nombre: 'Marco Romau',
@@ -49,23 +46,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (userData.active) {
                 setProfile(userData as AppUser & {rol: UserRole});
               } else {
-                // User is not active, treat as logged out
                 await signOut(auth); 
-                setUser(null);
                 setProfile(null);
+                setUser(null);
               }
             } else {
-              // No profile found, treat as logged out
               await signOut(auth);
-              setUser(null);
               setProfile(null);
+              setUser(null);
             }
           }
         } catch (error) {
           console.error("Error fetching user profile:", error);
           await signOut(auth);
-          setUser(null);
           setProfile(null);
+          setUser(null);
         }
       } else {
         setUser(null);

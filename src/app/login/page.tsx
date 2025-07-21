@@ -20,6 +20,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { login } from "./actions";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 
 const loginSchema = z.object({
@@ -42,7 +44,7 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Redirect if user is already logged in
+    // Redirect if user is already logged in and not loading
     if (!loading && user) {
       router.replace('/dashboard');
     }
@@ -51,26 +53,44 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof loginSchema>) {
     setIsSubmitting(true);
-    const result = await login(values);
+    
+    // First, validate user status on our backend
+    const serverValidation = await login(values);
 
-    if (result.success) {
-      toast({
-        title: "Éxito",
-        description: "Has iniciado sesión correctamente.",
-      });
-      // The useEffect will handle the redirection
-      router.push('/dashboard');
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error de inicio de sesión",
-        description: result.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
-      });
-      setIsSubmitting(false);
+    if (!serverValidation.success) {
+        toast({
+            variant: "destructive",
+            title: "Error de inicio de sesión",
+            description: serverValidation.message || "No se pudo validar el usuario.",
+        });
+        setIsSubmitting(false);
+        return;
+    }
+
+    // If server validation is ok, try to sign in with Firebase Auth
+    try {
+        await signInWithEmailAndPassword(auth, values.email, values.password);
+        toast({
+            title: "Éxito",
+            description: "Has iniciado sesión correctamente.",
+        });
+        // The useEffect will handle the redirection once the auth state propagates.
+    } catch (error: any) {
+        let errorMessage = "Credenciales incorrectas. Por favor, inténtalo de nuevo.";
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            errorMessage = "El correo electrónico o la contraseña son incorrectos.";
+        }
+        toast({
+            variant: "destructive",
+            title: "Error de inicio de sesión",
+            description: errorMessage,
+        });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
-  if (loading || user) {
+  if (loading || (!loading && user)) {
      return (
         <div className="flex h-screen items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-4">
