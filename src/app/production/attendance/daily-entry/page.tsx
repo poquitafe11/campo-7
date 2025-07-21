@@ -45,7 +45,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { type Assistant, type Labor, type LoteData, type AttendanceRecord } from '@/lib/types';
+import { type Assistant, type Labor, type LoteData, type AttendanceRecord, UserRole } from '@/lib/types';
 import AddAssistantDialog from '@/components/AddAssistantDialog';
 import {
   Table,
@@ -98,7 +98,7 @@ export default function RegistroAsistenciaPage() {
   const [labors, setLabors] = useState<Labor[]>([]);
   const [lotes, setLotes] = useState<LoteData[]>([]);
   const [isClient, setIsClient] = useState(false);
-  const [userProfile, setUserProfile] = useState<{ nombre: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ nombre: string; rol: UserRole } | null>(null);
   
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceFormSchema),
@@ -143,8 +143,8 @@ export default function RegistroAsistenciaPage() {
   const totals = useMemo(() => {
     return assistants.reduce(
       (acc, assistant) => {
-        acc.personnelCount += assistant.personnelCount;
-        acc.absentCount += assistant.absentCount;
+        acc.personnelCount += item.personnelCount;
+        acc.absentCount += item.absentCount;
         return acc;
       },
       { personnelCount: 0, absentCount: 0 }
@@ -186,16 +186,29 @@ export default function RegistroAsistenciaPage() {
      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser && currentUser.email && db) {
             try {
-                const userDocRef = doc(db, 'asistentes', currentUser.email);
-                const userDocSnap = await getDoc(userDocRef);
-                if (userDocSnap.exists()) {
-                    setUserProfile(userDocSnap.data() as { nombre: string });
+                // Special case for admin user not in 'asistentes' or 'usuarios' collection
+                if (currentUser.email === 'marcoromau@gmail.com') {
+                     setUserProfile({ nombre: 'Marco Romau', rol: 'Admin' });
                 } else {
-                    setUserProfile({ nombre: currentUser.email || 'Usuario' });
+                    const userDocRef = doc(db, 'usuarios', currentUser.email);
+                    const userDocSnap = await getDoc(userDocRef);
+                    if (userDocSnap.exists()) {
+                        setUserProfile(userDocSnap.data() as { nombre: string; rol: UserRole });
+                    } else {
+                        // Fallback for users that might be in 'asistentes' but not 'usuarios'
+                        const assistantDocRef = doc(db, 'asistentes', currentUser.email);
+                        const assistantDocSnap = await getDoc(assistantDocRef);
+                        if(assistantDocSnap.exists()){
+                            const assistantData = assistantDocSnap.data() as {nombre: string};
+                            setUserProfile({ ...assistantData, rol: 'Asistente' });
+                        } else {
+                             setUserProfile({ nombre: currentUser.email || 'Usuario', rol: 'Invitado' });
+                        }
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching user profile:", error);
-                setUserProfile({ nombre: currentUser.email || 'Usuario' });
+                setUserProfile({ nombre: currentUser.email || 'Usuario', rol: 'Invitado' });
             }
         }
     });
