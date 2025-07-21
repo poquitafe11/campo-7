@@ -69,6 +69,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
+import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 
 
 interface GroupedByLaborLot {
@@ -621,4 +622,3 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
-
