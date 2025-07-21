@@ -19,8 +19,7 @@ import { cn } from '@/lib/utils';
 
 
 interface LoteHeaderInfo {
-  lote: string; // The main lot number (e.g., '81')
-  cuartel: string; // The specific sub-lot (e.g., '73')
+  lote: string; 
   ddc: number | string;
   variedadAbreviada: string;
   campana: string;
@@ -31,12 +30,12 @@ interface PivotData {
   labors: {
     [labor: string]: {
       code?: string;
-      lotes: { [cuartel: string]: number }; // Data is stored by cuartel for rendering
+      lotes: { [lote: string]: number }; 
       totalPersonnel: number;
     };
   };
-  columnTotals: { [cuartel: string]: number };
-  absentTotalsByLote: { [cuartel: string]: number };
+  columnTotals: { [lote: string]: number };
+  absentTotalsByLote: { [lote: string]: number };
   grandTotalPersonnel: number;
   grandTotalAbsent: number;
 }
@@ -107,28 +106,17 @@ export default function AttendanceSummaryPage() {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const recordsForDay = allRecords.filter(r => r.date === formattedDate);
     
-    // Get all unique lot-cuartel combinations that have records for the day
-    const lotesInRecords = new Map<string, LoteData>();
-    recordsForDay.forEach(record => {
-        const loteData = lotesMaestro.find(l => l.lote === record.lotName);
-        if (loteData && !lotesInRecords.has(loteData.id)) {
-            lotesInRecords.set(loteData.id, loteData);
-        }
-    });
+    // Get all unique lot numbers that have records for the day
+    const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))]
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    // Create sorted header info from the unique lot-cuartel combos
-    const loteHeaders: LoteHeaderInfo[] = Array.from(lotesInRecords.values())
-      .sort((a, b) => {
-        const loteA = parseInt(a.lote, 10);
-        const loteB = parseInt(b.lote, 10);
-        const cuartelA = parseInt(a.cuartel, 10);
-        const cuartelB = parseInt(b.cuartel, 10);
-        if (loteA !== loteB) return loteA - loteB;
-        return cuartelA - cuartelB;
-      }).map(loteData => {
-        const variedad = loteData?.variedad || 'N/A';
-        const fechaCianamida = loteData?.fechaCianamida;
-        const campana = loteData?.campana || '';
+    // Create sorted header info from the unique lot numbers
+    const loteHeaders: LoteHeaderInfo[] = uniqueLotesInRecords
+      .map(loteNum => {
+        const loteDataFromMaestro = lotesMaestro.find(l => l.lote === loteNum);
+        const variedad = loteDataFromMaestro?.variedad || 'N/A';
+        const fechaCianamida = loteDataFromMaestro?.fechaCianamida;
+        const campana = loteDataFromMaestro?.campana || '';
 
         let ddc: number | string = '';
         if (fechaCianamida && isValid(fechaCianamida)) {
@@ -137,7 +125,7 @@ export default function AttendanceSummaryPage() {
         
         const variedadAbreviada = variedad.substring(0, 2).toUpperCase();
         
-        return { lote: loteData.lote, cuartel: loteData.cuartel, ddc, variedadAbreviada, campana };
+        return { lote: loteNum, ddc, variedadAbreviada, campana };
       });
 
     if (loteHeaders.length === 0) {
@@ -145,20 +133,19 @@ export default function AttendanceSummaryPage() {
     }
 
     const labors: PivotData['labors'] = {};
-    const columnTotals: { [cuartel: string]: number } = {};
-    const absentTotalsByLote: { [cuartel: string]: number } = {};
+    const columnTotals: { [lote: string]: number } = {};
+    const absentTotalsByLote: { [lote: string]: number } = {};
     let grandTotalPersonnel = 0;
     let grandTotalAbsent = 0;
 
     loteHeaders.forEach(h => {
-      columnTotals[h.cuartel] = 0;
-      absentTotalsByLote[h.cuartel] = 0;
+      columnTotals[h.lote] = 0;
+      absentTotalsByLote[h.lote] = 0;
     });
 
     recordsForDay.forEach(record => {
-        const loteHeader = loteHeaders.find(h => h.lote === record.lotName);
-        if (!loteHeader) return;
-        const cuartelKey = loteHeader.cuartel;
+        const loteKey = record.lotName;
+        if (!uniqueLotesInRecords.includes(loteKey)) return;
 
         const laborKey = record.labor;
         if (!labors[laborKey]) {
@@ -167,15 +154,16 @@ export default function AttendanceSummaryPage() {
                 lotes: {},
                 totalPersonnel: 0,
             };
-            loteHeaders.forEach(h => labors[laborKey].lotes[h.cuartel] = 0);
+            loteHeaders.forEach(h => labors[laborKey].lotes[h.lote] = 0);
         }
         
+        // Aggregate personnel and absent counts for the entire lot
         const personnel = record.totals.personnelCount;
         const absent = record.totals.absentCount;
-        
-        labors[laborKey].lotes[cuartelKey] = (labors[laborKey].lotes[cuartelKey] || 0) + personnel;
-        columnTotals[cuartelKey] += personnel;
-        absentTotalsByLote[cuartelKey] += absent;
+
+        labors[laborKey].lotes[loteKey] = (labors[laborKey].lotes[loteKey] || 0) + personnel;
+        columnTotals[loteKey] += personnel;
+        absentTotalsByLote[loteKey] += absent;
         
         labors[laborKey].totalPersonnel += personnel;
         grandTotalPersonnel += personnel;
@@ -277,7 +265,7 @@ export default function AttendanceSummaryPage() {
                         <th className="border border-black bg-[#d9e2f3] p-1" colSpan={2}>Fecha: {format(selectedDate, 'dd/MM/yyyy')}</th>
                             <th className="border border-black bg-[#fff2cc] p-1">DDC</th>
                             {pivotData.loteHeaders.map(h => (
-                                <th key={`ddc-h-${h.cuartel}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.ddc}</th>
+                                <th key={`ddc-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.ddc}</th>
                             ))}
                             <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={3}>TOTAL</th>
                         </tr>
@@ -286,27 +274,44 @@ export default function AttendanceSummaryPage() {
                             <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>DESCRIPCION DE LABOR</th>
                             <th className="border border-black bg-[#fff2cc] p-1">Lote</th>
                              {pivotData.loteHeaders.map(h => (
-                                <th key={`lote-h-${h.cuartel}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.lote}</th>
+                                <th key={`lote-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.lote}</th>
                             ))}
                         </tr>
                          <tr>
                             <th className="border border-black bg-[#fff2cc] p-1">Var.</th>
                             {pivotData.loteHeaders.map(h => (
-                                <th key={`var-h-${h.cuartel}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.variedadAbreviada}</th>
+                                <th key={`var-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.variedadAbreviada}</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody className="text-center bg-white">
                         {Object.keys(pivotData.labors).length > 0 ? (
                             Object.entries(pivotData.labors)
-                                .sort(([, valA], [, valB]) => (Number(valA.code) || 9999) - (Number(valB.code) || 9999))
+                                .sort(([, valA], [, valB]) => {
+                                    const codeA = valA.code;
+                                    const codeB = valB.code;
+                                    
+                                    const isSpecialA = codeA === '902' || codeA === '903';
+                                    const isSpecialB = codeB === '902' || codeB === '903';
+
+                                    if (isSpecialA && !isSpecialB) return -1;
+                                    if (!isSpecialA && isSpecialB) return 1;
+                                    
+                                    // If both are special, sort them (e.g. 902 before 903)
+                                    if (isSpecialA && isSpecialB) {
+                                      return (Number(codeA) || 0) - (Number(codeB) || 0);
+                                    }
+
+                                    // Fallback to numeric sort for other codes
+                                    return (Number(codeA) || 9999) - (Number(codeB) || 9999);
+                                })
                                 .map(([labor, data]) => (
                                 <tr key={labor}>
                                     <td className="border border-black p-1">{data.code}</td>
                                     <td colSpan={2} className="w-72 border border-black p-1 text-left">{labor}</td>
                                     {pivotData.loteHeaders.map(h => (
-                                        <td key={`${labor}-${h.cuartel}`} className="border border-black p-1">
-                                            {data.lotes[h.cuartel] > 0 ? data.lotes[h.cuartel] : ''}
+                                        <td key={`${labor}-${h.lote}`} className="border border-black p-1">
+                                            {data.lotes[h.lote] > 0 ? data.lotes[h.lote] : ''}
                                         </td>
                                     ))}
                                     <td className="border border-black p-1 font-bold">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
@@ -322,8 +327,8 @@ export default function AttendanceSummaryPage() {
                         <tr className="bg-[#fce5cd]">
                             <td colSpan={3} className="border border-black p-2 text-center">TOTAL</td>
                             {pivotData.loteHeaders.map(h => (
-                                <td key={`total-${h.cuartel}`} className="border border-black p-2 text-center">
-                                    {pivotData.columnTotals[h.cuartel] > 0 ? pivotData.columnTotals[h.cuartel] : ''}
+                                <td key={`total-${h.lote}`} className="border border-black p-2 text-center">
+                                    {pivotData.columnTotals[h.lote] > 0 ? pivotData.columnTotals[h.lote] : ''}
                                 </td>
                             ))}
                             <td className="border border-black p-2 text-center">
@@ -333,8 +338,8 @@ export default function AttendanceSummaryPage() {
                         <tr className="bg-[#fce5cd]">
                             <td colSpan={3} className="border border-black p-2 text-center">FALTOS</td>
                             {pivotData.loteHeaders.map(h => (
-                                <td key={`faltos-${h.cuartel}`} className="border border-black p-2 text-center">
-                                    {pivotData.absentTotalsByLote[h.cuartel] > 0 ? pivotData.absentTotalsByLote[h.cuartel] : ''}
+                                <td key={`faltos-${h.lote}`} className="border border-black p-2 text-center">
+                                    {pivotData.absentTotalsByLote[h.lote] > 0 ? pivotData.absentTotalsByLote[h.lote] : ''}
                                 </td>
                             ))}
                             <td className="border border-black p-2 text-center">
