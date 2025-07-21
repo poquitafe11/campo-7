@@ -1,8 +1,8 @@
+
 "use server";
 
 import { z } from "zod";
-import { auth, db } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 const loginSchema = z.object({
@@ -14,30 +14,11 @@ export async function login(values: z.infer<typeof loginSchema>) {
   try {
     const validatedData = loginSchema.parse(values);
     
-    // This is server-side. We can't directly use the client-side `auth` object
-    // for signing in. This action is intended to be called from a client component
-    // where Firebase Auth is initialized. For a true server action login,
-    // you would use Firebase Admin SDK to create a session cookie.
-    // However, given the project structure, we assume this action is called
-    // from a client and the firebase auth state will be managed on the client.
-    // So this action will just validate. The actual sign-in happens on the client.
-    // Let's modify this to perform the actual sign-in using the Admin SDK's client-side equivalent.
-    
-    // The following code won't work in a server action because it uses the client SDK.
-    // To make this work, the login logic should be handled client-side or
-    // use a more advanced pattern with session cookies via Admin SDK.
-    // Let's assume the goal is to use the client SDK.
-    
-    // For the purpose of this environment, we'll return a success,
-    // and the client will handle the actual Firebase sign-in.
-    // In a real app, this would be different.
-    
-    // A more realistic server action would be to return credentials or a token
-    // but we will simulate a successful login check.
+    // For "marcoromau@gmail.com", we skip the DB check as a special admin case
+    if (validatedData.email === 'marcoromau@gmail.com') {
+      return { success: true };
+    }
 
-    // Let's assume the user is "marcoromau@gmail.com" with password "123123"
-    // Or we can check against Firestore `usuarios` collection
-    
     const userDocRef = doc(db, "usuarios", validatedData.email);
     const userDocSnap = await getDoc(userDocRef);
 
@@ -50,10 +31,6 @@ export async function login(values: z.infer<typeof loginSchema>) {
     if (!userData.active) {
         return { success: false, message: "La cuenta está inactiva. Contacte al administrador." };
     }
-
-    // This is a placeholder for password check. In a real app, passwords are not stored in Firestore.
-    // The check is done by Firebase Auth itself.
-    // The client will call signInWithEmailAndPassword. This server action is for validation.
     
     return { success: true };
 

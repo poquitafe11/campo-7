@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUser(null);
               }
             } else {
+              // If user exists in Auth but not in Firestore, sign out
               await signOut(auth);
               setProfile(null);
               setUser(null);

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/hooks/useAuth';
@@ -20,16 +21,16 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading) {
-      const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-      
-      if (!user && isProtectedRoute) {
-        router.replace('/login');
-      }
-      
-      if (user && pathname === '/login') {
-        router.replace('/dashboard');
-      }
+    if (loading) return; // Wait until loading is finished
+
+    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+    
+    if (!user && isProtectedRoute) {
+      router.replace('/login');
+    }
+    
+    if (user && pathname === '/login') {
+      router.replace('/dashboard');
     }
   }, [user, loading, pathname, router]);
 
@@ -41,22 +42,23 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     );
   }
 
-  // Avoid rendering children on server-side if route is protected and no user info yet
+  // Prevent rendering protected pages if not authenticated, avoiding flashes of content
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-  if (typeof window === 'undefined' && isProtectedRoute) {
-     return (
+  if (!user && isProtectedRoute) {
+    return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
   
-  if (!user && isProtectedRoute) {
-    return null; // or a loading spinner
-  }
-  
+  // Prevent rendering login page if authenticated
   if (user && pathname === '/login') {
-    return null; // or a loading spinner
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return <>{children}</>;
