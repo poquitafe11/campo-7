@@ -14,9 +14,14 @@ import {
   Tractor,
   Users,
   LayoutGrid,
-  BookText,
   Layers,
-  LifeBuoy,
+  HeartPulse,
+  Droplets,
+  BadgeCheck,
+  Bug,
+  BotMessageSquare,
+  BookText,
+  AreaChart
 } from "lucide-react"
 
 const navItems = [
@@ -28,7 +33,6 @@ const navItems = [
   {
     label: "Maestros",
     icon: <Layers />,
-    href: "/maestros",
     items: [
       { href: "/maestro-lotes", label: "Lotes" },
       { href: "/maestro-labores", label: "Labores" },
@@ -44,6 +48,12 @@ const navItems = [
         { href: "/production/daily-report", label: "Parte Diario" },
     ]
   },
+  { href: "/health", icon: <HeartPulse />, label: "Sanidad" },
+  { href: "/irrigation", icon: <Droplets />, label: "Riego" },
+  { href: "/quality-control", icon: <BadgeCheck />, label: "Calidad" },
+  { href: "/biological-control", icon: <Bug />, label: "Biológico" },
+  { href: "/summary", icon: <AreaChart />, label: "Resumen" },
+  { href: "/queries", icon: <BotMessageSquare />, label: "Asistente IA" },
   {
     href: "/users",
     icon: <Users />,
@@ -57,7 +67,12 @@ export function SidebarNav() {
   const isParentActive = (item: (typeof navItems)[number]) => {
     if (!item.href) return false;
     if (item.href === "/dashboard") return pathname === item.href;
-    return pathname.startsWith(item.href);
+    // For parent items, check if the current path starts with the item's href
+    return item.items && pathname.startsWith(item.href);
+  };
+  
+  const isChildActive = (href: string) => {
+    return pathname === href || pathname.startsWith(href + "/");
   };
 
   return (
@@ -77,7 +92,7 @@ export function SidebarNav() {
                 <SidebarMenuSubItem key={subItem.href}>
                   <SidebarMenuSubButton
                     href={subItem.href}
-                    isActive={pathname.startsWith(subItem.href)}
+                    isActive={isChildActive(subItem.href)}
                   >
                     {subItem.label}
                   </SidebarMenuSubButton>
@@ -89,7 +104,7 @@ export function SidebarNav() {
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
               href={item.href}
-              isActive={isParentActive(item)}
+              isActive={isChildActive(item.href!)}
             >
               {item.icon}
               <span>{item.label}</span>
