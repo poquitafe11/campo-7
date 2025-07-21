@@ -22,7 +22,7 @@ const productionFeatures = [
     icon: <PenSquare className="h-8 w-8 text-primary" />,
     title: "Registro de Actividades",
     description: "Registra actividades específicas en el campo.",
-    href: "/production/daily-report/create",
+    href: "/production/activities",
   },
   {
     icon: <LineChart className="h-8 w-8 text-primary" />,
