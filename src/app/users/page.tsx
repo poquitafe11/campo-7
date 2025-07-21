@@ -33,34 +33,30 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { type User, type UserRole } from "@/lib/types";
-import { getUsers, updateUserStatus, deleteUser, getCurrentUserRole } from "./actions";
+import { getUsers, updateUserStatus, deleteUser } from "./actions";
 import UserFormDialog from "@/components/UserFormDialog";
+import { useAuth } from '@/hooks/useAuth';
 
 
 export default function UsersPage() {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [data, setData] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
+  
+  const currentUserRole = profile?.rol ?? null;
 
   const fetchUsers = () => {
     setLoading(true);
     startTransition(async () => {
-        const [roleResult, usersResult] = await Promise.all([getCurrentUserRole(), getUsers()]);
+        const usersResult = await getUsers();
         
-        if (roleResult) {
-            setCurrentUserRole(roleResult);
-        } else {
-             toast({ variant: "destructive", title: "Error", description: "No se pudo verificar tu rol." });
-        }
-
         if (usersResult.success) {
             setData(usersResult.data);
         } else if (usersResult.message) {
-            // Only show toast if there's a message and it's not a permission issue already handled by the UI
             if (!usersResult.message.includes("permiso")) {
                toast({ variant: "destructive", title: "Error", description: usersResult.message });
             }
@@ -70,9 +66,11 @@ export default function UsersPage() {
   };
   
   useEffect(() => {
-    fetchUsers();
+    if (currentUserRole) {
+      fetchUsers();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUserRole]);
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
