@@ -2,6 +2,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
+import Link from "next/link"
 import {
   SidebarMenu,
   SidebarMenuItem,
@@ -78,10 +79,10 @@ export function SidebarNav() {
               {item.items.map((subItem) => (
                 <SidebarMenuSubItem key={subItem.href}>
                   <SidebarMenuSubButton
-                    href={subItem.href}
+                    asChild
                     isActive={isChildActive(subItem.href)}
                   >
-                    {subItem.label}
+                    <Link href={subItem.href}>{subItem.label}</Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
               ))}
@@ -90,11 +91,13 @@ export function SidebarNav() {
         ) : (
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
-              href={item.href}
+              asChild
               isActive={isChildActive(item.href!)}
             >
-              {item.icon}
-              <span>{item.label}</span>
+              <Link href={item.href!}>
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         )
