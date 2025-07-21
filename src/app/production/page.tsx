@@ -1,10 +1,9 @@
-
 "use client";
 
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
-import { ClipboardList, Users } from "lucide-react";
+import { ClipboardList, Users, PenSquare, LineChart } from "lucide-react";
 
 const productionFeatures = [
   {
@@ -18,6 +17,18 @@ const productionFeatures = [
     title: "Asistencia de Personal",
     description: "Gestiona la asistencia y el rendimiento del equipo.",
     href: "/production/attendance",
+  },
+  {
+    icon: <PenSquare className="h-8 w-8 text-primary" />,
+    title: "Registro de Actividades",
+    description: "Registra actividades específicas en el campo.",
+    href: "#", // Placeholder
+  },
+  {
+    icon: <LineChart className="h-8 w-8 text-primary" />,
+    title: "Análisis y Reportes",
+    description: "Visualiza análisis y reportes de producción.",
+    href: "#", // Placeholder
   },
 ];
 
