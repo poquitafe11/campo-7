@@ -18,7 +18,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -58,17 +58,19 @@ export default function AttendanceSummaryPage() {
     const chartData: SummaryData[] = Object.entries(summary)
       .map(([date, totals]) => ({
         date: format(parseISO(date), 'dd MMM', { locale: es }),
-        Personnel: totals.personnelCount,
-        Absentees: totals.absentCount,
+        dateFull: format(parseISO(date), 'EEEE, dd MMMM yyyy', { locale: es }),
+        Personal: totals.personnelCount,
+        Faltas: totals.absentCount,
       }))
+      .slice(0, 30) // Limit to last 30 days for clarity
       .reverse(); 
 
     return { summaryByDate: summary, chartData };
   }, [data]);
   
   const chartConfig = {
-      Personnel: { label: 'Personal', color: 'hsl(var(--chart-1))' },
-      Absentees: { label: 'Faltos', color: 'hsl(var(--chart-2))' },
+      Personal: { label: 'Personal', color: 'hsl(var(--chart-1))' },
+      Faltas: { label: 'Faltas', color: 'hsl(var(--chart-2))' },
   };
 
   if (loading) {
@@ -81,7 +83,7 @@ export default function AttendanceSummaryPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur sm:px-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/production/attendance">
@@ -96,33 +98,36 @@ export default function AttendanceSummaryPage() {
       </header>
        <main className="flex-1 p-4 sm:p-6 lg:p-8">
         {data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
-            <h3 className="text-xl font-semibold">No hay datos de asistencia</h3>
+          <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg bg-muted/50">
+            <h3 className="text-xl font-semibold text-muted-foreground">No hay datos de asistencia</h3>
             <p className="text-muted-foreground mt-2">
               Empieza por{' '}
-              <Link href="/production/attendance/daily-entry" className="text-primary hover:underline">
+              <Link href="/production/attendance/daily-entry" className="text-primary hover:underline font-medium">
                 registrar la asistencia
               </Link>
               .
             </p>
           </div>
         ) : (
-          <div className="grid gap-6">
+          <div className="grid gap-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Tendencia de Asistencia</CardTitle>
-                    <CardDescription>Personal vs. Faltos en los últimos registros.</CardDescription>
+                    <CardTitle>Tendencia de Asistencia (Últimos 30 Días)</CardTitle>
+                    <CardDescription>Visualización del personal presente versus las ausencias en los registros más recientes.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                    <ChartContainer config={chartConfig} className="h-[300px] w-full">
                         <BarChart accessibilityLayer data={chartData}>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
                             <YAxis />
-                            <ChartTooltip content={<ChartTooltipContent />} />
+                            <ChartTooltip
+                                cursor={{ fill: 'hsl(var(--accent))' }}
+                                content={<ChartTooltipContent indicator="dot" />}
+                            />
                             <ChartLegend content={<ChartLegendContent />} />
-                            <Bar dataKey="Personnel" fill="var(--color-Personnel)" radius={4} />
-                            <Bar dataKey="Absentees" fill="var(--color-Absentees)" radius={4} />
+                            <Bar dataKey="Personal" fill="var(--color-Personal)" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Faltas" fill="var(--color-Faltas)" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ChartContainer>
                 </CardContent>
@@ -130,20 +135,21 @@ export default function AttendanceSummaryPage() {
             
             <div className="space-y-4">
                 <h2 className="text-xl font-semibold">Resumen por Día</h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {Object.entries(summaryByDate).map(([date, totals]) => (
                         <Card key={date}>
-                            <CardHeader>
-                                <CardTitle className="text-lg">{format(parseISO(date), 'EEEE, dd MMMM yyyy', { locale: es })}</CardTitle>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base font-medium">{format(parseISO(date), 'EEEE, dd MMMM', { locale: es })}</CardTitle>
+                                <CardDescription>{format(parseISO(date), 'yyyy', { locale: es })}</CardDescription>
                             </CardHeader>
-                            <CardContent className="flex justify-around text-center">
+                            <CardContent className="flex justify-around text-center pt-2">
                                 <div>
-                                    <p className="text-2xl font-bold">{totals.personnelCount}</p>
+                                    <p className="text-3xl font-bold text-primary">{totals.personnelCount}</p>
                                     <p className="text-sm text-muted-foreground">Personal</p>
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold text-destructive">{totals.absentCount}</p>
-                                    <p className="text-sm text-muted-foreground">Faltos</p>
+                                    <p className="text-3xl font-bold text-destructive">{totals.absentCount}</p>
+                                    <p className="text-sm text-muted-foreground">Faltas</p>
                                 </div>
                             </CardContent>
                         </Card>
