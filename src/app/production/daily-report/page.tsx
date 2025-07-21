@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -10,7 +11,7 @@ const dailyReportFeatures = [
     icon: <FilePlus2 className="h-8 w-8 text-primary" />,
     title: "Crear Parte Diario",
     description: "Genera un nuevo parte diario de labores y novedades.",
-    href: "#", // Placeholder link
+    href: "/production/daily-report/create",
   },
   {
     icon: <ClipboardList className="h-8 w-8 text-primary" />,

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { usePathname } from "next/navigation"
@@ -16,7 +17,6 @@ import {
   BookText,
   Layers,
   LifeBuoy,
-  ClipboardList
 } from "lucide-react"
 
 const navItems = [
@@ -35,10 +35,12 @@ const navItems = [
     ],
   },
   {
+    href: "/production",
     label: "Producción",
     icon: <Tractor />,
     items: [
         { href: "/production/attendance", label: "Asistencia" },
+        { href: "/production/daily-report", label: "Parte Diario" },
     ]
   },
   {
@@ -57,7 +59,8 @@ export function SidebarNav() {
         item.items ? (
           <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
-              isActive={item.items.some((sub) => pathname.startsWith(sub.href))}
+              href={item.href}
+              isActive={item.href ? pathname.startsWith(item.href) : item.items.some((sub) => pathname.startsWith(sub.href))}
             >
               {item.icon}
               <span>{item.label}</span>
