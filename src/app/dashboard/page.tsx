@@ -2,69 +2,75 @@
 "use client";
 
 import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tractor, HeartPulse, Droplets, BadgeCheck, Bug, BotMessageSquare } from "lucide-react";
+import {
+  Tractor,
+  ShieldCheck,
+  Droplets,
+  ClipboardCheck,
+  Bug,
+  Lightbulb,
+  PieChart,
+} from "lucide-react";
 
 const mainFeatures = [
   {
     title: "Producción",
-    description: "Gestiona partes diarios, asistencia y actividades.",
     href: "/production",
-    icon: <Tractor className="h-8 w-8 text-primary" />,
+    icon: <Tractor className="h-10 w-10 text-primary" />,
   },
   {
     title: "Sanidad",
-    description: "Registra observaciones de plagas y enfermedades.",
     href: "/health",
-    icon: <HeartPulse className="h-8 w-8 text-primary" />,
+    icon: <ShieldCheck className="h-10 w-10 text-primary" />,
   },
   {
     title: "Riego",
-    description: "Monitorea el uso de agua y la duración del riego.",
     href: "/irrigation",
-    icon: <Droplets className="h-8 w-8 text-primary" />,
+    icon: <Droplets className="h-10 w-10 text-primary" />,
   },
   {
-    title: "Control de Calidad",
-    description: "Realiza seguimiento de la calidad de la cosecha.",
+    title: "C. Calidad",
     href: "/quality-control",
-    icon: <BadgeCheck className="h-8 w-8 text-primary" />,
+    icon: <ClipboardCheck className="h-10 w-10 text-primary" />,
   },
   {
-    title: "Control Biológico",
-    description: "Administra la liberación de agentes biológicos.",
+    title: "C. Biologico",
     href: "/biological-control",
-    icon: <Bug className="h-8 w-8 text-primary" />,
+    icon: <Bug className="h-10 w-10 text-primary" />,
   },
-   {
-    title: "Asistente IA",
-    description: "Consulta tus datos usando inteligencia artificial.",
+  {
+    title: "Consultas",
     href: "/queries",
-    icon: <BotMessageSquare className="h-8 w-8 text-primary" />,
+    icon: <Lightbulb className="h-10 w-10 text-primary" />,
+  },
+  {
+    title: "Resumen",
+    href: "/summary",
+    icon: <PieChart className="h-10 w-10 text-primary" />,
   },
 ];
 
 
 export default function DashboardPage() {
     return (
-        <>
-            <PageHeader title="Dashboard Principal" />
-            <div className="p-4 sm:p-6 lg:p-8 pt-0">
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col h-full">
+            <PageHeader title="Áreas de Gestión" />
+            <main className="flex-grow p-4 sm:p-6">
+               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                     {mainFeatures.map((link) => (
-                    <Link href={link.href} key={link.title} className="block group">
-                        <Card className="h-full transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:border-primary/50">
-                        <CardHeader>
-                            <div className="mb-3">{link.icon}</div>
-                            <CardTitle>{link.title}</CardTitle>
-                            <CardDescription className="pt-1">{link.description}</CardDescription>
-                        </CardHeader>
-                        </Card>
-                    </Link>
+                        <Link href={link.href} key={link.title} className="block group">
+                            <Card className="h-32 sm:h-36 transition-all duration-200 ease-in-out hover:shadow-lg hover:-translate-y-1 hover:border-primary/30">
+                                <CardContent className="flex flex-col items-center justify-center h-full gap-2 p-4">
+                                    {link.icon}
+                                    <span className="text-sm font-medium text-center text-foreground">{link.title}</span>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     ))}
                 </div>
-            </div>
-        </>
+            </main>
+        </div>
     )
 }

@@ -1,28 +1,30 @@
+
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 interface PageHeaderProps {
   title: string;
 }
 
 export function PageHeader({ title }: PageHeaderProps) {
-  const router = useRouter();
+  const { profile, user } = useAuth();
 
   return (
-    <header className="flex items-center gap-4 mb-6 sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-4">
-      <Button
-        variant="outline"
-        size="icon"
-        className="shrink-0"
-        onClick={() => router.back()}
-        aria-label="Go back"
-      >
-        <ArrowLeft className="h-5 w-5" />
-      </Button>
-      <h1 className="text-2xl font-bold tracking-tight text-primary">{title}</h1>
+    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-primary/5 px-4 sm:px-6 sticky top-0 z-10 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+            <SidebarTrigger className="md:hidden" />
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">{title}</h1>
+        </div>
+        <div className="flex items-center gap-4">
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={user?.photoURL || ''} alt={profile?.nombre} />
+              <AvatarFallback>{profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+            </Avatar>
+        </div>
     </header>
   );
 }
