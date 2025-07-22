@@ -23,7 +23,7 @@ const activityFeatures = [
     icon: <BarChart3 className="h-8 w-8 text-primary" />,
     title: "Resumen de Actividades",
     description: "Visualiza reportes y estadísticas de las actividades.",
-    href: "#", // Placeholder link
+    href: "/production/activities/summary",
   },
 ];
 
