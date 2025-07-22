@@ -1,0 +1,31 @@
+
+'use server';
+
+import { z } from 'zod';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ActivityRecordSchema } from '@/lib/types';
+
+
+export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>) {
+  try {
+    const validatedData = ActivityRecordSchema.parse(values);
+    
+    if (!validatedData.createdBy) {
+      return { success: false, message: 'Usuario no autenticado.' };
+    }
+
+    const docRef = await addDoc(collection(db, 'actividades'), {
+      ...validatedData,
+      createdAt: serverTimestamp(),
+    });
+
+    return { success: true, message: 'Actividad guardada correctamente.', id: docRef.id };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, message: 'Datos de formulario inválidos.', errors: error.errors };
+    }
+    console.error('Error saving activity:', error);
+    return { success: false, message: 'Ocurrió un error en el servidor.' };
+  }
+}
