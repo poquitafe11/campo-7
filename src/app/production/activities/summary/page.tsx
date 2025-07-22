@@ -15,50 +15,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
-const SummaryTable = ({ summaryData, tableTitle }: { summaryData: SummaryValues; tableTitle: string }) => (
-    <div className="w-full max-w-sm flex-shrink-0">
-        <table className="w-full border-collapse border border-black text-xs">
-            <thead>
-                <tr>
-                    <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold text-center h-14 align-middle">
-                        {tableTitle}
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <SummaryRow label="Lote" value={summaryData.lote} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
-                <SummaryRow label={<span className="italic">Pasada</span>} value={summaryData.pasada} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
-                <SummaryRow label="FECHA" value={summaryData.fecha} />
-                <SummaryRow label="N° PERSONAS" value={summaryData.personas} />
-                <SummaryRow label="PLANTAS" value={summaryData.plantas.toLocaleString('es-ES')} />
-                <SummaryRow label="JHU" value={summaryData.jhu.toFixed(2)} />
-                <SummaryRow label="PROMEDIO" value={summaryData.promedio.toFixed(0)} />
-                <SummaryRow label="Pltas./ Hora" value={summaryData.plantasHora} labelClasses="bg-[#f8cbad]" valueClasses="bg-[#f8cbad]" />
-                <SummaryRow label="Has." value={summaryData.has} />
-                <SummaryRow label="% Avance" value={summaryData.avance} />
-                <SummaryRow label="Ha por Trabajar" value={summaryData.haPorTrabajar} />
-                <SummaryRow label="MINIMO" value={summaryData.minimo} />
-                <SummaryRow label="MAXIMO" value={summaryData.maximo} />
-            </tbody>
-        </table>
-    </div>
-);
-
-
-const SummaryRow = ({ label, value, labelClasses = "", valueClasses = "" }: { label: string | React.ReactNode, value: string | number | React.ReactNode, labelClasses?: string, valueClasses?: string }) => (
-    <tr className="bg-[#dbe5f1]">
-        <td className={`border border-black px-4 py-2 font-bold ${labelClasses}`}>{label}</td>
-        <td className={`border border-black px-4 py-2 text-center ${valueClasses}`}>{value}</td>
-    </tr>
-);
-
-interface Filters {
-    campaign: string;
-    lote: string;
-    labor: string;
-    pasada: string;
-}
-
 interface SummaryValues {
     lote: string;
     pasada: number;
@@ -73,6 +29,13 @@ interface SummaryValues {
     haPorTrabajar: number;
     minimo: number;
     maximo: number;
+}
+
+interface Filters {
+    campaign: string;
+    lote: string;
+    labor: string;
+    pasada: string;
 }
 
 const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', pasada: '' });
@@ -219,6 +182,21 @@ export default function ActivitySummaryPage() {
 
     }, [activeFilters, allLabors, allLotes]);
 
+    const summaryRows: { label: string | React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number }[] = [
+        { label: "FECHA", key: "fecha" },
+        { label: "N° PERSONAS", key: "personas" },
+        { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-ES') },
+        { label: "JHU", key: "jhu", format: (v) => v.toFixed(2) },
+        { label: "PROMEDIO", key: "promedio", format: (v) => v.toFixed(0) },
+        { label: "Pltas./ Hora", key: "plantasHora", bgClass: "bg-[#f8cbad]" },
+        { label: "Has.", key: "has" },
+        { label: "% Avance", key: "avance" },
+        { label: "Ha por Trabajar", key: "haPorTrabajar" },
+        { label: "MINIMO", key: "minimo" },
+        { label: "MAXIMO", key: "maximo" },
+    ];
+
+
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <PageHeaderWithNav title="Resumen de Actividades" />
@@ -271,10 +249,39 @@ export default function ActivitySummaryPage() {
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="overflow-x-auto pb-4">
-                       <div className="flex space-x-4">
-                            {multiDaySummary.map(({ summary, date }) => (
-                                <SummaryTable key={date.toISOString()} summaryData={summary} tableTitle={tableTitle} />
-                            ))}
+                       <div className="inline-block min-w-full">
+                           <table className="border-collapse border border-black text-xs">
+                                <thead>
+                                    <tr>
+                                        <th colSpan={1 + multiDaySummary.length} className="border border-black bg-gray-200 p-2 text-base font-bold text-center h-14 align-middle">
+                                            {tableTitle}
+                                        </th>
+                                    </tr>
+                                    <tr className="bg-gray-300">
+                                        <td className="border border-black px-4 py-2 font-bold">Lote</td>
+                                        {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.lote}</td>)}
+                                    </tr>
+                                    <tr className="bg-gray-300">
+                                        <td className="border border-black px-4 py-2 font-bold"><span className="italic">Pasada</span></td>
+                                        {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.pasada}</td>)}
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-[#dbe5f1]">
+                                    {summaryRows.map(row => (
+                                        <tr key={String(row.key)}>
+                                            <td className={`border border-black px-4 py-2 font-bold ${row.bgClass || ''}`}>{row.label}</td>
+                                            {multiDaySummary.map((day, index) => {
+                                                const value = day.summary[row.key];
+                                                return (
+                                                    <td key={index} className={`border border-black px-4 py-2 text-center ${row.bgClass || ''}`}>
+                                                        {row.format ? row.format(value) : value}
+                                                    </td>
+                                                )
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 ) : (
@@ -286,3 +293,4 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
+
