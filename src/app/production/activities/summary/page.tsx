@@ -137,7 +137,7 @@ export default function ActivitySummaryPage() {
             const loteInfo = allLotes.find(l => l.lote === activeFilters.lote);
             const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
             const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
-            const has = loteInfo?.ha || 0;
+            const has = loteInfo?.ha ?? 0;
             const plantas = loteInfo?.plantasTotal || 0;
 
             const promedio = personas > 0 ? jhu / personas : 0;
@@ -293,4 +293,3 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
-
