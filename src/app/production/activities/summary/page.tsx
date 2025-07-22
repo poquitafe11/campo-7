@@ -251,7 +251,7 @@ export default function ActivitySummaryPage() {
                     <div className="overflow-x-auto pb-4">
                        <div className="inline-block min-w-full">
                            <table className="border-collapse border border-black text-xs">
-                                <thead>
+                               <thead className="text-center font-bold text-black">
                                     <tr>
                                         <th colSpan={1 + multiDaySummary.length} className="border border-black bg-gray-200 p-2 text-base font-bold text-center h-14 align-middle">
                                             {tableTitle}
@@ -261,7 +261,7 @@ export default function ActivitySummaryPage() {
                                         <td className="border border-black px-4 py-2 font-bold">Lote</td>
                                         {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.lote}</td>)}
                                     </tr>
-                                    <tr className="bg-gray-300">
+                                    <tr className="bg-gray-300 border-b-2 border-black">
                                         <td className="border border-black px-4 py-2 font-bold"><span className="italic">Pasada</span></td>
                                         {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.pasada}</td>)}
                                     </tr>
@@ -293,5 +293,3 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
-
-    
