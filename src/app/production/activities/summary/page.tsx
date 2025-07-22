@@ -9,8 +9,12 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import type { ActivityRecordData, LoteData, Labor } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Filter } from 'lucide-react';
 import { format } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+
 
 const SummaryRow = ({ label, value, labelClasses = "", valueClasses = "" }: { label: string | React.ReactNode, value: string | number | React.ReactNode, labelClasses?: string, valueClasses?: string }) => (
     <tr className="bg-[#dbe5f1]">
@@ -42,13 +46,18 @@ interface SummaryValues {
     maximo: number;
 }
 
+const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', pasada: '' });
+
 export default function ActivitySummaryPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
     const [allLotes, setAllLotes] = useState<LoteData[]>([]);
     const [allLabors, setAllLabors] = useState<Labor[]>([]);
-    const [filters, setFilters] = useState<Filters>({ campaign: '', lote: '', labor: '', pasada: '' });
+    
+    const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
+    const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const loadData = useCallback(async () => {
         setIsLoading(true);
@@ -91,24 +100,36 @@ export default function ActivitySummaryPage() {
         return { campaigns, lotes, labors, pasadas };
     }, [allActivities]);
 
-    const handleFilterChange = (filterName: keyof Filters, value: string) => {
-        setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
+    const handlePopoverFilterChange = (filterName: keyof Filters, value: string) => {
+        setPopoverFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
+    };
+
+    const handleApplyFilters = () => {
+        setActiveFilters(popoverFilters);
+        setIsFilterOpen(false);
+    };
+
+    const handleClearFilters = () => {
+        const cleared = getInitialFilters();
+        setPopoverFilters(cleared);
+        setActiveFilters(cleared);
+        setIsFilterOpen(false);
     };
 
     const summaryData = useMemo<SummaryValues | null>(() => {
-        if (!filters.lote || !filters.labor) return null;
+        if (!activeFilters.lote || !activeFilters.labor) return null;
 
         const filteredActivities = allActivities.filter(a => {
-            const pasadaMatch = filters.pasada ? String(a.pass) === filters.pasada : true;
-            return a.campaign === filters.campaign &&
-                   a.lote === filters.lote &&
-                   a.labor === filters.labor &&
+            const pasadaMatch = activeFilters.pasada ? String(a.pass) === activeFilters.pasada : true;
+            return a.campaign === activeFilters.campaign &&
+                   a.lote === activeFilters.lote &&
+                   a.labor === activeFilters.labor &&
                    pasadaMatch;
         });
 
         if (filteredActivities.length === 0) return null;
 
-        const loteInfo = allLotes.find(l => l.lote === filters.lote);
+        const loteInfo = allLotes.find(l => l.lote === activeFilters.lote);
         
         const personas = filteredActivities.reduce((sum, act) => sum + act.personnelCount, 0);
         const jhu = filteredActivities.reduce((sum, act) => sum + act.workdayCount, 0);
@@ -127,8 +148,8 @@ export default function ActivitySummaryPage() {
         const maxPerf = Math.max(...filteredActivities.map(a => a.performance));
 
         return {
-            lote: filters.lote,
-            pasada: Number(filters.pasada) || 0,
+            lote: activeFilters.lote,
+            pasada: Number(activeFilters.pasada) || 0,
             fecha: format(lastActivityDate, 'dd-MMM'),
             personas,
             plantas: loteInfo?.plantasTotal ?? 0,
@@ -141,32 +162,65 @@ export default function ActivitySummaryPage() {
             minimo: minPerf === Infinity ? 0 : minPerf,
             maximo: maxPerf === -Infinity ? 0 : maxPerf,
         };
-    }, [allActivities, allLotes, filters]);
+    }, [allActivities, allLotes, activeFilters]);
 
     const tableTitle = useMemo(() => {
-        const labor = allLabors.find(l => l.descripcion === filters.labor);
-        const lote = allLotes.find(l => l.lote === filters.lote);
+        const labor = allLabors.find(l => l.descripcion === activeFilters.labor);
+        const lote = allLotes.find(l => l.lote === activeFilters.lote);
         if (!labor || !lote) return "Resumen de Actividad";
         
         const variedad = lote.variedad || 'N/A';
         return `${labor.descripcion.toUpperCase()} ${variedad.toUpperCase()}`;
 
-    }, [filters, allLabors, allLotes]);
+    }, [activeFilters, allLabors, allLotes]);
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <PageHeaderWithNav title="Resumen de Actividades" />
             
-            <Card className="mb-6">
-                <CardContent className="p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Select onValueChange={(v) => handleFilterChange('campaign', v)}><SelectTrigger><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                        <Select onValueChange={(v) => handleFilterChange('lote', v)}><SelectTrigger><SelectValue placeholder="Lote" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                        <Select onValueChange={(v) => handleFilterChange('labor', v)}><SelectTrigger><SelectValue placeholder="Labor" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                        <Select onValueChange={(v) => handleFilterChange('pasada', v)}><SelectTrigger><SelectValue placeholder="Pasada" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="flex justify-end mb-4">
+                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                            <Filter className="mr-2 h-4 w-4" />
+                            Filtros
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                         <div className="grid gap-4">
+                            <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Aplicar Filtros</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Selecciona los criterios para el resumen.
+                                </p>
+                            </div>
+                            <div className="grid gap-2">
+                                <div className="grid grid-cols-3 items-center gap-4">
+                                    <Label>Campaña</Label>
+                                    <Select onValueChange={(v) => handlePopoverFilterChange('campaign', v)} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                                <div className="grid grid-cols-3 items-center gap-4">
+                                    <Label>Lote</Label>
+                                    <Select onValueChange={(v) => handlePopoverFilterChange('lote', v)} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Lote" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                                <div className="grid grid-cols-3 items-center gap-4">
+                                    <Label>Labor</Label>
+                                    <Select onValueChange={(v) => handlePopoverFilterChange('labor', v)} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Labor" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                                <div className="grid grid-cols-3 items-center gap-4">
+                                    <Label>Pasada</Label>
+                                    <Select onValueChange={(v) => handlePopoverFilterChange('pasada', v)} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Pasada" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                            </div>
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            </div>
+
 
             {isLoading ? (
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
