@@ -4,9 +4,10 @@
 import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { collection, doc, setDoc, getDocs, deleteDoc } from "firebase/firestore";
-import { User, UserSchema, UserRole, NewUserSchema } from "@/lib/types";
+import { User, UserSchema, UserRole } from "@/lib/types";
 import { revalidatePath } from 'next/cache';
-import { authAdmin } from "@/lib/firebase-admin";
+import { getFirebaseAdmin } from "@/lib/firebase-admin";
+
 
 const roleHierarchy: { [key in UserRole]: number } = {
     "Admin": 4,
@@ -31,10 +32,8 @@ export async function getUsers() {
 }
 
 export async function createUserInAuth(password: string, email: string) {
-    if (!authAdmin) {
-        return { success: false, message: 'El servicio de administración de Firebase no está configurado en el servidor.' };
-    }
     try {
+        const authAdmin = (await getFirebaseAdmin()).auth();
         await authAdmin.createUser({
             email: email,
             password: password,
@@ -83,18 +82,17 @@ export async function updateUserStatus(email: string, active: boolean) {
 }
 
 export async function deleteUser(email: string) {
-    if (!authAdmin) {
-        return { success: false, message: 'El servicio de administración de Firebase no está configurado. No se puede eliminar el usuario de Auth.' };
-    }
-
     try {
-        // Step 1: Delete from Firebase Auth, if it exists
+        const authAdmin = (await getFirebaseAdmin()).auth();
         const userRecord = await authAdmin.getUserByEmail(email).catch(() => null);
         if (userRecord) {
             await authAdmin.deleteUser(userRecord.uid);
         }
+    } catch (error: any) {
+        console.warn(`No se pudo eliminar el usuario de Firebase Auth: ${error.message}. Esto puede suceder si el usuario ya fue eliminado o no existe. Continuando con la eliminación de Firestore.`);
+    }
 
-        // Step 2: Always attempt to delete from Firestore
+    try {
         const docRef = doc(db, "usuarios", email);
         await deleteDoc(docRef);
         
@@ -102,7 +100,7 @@ export async function deleteUser(email: string) {
         return { success: true, message: "Usuario eliminado correctamente." };
 
     } catch (error: any) {
-        console.error("Error deleting user:", error);
-        return { success: false, message: `Ocurrió un error al eliminar el usuario: ${error.message}` };
+        console.error("Error deleting user from Firestore:", error);
+        return { success: false, message: `Ocurrió un error al eliminar el usuario de la base de datos: ${error.message}` };
     }
 }
