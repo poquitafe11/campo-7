@@ -93,12 +93,13 @@ export default function ActivitySummaryPage() {
     }, [loadData]);
 
     const filterOptions = useMemo(() => {
-        const campaigns = [...new Set(allActivities.map(a => a.campaign))];
-        const lotes = [...new Set(allActivities.map(a => a.lote))];
-        const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])];
-        const pasadas = [...new Set(allActivities.map(a => String(a.pass)))];
+        const campaigns = [...new Set(allActivities.map(a => a.campaign))].sort();
+        const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+        const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
+        const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         return { campaigns, lotes, labors, pasadas };
     }, [allActivities]);
+
 
     const handlePopoverFilterChange = (filterName: keyof Filters, value: string) => {
         setPopoverFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
@@ -120,8 +121,9 @@ export default function ActivitySummaryPage() {
         if (!activeFilters.lote || !activeFilters.labor) return null;
 
         const filteredActivities = allActivities.filter(a => {
+            const campañaMatch = activeFilters.campaign ? a.campaign === activeFilters.campaign : true;
             const pasadaMatch = activeFilters.pasada ? String(a.pass) === activeFilters.pasada : true;
-            return a.campaign === activeFilters.campaign &&
+            return campañaMatch &&
                    a.lote === activeFilters.lote &&
                    a.labor === activeFilters.labor &&
                    pasadaMatch;
@@ -150,7 +152,7 @@ export default function ActivitySummaryPage() {
         return {
             lote: activeFilters.lote,
             pasada: Number(activeFilters.pasada) || 0,
-            fecha: format(lastActivityDate, 'dd-MMM'),
+            fecha: format(lastActivityDate, 'dd-MMM', { locale: es }),
             personas,
             plantas: loteInfo?.plantasTotal ?? 0,
             jhu,
@@ -170,7 +172,9 @@ export default function ActivitySummaryPage() {
         if (!labor || !lote) return "Resumen de Actividad";
         
         const variedad = lote.variedad || 'N/A';
-        return `${labor.descripcion.toUpperCase()} ${variedad.toUpperCase()}`;
+        const variedadAbreviada = variedad.split(' ').map(w => w.substring(0,1)).join('').toUpperCase();
+
+        return `${labor.descripcion.toUpperCase()} ${variedadAbreviada}`;
 
     }, [activeFilters, allLabors, allLotes]);
 
@@ -181,7 +185,7 @@ export default function ActivitySummaryPage() {
             <div className="flex justify-end mb-4">
                 <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                     <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="ghost" size="sm" className="text-sm">
                             <Filter className="mr-2 h-4 w-4" />
                             Filtros
                         </Button>
@@ -226,7 +230,7 @@ export default function ActivitySummaryPage() {
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : summaryData ? (
                 <div className="flex justify-center">
-                    <div className="w-full max-w-md">
+                    <div className="w-full max-w-sm">
                         <table className="w-full border-collapse border border-black">
                             <thead>
                                 <tr>
