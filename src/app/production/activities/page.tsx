@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import Link from 'next/link';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -24,6 +24,7 @@ import {
   Briefcase,
   Calculator,
   TrendingUp,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ import { cn } from '@/lib/utils';
 import { ActivityRecordSchema, type Labor, type LoteData } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { saveActivity } from './actions';
 
 type ActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
@@ -47,6 +49,7 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
 
 export default function ActivitiesPage() {
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
   const [labors, setLabors] = useState<Labor[]>([]);
   const [lotes, setLotes] = useState<LoteData[]>([]);
 
@@ -116,10 +119,37 @@ export default function ActivitiesPage() {
   }, [codeValue, labors, form]);
 
   const onSubmit = (data: ActivityFormValues) => {
-    console.log(data);
-    toast({
-      title: 'Ficha Registrada (Simulación)',
-      description: <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4"><code className="text-white">{JSON.stringify(data, null, 2)}</code></pre>,
+    startTransition(async () => {
+        const result = await saveActivity(data);
+        if (result.success) {
+            toast({
+                title: 'Éxito',
+                description: 'Ficha de actividad guardada correctamente.',
+            });
+            form.reset({
+              registerDate: new Date(),
+              campaign: '',
+              stage: '',
+              lote: '',
+              code: '',
+              labor: '',
+              performance: 0,
+              personnelCount: 1,
+              workdayCount: 0,
+              cost: 0,
+              shift: '',
+              minRange: 0,
+              maxRange: 0,
+              pass: 0,
+              observations: '',
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Error al Guardar',
+                description: result.message || 'No se pudo guardar la ficha.',
+            });
+        }
     });
   };
 
@@ -260,7 +290,10 @@ export default function ActivitiesPage() {
                   <FormField control={form.control} name="observations" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Observaciones</IconWrapper></FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )} />
 
                   <div className="flex justify-end pt-4">
-                    <Button type="submit">Guardar Ficha</Button>
+                    <Button type="submit" disabled={isPending}>
+                      {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Guardar Ficha
+                    </Button>
                   </div>
                 </div>
               </div>
