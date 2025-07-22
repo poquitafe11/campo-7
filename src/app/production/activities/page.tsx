@@ -17,7 +17,7 @@ const activityFeatures = [
     icon: <Database className="h-8 w-8 text-primary" />,
     title: "Base de Registro",
     description: "Consulta el historial completo de actividades.",
-    href: "#", // Placeholder link
+    href: "/production/activities/database",
   },
   {
     icon: <BarChart3 className="h-8 w-8 text-primary" />,
