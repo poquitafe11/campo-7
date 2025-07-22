@@ -174,56 +174,56 @@ export default function ActivitiesPage() {
                     <FormField control={form.control} name="campaign" render={({ field }) => (
                       <FormItem>
                         <FormLabel><IconWrapper><Briefcase className="h-4 w-4" /> Campaña</IconWrapper></FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
+                        <FormControl>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="2025">2025</SelectItem>
-                              <SelectItem value="2026">2026</SelectItem>
-                              <SelectItem value="2027">2027</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                <SelectContent>
+                                  <SelectItem value="2025">2025</SelectItem>
+                                  <SelectItem value="2026">2026</SelectItem>
+                                  <SelectItem value="2027">2027</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="stage" render={({ field }) => (
                       <FormItem>
                         <FormLabel><IconWrapper><Flame className="h-4 w-4" /> Etapa</IconWrapper></FormLabel>
+                        <FormControl>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                            </FormControl>
+                            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="habilitacion">Habilitacion</SelectItem>
                                 <SelectItem value="formacion">Formacion</SelectItem>
                                 <SelectItem value="produccion">Produccion</SelectItem>
                             </SelectContent>
                           </Select>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="lote" render={({ field }) => (
                        <FormItem>
                          <FormLabel><IconWrapper><Sprout className="h-4 w-4" /> Lote</IconWrapper></FormLabel>
+                         <FormControl>
                            <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
                                <SelectTrigger>
                                  <SelectValue placeholder="Selecciona" />
                                </SelectTrigger>
-                            </FormControl>
                              <SelectContent>
                                {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
                              </SelectContent>
                            </Select>
+                         </FormControl>
                          <FormMessage />
                        </FormItem>
                      )} />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <FormField control={form.control} name="code" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Tag className="h-4 w-4" /> Cód.</IconWrapper></FormLabel> <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                      <FormField control={form.control} name="labor" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Labor</IconWrapper></FormLabel> <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl> <FormMessage /> </FormItem> )} />
+                  <div className="grid grid-cols-6 gap-6">
+                      <FormField control={form.control} name="code" render={({ field }) => ( <FormItem className="col-span-1"> <FormLabel><IconWrapper><Tag className="h-4 w-4" /> Cód.</IconWrapper></FormLabel> <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                      <FormField control={form.control} name="labor" render={({ field }) => ( <FormItem className="col-span-5"> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Labor</IconWrapper></FormLabel> <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl> <FormMessage /> </FormItem> )} />
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -237,15 +237,15 @@ export default function ActivitiesPage() {
                     <FormField control={form.control} name="shift" render={({ field }) => (
                        <FormItem>
                          <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel>
+                         <FormControl>
                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
                                 <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
-                            </FormControl>
                              <SelectContent>
-                               <SelectItem value="dia">Día</SelectItem>
-                               <SelectItem value="noche">Noche</SelectItem>
+                               <SelectItem value="mañana">Mañana</SelectItem>
+                               <SelectItem value="tarde">Tarde</SelectItem>
                              </SelectContent>
                            </Select>
+                         </FormControl>
                          <FormMessage />
                        </FormItem>
                      )} />
