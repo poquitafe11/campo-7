@@ -31,11 +31,14 @@ export async function getUsers() {
 }
 
 export async function createUserInAuth(password: string, email: string) {
+    if (!authAdmin) {
+        return { success: false, message: 'El servicio de administración de Firebase no está configurado en el servidor.' };
+    }
     try {
         await authAdmin.createUser({
             email: email,
             password: password,
-            emailVerified: true, // You can set this to false if you want to send verification emails
+            emailVerified: true,
         });
         return { success: true };
     } catch (error: any) {
@@ -80,36 +83,26 @@ export async function updateUserStatus(email: string, active: boolean) {
 }
 
 export async function deleteUser(email: string) {
-    let authDeleted = false;
-    let dbDeleted = false;
+    if (!authAdmin) {
+        return { success: false, message: 'El servicio de administración de Firebase no está configurado. No se puede eliminar el usuario de Auth.' };
+    }
 
     try {
-        // Step 1: Delete from Firebase Auth
+        // Step 1: Delete from Firebase Auth, if it exists
         const userRecord = await authAdmin.getUserByEmail(email).catch(() => null);
         if (userRecord) {
             await authAdmin.deleteUser(userRecord.uid);
-            authDeleted = true;
         }
 
-        // Step 2: Delete from Firestore
+        // Step 2: Always attempt to delete from Firestore
         const docRef = doc(db, "usuarios", email);
         await deleteDoc(docRef);
-        dbDeleted = true;
         
         revalidatePath("/users");
-        
-        if (authDeleted && dbDeleted) {
-            return { success: true, message: "Usuario eliminado de autenticación y base de datos." };
-        }
-        if (dbDeleted) {
-            return { success: true, message: "Usuario eliminado de la base de datos (no se encontró en autenticación)." };
-        }
-        
-        // This case should ideally not be reached
-        return { success: false, message: "No se pudo completar la eliminación." };
+        return { success: true, message: "Usuario eliminado correctamente." };
 
     } catch (error: any) {
         console.error("Error deleting user:", error);
-        return { success: false, message: `Error: ${error.message}` };
+        return { success: false, message: `Ocurrió un error al eliminar el usuario: ${error.message}` };
     }
 }

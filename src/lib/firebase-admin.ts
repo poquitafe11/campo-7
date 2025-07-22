@@ -4,21 +4,31 @@ import * as admin from 'firebase-admin';
 
 const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
-if (!serviceAccountString) {
-  throw new Error('La variable de entorno FIREBASE_SERVICE_ACCOUNT_KEY no está configurada.');
-}
+let authAdminInstance: admin.auth.Auth | null = null;
+let dbAdminInstance: admin.firestore.Firestore | null = null;
 
-if (!admin.apps.length) {
-  try {
-    const serviceAccount = JSON.parse(serviceAccountString);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (e: any) {
-    console.error('Error al parsear FIREBASE_SERVICE_ACCOUNT_KEY o al inicializar Firebase Admin:', e);
-    throw new Error('No se pudo inicializar Firebase Admin SDK. Revisa las credenciales.');
+function initializeFirebaseAdmin() {
+  // Only initialize if it hasn't been done and the key exists.
+  if (admin.apps.length === 0 && serviceAccountString) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountString);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      authAdminInstance = admin.auth();
+      dbAdminInstance = admin.firestore();
+    } catch (e: any) {
+      console.error('Failed to initialize Firebase Admin SDK. Admin features will be disabled.', e.message);
+      // Keep instances null if initialization fails
+      authAdminInstance = null;
+      dbAdminInstance = null;
+    }
   }
 }
 
-export const authAdmin = admin.auth();
-export const dbAdmin = admin.firestore();
+// Ensure initialization is attempted once.
+initializeFirebaseAdmin();
+
+// Export the instances. They will be null if initialization failed.
+export const authAdmin = authAdminInstance;
+export const dbAdmin = dbAdminInstance;
