@@ -19,12 +19,12 @@ if (serviceAccountString) {
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
             });
+            authAdminInstance = admin.auth();
+            dbAdminInstance = admin.firestore();
         } catch (e) {
             console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY. Firebase Admin initialization failed.', e);
         }
-    }
-    // Only assign instances if the app was initialized successfully
-    if (admin.apps.length > 0) {
+    } else {
         authAdminInstance = admin.auth();
         dbAdminInstance = admin.firestore();
     }
