@@ -40,6 +40,7 @@ import { ActivityRecordSchema, type Labor, type LoteData } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { saveActivity } from './actions';
+import { useAuth } from '@/hooks/useAuth';
 
 type ActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
@@ -49,6 +50,7 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
 
 export default function ActivitiesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [labors, setLabors] = useState<Labor[]>([]);
   const [lotes, setLotes] = useState<LoteData[]>([]);
@@ -71,6 +73,7 @@ export default function ActivitiesPage() {
       maxRange: 0,
       pass: 0,
       observations: '',
+      createdBy: '',
     },
   });
 
@@ -118,6 +121,12 @@ export default function ActivitiesPage() {
     }
   }, [codeValue, labors, form]);
 
+  useEffect(() => {
+    if (user?.email) {
+      form.setValue('createdBy', user.email);
+    }
+  }, [user, form]);
+
   const onSubmit = (data: ActivityFormValues) => {
     startTransition(async () => {
         const result = await saveActivity(data);
@@ -142,6 +151,7 @@ export default function ActivitiesPage() {
               maxRange: 0,
               pass: 0,
               observations: '',
+              createdBy: user?.email || '',
             });
         } else {
             toast({
