@@ -1,48 +1,209 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import type { ActivityRecordData, LoteData, Labor } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
 
-const SummaryRow = ({ label, value, labelClasses = "", valueClasses = "" }: { label: string, value: string | number, labelClasses?: string, valueClasses?: string }) => (
+const SummaryRow = ({ label, value, labelClasses = "", valueClasses = "" }: { label: string | React.ReactNode, value: string | number | React.ReactNode, labelClasses?: string, valueClasses?: string }) => (
     <tr className="bg-[#dbe5f1]">
         <td className={`border border-black px-4 py-2 font-bold ${labelClasses}`}>{label}</td>
         <td className={`border border-black px-4 py-2 text-center ${valueClasses}`}>{value}</td>
     </tr>
 );
 
+interface Filters {
+    campaign: string;
+    lote: string;
+    labor: string;
+    pasada: string;
+}
+
+interface SummaryValues {
+    lote: string;
+    pasada: number;
+    fecha: string;
+    personas: number;
+    plantas: number;
+    jhu: number;
+    promedio: number;
+    plantasHora: number;
+    has: number;
+    avance: string;
+    haPorTrabajar: number;
+    minimo: number;
+    maximo: number;
+}
+
 export default function ActivitySummaryPage() {
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(true);
+    const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
+    const [allLotes, setAllLotes] = useState<LoteData[]>([]);
+    const [allLabors, setAllLabors] = useState<Labor[]>([]);
+    const [filters, setFilters] = useState<Filters>({ campaign: '', lote: '', labor: '', pasada: '' });
+
+    const loadData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const [activitiesSnapshot, lotesSnapshot, laborsSnapshot] = await Promise.all([
+                getDocs(collection(db, 'actividades')),
+                getDocs(collection(db, 'maestro-lotes')),
+                getDocs(collection(db, 'maestro-labores')),
+            ]);
+
+            const activitiesData = activitiesSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return { ...data, registerDate: data.registerDate.toDate() } as ActivityRecordData;
+            });
+            setAllActivities(activitiesData);
+
+            const lotesData = lotesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as LoteData);
+            setAllLotes(lotesData);
+
+            const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() }) as Labor);
+            setAllLabors(laborsData);
+
+        } catch (error) {
+            console.error("Error loading summary data:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos para el resumen." });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [toast]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    const filterOptions = useMemo(() => {
+        const campaigns = [...new Set(allActivities.map(a => a.campaign))];
+        const lotes = [...new Set(allActivities.map(a => a.lote))];
+        const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])];
+        const pasadas = [...new Set(allActivities.map(a => String(a.pass)))];
+        return { campaigns, lotes, labors, pasadas };
+    }, [allActivities]);
+
+    const handleFilterChange = (filterName: keyof Filters, value: string) => {
+        setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
+    };
+
+    const summaryData = useMemo<SummaryValues | null>(() => {
+        if (!filters.lote || !filters.labor) return null;
+
+        const filteredActivities = allActivities.filter(a => {
+            const pasadaMatch = filters.pasada ? String(a.pass) === filters.pasada : true;
+            return a.campaign === filters.campaign &&
+                   a.lote === filters.lote &&
+                   a.labor === filters.labor &&
+                   pasadaMatch;
+        });
+
+        if (filteredActivities.length === 0) return null;
+
+        const loteInfo = allLotes.find(l => l.lote === filters.lote);
+        
+        const personas = filteredActivities.reduce((sum, act) => sum + act.personnelCount, 0);
+        const jhu = filteredActivities.reduce((sum, act) => sum + act.workdayCount, 0);
+        const has = loteInfo?.ha || 0;
+        const plantas = loteInfo?.plantasTotal || 0;
+
+        const promedio = personas > 0 ? jhu / personas : 0;
+        const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Asumiendo 8 horas por jornada
+        
+        const lastActivityDate = filteredActivities.reduce((latest, act) => act.registerDate > latest ? act.registerDate : latest, new Date(0));
+
+        // Placeholder for more complex calculations
+        const avance = has > 0 ? ((jhu * 0.1) / has) * 100 : 0; // Example calculation
+        const haPorTrabajar = has - (jhu * 0.1); // Example calculation
+        const minPerf = Math.min(...filteredActivities.map(a => a.performance));
+        const maxPerf = Math.max(...filteredActivities.map(a => a.performance));
+
+        return {
+            lote: filters.lote,
+            pasada: Number(filters.pasada) || 0,
+            fecha: format(lastActivityDate, 'dd-MMM'),
+            personas,
+            plantas: loteInfo?.plantasTotal ?? 0,
+            jhu,
+            promedio,
+            plantasHora: Math.round(plantasHora),
+            has: loteInfo?.ha ?? 0,
+            avance: `${avance.toFixed(0)}%`,
+            haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
+            minimo: minPerf === Infinity ? 0 : minPerf,
+            maximo: maxPerf === -Infinity ? 0 : maxPerf,
+        };
+    }, [allActivities, allLotes, filters]);
+
+    const tableTitle = useMemo(() => {
+        const labor = allLabors.find(l => l.descripcion === filters.labor);
+        const lote = allLotes.find(l => l.lote === filters.lote);
+        if (!labor || !lote) return "Resumen de Actividad";
+        
+        const variedad = lote.variedad || 'N/A';
+        return `${labor.descripcion.toUpperCase()} ${variedad.toUpperCase()}`;
+
+    }, [filters, allLabors, allLotes]);
+
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <PageHeaderWithNav title="Resumen de Actividades" />
-            <div className="flex justify-center">
-                <div className="w-full max-w-md">
-                    <table className="w-full border-collapse border border-black">
-                        <thead>
-                            <tr>
-                                <th colSpan={2} className="border border-black bg-gray-200 p-2 text-xl font-bold text-center">
-                                    PODA PRODUCCIÓN TIMPSON
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <SummaryRow label="Lote" value={78} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
-                            <SummaryRow label="Pasada" value={1} labelClasses="bg-gray-300 italic" valueClasses="bg-gray-300"/>
-                            <SummaryRow label="FECHA" value="21-jul." />
-                            <SummaryRow label="N° PERSONAS" value={129} />
-                            <SummaryRow label="PLANTAS" value="19,991" />
-                            <SummaryRow label="JHU" value="129.00" />
-                            <SummaryRow label="PROMEDIO" value={155} />
-                            <SummaryRow label="Pltas./ Hora" value={19} labelClasses="bg-[#f8cbad]" valueClasses="bg-[#f8cbad]" />
-                            <SummaryRow label="Has." value="12.19" />
-                            <SummaryRow label="% Avance" value="86%" />
-                            <SummaryRow label="Ha por Trabajar" value="1.99" />
-                            <SummaryRow label="MINIMO" value={80} />
-                            <SummaryRow label="MAXIMO" value={220} />
-                        </tbody>
-                    </table>
+            
+            <Card className="mb-6">
+                <CardContent className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <Select onValueChange={(v) => handleFilterChange('campaign', v)}><SelectTrigger><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                        <Select onValueChange={(v) => handleFilterChange('lote', v)}><SelectTrigger><SelectValue placeholder="Lote" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                        <Select onValueChange={(v) => handleFilterChange('labor', v)}><SelectTrigger><SelectValue placeholder="Labor" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                        <Select onValueChange={(v) => handleFilterChange('pasada', v)}><SelectTrigger><SelectValue placeholder="Pasada" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {isLoading ? (
+                <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            ) : summaryData ? (
+                <div className="flex justify-center">
+                    <div className="w-full max-w-md">
+                        <table className="w-full border-collapse border border-black">
+                            <thead>
+                                <tr>
+                                    <th colSpan={2} className="border border-black bg-gray-200 p-2 text-xl font-bold text-center">
+                                        {tableTitle}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <SummaryRow label="Lote" value={summaryData.lote} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
+                                <SummaryRow label={<span className="italic">Pasada</span>} value={summaryData.pasada} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
+                                <SummaryRow label="FECHA" value={summaryData.fecha} />
+                                <SummaryRow label="N° PERSONAS" value={summaryData.personas} />
+                                <SummaryRow label="PLANTAS" value={summaryData.plantas.toLocaleString('es-ES')} />
+                                <SummaryRow label="JHU" value={summaryData.jhu.toFixed(2)} />
+                                <SummaryRow label="PROMEDIO" value={summaryData.promedio.toFixed(0)} />
+                                <SummaryRow label="Pltas./ Hora" value={summaryData.plantasHora} labelClasses="bg-[#f8cbad]" valueClasses="bg-[#f8cbad]" />
+                                <SummaryRow label="Has." value={summaryData.has} />
+                                <SummaryRow label="% Avance" value={summaryData.avance} />
+                                <SummaryRow label="Ha por Trabajar" value={summaryData.haPorTrabajar} />
+                                <SummaryRow label="MINIMO" value={summaryData.minimo} />
+                                <SummaryRow label="MAXIMO" value={summaryData.maximo} />
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                    <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir al menos un Lote y una Labor.</p>
+                </div>
+            )}
         </div>
     );
 }
