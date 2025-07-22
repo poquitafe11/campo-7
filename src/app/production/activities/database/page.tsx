@@ -70,7 +70,7 @@ export default function ActivityDatabasePage() {
     { 
       accessorKey: 'labor', 
       header: 'Labor',
-      cell: ({ row }) => <div className="min-w-[200px]">{row.original.labor}</div>
+      cell: ({ row }) => <div className="min-w-[250px]">{row.original.labor}</div>
     },
     { accessorKey: 'personnelCount', header: '# Pers.' },
     { accessorKey: 'workdayCount', header: '# Jorn.' },
@@ -110,12 +110,12 @@ export default function ActivityDatabasePage() {
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <PageHeaderWithNav title="Base de Registro de Actividades" />
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-start">
           <Input
             placeholder="Buscar por labor..."
             value={(table.getColumn('labor')?.getFilterValue() as string) ?? ''}
             onChange={(event) => table.getColumn('labor')?.setFilterValue(event.target.value)}
-            className="max-w-sm"
+            className="max-w-sm h-9"
           />
         </div>
         <div className="rounded-md border">
