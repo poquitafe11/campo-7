@@ -182,86 +182,88 @@ export default function ActivitySummaryPage() {
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <PageHeaderWithNav title="Resumen de Actividades" />
             
-            <div className="flex justify-end mb-4">
-                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-sm">
-                            <Filter className="mr-2 h-4 w-4" />
-                            Filtros
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80" align="end">
-                         <div className="grid gap-4">
-                            <div className="space-y-2">
-                                <h4 className="font-medium leading-none">Aplicar Filtros</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    Selecciona los criterios para el resumen.
-                                </p>
+            <div className="space-y-4">
+                <div className="flex justify-end">
+                    <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-sm">
+                                <Filter className="mr-2 h-4 w-4" />
+                                Filtros
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80" align="end">
+                            <div className="grid gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Aplicar Filtros</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        Selecciona los criterios para el resumen.
+                                    </p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label>Campaña</Label>
+                                        <Select onValueChange={(v) => handlePopoverFilterChange('campaign', v)} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label>Lote</Label>
+                                        <Select onValueChange={(v) => handlePopoverFilterChange('lote', v)} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Lote" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label>Labor</Label>
+                                        <Select onValueChange={(v) => handlePopoverFilterChange('labor', v)} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Labor" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label>Pasada</Label>
+                                        <Select onValueChange={(v) => handlePopoverFilterChange('pasada', v)} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Pasada" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                                    <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label>Campaña</Label>
-                                    <Select onValueChange={(v) => handlePopoverFilterChange('campaign', v)} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label>Lote</Label>
-                                    <Select onValueChange={(v) => handlePopoverFilterChange('lote', v)} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Lote" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label>Labor</Label>
-                                    <Select onValueChange={(v) => handlePopoverFilterChange('labor', v)} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Labor" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label>Pasada</Label>
-                                    <Select onValueChange={(v) => handlePopoverFilterChange('pasada', v)} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Pasada" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                ) : summaryData ? (
+                    <div className="flex justify-center">
+                        <div className="w-full max-w-sm">
+                            <table className="w-full border-collapse border border-black">
+                                <thead>
+                                    <tr>
+                                        <th colSpan={2} className="border border-black bg-gray-200 p-2 text-xl font-bold text-center">
+                                            {tableTitle}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <SummaryRow label="Lote" value={summaryData.lote} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
+                                    <SummaryRow label={<span className="italic">Pasada</span>} value={summaryData.pasada} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
+                                    <SummaryRow label="FECHA" value={summaryData.fecha} />
+                                    <SummaryRow label="N° PERSONAS" value={summaryData.personas} />
+                                    <SummaryRow label="PLANTAS" value={summaryData.plantas.toLocaleString('es-ES')} />
+                                    <SummaryRow label="JHU" value={summaryData.jhu.toFixed(2)} />
+                                    <SummaryRow label="PROMEDIO" value={summaryData.promedio.toFixed(0)} />
+                                    <SummaryRow label="Pltas./ Hora" value={summaryData.plantasHora} labelClasses="bg-[#f8cbad]" valueClasses="bg-[#f8cbad]" />
+                                    <SummaryRow label="Has." value={summaryData.has} />
+                                    <SummaryRow label="% Avance" value={summaryData.avance} />
+                                    <SummaryRow label="Ha por Trabajar" value={summaryData.haPorTrabajar} />
+                                    <SummaryRow label="MINIMO" value={summaryData.minimo} />
+                                    <SummaryRow label="MAXIMO" value={summaryData.maximo} />
+                                </tbody>
+                            </table>
                         </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
-
-
-            {isLoading ? (
-                <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-            ) : summaryData ? (
-                <div className="flex justify-center">
-                    <div className="w-full max-w-sm">
-                        <table className="w-full border-collapse border border-black">
-                            <thead>
-                                <tr>
-                                    <th colSpan={2} className="border border-black bg-gray-200 p-2 text-xl font-bold text-center">
-                                        {tableTitle}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <SummaryRow label="Lote" value={summaryData.lote} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
-                                <SummaryRow label={<span className="italic">Pasada</span>} value={summaryData.pasada} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
-                                <SummaryRow label="FECHA" value={summaryData.fecha} />
-                                <SummaryRow label="N° PERSONAS" value={summaryData.personas} />
-                                <SummaryRow label="PLANTAS" value={summaryData.plantas.toLocaleString('es-ES')} />
-                                <SummaryRow label="JHU" value={summaryData.jhu.toFixed(2)} />
-                                <SummaryRow label="PROMEDIO" value={summaryData.promedio.toFixed(0)} />
-                                <SummaryRow label="Pltas./ Hora" value={summaryData.plantasHora} labelClasses="bg-[#f8cbad]" valueClasses="bg-[#f8cbad]" />
-                                <SummaryRow label="Has." value={summaryData.has} />
-                                <SummaryRow label="% Avance" value={summaryData.avance} />
-                                <SummaryRow label="Ha por Trabajar" value={summaryData.haPorTrabajar} />
-                                <SummaryRow label="MINIMO" value={summaryData.minimo} />
-                                <SummaryRow label="MAXIMO" value={summaryData.maximo} />
-                            </tbody>
-                        </table>
                     </div>
-                </div>
-            ) : (
-                <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                    <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir al menos un Lote y una Labor.</p>
-                </div>
-            )}
+                ) : (
+                    <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                        <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir al menos un Lote y una Labor.</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
+
