@@ -128,7 +128,13 @@ export const UserSchema = z.object({
   active: z.boolean().default(true),
 });
 
+export const NewUserSchema = UserSchema.extend({
+    password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
+});
+
 export type User = z.infer<typeof UserSchema>;
+export type NewUser = z.infer<typeof NewUserSchema>;
+
 
 // Registro de Actividades (Parte Diario)
 export const ActivityRecordSchema = z.object({

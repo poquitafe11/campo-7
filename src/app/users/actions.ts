@@ -4,8 +4,9 @@
 import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { collection, doc, setDoc, getDocs, deleteDoc } from "firebase/firestore";
-import { User, UserSchema, UserRole } from "@/lib/types";
+import { User, UserSchema, UserRole, NewUserSchema } from "@/lib/types";
 import { revalidatePath } from 'next/cache';
+import { authAdmin } from "@/lib/firebase-admin";
 
 const roleHierarchy: { [key in UserRole]: number } = {
     "Admin": 4,
@@ -26,6 +27,26 @@ export async function getUsers() {
     } catch (error) {
         console.error("Error fetching users: ", error);
         return { success: false, message: "No se pudieron obtener los usuarios.", data: [] };
+    }
+}
+
+export async function createUserInAuth(password: string, email: string) {
+    try {
+        await authAdmin.createUser({
+            email: email,
+            password: password,
+            emailVerified: true, // You can set this to false if you want to send verification emails
+        });
+        return { success: true };
+    } catch (error: any) {
+        let message = 'No se pudo crear el usuario en el sistema de autenticación.';
+        if (error.code === 'auth/email-already-exists') {
+            message = 'Este correo electrónico ya está en uso.';
+        } else if (error.code === 'auth/invalid-password') {
+            message = 'La contraseña debe tener al menos 6 caracteres.';
+        }
+        console.error("Error creating user in Firebase Auth:", error);
+        return { success: false, message };
     }
 }
 
@@ -60,12 +81,29 @@ export async function updateUserStatus(email: string, active: boolean) {
 
 export async function deleteUser(email: string) {
     try {
+        const userRecord = await authAdmin.getUserByEmail(email);
+        await authAdmin.deleteUser(userRecord.uid);
+        
         const docRef = doc(db, "usuarios", email);
         await deleteDoc(docRef);
+
         revalidatePath("/users");
-        return { success: true, message: "Usuario eliminado." };
-    } catch (error) {
+        return { success: true, message: "Usuario eliminado de autenticación y base de datos." };
+    } catch (error: any) {
+        let message = "No se pudo eliminar el usuario.";
+        if (error.code === 'auth/user-not-found') {
+            // If user is not in auth, try deleting from DB anyway
+             try {
+                const docRef = doc(db, "usuarios", email);
+                await deleteDoc(docRef);
+                revalidatePath("/users");
+                return { success: true, message: "Usuario eliminado de la base de datos (no se encontró en autenticación)." };
+            } catch (dbError) {
+                 console.error("Error deleting user from DB after auth error:", dbError);
+                 message = "El usuario no se encontró en autenticación y tampoco se pudo eliminar de la base de datos.";
+            }
+        }
         console.error("Error deleting user:", error);
-        return { success: false, message: "No se pudo eliminar el usuario." };
+        return { success: false, message };
     }
 }

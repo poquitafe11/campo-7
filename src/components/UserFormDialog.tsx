@@ -25,9 +25,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { UserSchema, UserRole } from "@/lib/types";
-import { saveUser } from "@/app/users/actions";
-import { useEffect, useMemo } from "react";
+import { UserSchema, UserRole, NewUserSchema } from "@/lib/types";
+import { saveUser, createUserInAuth } from "@/app/users/actions";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface UserFormDialogProps {
   isOpen: boolean;
@@ -48,9 +49,12 @@ const roleHierarchy: { [key in UserRole]: number } = {
 
 export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, currentUserRole }: UserFormDialogProps) {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof UserSchema>>({
-    resolver: zodResolver(UserSchema),
+  const formSchema = user ? UserSchema : NewUserSchema;
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       nombre: "",
       dni: "",
@@ -58,40 +62,63 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
       email: "",
       rol: "Invitado",
       active: true,
+      ...(user ? {} : { password: "" }),
     },
   });
   
   useEffect(() => {
-    if (user) {
-        form.reset(user);
-    } else {
-        form.reset({
-            nombre: "",
-            dni: "",
-            celular: "",
-            email: "",
-            rol: "Invitado",
-            active: true,
-        });
+    if (isOpen) {
+        if (user) {
+            form.reset(user);
+        } else {
+            form.reset({
+                nombre: "",
+                dni: "",
+                celular: "",
+                email: "",
+                rol: "Invitado",
+                active: true,
+                password: "",
+            });
+        }
     }
   }, [user, form, isOpen])
 
 
-  const onSubmit = async (values: z.infer<typeof UserSchema>) => {
-    const result = await saveUser(values);
-    if (result.success) {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    // If it's a new user, create in Auth first
+    if (!user && 'password' in values) {
+        const authResult = await createUserInAuth(values.password, values.email);
+        if (!authResult.success) {
+            toast({
+                variant: "destructive",
+                title: "Error de Autenticación",
+                description: authResult.message,
+            });
+            setIsSubmitting(false);
+            return;
+        }
+    }
+    
+    // Now save/update the user profile in Firestore
+    const { password, ...profileData } = values as any;
+    const dbResult = await saveUser(profileData);
+
+    if (dbResult.success) {
       toast({
         title: "Éxito",
-        description: result.message,
+        description: dbResult.message,
       });
       onSuccess();
     } else {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: result.message,
+        title: "Error de Base de Datos",
+        description: dbResult.message,
       });
     }
+    setIsSubmitting(false);
   };
   
   const availableRoles = useMemo(() => {
@@ -164,13 +191,28 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
                 </FormItem>
               )}
             />
+            {!user && (
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Contraseña</FormLabel>
+                        <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )}
              <FormField
                 control={form.control}
                 name="rol"
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Rol</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                         <SelectTrigger>
                         <SelectValue placeholder="Seleccione un rol" />
@@ -192,7 +234,10 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit">Guardar</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar
+              </Button>
             </DialogFooter>
           </form>
         </Form>
