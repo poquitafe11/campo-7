@@ -23,8 +23,11 @@ if (serviceAccountString) {
             console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY. Firebase Admin initialization failed.', e);
         }
     }
-    authAdminInstance = admin.auth();
-    dbAdminInstance = admin.firestore();
+    // Only assign instances if the app was initialized successfully
+    if (admin.apps.length > 0) {
+        authAdminInstance = admin.auth();
+        dbAdminInstance = admin.firestore();
+    }
 } else {
     console.warn('FIREBASE_SERVICE_ACCOUNT_KEY is not set. Firebase Admin features will be disabled.');
 }
