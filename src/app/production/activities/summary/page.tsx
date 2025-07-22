@@ -4,16 +4,45 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import type { ActivityRecordData, LoteData, Labor } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Filter } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+
+const SummaryTable = ({ summaryData, tableTitle }: { summaryData: SummaryValues; tableTitle: string }) => (
+    <div className="w-full max-w-sm flex-shrink-0">
+        <table className="w-full border-collapse border border-black text-xs">
+            <thead>
+                <tr>
+                    <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold text-center h-14 align-middle">
+                        {tableTitle}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <SummaryRow label="Lote" value={summaryData.lote} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
+                <SummaryRow label={<span className="italic">Pasada</span>} value={summaryData.pasada} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
+                <SummaryRow label="FECHA" value={summaryData.fecha} />
+                <SummaryRow label="N° PERSONAS" value={summaryData.personas} />
+                <SummaryRow label="PLANTAS" value={summaryData.plantas.toLocaleString('es-ES')} />
+                <SummaryRow label="JHU" value={summaryData.jhu.toFixed(2)} />
+                <SummaryRow label="PROMEDIO" value={summaryData.promedio.toFixed(0)} />
+                <SummaryRow label="Pltas./ Hora" value={summaryData.plantasHora} labelClasses="bg-[#f8cbad]" valueClasses="bg-[#f8cbad]" />
+                <SummaryRow label="Has." value={summaryData.has} />
+                <SummaryRow label="% Avance" value={summaryData.avance} />
+                <SummaryRow label="Ha por Trabajar" value={summaryData.haPorTrabajar} />
+                <SummaryRow label="MINIMO" value={summaryData.minimo} />
+                <SummaryRow label="MAXIMO" value={summaryData.maximo} />
+            </tbody>
+        </table>
+    </div>
+);
 
 
 const SummaryRow = ({ label, value, labelClasses = "", valueClasses = "" }: { label: string | React.ReactNode, value: string | number | React.ReactNode, labelClasses?: string, valueClasses?: string }) => (
@@ -70,7 +99,8 @@ export default function ActivitySummaryPage() {
 
             const activitiesData = activitiesSnapshot.docs.map(doc => {
                 const data = doc.data();
-                return { ...data, registerDate: data.registerDate.toDate() } as ActivityRecordData;
+                const registerDate = data.registerDate?.toDate ? data.registerDate.toDate() : new Date();
+                return { ...data, registerDate } as ActivityRecordData;
             });
             setAllActivities(activitiesData);
 
@@ -117,13 +147,13 @@ export default function ActivitySummaryPage() {
         setIsFilterOpen(false);
     };
 
-    const summaryData = useMemo<SummaryValues | null>(() => {
+    const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
         if (!activeFilters.lote || !activeFilters.labor) return null;
 
         const filteredActivities = allActivities.filter(a => {
-            const campañaMatch = activeFilters.campaign ? a.campaign === activeFilters.campaign : true;
+            const campaignMatch = activeFilters.campaign ? a.campaign === activeFilters.campaign : true;
             const pasadaMatch = activeFilters.pasada ? String(a.pass) === activeFilters.pasada : true;
-            return campañaMatch &&
+            return campaignMatch &&
                    a.lote === activeFilters.lote &&
                    a.labor === activeFilters.labor &&
                    pasadaMatch;
@@ -131,39 +161,50 @@ export default function ActivitySummaryPage() {
 
         if (filteredActivities.length === 0) return null;
 
-        const loteInfo = allLotes.find(l => l.lote === activeFilters.lote);
+        const groupedByDate: { [date: string]: ActivityRecordData[] } = {};
+        for (const activity of filteredActivities) {
+            const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
+            if (!groupedByDate[dateKey]) {
+                groupedByDate[dateKey] = [];
+            }
+            groupedByDate[dateKey].push(activity);
+        }
         
-        const personas = filteredActivities.reduce((sum, act) => sum + act.personnelCount, 0);
-        const jhu = filteredActivities.reduce((sum, act) => sum + act.workdayCount, 0);
-        const has = loteInfo?.ha || 0;
-        const plantas = loteInfo?.plantasTotal || 0;
+        const summaries = Object.entries(groupedByDate).map(([dateStr, activitiesOnDate]) => {
+            const loteInfo = allLotes.find(l => l.lote === activeFilters.lote);
+            const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
+            const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
+            const has = loteInfo?.ha || 0;
+            const plantas = loteInfo?.plantasTotal || 0;
 
-        const promedio = personas > 0 ? jhu / personas : 0;
-        const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Asumiendo 8 horas por jornada
-        
-        const lastActivityDate = filteredActivities.reduce((latest, act) => act.registerDate > latest ? act.registerDate : latest, new Date(0));
+            const promedio = personas > 0 ? jhu / personas : 0;
+            const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Assuming 8 hours per workday
 
-        // Placeholder for more complex calculations
-        const avance = has > 0 ? ((jhu * 0.1) / has) * 100 : 0; // Example calculation
-        const haPorTrabajar = has - (jhu * 0.1); // Example calculation
-        const minPerf = Math.min(...filteredActivities.map(a => a.performance));
-        const maxPerf = Math.max(...filteredActivities.map(a => a.performance));
+            const avance = has > 0 ? ((jhu * 0.1) / has) * 100 : 0;
+            const haPorTrabajar = has - (jhu * 0.1);
+            const minPerf = Math.min(...activitiesOnDate.map(a => a.performance));
+            const maxPerf = Math.max(...activitiesOnDate.map(a => a.performance));
+            
+            const summary: SummaryValues = {
+                lote: activeFilters.lote,
+                pasada: Number(activeFilters.pasada) || 0,
+                fecha: format(parseISO(dateStr), 'dd-MMM', { locale: es }),
+                personas,
+                plantas: loteInfo?.plantasTotal ?? 0,
+                jhu,
+                promedio,
+                plantasHora: Math.round(plantasHora),
+                has: loteInfo?.ha ?? 0,
+                avance: `${avance.toFixed(0)}%`,
+                haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
+                minimo: minPerf === Infinity ? 0 : minPerf,
+                maximo: maxPerf === -Infinity ? 0 : maxPerf,
+            };
+            return { summary, date: parseISO(dateStr) };
+        });
 
-        return {
-            lote: activeFilters.lote,
-            pasada: Number(activeFilters.pasada) || 0,
-            fecha: format(lastActivityDate, 'dd-MMM', { locale: es }),
-            personas,
-            plantas: loteInfo?.plantasTotal ?? 0,
-            jhu,
-            promedio,
-            plantasHora: Math.round(plantasHora),
-            has: loteInfo?.ha ?? 0,
-            avance: `${avance.toFixed(0)}%`,
-            haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
-            minimo: minPerf === Infinity ? 0 : minPerf,
-            maximo: maxPerf === -Infinity ? 0 : maxPerf,
-        };
+        return summaries.sort((a, b) => b.date.getTime() - a.date.getTime());
+
     }, [allActivities, allLotes, activeFilters]);
 
     const tableTitle = useMemo(() => {
@@ -228,33 +269,12 @@ export default function ActivitySummaryPage() {
 
                 {isLoading ? (
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-                ) : summaryData ? (
-                    <div className="flex justify-center">
-                        <div className="w-full max-w-sm">
-                            <table className="w-full border-collapse border border-black">
-                                <thead>
-                                    <tr>
-                                        <th colSpan={2} className="border border-black bg-gray-200 p-2 text-xl font-bold text-center">
-                                            {tableTitle}
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <SummaryRow label="Lote" value={summaryData.lote} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
-                                    <SummaryRow label={<span className="italic">Pasada</span>} value={summaryData.pasada} labelClasses="bg-gray-300" valueClasses="bg-gray-300"/>
-                                    <SummaryRow label="FECHA" value={summaryData.fecha} />
-                                    <SummaryRow label="N° PERSONAS" value={summaryData.personas} />
-                                    <SummaryRow label="PLANTAS" value={summaryData.plantas.toLocaleString('es-ES')} />
-                                    <SummaryRow label="JHU" value={summaryData.jhu.toFixed(2)} />
-                                    <SummaryRow label="PROMEDIO" value={summaryData.promedio.toFixed(0)} />
-                                    <SummaryRow label="Pltas./ Hora" value={summaryData.plantasHora} labelClasses="bg-[#f8cbad]" valueClasses="bg-[#f8cbad]" />
-                                    <SummaryRow label="Has." value={summaryData.has} />
-                                    <SummaryRow label="% Avance" value={summaryData.avance} />
-                                    <SummaryRow label="Ha por Trabajar" value={summaryData.haPorTrabajar} />
-                                    <SummaryRow label="MINIMO" value={summaryData.minimo} />
-                                    <SummaryRow label="MAXIMO" value={summaryData.maximo} />
-                                </tbody>
-                            </table>
+                ) : multiDaySummary && multiDaySummary.length > 0 ? (
+                    <div className="overflow-x-auto pb-4">
+                       <div className="flex space-x-4">
+                            {multiDaySummary.map(({ summary, date }) => (
+                                <SummaryTable key={date.toISOString()} summaryData={summary} tableTitle={tableTitle} />
+                            ))}
                         </div>
                     </div>
                 ) : (
@@ -266,4 +286,3 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
-
