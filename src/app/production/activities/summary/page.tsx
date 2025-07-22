@@ -250,7 +250,7 @@ export default function ActivitySummaryPage() {
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="overflow-x-auto pb-4">
                        <div className="inline-block min-w-full">
-                           <table className="border-collapse border border-black text-xs">
+                           <table className="border-collapse border border-black text-xs w-full mb-2">
                                <thead className="text-center font-bold text-black">
                                     <tr>
                                         <th colSpan={1 + multiDaySummary.length} className="border border-black bg-gray-200 p-2 text-base font-bold text-center h-14 align-middle">
@@ -258,18 +258,20 @@ export default function ActivitySummaryPage() {
                                         </th>
                                     </tr>
                                     <tr className="bg-gray-300">
-                                        <td className="border border-black px-4 py-2 font-bold">Lote</td>
+                                        <td className="border border-black px-4 py-2 font-bold w-36">Lote</td>
                                         {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.lote}</td>)}
                                     </tr>
-                                    <tr className="bg-gray-300 border-b-2 border-black">
-                                        <td className="border border-black px-4 py-2 font-bold"><span className="italic">Pasada</span></td>
+                                    <tr className="bg-gray-300">
+                                        <td className="border border-black px-4 py-2 font-bold w-36"><span className="italic">Pasada</span></td>
                                         {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.pasada}</td>)}
                                     </tr>
                                 </thead>
+                            </table>
+                            <table className="border-collapse border border-black text-xs w-full">
                                 <tbody className="bg-[#dbe5f1]">
                                     {summaryRows.map(row => (
                                         <tr key={String(row.key)}>
-                                            <td className={`border border-black px-4 py-2 font-bold ${row.bgClass || ''}`}>{row.label}</td>
+                                            <td className={`border border-black px-4 py-2 font-bold w-36 ${row.bgClass || ''}`}>{row.label}</td>
                                             {multiDaySummary.map((day, index) => {
                                                 const value = day.summary[row.key];
                                                 return (
