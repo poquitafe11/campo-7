@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LogIn } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
 
-  useEffect(() => {
-    router.replace('/login');
-  }, [router]);
-
   return (
     <div className="flex h-screen items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Redireccionando...</p>
+      <div className="flex flex-col items-center gap-6 p-8 border rounded-lg shadow-lg">
+        <h1 className="text-2xl font-bold">Bienvenido a Brujos</h1>
+        <p className="text-muted-foreground text-center">
+          Haz clic en el botón para iniciar sesión y gestionar tu campo.
+        </p>
+        <Button onClick={() => router.push('/login')} size="lg">
+          <LogIn className="mr-2 h-5 w-5" />
+          Ir a Iniciar Sesión
+        </Button>
       </div>
     </div>
   );
