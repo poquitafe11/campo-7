@@ -26,13 +26,13 @@ import {
   TrendingUp,
   Loader2,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -41,6 +41,13 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { saveActivity } from './actions';
 import { useAuth } from '@/hooks/useAuth';
+
+// Dynamically import the Calendar to ensure it's client-side only
+const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
+  ssr: false,
+  loading: () => <div className="h-[290px] w-[240px] bg-muted rounded-md animate-pulse" />,
+});
+
 
 type ActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
