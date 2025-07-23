@@ -216,7 +216,6 @@ export default function ActivitySummaryPage() {
     }, [allActivities, allLotes, activeFilters]);
 
     const summaryRows: { label: string | React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number }[] = [
-        { label: "FECHA", key: "fecha" },
         { label: "N° PERSONAS", key: "personas" },
         { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-ES') },
         { label: "JHU", key: "jhu", format: (v) => v.toFixed(2) },
@@ -307,12 +306,12 @@ export default function ActivitySummaryPage() {
                             <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs min-w-full">
                                 <thead className="text-center font-bold text-black">
                                     <tr className="bg-gray-300">
-                                        <td className="border border-black px-4 py-2 font-bold w-36">Resumen</td>
+                                        <td className="border border-black px-4 py-2 font-bold w-36">FECHA</td>
                                         {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.fecha}</td>)}
                                     </tr>
                                 </thead>
                                 <tbody className="bg-[#dbe5f1]">
-                                    {summaryRows.filter(row => row.key !== 'lote' && row.key !== 'pasada' && row.key !== 'fecha').map(row => (
+                                    {summaryRows.map(row => (
                                         <tr key={String(row.key)}>
                                             <td className={`border border-black px-4 py-2 font-bold w-36 ${row.bgClass || ''}`}>{row.label}</td>
                                             {multiDaySummary.map((day, index) => {
