@@ -107,7 +107,7 @@ export default function ActivityDatabasePage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeaderWithNav title="Base de Registro de Actividades" />
+      <PageHeaderWithNav title="Base de Datos de Actividades" />
       <div className="space-y-4">
         <div className="flex items-center justify-start">
           <Input

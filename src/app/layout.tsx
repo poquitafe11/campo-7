@@ -8,7 +8,7 @@ import DynamicAppLayout from '@/components/DynamicAppLayout';
 import { MasterDataProvider } from '@/context/MasterDataContext';
 
 const APP_NAME = "Campo 7";
-const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo con Brujos.";
+const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo.";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   description: APP_DESCRIPTION,
   formatDetection: {
     telephone: false,
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_NAME,
   },
 };
 
@@ -32,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="es" className="dark" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

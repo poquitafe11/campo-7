@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -23,6 +22,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import InstallButton from "@/components/InstallButton";
 
 const loginSchema = z.object({
   email: z.string().email("Por favor, introduce un correo electrónico válido."),
@@ -34,6 +34,11 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -162,6 +167,7 @@ export default function LoginPage() {
                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Iniciar Sesión
                 </Button>
+                {isClient && <InstallButton />}
               </div>
             </form>
           </Form>

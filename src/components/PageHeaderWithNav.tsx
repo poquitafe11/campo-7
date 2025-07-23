@@ -30,7 +30,7 @@ export function PageHeaderWithNav({ title }: PageHeaderWithNavProps) {
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Retroceder</p>
+                    <p>Volver</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>

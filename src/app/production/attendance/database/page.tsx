@@ -70,7 +70,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
-import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import { useRouter } from 'next/navigation';
 
 
@@ -331,7 +330,7 @@ export default function AttendanceDatabasePage() {
         <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => router.back()}>
                 <ArrowLeft className="h-5 w-5" />
-                <span className="sr-only">Retroceder</span>
+                <span className="sr-only">Volver</span>
             </Button>
             <Button variant="ghost" size="icon" asChild>
                 <Link href="/dashboard">

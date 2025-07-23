@@ -20,10 +20,12 @@ export function PageHeader({ title }: PageHeaderProps) {
             <h1 className="text-lg font-semibold tracking-tight text-foreground">{title}</h1>
         </div>
         <div className="flex items-center gap-4">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={user?.photoURL || ''} alt={profile?.nombre} />
-              <AvatarFallback>{profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
-            </Avatar>
+             {profile && (
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={user?.photoURL || ''} alt={profile?.nombre} />
+                <AvatarFallback>{profile.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+              </Avatar>
+            )}
         </div>
     </header>
   );

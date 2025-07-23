@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -361,7 +360,7 @@ export default function AsistentesPage() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Seleccionar Excel</p>
+                      <p>Cargar desde Excel</p>
                     </TooltipContent>
                   </Tooltip>
                   
@@ -372,7 +371,7 @@ export default function AsistentesPage() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Descargar Excel</p>
+                      <p>Descargar a Excel</p>
                     </TooltipContent>
                   </Tooltip>
                   
