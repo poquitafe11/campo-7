@@ -24,10 +24,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import type { Assistant } from '@/lib/types';
-import { useToast } from "@/hooks/use-toast";
+import { useMasterData } from '@/context/MasterDataContext';
 
 
 type AssistantMaster = {
@@ -70,8 +68,7 @@ export default function AddAssistantDialog({
   currentUserName,
 }: AddAssistantDialogProps) {
   
-  const { toast } = useToast();
-  const [assistantsMaster, setAssistantsMaster] = useState<AssistantMaster[]>([]);
+  const { asistentes: assistantsMaster, loading } = useMasterData();
 
   const form = useForm<AddAssistantFormValues>({
     resolver: zodResolver(addAssistantSchema),
@@ -83,39 +80,23 @@ export default function AddAssistantDialog({
   });
 
   useEffect(() => {
-    async function fetchAssistants() {
-        if (!db) return;
-        try {
-            const querySnapshot = await getDocs(collection(db, 'asistentes'));
-            const data = querySnapshot.docs.map(doc => ({ dni: doc.id, ...doc.data() } as AssistantMaster));
-            setAssistantsMaster(data);
-        } catch (error) {
-            console.error("Error fetching assistants master list:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Error de Carga',
-                description: 'No se pudo cargar la lista de asistentes.',
-            });
-        }
-    }
     if (isOpen) {
-      fetchAssistants();
       form.reset({
         assistantDni: isSpecialLabor ? 'special' : '',
         personnelCount: isSpecialLabor ? 1 : 0,
         absentCount: 0,
       });
     }
-  }, [isOpen, form, isSpecialLabor, toast]);
+  }, [isOpen, form, isSpecialLabor]);
 
   const onSubmit = (data: AddAssistantFormValues) => {
-    const selectedAssistant = assistantsMaster.find(a => a.dni === data.assistantDni);
+    const selectedAssistant = assistantsMaster.find(a => a.id === data.assistantDni);
     
     let assistantName = 'N/A';
     if (isSpecialLabor) {
         assistantName = currentUserName;
     } else if (selectedAssistant) {
-        assistantName = selectedAssistant.nombre;
+        assistantName = selectedAssistant.assistantName;
     }
 
     if (!isSpecialLabor && currentAssistants.some(a => a.assistantName === assistantName && a.loteName === loteName && a.labor === labor)) {
@@ -149,10 +130,10 @@ export default function AddAssistantDialog({
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Asistente/Encargado</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isSpecialLabor}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isSpecialLabor || loading}>
                         <FormControl>
                             <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un asistente" />
+                            <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -160,8 +141,8 @@ export default function AddAssistantDialog({
                                 <SelectItem value="special" disabled>{currentUserName}</SelectItem>
                             ) : (
                                 assistantsMaster.map((assistant) => (
-                                    <SelectItem key={assistant.dni} value={assistant.dni}>
-                                        {assistant.nombre}
+                                    <SelectItem key={assistant.id} value={assistant.id}>
+                                        {assistant.assistantName}
                                     </SelectItem>
                                 ))
                             )}

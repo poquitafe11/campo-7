@@ -77,9 +77,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { LoteData, Labor } from "@/lib/types";
+import { useMasterData } from "@/context/MasterDataContext";
+import type { Labor } from "@/lib/types";
+
 
 const minMaxSchema = z.object({
     campana: z.string().min(1, "La campaña es requerida"),
@@ -101,7 +103,7 @@ function normalizeKey(key: string): string {
     return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '').replace(/\./g, '');
 }
 
-async function processAndUploadFile(file: File): Promise<{ count: number }> {
+async function processAndUploadFile(file: File, laborsData: Labor[]): Promise<{ count: number }> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -131,10 +133,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 if (!keyMap.campana || !keyMap.lote || !keyMap.codigo || !keyMap.labor || !keyMap.pasada || !keyMap.min || !keyMap.max) {
                    return reject(new Error("El archivo debe contener columnas para Campaña, Lote, Codigo, Labor, Pasada, Min y Max."));
                 }
-
-                const laborsSnapshot = await getDocs(collection(db, 'maestro-labores'));
-                const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() })) as Labor[];
-
+                
                 const normalizedData = json.map(row => {
                     try {
                         const rowData: any = {};
@@ -202,7 +201,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
 export default function MinMaxPage() {
   const [data, setData] = useState<MinMax[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fbLoading, setFbLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<MinMax | null>(null);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -210,9 +209,7 @@ export default function MinMaxPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  
-  const [lotes, setLotes] = useState<LoteData[]>([]);
-  const [labors, setLabors] = useState<Labor[]>([]);
+  const { lotes, labors, loading: masterLoading } = useMasterData();
 
   const defaultFormValues = {
     campana: '',
@@ -223,32 +220,12 @@ export default function MinMaxPage() {
     min: 0,
     max: 0,
   };
-
-  useEffect(() => {
-    async function loadMasterData() {
-        try {
-            const [lotesSnapshot, laborsSnapshot] = await Promise.all([
-                getDocs(collection(db, 'maestro-lotes')),
-                getDocs(collection(db, 'maestro-labores')),
-            ]);
-            const lotesData = lotesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LoteData));
-            const sortedLotes = lotesData.sort((a,b) => a.lote.localeCompare(b.lote, undefined, { numeric: true }));
-            setLotes(sortedLotes);
-
-            const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() } as Labor));
-            setLabors(laborsData);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos maestros.' });
-        }
-    }
-    loadMasterData();
-  }, [toast]);
   
   const uniqueLotes = useMemo(() => {
-    const lotesMap = new Map<string, LoteData>();
+    const lotesMap = new Map<string, {id: string, lote: string}>();
     lotes.forEach(lote => {
       if (!lotesMap.has(lote.lote)) {
-        lotesMap.set(lote.lote, lote);
+        lotesMap.set(lote.lote, { id: lote.id, lote: lote.lote });
       }
     });
     return Array.from(lotesMap.values());
@@ -256,16 +233,16 @@ export default function MinMaxPage() {
 
 
   useEffect(() => {
-    setLoading(true);
+    setFbLoading(true);
     const unsubscribe = onSnapshot(collection(db, "min-max"), (snapshot) => {
       const recordsData = snapshot.docs.map(doc => ({ ...doc.data() } as MinMax));
       const sortedData = recordsData.sort((a,b) => a.id.localeCompare(b.id));
       setData(sortedData);
-      setLoading(false);
+      setFbLoading(false);
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
       toast({ title: "Error de Conexión", description: "No se pudieron cargar los datos.", variant: "destructive" });
-      setLoading(false);
+      setFbLoading(false);
     });
     return () => unsubscribe();
   }, [toast]);
@@ -303,7 +280,7 @@ export default function MinMaxPage() {
     if (!selectedFile) return;
     setIsUploading(true);
     try {
-      const { count } = await processAndUploadFile(selectedFile);
+      const { count } = await processAndUploadFile(selectedFile, labors);
       toast({ title: "Éxito", description: `${count} registros cargados/actualizados.` });
     } catch (error: any) {
       toast({ title: "Error al Cargar", description: error.message, variant: "destructive" });
@@ -403,6 +380,8 @@ export default function MinMaxPage() {
         </div>
     </div>
   );
+  
+  const loading = fbLoading || masterLoading;
 
   return (
     <TooltipProvider>
@@ -432,5 +411,3 @@ export default function MinMaxPage() {
     </TooltipProvider>
   );
 }
-
-    

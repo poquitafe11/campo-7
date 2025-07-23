@@ -1,30 +1,32 @@
 {
+  "theme_color": "#38A3A5",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
   "name": "Campo 7",
   "short_name": "Campo 7",
   "description": "Gestiona de forma eficiente los datos de tu campo con Brujos.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#E0F4F1",
-  "theme_color": "#38A3A5",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "/icons/icon-7-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
+      "src": "/icons/icon-7-256x256.png",
+      "sizes": "256x256",
       "type": "image/png"
     },
     {
-      "src": "/icon-maskable-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
+      "src": "/icons/icon-7-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
     },
     {
-      "src": "/icon-maskable-512x512.png",
+      "src": "/icons/icon-7-512x512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "mask
+      "type": "image/png"
+    }
+  ]
+}

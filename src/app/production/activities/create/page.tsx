@@ -36,11 +36,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ActivityRecordSchema, type Labor, type LoteData } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { ActivityRecordSchema, type LoteData } from '@/lib/types';
 import { saveActivity } from './actions';
 import { useAuth } from '@/hooks/useAuth';
+import { useMasterData } from '@/context/MasterDataContext';
 
 // Dynamically import the Calendar to ensure it's client-side only
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
@@ -59,8 +58,7 @@ export default function CreateActivityPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isPending, startTransition] = useTransition();
-  const [labors, setLabors] = useState<Labor[]>([]);
-  const [lotes, setLotes] = useState<LoteData[]>([]);
+  const { labors, lotes, loading: masterLoading } = useMasterData();
 
   const form = useForm<ActivityFormValues>({
     resolver: zodResolver(ActivityRecordSchema),
@@ -95,29 +93,6 @@ export default function CreateActivityPage() {
     });
     return Array.from(lotesMap.values());
   }, [lotes]);
-
-  useEffect(() => {
-    const loadMasterData = async () => {
-      try {
-        const [laborsSnapshot, lotesSnapshot] = await Promise.all([
-          getDocs(collection(db, 'maestro-labores')),
-          getDocs(collection(db, 'maestro-lotes')),
-        ]);
-        const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() } as Labor));
-        setLabors(laborsData);
-        const lotesData = lotesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LoteData));
-        setLotes(lotesData);
-      } catch (error) {
-        console.error('Error loading master data:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error de Carga',
-          description: 'No se pudieron cargar los datos maestros.',
-        });
-      }
-    };
-    loadMasterData();
-  }, [toast]);
 
   useEffect(() => {
     if (codeValue) {
@@ -255,7 +230,7 @@ export default function CreateActivityPage() {
                          <FormControl>
                            <Select onValueChange={field.onChange} value={field.value}>
                                <SelectTrigger>
-                                 <SelectValue placeholder="Selecciona" />
+                                 <SelectValue placeholder={masterLoading ? "Cargando..." : "Selecciona"} />
                                </SelectTrigger>
                              <SelectContent>
                                {uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}
@@ -306,7 +281,7 @@ export default function CreateActivityPage() {
                   <FormField control={form.control} name="observations" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Observaciones</IconWrapper></FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )} />
 
                   <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={isPending}>
+                    <Button type="submit" disabled={isPending || masterLoading}>
                       {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Guardar Ficha
                     </Button>

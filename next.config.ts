@@ -23,4 +23,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'placehold.co',
-        port:
+        port: '',
+      },
+    ],
+  },
+};
+
+module.exports = withPWA(nextConfig);

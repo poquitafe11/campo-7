@@ -6,7 +6,7 @@ import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import type { ActivityRecordData, LoteData, Labor } from '@/lib/types';
+import type { ActivityRecordData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Filter } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { useMasterData } from '@/context/MasterDataContext';
 
 interface SummaryValues {
     lote: string;
@@ -49,8 +50,7 @@ export default function ActivitySummaryPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
-    const [allLotes, setAllLotes] = useState<LoteData[]>([]);
-    const [allLabors, setAllLabors] = useState<Labor[]>([]);
+    const { lotes: allLotes, labors: allLabors, loading: masterLoading } = useMasterData();
     const [minMaxData, setMinMaxData] = useState<MinMaxData | null>(null);
     
     const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
@@ -60,11 +60,7 @@ export default function ActivitySummaryPage() {
     const loadData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [activitiesSnapshot, lotesSnapshot, laborsSnapshot] = await Promise.all([
-                getDocs(collection(db, 'actividades')),
-                getDocs(collection(db, 'maestro-lotes')),
-                getDocs(collection(db, 'maestro-labores')),
-            ]);
+            const activitiesSnapshot = await getDocs(collection(db, 'actividades'));
 
             const activitiesData = activitiesSnapshot.docs.map(doc => {
                 const data = doc.data();
@@ -72,12 +68,6 @@ export default function ActivitySummaryPage() {
                 return { ...data, registerDate } as ActivityRecordData;
             });
             setAllActivities(activitiesData);
-
-            const lotesData = lotesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as LoteData);
-            setAllLotes(lotesData);
-
-            const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() } as Labor));
-            setAllLabors(laborsData);
 
         } catch (error) {
             console.error("Error loading summary data:", error);
@@ -227,6 +217,8 @@ export default function ActivitySummaryPage() {
         { label: "MINIMO", key: "minimo" },
         { label: "MAXIMO", key: "maximo" },
     ];
+    
+    const loading = isLoading || masterLoading;
 
 
     return (
@@ -277,7 +269,7 @@ export default function ActivitySummaryPage() {
                     </Popover>
                 </div>
 
-                {isLoading ? (
+                {loading ? (
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="space-y-4">

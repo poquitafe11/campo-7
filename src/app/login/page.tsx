@@ -23,6 +23,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import InstallButton from "@/components/InstallButton";
 
 
 const loginSchema = z.object({
@@ -163,6 +164,7 @@ export default function LoginPage() {
                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Iniciar Sesión
                 </Button>
+                <InstallButton />
               </div>
             </form>
           </Form>

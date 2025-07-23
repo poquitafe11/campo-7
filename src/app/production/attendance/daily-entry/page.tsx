@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -18,6 +18,7 @@ import {
   Sprout,
   PlusCircle,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { type Assistant, type Labor, type LoteData, type AttendanceRecord, UserRole } from '@/lib/types';
+import { type Assistant, type AttendanceRecord, UserRole } from '@/lib/types';
 import AddAssistantDialog from '@/components/AddAssistantDialog';
 import {
   Table,
@@ -63,7 +64,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, getDocs, doc, writeBatch, query, where, getDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDoc } from 'firebase/firestore';
+import { useMasterData } from '@/context/MasterDataContext';
 
 
 const assistantInFormSchema = z.object({
@@ -95,8 +97,7 @@ export default function RegistroAsistenciaPage() {
   const { toast } = useToast();
   const [isAddAssistantDialogOpen, setIsAddAssistantDialogOpen] = useState(false);
   const [assistants, setAssistants] = useState<StagedAssistant[]>([]);
-  const [labors, setLabors] = useState<Labor[]>([]);
-  const [lotes, setLotes] = useState<LoteData[]>([]);
+  const { lotes, labors, loading: masterLoading } = useMasterData();
   const [userProfile, setUserProfile] = useState<{ nombre: string; rol: UserRole } | null>(null);
   
   const form = useForm<AttendanceFormValues>({
@@ -119,10 +120,10 @@ export default function RegistroAsistenciaPage() {
   }, [loteIdValue, lotes]);
 
   const uniqueLotes = useMemo(() => {
-    const lotesMap = new Map<string, LoteData>();
+    const lotesMap = new Map<string, {id: string, lote: string}>();
     lotes.forEach(lote => {
       if (!lotesMap.has(lote.lote)) {
-        lotesMap.set(lote.lote, lote);
+        lotesMap.set(lote.lote, {id: lote.id, lote: lote.lote});
       }
     });
     return Array.from(lotesMap.values());
@@ -140,37 +141,6 @@ export default function RegistroAsistenciaPage() {
   }, [assistants]);
   
   useEffect(() => {
-    const loadMasterData = async () => {
-      if (!db) {
-        toast({
-            variant: 'destructive',
-            title: 'Error de Conexión',
-            description: 'No se pueden cargar los datos maestros.',
-        });
-        return;
-      }
-      try {
-        const [laborsSnapshot, lotesSnapshot] = await Promise.all([
-          getDocs(collection(db, 'maestro-labores')),
-          getDocs(collection(db, 'maestro-lotes')),
-        ]);
-        const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() } as Labor));
-        setLabors(laborsData);
-
-        const lotesData = lotesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LoteData));
-        setLotes(lotesData);
-
-      } catch (error) {
-        console.error("Error loading master data:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Error de Carga',
-            description: 'No se pudieron cargar los datos de labores y lotes.',
-        });
-      }
-    };
-    loadMasterData();
-    
      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser && currentUser.email && db) {
             try {
@@ -427,7 +397,7 @@ export default function RegistroAsistenciaPage() {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un lote" />
+                          <SelectValue placeholder={masterLoading ? "Cargando..." : "Selecciona un lote"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -557,11 +527,11 @@ export default function RegistroAsistenciaPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setIsAddAssistantDialogOpen(true)}
-                  disabled={!canAddAssistant}
+                  disabled={!canAddAssistant || masterLoading}
                   title={!canAddAssistant ? 'Debes seleccionar un lote y una labor primero' : ''}
                   className="w-full sm:w-auto"
                 >
-                  <PlusCircle className="mr-2 h-4 w-4" />
+                  {masterLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                   Agregar Asistente
                 </Button>
                 <Button type="submit" className="w-full sm:w-auto" disabled={assistants.length === 0}>
