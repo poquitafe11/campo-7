@@ -387,14 +387,20 @@ export default function MinMaxPage() {
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), onColumnFiltersChange: setColumnFilters, getFilteredRowModel: getFilteredRowModel(), state: { columnFilters } });
 
   const renderFormFields = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="campana" render={({ field }) => ( <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.lote}>{l.lote}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="codigo" render={({ field }) => ( <FormItem><FormLabel>Código</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="labor" render={({ field }) => ( <FormItem><FormLabel>Labor</FormLabel><FormControl><Input {...field} readOnly /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="pasada" render={({ field }) => ( <FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="min" render={({ field }) => ( <FormItem><FormLabel>Min</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="max" render={({ field }) => ( <FormItem><FormLabel>Max</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+    <div className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
+        <div className="flex flex-col sm:flex-row gap-4">
+            <FormField control={form.control} name="campana" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.lote}>{l.lote}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+            <FormField control={form.control} name="codigo" render={({ field }) => ( <FormItem className="w-full sm:w-1/3"><FormLabel>Código</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="labor" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Labor</FormLabel><FormControl><Input {...field} readOnly /></FormControl><FormMessage /></FormItem> )} />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+            <FormField control={form.control} name="pasada" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="min" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Min</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="max" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Max</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+        </div>
     </div>
   );
 
