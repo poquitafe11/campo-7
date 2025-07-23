@@ -6,12 +6,6 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
-  pwa: {
-    dest: "public",
-    dynamicStartUrl: true,
-    cacheOnFrontEndNav: true,
-    aggressiveFrontEndNavCaching: true,
-  }
 });
 
 const nextConfig: NextConfig = {
