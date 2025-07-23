@@ -281,38 +281,34 @@ export default function ActivitySummaryPage() {
                 {isLoading ? (
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
-                    <div className="overflow-x-auto pb-4">
-                       <div className="inline-block min-w-full align-top">
-                           <div className="mb-2 w-full md:w-1/2 lg:w-1/3">
-                                <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs w-full">
-                                    <thead className="text-left font-bold text-black">
-                                        <tr>
-                                            <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle">
-                                                LABOR: {(activeFilters.labor || 'N/A').toUpperCase()}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white">
-                                        <tr>
-                                            <td className="border border-black px-2 py-1 font-bold">LOTE: {activeFilters.lote || 'N/A'}</td>
-                                            <td className="border border-black px-2 py-1 font-bold">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="border border-black px-2 py-1 font-bold">PASADA: {activeFilters.pasada || 'N/A'}</td>
-                                            <td className="border border-black px-2 py-1 font-bold">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                           </div>
-                            <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs w-full">
+                    <div className="space-y-4">
+                        <div className="w-full max-w-md">
+                            <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs w-full">
+                                <thead className="text-left font-bold text-black">
+                                    <tr>
+                                        <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle">
+                                            LABOR: {(activeFilters.labor || 'N/A').toUpperCase()}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white">
+                                    <tr>
+                                        <td className="border border-black px-2 py-1 font-bold">LOTE: {activeFilters.lote || 'N/A'}</td>
+                                        <td className="border border-black px-2 py-1 font-bold">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black px-2 py-1 font-bold">PASADA: {activeFilters.pasada || 'N/A'}</td>
+                                        <td className="border border-black px-2 py-1 font-bold">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="overflow-x-auto pb-4">
+                            <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs min-w-full">
                                 <thead className="text-center font-bold text-black">
                                     <tr className="bg-gray-300">
-                                        <td className="border border-black px-4 py-2 font-bold w-36">Lote</td>
+                                        <td className="border border-black px-4 py-2 font-bold w-36">Resumen</td>
                                         {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.lote}</td>)}
-                                    </tr>
-                                    <tr className="bg-gray-300">
-                                        <td className="border border-black px-4 py-2 font-bold w-36"><span className="italic">Pasada</span></td>
-                                        {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.pasada}</td>)}
                                     </tr>
                                 </thead>
                                 <tbody className="bg-[#dbe5f1]">
@@ -342,5 +338,3 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
-
-    
