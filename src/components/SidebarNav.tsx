@@ -1,4 +1,3 @@
-
 "use client"
 
 import { usePathname } from "next/navigation"
@@ -32,6 +31,7 @@ const navItems = [
       { href: "/maestro-lotes", label: "Lotes" },
       { href: "/maestro-labores", label: "Labores" },
       { href: "/asistentes", label: "Asistentes" },
+      { href: "/min-max", label: "Min y Max" },
     ],
   },
   {
