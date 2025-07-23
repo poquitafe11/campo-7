@@ -17,15 +17,9 @@ export const metadata: Metadata = {
     template: `%s - ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: APP_NAME,
-  },
   formatDetection: {
     telephone: false,
   },
-  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -43,9 +37,6 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
-        <link rel="icon" href="/icons/icon-7-32x32.png" sizes="32x32" />
-        <link rel="icon" href="/icons/icon-7-192x192.png" sizes="192x192" />
-        <link rel="apple-touch-icon" href="/icons/icon-7-192x192.png"></link>
       </head>
       <body className="font-body antialiased bg-background">
         <AuthProvider>
