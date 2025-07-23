@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import type { ActivityRecordData, LoteData, Labor } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Filter } from 'lucide-react';
@@ -38,6 +38,11 @@ interface Filters {
     pasada: string;
 }
 
+interface MinMaxData {
+    min: number;
+    max: number;
+}
+
 const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', pasada: '' });
 
 export default function ActivitySummaryPage() {
@@ -46,6 +51,7 @@ export default function ActivitySummaryPage() {
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
     const [allLotes, setAllLotes] = useState<LoteData[]>([]);
     const [allLabors, setAllLabors] = useState<Labor[]>([]);
+    const [minMaxData, setMinMaxData] = useState<MinMaxData | null>(null);
     
     const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
     const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
@@ -70,7 +76,7 @@ export default function ActivitySummaryPage() {
             const lotesData = lotesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as LoteData);
             setAllLotes(lotesData);
 
-            const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() }) as Labor);
+            const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() } as Labor));
             setAllLabors(laborsData);
 
         } catch (error) {
@@ -109,6 +115,45 @@ export default function ActivitySummaryPage() {
         setActiveFilters(cleared);
         setIsFilterOpen(false);
     };
+
+    useEffect(() => {
+        const fetchMinMax = async () => {
+            if (!activeFilters.campaign || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada) {
+                setMinMaxData(null);
+                return;
+            }
+            try {
+                const laborCode = allLabors.find(l => l.descripcion === activeFilters.labor)?.codigo;
+                if (!laborCode) {
+                    setMinMaxData(null);
+                    return;
+                }
+                
+                const minMaxQuery = query(
+                    collection(db, 'min-max'),
+                    where('campana', '==', activeFilters.campaign),
+                    where('lote', '==', activeFilters.lote),
+                    where('codigo', '==', laborCode),
+                    where('pasada', '==', Number(activeFilters.pasada))
+                );
+                
+                const querySnapshot = await getDocs(minMaxQuery);
+                if (!querySnapshot.empty) {
+                    const data = querySnapshot.docs[0].data() as { min: number; max: number };
+                    setMinMaxData({ min: data.min, max: data.max });
+                } else {
+                    setMinMaxData(null);
+                }
+
+            } catch (error) {
+                console.error("Error fetching min-max data: ", error);
+                toast({ variant: "destructive", title: "Error", description: "No se pudo obtener Min/Max." });
+                setMinMaxData(null);
+            }
+        };
+
+        fetchMinMax();
+    }, [activeFilters, allLabors, toast]);
 
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
         if (!activeFilters.lote || !activeFilters.labor) return null;
@@ -169,18 +214,6 @@ export default function ActivitySummaryPage() {
         return summaries.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     }, [allActivities, allLotes, activeFilters]);
-
-    const tableTitle = useMemo(() => {
-        const labor = allLabors.find(l => l.descripcion === activeFilters.labor);
-        const lote = allLotes.find(l => l.lote === activeFilters.lote);
-        if (!labor || !lote) return "Resumen de Actividad";
-        
-        const variedad = lote.variedad || 'N/A';
-        const variedadAbreviada = variedad.split(' ').map(w => w.substring(0,1)).join('').toUpperCase();
-
-        return `${labor.descripcion.toUpperCase()} ${variedadAbreviada}`;
-
-    }, [activeFilters, allLabors, allLotes]);
 
     const summaryRows: { label: string | React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number }[] = [
         { label: "FECHA", key: "fecha" },
@@ -249,14 +282,30 @@ export default function ActivitySummaryPage() {
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="overflow-x-auto pb-4">
-                       <div className="inline-block min-w-full">
-                           <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs w-full mb-2">
-                               <thead className="text-center font-bold text-black">
-                                    <tr>
-                                        <th colSpan={1 + multiDaySummary.length} className="border border-black bg-gray-200 p-2 text-base font-bold text-center h-14 align-middle">
-                                            {tableTitle}
-                                        </th>
-                                    </tr>
+                       <div className="inline-block min-w-full align-top">
+                           <div className="mb-2 w-full md:w-1/2 lg:w-1/3">
+                                <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs w-full">
+                                    <thead className="text-left font-bold text-black">
+                                        <tr>
+                                            <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle">
+                                                LABOR: {(activeFilters.labor || 'N/A').toUpperCase()}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white">
+                                        <tr>
+                                            <td className="border border-black px-2 py-1 font-bold">LOTE: {activeFilters.lote || 'N/A'}</td>
+                                            <td className="border border-black px-2 py-1 font-bold">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-black px-2 py-1 font-bold">PASADA: {activeFilters.pasada || 'N/A'}</td>
+                                            <td className="border border-black px-2 py-1 font-bold">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                           </div>
+                            <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs w-full">
+                                <thead className="text-center font-bold text-black">
                                     <tr className="bg-gray-300">
                                         <td className="border border-black px-4 py-2 font-bold w-36">Lote</td>
                                         {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.lote}</td>)}
@@ -266,8 +315,6 @@ export default function ActivitySummaryPage() {
                                         {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.pasada}</td>)}
                                     </tr>
                                 </thead>
-                            </table>
-                            <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs w-full">
                                 <tbody className="bg-[#dbe5f1]">
                                     {summaryRows.map(row => (
                                         <tr key={String(row.key)}>
@@ -295,3 +342,5 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
+
+    
