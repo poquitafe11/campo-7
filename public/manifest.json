@@ -1,32 +1,19 @@
 {
-  "theme_color": "#38A3A5",
-  "background_color": "#ffffff",
-  "display": "standalone",
-  "scope": "/",
-  "start_url": "/",
-  "name": "Campo 7",
-  "short_name": "Campo 7",
-  "description": "Gestiona de forma eficiente los datos de tu campo con Brujos.",
-  "icons": [
-    {
-      "src": "/icons/icon-7-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-7-256x256.png",
-      "sizes": "256x256",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-7-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-7-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+    "name": "Campo 7",
+    "short_name": "Campo 7",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#38A3A5",
+    "description": "Gestiona de forma eficiente los datos de tu campo con Brujos.",
+    "icons": [
+        { "src": "/icons/icon-7-72x72.png", "sizes": "72x72", "type": "image/png" },
+        { "src": "/icons/icon-7-96x96.png", "sizes": "96x96", "type": "image/png" },
+        { "src": "/icons/icon-7-128x128.png", "sizes": "128x128", "type": "image/png" },
+        { "src": "/icons/icon-7-144x144.png", "sizes": "144x144", "type": "image/png" },
+        { "src": "/icons/icon-7-152x152.png", "sizes": "152x152", "type": "image/png" },
+        { "src": "/icons/icon-7-192x192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/icons/icon-7-384x384.png", "sizes": "384x384", "type": "image/png" },
+        { "src": "/icons/icon-7-512x512.png", "sizes": "512x512", "type": "image/png" }
+    ]
 }
