@@ -97,7 +97,6 @@ export default function RegistroAsistenciaPage() {
   const [assistants, setAssistants] = useState<StagedAssistant[]>([]);
   const [labors, setLabors] = useState<Labor[]>([]);
   const [lotes, setLotes] = useState<LoteData[]>([]);
-  const [isClient, setIsClient] = useState(false);
   const [userProfile, setUserProfile] = useState<{ nombre: string; rol: UserRole } | null>(null);
   
   const form = useForm<AttendanceFormValues>({
@@ -111,10 +110,6 @@ export default function RegistroAsistenciaPage() {
     },
   });
   
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const codeValue = form.watch('code');
   const loteIdValue = form.watch('lote');
   const laborValue = form.watch('labor');
@@ -402,7 +397,6 @@ export default function RegistroAsistenciaPage() {
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          {isClient && (
                             <Calendar
                               mode="single"
                               selected={field.value}
@@ -413,7 +407,6 @@ export default function RegistroAsistenciaPage() {
                               initialFocus
                               locale={es}
                             />
-                           )}
                         </PopoverContent>
                       </Popover>
                       <FormMessage />
