@@ -28,9 +28,9 @@ export async function login(values: z.infer<typeof loginSchema>) {
 
     const userData = userDocSnap.data();
 
-    if (!userData.active) {
-        return { success: false, message: "La cuenta está inactiva. Contacte al administrador." };
-    }
+    // Do not check for `active` status here.
+    // AuthProvider will handle inactive users by logging them out.
+    // This simplifies logic and prevents race conditions.
     
     return { success: true };
 
@@ -38,6 +38,7 @@ export async function login(values: z.infer<typeof loginSchema>) {
     if (error instanceof z.ZodError) {
       return { success: false, message: "Datos inválidos.", errors: error.errors };
     }
+    console.error("Server-side login validation error:", error);
     return { success: false, message: "Error desconocido en el servidor." };
   }
 }
