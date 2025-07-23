@@ -402,7 +402,7 @@ export default function RegistroAsistenciaPage() {
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          {isClient ? (
+                          {isClient && (
                             <Calendar
                               mode="single"
                               selected={field.value}
@@ -413,7 +413,7 @@ export default function RegistroAsistenciaPage() {
                               initialFocus
                               locale={es}
                             />
-                           ) : null}
+                           )}
                         </PopoverContent>
                       </Popover>
                       <FormMessage />
