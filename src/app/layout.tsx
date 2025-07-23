@@ -4,7 +4,7 @@ import { AppDataProvider } from '@/context/AppDataContext';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import AuthWrapper from '@/components/AuthWrapper';
-import AppLayout from '@/components/AppLayout';
+import DynamicAppLayout from '@/components/DynamicAppLayout';
 
 export const metadata: Metadata = {
   title: 'Campo 7',
@@ -29,12 +29,12 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background">
         <AuthProvider>
             <AuthWrapper>
-                <AppLayout>
+                <DynamicAppLayout>
                     <AppDataProvider>
                         {children}
                         <Toaster />
                     </AppDataProvider>
-                </AppLayout>
+                </DynamicAppLayout>
             </AuthWrapper>
         </AuthProvider>
       </body>
