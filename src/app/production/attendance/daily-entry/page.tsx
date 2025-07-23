@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -43,7 +42,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { type Assistant, type AttendanceRecord, UserRole } from '@/lib/types';
@@ -66,6 +65,11 @@ import {
 import { db, auth } from '@/lib/firebase';
 import { collection, doc, writeBatch, getDoc } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
+
+const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
+  ssr: false,
+  loading: () => <div className="h-[290px] w-[240px] bg-muted rounded-md animate-pulse" />,
+});
 
 
 const assistantInFormSchema = z.object({
