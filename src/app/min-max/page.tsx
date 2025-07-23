@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -213,6 +214,16 @@ export default function MinMaxPage() {
   const [lotes, setLotes] = useState<LoteData[]>([]);
   const [labors, setLabors] = useState<Labor[]>([]);
 
+  const defaultFormValues = {
+    campana: '',
+    lote: '',
+    codigo: '',
+    labor: '',
+    pasada: 0,
+    min: 0,
+    max: 0,
+  };
+
   useEffect(() => {
     async function loadMasterData() {
         try {
@@ -261,6 +272,7 @@ export default function MinMaxPage() {
 
   const form = useForm<z.infer<typeof minMaxSchema>>({
     resolver: zodResolver(minMaxSchema),
+    defaultValues: defaultFormValues,
   });
 
   const codeValue = form.watch("codigo");
@@ -328,7 +340,7 @@ export default function MinMaxPage() {
             toast({ title: "Éxito", description: "Registro creado correctamente." });
             setCreateDialogOpen(false);
         }
-        form.reset({ campana: '', lote: '', codigo: '', labor: '', pasada: 0, min: 0, max: 0 });
+        form.reset(defaultFormValues);
     } catch (error) {
         toast({ title: "Error", description: "No se pudo guardar el registro.", variant: "destructive" });
     }
@@ -397,7 +409,7 @@ export default function MinMaxPage() {
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={table.getRowModel().rows.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
-                  <Dialog open={isCreateDialogOpen} onOpenChange={(isOpen) => { setCreateDialogOpen(isOpen); if (!isOpen) form.reset(); }}>
+                  <Dialog open={isCreateDialogOpen} onOpenChange={(isOpen) => { setCreateDialogOpen(isOpen); if (!isOpen) form.reset(defaultFormValues); }}>
                       <DialogTrigger asChild><Button size="sm" className="h-9"><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button></DialogTrigger>
                       <DialogContent className="sm:max-w-3xl"><DialogHeader><DialogTitle>Agregar Nuevo Registro</DialogTitle></DialogHeader><Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">{renderFormFields()}<DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Guardar</Button></DialogFooter></form></Form></DialogContent>
                   </Dialog>
@@ -414,3 +426,5 @@ export default function MinMaxPage() {
     </TooltipProvider>
   );
 }
+
+    
