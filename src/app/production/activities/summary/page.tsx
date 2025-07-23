@@ -250,7 +250,7 @@ export default function ActivitySummaryPage() {
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="overflow-x-auto pb-4">
                        <div className="inline-block min-w-full">
-                           <table className="border-collapse border border-black text-xs w-full mb-2">
+                           <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs w-full mb-2">
                                <thead className="text-center font-bold text-black">
                                     <tr>
                                         <th colSpan={1 + multiDaySummary.length} className="border border-black bg-gray-200 p-2 text-base font-bold text-center h-14 align-middle">
@@ -267,7 +267,7 @@ export default function ActivitySummaryPage() {
                                     </tr>
                                 </thead>
                             </table>
-                            <table className="border-collapse border border-black text-xs w-full">
+                            <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs w-full">
                                 <tbody className="bg-[#dbe5f1]">
                                     {summaryRows.map(row => (
                                         <tr key={String(row.key)}>
