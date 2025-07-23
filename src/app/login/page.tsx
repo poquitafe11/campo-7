@@ -92,15 +92,27 @@ export default function LoginPage() {
     }
   }
 
-  if (loading || (!loading && user)) {
+  // Show a generic loader while auth state is resolving
+  if (loading) {
      return (
         <div className="flex h-screen items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Cargando...</p>
           </div>
         </div>
       );
+  }
+
+  // If user is resolved and exists, prevent rendering login page
+  if (user) {
+    return (
+       <div className="flex h-screen items-center justify-center bg-background">
+         <div className="flex flex-col items-center gap-4">
+           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+           <p className="text-muted-foreground">Redirigiendo...</p>
+         </div>
+       </div>
+     );
   }
 
   return (
