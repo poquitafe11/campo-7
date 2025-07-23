@@ -282,7 +282,7 @@ export default function ActivitySummaryPage() {
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="space-y-4">
-                        <div className="w-full max-w-md">
+                        <div className="max-w-md">
                             <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs w-full">
                                 <thead className="text-left font-bold text-black">
                                     <tr>
@@ -308,11 +308,11 @@ export default function ActivitySummaryPage() {
                                 <thead className="text-center font-bold text-black">
                                     <tr className="bg-gray-300">
                                         <td className="border border-black px-4 py-2 font-bold w-36">Resumen</td>
-                                        {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.lote}</td>)}
+                                        {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.fecha}</td>)}
                                     </tr>
                                 </thead>
                                 <tbody className="bg-[#dbe5f1]">
-                                    {summaryRows.map(row => (
+                                    {summaryRows.filter(row => row.key !== 'lote' && row.key !== 'pasada' && row.key !== 'fecha').map(row => (
                                         <tr key={String(row.key)}>
                                             <td className={`border border-black px-4 py-2 font-bold w-36 ${row.bgClass || ''}`}>{row.label}</td>
                                             {multiDaySummary.map((day, index) => {
