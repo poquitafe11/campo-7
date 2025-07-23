@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { LoteData, Labor, Assistant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -32,37 +32,26 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     if (isInitialLoad) setLoading(true);
     setError(null);
     try {
-      // Create promises for fetching each collection
-      const lotesPromise = new Promise<LoteData[]>((resolve, reject) => {
-        const unsubscribe = onSnapshot(collection(db, 'maestro-lotes'), (snapshot) => {
-          const lotesData = snapshot.docs.map(doc => {
-            const docData = doc.data();
-            const fechaCianamida = docData.fechaCianamida?.toDate ? docData.fechaCianamida.toDate() : (docData.fechaCianamida ? parseISO(docData.fechaCianamida) : new Date());
-            return { id: doc.id, ...docData, fechaCianamida } as LoteData;
-          });
-          resolve(lotesData);
-          unsubscribe();
-        }, reject);
+      const lotesSnapshot = await getDocs(collection(db, 'maestro-lotes'));
+      const lotesData = lotesSnapshot.docs.map(doc => {
+          const docData = doc.data();
+          const fechaCianamida = docData.fechaCianamida?.toDate ? docData.fechaCianamida.toDate() : (docData.fechaCianamida ? parseISO(docData.fechaCianamida) : new Date());
+          return { id: doc.id, ...docData, fechaCianamida } as LoteData;
       });
 
-      const laborsPromise = new Promise<Labor[]>((resolve, reject) => {
-        const unsubscribe = onSnapshot(collection(db, 'maestro-labores'), (snapshot) => {
-            const laborsData = snapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() } as Labor));
-            resolve(laborsData);
-            unsubscribe();
-        }, reject);
-      });
+      const laborsSnapshot = await getDocs(collection(db, 'maestro-labores'));
+      const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() } as Labor));
 
-      const asistentesPromise = new Promise<Assistant[]>((resolve, reject) => {
-        const unsubscribe = onSnapshot(collection(db, 'asistentes'), (snapshot) => {
-           const asistentesData = snapshot.docs.map(doc => ({ id: doc.id, assistantName: doc.data().nombre, cargo: doc.data().cargo, personnelCount: 0, absentCount: 0 }));
-           resolve(asistentesData);
-           unsubscribe();
-        }, reject);
-      });
+      const asistentesSnapshot = await getDocs(collection(db, 'asistentes'));
+      const asistentesData = asistentesSnapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          assistantName: doc.data().nombre,
+          cargo: doc.data().cargo, 
+          personnelCount: 0, 
+          absentCount: 0 
+      }));
 
-      const [lotes, labors, asistentes] = await Promise.all([lotesPromise, laborsPromise, asistentesPromise]);
-      setData({ lotes, labors, asistentes });
+      setData({ lotes: lotesData, labors: laborsData, asistentes: asistentesData });
 
     } catch (err) {
       console.error('Error loading master data:', err);
