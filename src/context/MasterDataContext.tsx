@@ -11,7 +11,7 @@ import { parseISO } from 'date-fns';
 interface MasterData {
   lotes: LoteData[];
   labors: Labor[];
-  asistentes: (Assistant & { cargo: string })[];
+  asistentes: Assistant[];
 }
 
 interface MasterDataContextType extends MasterData {
@@ -53,7 +53,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         }, reject);
       });
 
-      const asistentesPromise = new Promise<(Assistant & { cargo: string })[]>((resolve, reject) => {
+      const asistentesPromise = new Promise<Assistant[]>((resolve, reject) => {
         const unsubscribe = onSnapshot(collection(db, 'asistentes'), (snapshot) => {
            const asistentesData = snapshot.docs.map(doc => ({ id: doc.id, assistantName: doc.data().nombre, cargo: doc.data().cargo, personnelCount: 0, absentCount: 0 }));
            resolve(asistentesData);

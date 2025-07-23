@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -87,7 +86,7 @@ const minMaxSchema = z.object({
     campana: z.string().min(1, "La campaña es requerida"),
     lote: z.string().min(1, "El lote es requerido"),
     codigo: z.string().min(1, "El código es requerido"),
-    labor: z.string().min(1, "La labor es requerida"),
+    labor: z.string().optional(),
     pasada: z.coerce.number().int().min(0, "Debe ser un número entero no negativo"),
     min: z.coerce.number(),
     max: z.coerce.number(),
@@ -97,7 +96,7 @@ const minMaxSchema = z.object({
 });
 
 
-type MinMax = z.infer<typeof minMaxSchema> & { id: string };
+type MinMax = z.infer<typeof minMaxSchema> & { id: string, labor: string };
 
 function normalizeKey(key: string): string {
     return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '').replace(/\./g, '');
@@ -130,8 +129,8 @@ async function processAndUploadFile(file: File, laborsData: Labor[]): Promise<{ 
                     if (foundKey) keyMap[field] = foundKey;
                 });
                 
-                if (!keyMap.campana || !keyMap.lote || !keyMap.codigo || !keyMap.labor || !keyMap.pasada || !keyMap.min || !keyMap.max) {
-                   return reject(new Error("El archivo debe contener columnas para Campaña, Lote, Codigo, Labor, Pasada, Min y Max."));
+                if (!keyMap.campana || !keyMap.lote || !keyMap.codigo || !keyMap.pasada || !keyMap.min || !keyMap.max) {
+                   return reject(new Error("El archivo debe contener columnas para Campaña, Lote, Codigo, Pasada, Min y Max. La columna Labor es opcional."));
                 }
                 
                 const normalizedData = json.map(row => {
@@ -170,7 +169,7 @@ async function processAndUploadFile(file: File, laborsData: Labor[]): Promise<{ 
                         console.warn('Fila omitida por error de parseo:', row, err);
                         return null;
                     }
-                }).filter((item): item is MinMax => item !== null);
+                }).filter((item): item is MinMax => item !== null && !!item.labor);
 
 
                 if (normalizedData.length === 0) {
