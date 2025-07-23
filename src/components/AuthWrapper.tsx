@@ -13,6 +13,7 @@ const protectedRoutes = [
     '/maestro-labores',
     '/asistentes',
     '/production',
+    '/min-max'
 ];
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
@@ -21,7 +22,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   useEffect(() => {
-    if (loading) return; // Wait until loading is finished
+    if (loading) return;
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
     
@@ -34,31 +35,22 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     }
   }, [user, loading, pathname, router]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
 
-  // Prevent rendering protected pages if not authenticated, avoiding flashes of content
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-  if (!user && isProtectedRoute) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
+  if (loading) {
+     return (
+        <div className="flex h-screen items-center justify-center bg-background">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      );
   }
   
-  // Prevent rendering login page if authenticated
-  if (user && pathname === '/login') {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  if (isProtectedRoute && !user) {
+    return null; 
+  }
+
+  if(pathname === '/login' && user) {
+    return null;
   }
 
   return <>{children}</>;
