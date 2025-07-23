@@ -1,7 +1,17 @@
-import type {NextConfig} from 'next';
+/** @type {import('next').NextConfig} */
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const withPWA = require("@ducanh2912/next-pwa").default({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development",
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  cacheStartUrl: true,
+});
+
+
+const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -13,11 +23,4 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
-};
-
-export default nextConfig;
+        port:
