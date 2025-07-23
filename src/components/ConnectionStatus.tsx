@@ -3,7 +3,7 @@
 
 import { useOnlineStatus, type NetworkStatus } from '@/hooks/useOnlineStatus';
 import { cn } from '@/lib/utils';
-import { Wifi, WifiOff, LoaderCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const statusConfig: { [key in NetworkStatus]: { text: string; icon: React.ReactNode; className: string } } = {
   online: {
@@ -25,6 +25,17 @@ const statusConfig: { [key in NetworkStatus]: { text: string; icon: React.ReactN
 
 export default function ConnectionStatus() {
   const status = useOnlineStatus();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    // Render nothing on the server to avoid hydration mismatch
+    return null;
+  }
+
   const config = statusConfig[status];
 
   return (
