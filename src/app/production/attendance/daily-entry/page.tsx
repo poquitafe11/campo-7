@@ -103,20 +103,13 @@ export default function RegistroAsistenciaPage() {
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceFormSchema),
     defaultValues: {
-      date: undefined, 
+      date: new Date(), 
       lote: '',
       code: '',
       labor: '',
       assistants: [],
     },
   });
-
-  useEffect(() => {
-    if (isClient) {
-      // This effect runs only on the client, preventing hydration mismatch.
-      form.setValue('date', new Date());
-    }
-  }, [isClient, form]);
   
   useEffect(() => {
     setIsClient(true);
@@ -399,7 +392,7 @@ export default function RegistroAsistenciaPage() {
                                 !field.value && 'text-muted-foreground'
                               )}
                             >
-                              {isClient && field.value ? (
+                              {field.value ? (
                                 format(field.value, 'PPP', { locale: es })
                               ) : (
                                 <span>Selecciona una fecha</span>
