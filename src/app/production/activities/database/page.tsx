@@ -71,6 +71,7 @@ export default function ActivityDatabasePage() {
       header: 'Labor',
       cell: ({ row }) => <div className="min-w-[250px]">{row.original.labor}</div>
     },
+    { accessorKey: 'performance', header: 'Rendimiento' },
     { accessorKey: 'personnelCount', header: '# Pers.' },
     { accessorKey: 'workdayCount', header: '# Jorn.' },
     { 
@@ -79,6 +80,9 @@ export default function ActivityDatabasePage() {
       cell: ({ row }) => `S/ ${row.original.cost.toFixed(2)}`
     },
     { accessorKey: 'shift', header: 'Turno' },
+    { accessorKey: 'pass', header: 'Pasada' },
+    { accessorKey: 'minRange', header: 'Min' },
+    { accessorKey: 'maxRange', header: 'Max' },
     {
       id: 'actions',
       header: 'Acciones',
