@@ -185,7 +185,6 @@ export default function ActivitySummaryPage() {
             const promedio = jhu > 0 ? plantas / jhu : 0;
             const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0;
             const hasDia = densidad > 0 ? plantas / densidad : 0;
-            
             const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
             
             const summary: SummaryValues = {
@@ -200,8 +199,8 @@ export default function ActivitySummaryPage() {
                 has: Number(hasDia.toFixed(2)),
                 avance: `${Math.round(avanceDia)}%`,
                 haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
-                minimo: Math.min(...activitiesOnDate.map(a => a.performance)),
-                maximo: Math.max(...activitiesOnDate.map(a => a.performance)),
+                minimo: Math.min(...activitiesOnDate.map(a => a.performance || 0)),
+                maximo: Math.max(...activitiesOnDate.map(a => a.performance || 0)),
             };
             return { summary, date: parseISO(dateStr) };
         });
@@ -214,7 +213,7 @@ export default function ActivitySummaryPage() {
         { label: "N° PERSONAS", key: "personas" },
         { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-ES') },
         { label: "JHU", key: "jhu", format: (v) => v.toFixed(2) },
-        { label: "PROMEDIO", key: "promedio", format: (v) => v.toFixed(0) },
+        { label: "PROMEDIO", key: "promedio", format: (v) => Math.round(v) },
         { label: "Pltas./ Hora", key: "plantasHora", bgClass: "bg-[#f8cbad]" },
         { label: "Has.", key: "has" },
         { label: "% Avance", key: "avance" },
