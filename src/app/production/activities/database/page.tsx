@@ -83,6 +83,11 @@ export default function ActivityDatabasePage() {
     { accessorKey: 'pass', header: 'Pasada' },
     { accessorKey: 'minRange', header: 'Min' },
     { accessorKey: 'maxRange', header: 'Max' },
+    { 
+        accessorKey: 'createdBy', 
+        header: 'Usuario',
+        cell: ({ row }) => <div className="min-w-[150px] truncate">{row.original.createdBy}</div>
+    },
     {
       id: 'actions',
       header: 'Acciones',
