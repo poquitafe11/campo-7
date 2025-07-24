@@ -47,14 +47,15 @@ const roleHierarchy: { [key in UserRole]: number } = {
     "Invitado": 0,
 };
 
+// Use the base schema without password for the form shape itself
+const DialogFormSchema = UserSchema.extend({});
+
 export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, currentUserRole }: UserFormDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formSchema = user ? UserSchema : NewUserSchema;
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof DialogFormSchema>>({
+    resolver: zodResolver(DialogFormSchema),
     defaultValues: {
       nombre: "",
       dni: "",
@@ -62,7 +63,6 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
       email: "",
       rol: "Invitado",
       active: true,
-      ...(user ? {} : { password: "" }),
     },
   });
   
@@ -78,18 +78,18 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
                 email: "",
                 rol: "Invitado",
                 active: true,
-                password: "",
             });
         }
     }
   }, [user, form, isOpen])
 
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof DialogFormSchema>) => {
     setIsSubmitting(true);
-    // If it's a new user, create in Auth first
-    if (!user && 'password' in values) {
-        const authResult = await createUserInAuth(values.password, values.email);
+    
+    // If it's a new user, create in Auth first using DNI as password
+    if (!user) {
+        const authResult = await createUserInAuth(values.dni, values.email);
         if (!authResult.success) {
             toast({
                 variant: "destructive",
@@ -102,8 +102,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
     }
     
     // Now save/update the user profile in Firestore
-    const { password, ...profileData } = values as any;
-    const dbResult = await saveUser(profileData);
+    const dbResult = await saveUser(values);
 
     if (dbResult.success) {
       toast({
@@ -134,7 +133,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
         <DialogHeader>
           <DialogTitle>{user ? "Editar Usuario" : "Agregar Nuevo Usuario"}</DialogTitle>
           <DialogDescription>
-            Completa los datos para registrar un nuevo usuario en el sistema.
+            {user ? "Modifica los datos del usuario." : "La contraseña se asignará automáticamente con el DNI."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -191,21 +190,6 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
                 </FormItem>
               )}
             />
-            {!user && (
-                <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Contraseña</FormLabel>
-                        <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            )}
              <FormField
                 control={form.control}
                 name="rol"
