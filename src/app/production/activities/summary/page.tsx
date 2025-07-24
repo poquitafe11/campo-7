@@ -175,7 +175,7 @@ export default function ActivitySummaryPage() {
             const has = loteInfo?.ha ?? 0;
             const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
 
-            const promedio = personas > 0 ? jhu / personas : 0;
+            const promedio = jhu > 0 ? plantas / jhu : 0;
             const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Assuming 8 hours per workday
 
             const avance = has > 0 ? ((jhu * 0.1) / has) * 100 : 0;
