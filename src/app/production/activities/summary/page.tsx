@@ -173,7 +173,7 @@ export default function ActivitySummaryPage() {
             const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
             const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
             const has = loteInfo?.ha ?? 0;
-            const plantas = loteInfo?.plantasTotal || 0;
+            const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
 
             const promedio = personas > 0 ? jhu / personas : 0;
             const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Assuming 8 hours per workday
@@ -188,7 +188,7 @@ export default function ActivitySummaryPage() {
                 pasada: Number(activeFilters.pasada) || 0,
                 fecha: format(parseISO(dateStr), 'dd-MMM', { locale: es }),
                 personas,
-                plantas: loteInfo?.plantasTotal ?? 0,
+                plantas,
                 jhu,
                 promedio,
                 plantasHora: Math.round(plantasHora),
