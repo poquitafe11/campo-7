@@ -159,10 +159,12 @@ export default function ActivitySummaryPage() {
 
         if (filteredActivities.length === 0) return null;
         
-        const loteInfo = allLotes.find(l => l.lote === activeFilters.lote);
-        const haTotal = loteInfo?.ha ?? 0;
-        const haProd = loteInfo?.haProd ?? 0;
-        const densidad = loteInfo?.densidad ?? 0;
+        const cuartelesDelLote = allLotes.filter(l => l.lote === activeFilters.lote);
+        if (cuartelesDelLote.length === 0) return null;
+
+        const haTotal = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.ha || 0), 0);
+        const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
+        const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
         // Calculate total accumulated values for "Ha por Trabajar"
         const totalPlantasAcumuladas = filteredActivities.reduce((sum, act) => sum + (act.performance || 0), 0);
