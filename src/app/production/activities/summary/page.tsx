@@ -163,11 +163,13 @@ export default function ActivitySummaryPage() {
         const haTotal = loteInfo?.ha ?? 0;
         const haProd = loteInfo?.haProd ?? 0;
         const densidad = loteInfo?.densidad ?? 0;
-
+        
+        // Calculate total accumulated values for "Ha por Trabajar"
         const totalPlantasAcumuladas = filteredActivities.reduce((sum, act) => sum + (act.performance || 0), 0);
         const totalHasAcumuladas = densidad > 0 ? totalPlantasAcumuladas / densidad : 0;
         const haPorTrabajar = haTotal - totalHasAcumuladas;
         
+        // Group activities by date
         const groupedByDate: { [date: string]: ActivityRecordData[] } = {};
         for (const activity of filteredActivities) {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
@@ -178,6 +180,7 @@ export default function ActivitySummaryPage() {
         }
         
         const summaries = Object.entries(groupedByDate).map(([dateStr, activitiesOnDate]) => {
+            // Calculate daily-specific values
             const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
             const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
             const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
