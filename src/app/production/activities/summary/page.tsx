@@ -6,7 +6,7 @@ import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import type { ActivityRecordData } from '@/lib/types';
+import type { ActivityRecordData, LoteData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Filter, RefreshCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -69,7 +69,6 @@ export default function ActivitySummaryPage() {
             });
             setAllActivities(activitiesData);
             
-            // Refresh master data as well
             await refreshMasterData();
 
             if(showToast) {
@@ -86,6 +85,7 @@ export default function ActivitySummaryPage() {
 
     useEffect(() => {
         loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const filterOptions = useMemo(() => {
@@ -207,8 +207,8 @@ export default function ActivitySummaryPage() {
                     has: Number(hasDia.toFixed(2)),
                     avance: `${Math.round(avanceDia)}%`,
                     haPorTrabajar: 0, 
-                    minimo: Math.min(...activitiesOnDate.map(a => a.performance || 0)),
-                    maximo: Math.max(...activitiesOnDate.map(a => a.performance || 0)),
+                    minimo: Math.min(...activitiesOnDate.map(a => a.minRange || 0)),
+                    maximo: Math.max(...activitiesOnDate.map(a => a.maxRange || 0)),
                 }
             };
         }).sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -251,15 +251,14 @@ export default function ActivitySummaryPage() {
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <PageHeaderWithNav 
                 title="Resumen de Actividades" 
-                extraButton={
-                    <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading}>
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                    </Button>
-                }
             />
             
             <div className="space-y-4">
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" onClick={() => loadData(true)} disabled={isLoading} className="text-sm">
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                        Actualizar
+                    </Button>
                     <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-sm">
