@@ -167,7 +167,7 @@ export default function ActivitySummaryPage() {
         const totalPlantasAcumuladas = filteredActivities.reduce((sum, act) => sum + (act.performance || 0), 0);
         const totalHasAcumuladas = densidad > 0 ? totalPlantasAcumuladas / densidad : 0;
         const haPorTrabajar = haTotal - totalHasAcumuladas;
-
+        
         const groupedByDate: { [date: string]: ActivityRecordData[] } = {};
         for (const activity of filteredActivities) {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
@@ -183,12 +183,10 @@ export default function ActivitySummaryPage() {
             const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
             
             const promedio = jhu > 0 ? plantas / jhu : 0;
-            const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Assuming 8 hours per workday
+            const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0;
             const hasDia = densidad > 0 ? plantas / densidad : 0;
             
             const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
-            const minPerf = Math.min(...activitiesOnDate.map(a => a.performance));
-            const maxPerf = Math.max(...activitiesOnDate.map(a => a.performance));
             
             const summary: SummaryValues = {
                 lote: activeFilters.lote,
@@ -200,10 +198,10 @@ export default function ActivitySummaryPage() {
                 promedio,
                 plantasHora: Math.round(plantasHora),
                 has: Number(hasDia.toFixed(2)),
-                avance: `${avanceDia.toFixed(0)}%`,
+                avance: `${Math.round(avanceDia)}%`,
                 haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
-                minimo: minPerf === Infinity ? 0 : minPerf,
-                maximo: maxPerf === -Infinity ? 0 : maxPerf,
+                minimo: Math.min(...activitiesOnDate.map(a => a.performance)),
+                maximo: Math.max(...activitiesOnDate.map(a => a.performance)),
             };
             return { summary, date: parseISO(dateStr) };
         });
