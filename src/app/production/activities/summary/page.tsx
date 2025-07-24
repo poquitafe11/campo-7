@@ -174,14 +174,15 @@ export default function ActivitySummaryPage() {
             const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
             const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
             const densidad = loteInfo?.densidad ?? 0;
-            const hasTotal = loteInfo?.ha ?? 0;
+            const haTotal = loteInfo?.ha ?? 0;
+            const haProd = loteInfo?.haProd ?? 0;
 
             const promedio = jhu > 0 ? plantas / jhu : 0;
             const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Assuming 8 hours per workday
             const has = densidad > 0 ? plantas / densidad : 0;
             
-            const avance = hasTotal > 0 ? (has / hasTotal) * 100 : 0;
-            const haPorTrabajar = hasTotal - has;
+            const avance = haProd > 0 ? (has / haProd) * 100 : 0;
+            const haPorTrabajar = haTotal - has;
             const minPerf = Math.min(...activitiesOnDate.map(a => a.performance));
             const maxPerf = Math.max(...activitiesOnDate.map(a => a.performance));
             
