@@ -158,6 +158,15 @@ export default function ActivitySummaryPage() {
         });
 
         if (filteredActivities.length === 0) return null;
+        
+        const loteInfo = allLotes.find(l => l.lote === activeFilters.lote);
+        const haTotal = loteInfo?.ha ?? 0;
+        const haProd = loteInfo?.haProd ?? 0;
+        const densidad = loteInfo?.densidad ?? 0;
+
+        const totalPlantasAcumuladas = filteredActivities.reduce((sum, act) => sum + (act.performance || 0), 0);
+        const totalHasAcumuladas = densidad > 0 ? totalPlantasAcumuladas / densidad : 0;
+        const haPorTrabajar = haTotal - totalHasAcumuladas;
 
         const groupedByDate: { [date: string]: ActivityRecordData[] } = {};
         for (const activity of filteredActivities) {
@@ -169,20 +178,15 @@ export default function ActivitySummaryPage() {
         }
         
         const summaries = Object.entries(groupedByDate).map(([dateStr, activitiesOnDate]) => {
-            const loteInfo = allLotes.find(l => l.lote === activeFilters.lote);
             const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
             const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
             const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
-            const densidad = loteInfo?.densidad ?? 0;
-            const haTotal = loteInfo?.ha ?? 0;
-            const haProd = loteInfo?.haProd ?? 0;
-
+            
             const promedio = jhu > 0 ? plantas / jhu : 0;
             const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Assuming 8 hours per workday
-            const has = densidad > 0 ? plantas / densidad : 0;
+            const hasDia = densidad > 0 ? plantas / densidad : 0;
             
-            const avance = haProd > 0 ? (has / haProd) * 100 : 0;
-            const haPorTrabajar = haTotal - has;
+            const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
             const minPerf = Math.min(...activitiesOnDate.map(a => a.performance));
             const maxPerf = Math.max(...activitiesOnDate.map(a => a.performance));
             
@@ -195,8 +199,8 @@ export default function ActivitySummaryPage() {
                 jhu,
                 promedio,
                 plantasHora: Math.round(plantasHora),
-                has: Number(has.toFixed(2)),
-                avance: `${avance.toFixed(0)}%`,
+                has: Number(hasDia.toFixed(2)),
+                avance: `${avanceDia.toFixed(0)}%`,
                 haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
                 minimo: minPerf === Infinity ? 0 : minPerf,
                 maximo: maxPerf === -Infinity ? 0 : maxPerf,
