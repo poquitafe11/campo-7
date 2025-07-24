@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { LoteData, Labor, Assistant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +11,7 @@ import { parseISO } from 'date-fns';
 interface MasterData {
   lotes: LoteData[];
   labors: Labor[];
-  asistentes: Assistant[];
+  asistentes: (Assistant & { id: string, assistantName: string, cargo: string })[];
 }
 
 interface MasterDataContextType extends MasterData {
@@ -69,6 +69,17 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadMasterData(true);
+
+    const lotesUnsub = onSnapshot(collection(db, 'maestro-lotes'), () => loadMasterData());
+    const laboresUnsub = onSnapshot(collection(db, 'maestro-labores'), () => loadMasterData());
+    const asistentesUnsub = onSnapshot(collection(db, 'asistentes'), () => loadMasterData());
+    
+    return () => {
+        lotesUnsub();
+        laboresUnsub();
+        asistentesUnsub();
+    }
+
   }, [loadMasterData]);
 
   const value = { ...data, loading, error, refreshData: () => loadMasterData(false) };

@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import type { ActivityRecordData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Filter } from 'lucide-react';
+import { Loader2, Filter, RefreshCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -50,14 +50,14 @@ export default function ActivitySummaryPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
-    const { lotes: allLotes, labors: allLabors, loading: masterLoading } = useMasterData();
+    const { lotes: allLotes, labors: allLabors, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     const [minMaxData, setMinMaxData] = useState<MinMaxData | null>(null);
     
     const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
     const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
         try {
             const activitiesSnapshot = await getDocs(collection(db, 'actividades'));
@@ -68,6 +68,13 @@ export default function ActivitySummaryPage() {
                 return { ...data, registerDate } as ActivityRecordData;
             });
             setAllActivities(activitiesData);
+            
+            // Refresh master data as well
+            await refreshMasterData();
+
+            if(showToast) {
+                toast({ title: "Éxito", description: "Los datos del resumen han sido actualizados." });
+            }
 
         } catch (error) {
             console.error("Error loading summary data:", error);
@@ -75,11 +82,11 @@ export default function ActivitySummaryPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [toast]);
+    }, [toast, refreshMasterData]);
 
     useEffect(() => {
         loadData();
-    }, [loadData]);
+    }, []);
 
     const filterOptions = useMemo(() => {
         const campaigns = [...new Set(allActivities.map(a => a.campaign))].sort();
@@ -166,7 +173,6 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        // Group activities by date
         const groupedByDate: { [date: string]: ActivityRecordData[] } = {};
         for (const activity of filteredActivities) {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
@@ -176,7 +182,6 @@ export default function ActivitySummaryPage() {
             groupedByDate[dateKey].push(activity);
         }
         
-        // Calculate daily summaries first, and sort them by date ascending to calculate cumulative values
         const dailyData = Object.entries(groupedByDate).map(([dateStr, activitiesOnDate]) => {
             const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
             const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
@@ -201,14 +206,13 @@ export default function ActivitySummaryPage() {
                     plantasHora: Math.round(plantasHora),
                     has: Number(hasDia.toFixed(2)),
                     avance: `${Math.round(avanceDia)}%`,
-                    haPorTrabajar: 0, // Placeholder, will be calculated next
+                    haPorTrabajar: 0, 
                     minimo: Math.min(...activitiesOnDate.map(a => a.performance || 0)),
                     maximo: Math.max(...activitiesOnDate.map(a => a.performance || 0)),
                 }
             };
         }).sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Now calculate cumulative "haPorTrabajar"
         let cumulativeHas = 0;
         const summariesWithCumulative = dailyData.map(day => {
             cumulativeHas += day.hasDia;
@@ -223,7 +227,6 @@ export default function ActivitySummaryPage() {
             };
         });
 
-        // Finally, sort by date descending for display
         return summariesWithCumulative.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     }, [allActivities, allLotes, activeFilters]);
@@ -246,7 +249,14 @@ export default function ActivitySummaryPage() {
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <PageHeaderWithNav title="Resumen de Actividades" />
+            <PageHeaderWithNav 
+                title="Resumen de Actividades" 
+                extraButton={
+                    <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                    </Button>
+                }
+            />
             
             <div className="space-y-4">
                 <div className="flex justify-end">
