@@ -166,11 +166,6 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        // Calculate total accumulated values for "Ha por Trabajar"
-        const totalPlantasAcumuladas = filteredActivities.reduce((sum, act) => sum + (act.performance || 0), 0);
-        const totalHasAcumuladas = densidad > 0 ? totalPlantasAcumuladas / densidad : 0;
-        const haPorTrabajar = haTotal - totalHasAcumuladas;
-        
         // Group activities by date
         const groupedByDate: { [date: string]: ActivityRecordData[] } = {};
         for (const activity of filteredActivities) {
@@ -181,8 +176,8 @@ export default function ActivitySummaryPage() {
             groupedByDate[dateKey].push(activity);
         }
         
-        const summaries = Object.entries(groupedByDate).map(([dateStr, activitiesOnDate]) => {
-            // Calculate daily-specific values
+        // Calculate daily summaries first, and sort them by date ascending to calculate cumulative values
+        const dailyData = Object.entries(groupedByDate).map(([dateStr, activitiesOnDate]) => {
             const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
             const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
             const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
@@ -192,25 +187,44 @@ export default function ActivitySummaryPage() {
             const hasDia = densidad > 0 ? plantas / densidad : 0;
             const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
             
-            const summary: SummaryValues = {
-                lote: activeFilters.lote,
-                pasada: Number(activeFilters.pasada) || 0,
-                fecha: format(parseISO(dateStr), 'dd-MMM', { locale: es }),
-                personas,
-                plantas,
-                jhu,
-                promedio,
-                plantasHora: Math.round(plantasHora),
-                has: Number(hasDia.toFixed(2)),
-                avance: `${Math.round(avanceDia)}%`,
-                haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
-                minimo: Math.min(...activitiesOnDate.map(a => a.performance || 0)),
-                maximo: Math.max(...activitiesOnDate.map(a => a.performance || 0)),
+            return {
+                date: parseISO(dateStr),
+                hasDia,
+                summaryData: {
+                    lote: activeFilters.lote,
+                    pasada: Number(activeFilters.pasada) || 0,
+                    fecha: format(parseISO(dateStr), 'dd-MMM', { locale: es }),
+                    personas,
+                    plantas,
+                    jhu,
+                    promedio,
+                    plantasHora: Math.round(plantasHora),
+                    has: Number(hasDia.toFixed(2)),
+                    avance: `${Math.round(avanceDia)}%`,
+                    haPorTrabajar: 0, // Placeholder, will be calculated next
+                    minimo: Math.min(...activitiesOnDate.map(a => a.performance || 0)),
+                    maximo: Math.max(...activitiesOnDate.map(a => a.performance || 0)),
+                }
             };
-            return { summary, date: parseISO(dateStr) };
+        }).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        // Now calculate cumulative "haPorTrabajar"
+        let cumulativeHas = 0;
+        const summariesWithCumulative = dailyData.map(day => {
+            cumulativeHas += day.hasDia;
+            const haPorTrabajar = haTotal - cumulativeHas;
+            
+            return {
+                summary: {
+                    ...day.summaryData,
+                    haPorTrabajar: Number(haPorTrabajar.toFixed(2))
+                },
+                date: day.date
+            };
         });
 
-        return summaries.sort((a, b) => b.date.getTime() - a.date.getTime());
+        // Finally, sort by date descending for display
+        return summariesWithCumulative.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     }, [allActivities, allLotes, activeFilters]);
 
