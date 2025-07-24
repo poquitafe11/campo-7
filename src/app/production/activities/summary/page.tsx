@@ -172,14 +172,16 @@ export default function ActivitySummaryPage() {
             const loteInfo = allLotes.find(l => l.lote === activeFilters.lote);
             const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
             const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
-            const has = loteInfo?.ha ?? 0;
             const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
+            const densidad = loteInfo?.densidad ?? 0;
+            const hasTotal = loteInfo?.ha ?? 0;
 
             const promedio = jhu > 0 ? plantas / jhu : 0;
             const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0; // Assuming 8 hours per workday
-
-            const avance = has > 0 ? ((jhu * 0.1) / has) * 100 : 0;
-            const haPorTrabajar = has - (jhu * 0.1);
+            const has = densidad > 0 ? plantas / densidad : 0;
+            
+            const avance = hasTotal > 0 ? (has / hasTotal) * 100 : 0;
+            const haPorTrabajar = hasTotal - has;
             const minPerf = Math.min(...activitiesOnDate.map(a => a.performance));
             const maxPerf = Math.max(...activitiesOnDate.map(a => a.performance));
             
@@ -192,7 +194,7 @@ export default function ActivitySummaryPage() {
                 jhu,
                 promedio,
                 plantasHora: Math.round(plantasHora),
-                has: loteInfo?.ha ?? 0,
+                has: Number(has.toFixed(2)),
                 avance: `${avance.toFixed(0)}%`,
                 haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
                 minimo: minPerf === Infinity ? 0 : minPerf,
