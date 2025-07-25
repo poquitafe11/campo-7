@@ -1,6 +1,8 @@
+
 "use client";
 
-import React, { useState, useEffect, useMemo, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
+import Link from 'next/link';
 import {
   ColumnDef,
   flexRender,
@@ -14,29 +16,52 @@ import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firest
 import { db } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import * as xlsx from "xlsx";
 import { ActivityRecordData, User } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PageHeaderWithNav } from '@/components/PageHeaderWithNav';
-import { Pencil, Trash2, Loader2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { Pencil, Trash2, Loader2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, FileDown, Filter, RefreshCcw, LayoutGrid, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteActivity } from './actions';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { useRouter } from 'next/navigation';
 
 type ActivityRecordWithId = ActivityRecordData & { id: string };
 
+const getInitialFilters = () => ({
+  campaign: '',
+  lote: '',
+  labor: '',
+  pasada: '',
+  global: ''
+});
+
 export default function ActivityDatabasePage() {
+  const router = useRouter();
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecordWithId | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  
+  const [activeFilters, setActiveFilters] = useState(getInitialFilters());
+  const [popoverFilters, setPopoverFilters] = useState(getInitialFilters());
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const filterOptions = useMemo(() => {
+    const campaigns = [...new Set(data.map(a => a.campaign))].sort();
+    const lotes = [...new Set(data.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+    const labors = [...new Set(data.map(a => a.labor).filter(Boolean) as string[])].sort();
+    const pasadas = [...new Set(data.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+    return { campaigns, lotes, labors, pasadas };
+  }, [data]);
 
   const userMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -48,7 +73,7 @@ export default function ActivityDatabasePage() {
     return map;
   }, [users]);
   
-  const fetchData = () => {
+  const fetchData = useCallback((showToast = false) => {
     setLoading(true);
     const q = query(collection(db, "actividades"), orderBy("registerDate", "desc"));
     
@@ -74,6 +99,9 @@ export default function ActivityDatabasePage() {
         });
       }
       setLoading(false);
+      if (showToast) {
+        toast({ title: 'Éxito', description: 'Datos actualizados correctamente.' });
+      }
 
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
@@ -85,13 +113,12 @@ export default function ActivityDatabasePage() {
       setLoading(false);
     });
     return unsubscribe;
-  }
+  }, [toast]);
 
   useEffect(() => {
     const unsubscribe = fetchData();
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchData]);
 
   const handleEdit = (activity: ActivityRecordWithId) => {
     setSelectedActivity(activity);
@@ -175,25 +202,111 @@ export default function ActivityDatabasePage() {
     },
   ], [userMap]);
 
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      const campaignMatch = activeFilters.campaign ? item.campaign === activeFilters.campaign : true;
+      const loteMatch = activeFilters.lote ? item.lote === activeFilters.lote : true;
+      const laborMatch = activeFilters.labor ? item.labor === activeFilters.labor : true;
+      const pasadaMatch = activeFilters.pasada ? String(item.pass) === activeFilters.pasada : true;
+      
+      const globalFilter = activeFilters.global.toLowerCase();
+      const globalMatch = activeFilters.global ? 
+        (item.labor?.toLowerCase().includes(globalFilter) || 
+         item.lote?.toLowerCase().includes(globalFilter) ||
+         item.campaign?.toLowerCase().includes(globalFilter)) : true;
+      
+      return campaignMatch && loteMatch && laborMatch && pasadaMatch && globalMatch;
+    });
+  }, [data, activeFilters]);
+
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: { columnFilters }
   });
+  
+  const handlePopoverFilterChange = (filterName: keyof typeof popoverFilters, value: string) => {
+    setPopoverFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
+  };
+
+  const handleApplyFilters = () => {
+    setActiveFilters(popoverFilters);
+    setIsFilterOpen(false);
+  };
+  
+  const handleDownload = () => {
+    const dataToExport = table.getFilteredRowModel().rows.map(row => {
+        const { id, createdBy, ...rest } = row.original;
+        return {
+            ...rest,
+            registerDate: format(rest.registerDate, 'dd/MM/yyyy'),
+            createdBy: userMap.get(createdBy) || createdBy,
+        };
+    });
+    const worksheet = xlsx.utils.json_to_sheet(dataToExport);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Actividades");
+    xlsx.writeFile(workbook, "BaseDeDatos_Actividades.xlsx");
+  };
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeaderWithNav title="Base de Datos de Actividades" />
+       <header className="flex items-center justify-between mb-6 pb-4 border-b">
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => router.back()}>
+                    <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground ml-2">Base de Datos de Actividades</h1>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => fetchData(true)} disabled={loading}>
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                </Button>
+                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" size="icon">
+                            <Filter className="h-4 w-4" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64" align="end">
+                        <div className="grid gap-4">
+                            <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+                            <div className="grid gap-2">
+                                <Label>Campaña</Label>
+                                <Select onValueChange={(v) => handlePopoverFilterChange('campaign', v)} value={popoverFilters.campaign}><SelectTrigger className="h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                                <Label>Lote</Label>
+                                <Select onValueChange={(v) => handlePopoverFilterChange('lote', v)} value={popoverFilters.lote}><SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                <Label>Labor</Label>
+                                <Select onValueChange={(v) => handlePopoverFilterChange('labor', v)} value={popoverFilters.labor}><SelectTrigger className="h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                <Label>Pasada</Label>
+                                <Select onValueChange={(v) => handlePopoverFilterChange('pasada', v)} value={popoverFilters.pasada}><SelectTrigger className="h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
+                            </div>
+                            <Button onClick={handleApplyFilters}>Aplicar</Button>
+                        </div>
+                    </PopoverContent>
+                </Popover>
+                <Button variant="outline" size="icon" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0}>
+                    <FileDown className="h-4 w-4" />
+                </Button>
+                 <Button variant="outline" size="icon" asChild>
+                    <Link href="/dashboard">
+                        <LayoutGrid className="h-4 w-4" />
+                    </Link>
+                </Button>
+            </div>
+        </header>
+
       <div className="space-y-4">
         <div className="flex items-center justify-start">
           <Input
-            placeholder="Buscar por labor..."
-            value={(table.getColumn('labor')?.getFilterValue() as string) ?? ''}
-            onChange={(event) => table.getColumn('labor')?.setFilterValue(event.target.value)}
+            placeholder="Buscar por labor, lote, campaña..."
+            value={popoverFilters.global}
+            onChange={(event) => {
+              const newGlobalFilter = event.target.value;
+              setPopoverFilters(prev => ({...prev, global: newGlobalFilter}));
+              setActiveFilters(prev => ({...prev, global: newGlobalFilter}));
+            }}
             className="max-w-sm h-9"
           />
         </div>
@@ -259,3 +372,5 @@ export default function ActivityDatabasePage() {
     </div>
   );
 }
+
+    
