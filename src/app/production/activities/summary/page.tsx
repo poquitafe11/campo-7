@@ -54,6 +54,10 @@ const chartConfig = {
     label: "Promedio",
     color: "hsl(var(--chart-2))",
   },
+  has: {
+    label: "Hectáreas",
+    color: "hsl(var(--chart-3))",
+  }
 } satisfies ChartConfig
 
 export default function ActivitySummaryPage() {
@@ -246,6 +250,7 @@ export default function ActivitySummaryPage() {
                 fecha: d.summary.fecha,
                 jhu: d.summary.jhu,
                 promedio: Math.round(d.summary.promedio),
+                has: d.summary.has,
             }))
             .reverse(); 
     }, [multiDaySummary]);
@@ -358,9 +363,9 @@ export default function ActivitySummaryPage() {
                         </div>
                         <Card>
                             <CardHeader>
-                                <CardTitle>Gráfico de Jornadas y Promedio</CardTitle>
+                                <CardTitle>Gráfico de Jornadas, Hectáreas y Promedio</CardTitle>
                                 <CardDescription>
-                                    Visualización de las jornadas (JHU) y el promedio de rendimiento por día.
+                                    Visualización de las jornadas (JHU), hectáreas (Has) y el promedio de rendimiento por día.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -374,6 +379,9 @@ export default function ActivitySummaryPage() {
                                         <Legend />
                                         <Bar dataKey="jhu" yAxisId="left" fill="var(--color-jhu)" radius={4}>
                                             <LabelList dataKey="jhu" position="top" offset={4} className="fill-foreground" fontSize={10} />
+                                        </Bar>
+                                        <Bar dataKey="has" yAxisId="left" fill="var(--color-has)" radius={4}>
+                                            <LabelList dataKey="has" position="top" offset={4} className="fill-foreground" fontSize={10} />
                                         </Bar>
                                         <Line type="monotone" dataKey="promedio" yAxisId="right" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)" }}>
                                             <LabelList dataKey="promedio" position="top" offset={4} className="fill-foreground" fontSize={10} />
