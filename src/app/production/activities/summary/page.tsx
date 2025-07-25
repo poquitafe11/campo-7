@@ -265,17 +265,14 @@ export default function ActivitySummaryPage() {
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <PageHeaderWithNav 
-                title="Resumen de Actividades"
-                extraButton={
-                    <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading}>
-                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                    </Button>
-                }
-            />
+            <PageHeaderWithNav title="Resumen de Actividades" />
             
             <div className="space-y-4">
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-between gap-2">
+                     <Button variant="ghost" size="sm" onClick={() => loadData(true)} disabled={isLoading} className="text-sm">
+                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                      Actualizar
+                    </Button>
                     <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-sm">
