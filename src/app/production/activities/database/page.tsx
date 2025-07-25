@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -10,11 +10,11 @@ import {
   useReactTable,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ActivityRecordData } from '@/lib/types';
+import { ActivityRecordData, User } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,27 +22,59 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PageHeaderWithNav } from '@/components/PageHeaderWithNav';
 import { Pencil, Trash2, Loader2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { deleteActivity } from './actions';
+import EditActivityDialog from '@/components/EditActivityDialog'; 
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 type ActivityRecordWithId = ActivityRecordData & { id: string };
 
 export default function ActivityDatabasePage() {
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<ActivityRecordWithId | null>(null);
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  useEffect(() => {
+  const userMap = useMemo(() => {
+    const map = new Map<string, string>();
+    users.forEach(user => {
+        map.set(user.email, user.nombre);
+    });
+    // Add admin user as a special case
+    map.set('marcoromau@gmail.com', 'Marco Romau');
+    return map;
+  }, [users]);
+  
+  const fetchData = () => {
     setLoading(true);
     const q = query(collection(db, "actividades"), orderBy("registerDate", "desc"));
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
       const recordsData = snapshot.docs.map(doc => {
         const docData = doc.data();
         const registerDate = docData.registerDate?.toDate ? docData.registerDate.toDate() : new Date();
         return { ...docData, id: doc.id, registerDate } as ActivityRecordWithId;
       });
       setData(recordsData);
+
+      // Fetch users
+       try {
+        const usersSnapshot = await getDocs(collection(db, "usuarios"));
+        const usersData = usersSnapshot.docs.map(doc => doc.data() as User);
+        setUsers(usersData);
+      } catch (userError) {
+         console.error("Error fetching users: ", userError);
+         toast({
+          title: "Error",
+          description: "No se pudieron cargar los nombres de los usuarios.",
+          variant: "destructive"
+        });
+      }
       setLoading(false);
+
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
       toast({
@@ -52,9 +84,30 @@ export default function ActivityDatabasePage() {
       });
       setLoading(false);
     });
+    return unsubscribe;
+  }
 
+  useEffect(() => {
+    const unsubscribe = fetchData();
     return () => unsubscribe();
-  }, [toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleEdit = (activity: ActivityRecordWithId) => {
+    setSelectedActivity(activity);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    startTransition(async () => {
+        const result = await deleteActivity(id);
+        if (result.success) {
+            toast({ title: "Éxito", description: "Actividad eliminada correctamente." });
+        } else {
+            toast({ variant: "destructive", title: "Error", description: result.message });
+        }
+    });
+  };
 
   const columns = useMemo<ColumnDef<ActivityRecordWithId>[]>(() => [
     {
@@ -86,23 +139,41 @@ export default function ActivityDatabasePage() {
     { 
         accessorKey: 'createdBy', 
         header: 'Usuario',
-        cell: ({ row }) => <div className="min-w-[150px] truncate">{row.original.createdBy}</div>
+        cell: ({ row }) => {
+            const email = row.original.createdBy;
+            const name = userMap.get(email);
+            return <div className="min-w-[150px] truncate">{name || email}</div>
+        }
     },
     {
       id: 'actions',
       header: 'Acciones',
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEdit(row.original)}>
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="icon" className="h-8 w-8">
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" className="h-8 w-8">
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el registro permanentemente.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(row.original.id)}>Eliminar</AlertDialogAction>
+                  </AlertDialogFooter>
+              </AlertDialogContent>
+          </AlertDialog>
         </div>
       ),
     },
-  ], []);
+  ], [userMap]);
 
   const table = useReactTable({
     data,
@@ -173,6 +244,18 @@ export default function ActivityDatabasePage() {
               </div>
           </div>
       </div>
+       {selectedActivity && (
+            <EditActivityDialog
+                isOpen={isEditDialogOpen}
+                onOpenChange={setIsEditDialogOpen}
+                activity={selectedActivity}
+                onSuccess={() => {
+                    setIsEditDialogOpen(false);
+                    setSelectedActivity(null);
+                    // The onSnapshot listener will update the data automatically
+                }}
+            />
+        )}
     </div>
   );
 }
