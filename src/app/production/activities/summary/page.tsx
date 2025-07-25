@@ -39,11 +39,6 @@ interface Filters {
     pasada: string;
 }
 
-interface MinMaxData {
-    min: number;
-    max: number;
-}
-
 const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', pasada: '' });
 
 export default function ActivitySummaryPage() {
@@ -51,7 +46,6 @@ export default function ActivitySummaryPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
     const { lotes: allLotes, labors: allLabors, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
-    const [minMaxData, setMinMaxData] = useState<MinMaxData | null>(null);
     
     const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
     const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
@@ -113,45 +107,6 @@ export default function ActivitySummaryPage() {
         setIsFilterOpen(false);
     };
 
-    useEffect(() => {
-        const fetchMinMax = async () => {
-            if (!activeFilters.campaign || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada) {
-                setMinMaxData(null);
-                return;
-            }
-            try {
-                const laborCode = allLabors.find(l => l.descripcion === activeFilters.labor)?.codigo;
-                if (!laborCode) {
-                    setMinMaxData(null);
-                    return;
-                }
-                
-                const minMaxQuery = query(
-                    collection(db, 'min-max'),
-                    where('campana', '==', activeFilters.campaign),
-                    where('lote', '==', activeFilters.lote),
-                    where('codigo', '==', laborCode),
-                    where('pasada', '==', Number(activeFilters.pasada))
-                );
-                
-                const querySnapshot = await getDocs(minMaxQuery);
-                if (!querySnapshot.empty) {
-                    const data = querySnapshot.docs[0].data() as { min: number; max: number };
-                    setMinMaxData({ min: data.min, max: data.max });
-                } else {
-                    setMinMaxData(null);
-                }
-
-            } catch (error) {
-                console.error("Error fetching min-max data: ", error);
-                toast({ variant: "destructive", title: "Error", description: "No se pudo obtener Min/Max." });
-                setMinMaxData(null);
-            }
-        };
-
-        fetchMinMax();
-    }, [activeFilters, allLabors, toast]);
-
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
         if (!activeFilters.lote || !activeFilters.labor) return null;
 
@@ -192,6 +147,9 @@ export default function ActivitySummaryPage() {
             const hasDia = densidad > 0 ? plantas / densidad : 0;
             const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
             
+            const minRange = Math.min(...activitiesOnDate.map(a => a.minRange || 0));
+            const maxRange = Math.max(...activitiesOnDate.map(a => a.maxRange || 0));
+
             return {
                 date: parseISO(dateStr),
                 hasDia,
@@ -207,8 +165,8 @@ export default function ActivitySummaryPage() {
                     has: Number(hasDia.toFixed(2)),
                     avance: `${Math.round(avanceDia)}%`,
                     haPorTrabajar: 0, 
-                    minimo: Math.min(...activitiesOnDate.map(a => a.minRange || 0)),
-                    maximo: Math.max(...activitiesOnDate.map(a => a.maxRange || 0)),
+                    minimo: minRange,
+                    maximo: maxRange,
                 }
             };
         }).sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -231,6 +189,29 @@ export default function ActivitySummaryPage() {
 
     }, [allActivities, allLotes, activeFilters]);
 
+    const minMaxData = useMemo(() => {
+        if (!activeFilters.campaign || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada) {
+            return { min: 'N/A', max: 'N/A' };
+        }
+        
+        // This is a placeholder. Ideally, this would come from the `min-max` collection.
+        // For now, we find the min/max from the filtered activities themselves.
+        const filteredActivities = allActivities.filter(a => 
+            a.campaign === activeFilters.campaign &&
+            a.lote === activeFilters.lote &&
+            a.labor === activeFilters.labor &&
+            String(a.pass) === activeFilters.pasada
+        );
+        
+        if (filteredActivities.length === 0) return { min: 'N/A', max: 'N/A' };
+
+        const min = Math.min(...filteredActivities.map(a => a.minRange || 0));
+        const max = Math.max(...filteredActivities.map(a => a.maxRange || 0));
+
+        return { min, max };
+    }, [activeFilters, allActivities]);
+
+
     const summaryRows: { label: string | React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number }[] = [
         { label: "N° PERSONAS", key: "personas" },
         { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-ES') },
@@ -251,14 +232,15 @@ export default function ActivitySummaryPage() {
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <PageHeaderWithNav 
                 title="Resumen de Actividades" 
+                extraButton={
+                    <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading}>
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                    </Button>
+                }
             />
             
             <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <Button variant="outline" size="sm" onClick={() => loadData(true)} disabled={isLoading} className="text-sm">
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
-                        Actualizar
-                    </Button>
+                <div className="flex items-center justify-end">
                     <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-sm">
@@ -305,8 +287,8 @@ export default function ActivitySummaryPage() {
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="space-y-4">
-                        <div className="max-w-md">
-                            <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs w-full">
+                        <div className="max-w-md"> {/* Puedes mantener max-w-md si quieres un límite superior */}
+                            <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs">
                                 <thead className="text-left font-bold text-black">
                                     <tr>
                                         <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle">
