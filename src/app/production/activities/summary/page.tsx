@@ -5,8 +5,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import type { ActivityRecordData, LoteData } from '@/lib/types';
+import { collection, getDocs } from 'firebase/firestore';
+import type { ActivityRecordData, LoteData, MinMax } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Filter, RefreshCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -38,11 +38,6 @@ interface Filters {
     labor: string;
     pasada: string;
 }
-
-type MinMaxData = {
-    min: number | string;
-    max: number | string;
-};
 
 const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', pasada: '' });
 
@@ -129,7 +124,6 @@ export default function ActivitySummaryPage() {
         const cuartelesDelLote = allLotes.filter(l => l.lote === activeFilters.lote);
         if (cuartelesDelLote.length === 0) return null;
 
-        const haTotal = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.ha || 0), 0);
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
@@ -151,7 +145,7 @@ export default function ActivitySummaryPage() {
             const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0;
             const hasDia = densidad > 0 ? plantas / densidad : 0;
             const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
-            
+
             const minRange = Math.min(...activitiesOnDate.map(a => a.minRange || 0));
             const maxRange = Math.max(...activitiesOnDate.map(a => a.maxRange || 0));
 
@@ -179,7 +173,7 @@ export default function ActivitySummaryPage() {
         let cumulativeHas = 0;
         const summariesWithCumulative = dailyData.map(day => {
             cumulativeHas += day.hasDia;
-            const haPorTrabajar = haTotal - cumulativeHas;
+            const haPorTrabajar = haProd - cumulativeHas;
             
             return {
                 summary: {
@@ -194,7 +188,7 @@ export default function ActivitySummaryPage() {
 
     }, [allActivities, allLotes, activeFilters]);
 
-    const minMaxData = useMemo<MinMaxData>(() => {
+    const minMaxData = useMemo(() => {
         if (!activeFilters.campaign || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada || masterLoading) {
             return { min: 'N/A', max: 'N/A' };
         }
@@ -233,14 +227,16 @@ export default function ActivitySummaryPage() {
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <PageHeaderWithNav 
-                title="Resumen de Actividades" 
+                title="Resumen de Actividades"
+                extraButton={
+                    <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading}>
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                    </Button>
+                }
             />
             
             <div className="space-y-4">
                 <div className="flex items-center justify-end gap-2">
-                    <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading}>
-                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                    </Button>
                     <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-sm">
