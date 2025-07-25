@@ -39,13 +39,18 @@ interface Filters {
     pasada: string;
 }
 
+type MinMaxData = {
+    min: number | string;
+    max: number | string;
+};
+
 const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', pasada: '' });
 
 export default function ActivitySummaryPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
-    const { lotes: allLotes, labors: allLabors, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+    const { lotes: allLotes, labors: allLabors, minMax: allMinMax, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
     const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
     const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
@@ -189,27 +194,24 @@ export default function ActivitySummaryPage() {
 
     }, [allActivities, allLotes, activeFilters]);
 
-    const minMaxData = useMemo(() => {
-        if (!activeFilters.campaign || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada) {
+    const minMaxData = useMemo<MinMaxData>(() => {
+        if (!activeFilters.campaign || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada || masterLoading) {
             return { min: 'N/A', max: 'N/A' };
         }
         
-        // This is a placeholder. Ideally, this would come from the `min-max` collection.
-        // For now, we find the min/max from the filtered activities themselves.
-        const filteredActivities = allActivities.filter(a => 
-            a.campaign === activeFilters.campaign &&
-            a.lote === activeFilters.lote &&
-            a.labor === activeFilters.labor &&
-            String(a.pass) === activeFilters.pasada
+        const foundMinMax = allMinMax.find(item =>
+            item.campana === activeFilters.campaign &&
+            item.lote === activeFilters.lote &&
+            item.labor === activeFilters.labor &&
+            String(item.pasada) === activeFilters.pasada
         );
-        
-        if (filteredActivities.length === 0) return { min: 'N/A', max: 'N/A' };
 
-        const min = Math.min(...filteredActivities.map(a => a.minRange || 0));
-        const max = Math.max(...filteredActivities.map(a => a.maxRange || 0));
+        if (foundMinMax) {
+            return { min: foundMinMax.min, max: foundMinMax.max };
+        }
 
-        return { min, max };
-    }, [activeFilters, allActivities]);
+        return { min: 'N/A', max: 'N/A' };
+    }, [activeFilters, allMinMax, masterLoading]);
 
 
     const summaryRows: { label: string | React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number }[] = [
@@ -232,15 +234,13 @@ export default function ActivitySummaryPage() {
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <PageHeaderWithNav 
                 title="Resumen de Actividades" 
-                extraButton={
-                    <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading}>
-                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                    </Button>
-                }
             />
             
             <div className="space-y-4">
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-end gap-2">
+                    <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading}>
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                    </Button>
                     <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-sm">
@@ -287,7 +287,7 @@ export default function ActivitySummaryPage() {
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="space-y-4">
-                        <div className="max-w-md"> {/* Puedes mantener max-w-md si quieres un límite superior */}
+                        <div className="max-w-md">
                             <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs">
                                 <thead className="text-left font-bold text-black">
                                     <tr>
