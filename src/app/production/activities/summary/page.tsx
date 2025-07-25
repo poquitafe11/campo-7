@@ -143,6 +143,7 @@ export default function ActivitySummaryPage() {
         const cuartelesDelLote = allLotes.filter(l => l.lote === activeFilters.lote);
         if (cuartelesDelLote.length === 0) return null;
 
+        const haTotal = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.ha || 0), 0);
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
@@ -166,8 +167,15 @@ export default function ActivitySummaryPage() {
             
             const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
 
-            const minRange = Math.min(...activitiesOnDate.map(a => a.minRange || 0));
-            const maxRange = Math.max(...activitiesOnDate.map(a => a.maxRange || 0));
+            const relevantActivities = activitiesOnDate.filter(a =>
+                (!activeFilters.campaign || a.campaign === activeFilters.campaign) &&
+                a.lote === activeFilters.lote &&
+                a.labor === activeFilters.labor &&
+                (!activeFilters.pasada || String(a.pass) === activeFilters.pasada)
+            );
+
+            const minRange = relevantActivities.length > 0 ? Math.min(...relevantActivities.map(a => a.minRange || 0)) : 0;
+            const maxRange = relevantActivities.length > 0 ? Math.max(...relevantActivities.map(a => a.maxRange || 0)) : 0;
 
             return {
                 date: parseISO(dateStr),
@@ -380,7 +388,7 @@ export default function ActivitySummaryPage() {
                                         <Bar dataKey="jhu" yAxisId="left" fill="var(--color-jhu)" radius={4}>
                                             <LabelList dataKey="jhu" position="top" offset={4} className="fill-foreground" fontSize={10} />
                                         </Bar>
-                                        <Bar dataKey="has" yAxisId="left" fill="var(--color-has)" radius={4}>
+                                        <Bar dataKey="has" yAxisId="right" fill="var(--color-has)" radius={4}>
                                             <LabelList dataKey="has" position="top" offset={4} className="fill-foreground" fontSize={10} />
                                         </Bar>
                                         <Line type="monotone" dataKey="promedio" yAxisId="right" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)" }}>
