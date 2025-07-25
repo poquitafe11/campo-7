@@ -15,6 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useMasterData } from '@/context/MasterDataContext';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart, ResponsiveContainer, LabelList } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+
 
 interface SummaryValues {
     lote: string;
@@ -40,6 +44,17 @@ interface Filters {
 }
 
 const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', pasada: '' });
+
+const chartConfig = {
+  jhu: {
+    label: "JHU",
+    color: "hsl(var(--chart-1))",
+  },
+  promedio: {
+    label: "Promedio",
+    color: "hsl(var(--chart-2))",
+  },
+} satisfies ChartConfig
 
 export default function ActivitySummaryPage() {
     const { toast } = useToast();
@@ -144,6 +159,7 @@ export default function ActivitySummaryPage() {
             const promedio = jhu > 0 ? plantas / jhu : 0;
             const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0;
             const hasDia = densidad > 0 ? plantas / densidad : 0;
+            
             const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
 
             const minRange = Math.min(...activitiesOnDate.map(a => a.minRange || 0));
@@ -222,6 +238,17 @@ export default function ActivitySummaryPage() {
     ];
     
     const loading = isLoading || masterLoading;
+
+    const chartData = useMemo(() => {
+        if (!multiDaySummary) return [];
+        return multiDaySummary
+            .map(d => ({
+                fecha: d.summary.fecha,
+                jhu: d.summary.jhu,
+                promedio: Math.round(d.summary.promedio),
+            }))
+            .reverse(); 
+    }, [multiDaySummary]);
 
 
     return (
@@ -329,6 +356,32 @@ export default function ActivitySummaryPage() {
                                 </tbody>
                             </table>
                         </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Gráfico de Jornadas y Promedio</CardTitle>
+                                <CardDescription>
+                                    Visualización de las jornadas (JHU) y el promedio de rendimiento por día.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                                    <ComposedChart data={chartData}>
+                                        <CartesianGrid vertical={false} />
+                                        <XAxis dataKey="fecha" tickLine={false} axisLine={false} tickMargin={8} />
+                                        <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" />
+                                        <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" />
+                                        <ChartTooltip content={<ChartTooltipContent />} />
+                                        <Legend />
+                                        <Bar dataKey="jhu" yAxisId="left" fill="var(--color-jhu)" radius={4}>
+                                            <LabelList dataKey="jhu" position="top" offset={4} className="fill-foreground" fontSize={10} />
+                                        </Bar>
+                                        <Line type="monotone" dataKey="promedio" yAxisId="right" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)" }}>
+                                            <LabelList dataKey="promedio" position="top" offset={4} className="fill-foreground" fontSize={10} />
+                                        </Line>
+                                    </ComposedChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
                     </div>
                 ) : (
                     <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
