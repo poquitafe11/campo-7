@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useMasterData } from '@/context/MasterDataContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart, ResponsiveContainer, LabelList } from 'recharts';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart, ResponsiveContainer, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -143,7 +143,6 @@ export default function ActivitySummaryPage() {
         const cuartelesDelLote = allLotes.filter(l => l.lote === activeFilters.lote);
         if (cuartelesDelLote.length === 0) return null;
 
-        const haTotal = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.ha || 0), 0);
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
@@ -381,17 +380,18 @@ export default function ActivitySummaryPage() {
                                     <ComposedChart data={chartData}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="fecha" tickLine={false} axisLine={false} tickMargin={8} />
-                                        <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--chart-1))" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--chart-2))" />
+                                        <YAxis yAxisId="jhu" orientation="left" stroke="hsl(var(--chart-1))" />
+                                        <YAxis yAxisId="has" orientation="right" stroke="hsl(var(--chart-3))" />
+                                        <YAxis yAxisId="promedio" orientation="right" stroke="hsl(var(--chart-2))" hide={true} />
                                         <ChartTooltip content={<ChartTooltipContent />} />
                                         <Legend />
-                                        <Bar dataKey="jhu" yAxisId="left" fill="var(--color-jhu)" radius={4}>
+                                        <Bar dataKey="jhu" yAxisId="jhu" fill="var(--color-jhu)" radius={4}>
                                             <LabelList dataKey="jhu" position="top" offset={4} className="fill-foreground" fontSize={10} />
                                         </Bar>
-                                        <Bar dataKey="has" yAxisId="right" fill="var(--color-has)" radius={4}>
+                                        <Line type="monotone" dataKey="has" yAxisId="has" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)" }}>
                                             <LabelList dataKey="has" position="top" offset={4} className="fill-foreground" fontSize={10} />
-                                        </Bar>
-                                        <Line type="monotone" dataKey="promedio" yAxisId="right" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)" }}>
+                                        </Line>
+                                        <Line type="monotone" dataKey="promedio" yAxisId="promedio" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)" }}>
                                             <LabelList dataKey="promedio" position="top" offset={4} className="fill-foreground" fontSize={10} />
                                         </Line>
                                     </ComposedChart>
