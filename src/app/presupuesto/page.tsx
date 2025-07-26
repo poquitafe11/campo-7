@@ -273,14 +273,22 @@ export default function PresupuestoPage() {
   };
   
   const handleDeleteAll = async () => {
-    if (data.length === 0) return;
+    if (data.length === 0) {
+        toast({ title: "No hay registros", description: "La tabla ya está vacía." });
+        return;
+    }
     try {
         const collectionRef = collection(db, "presupuesto");
         const querySnapshot = await getDocs(query(collectionRef));
         
+        if (querySnapshot.empty) {
+            toast({ title: "No hay registros", description: "La base de datos ya está vacía." });
+            return;
+        }
+
         const batch = writeBatch(db);
-        querySnapshot.forEach((doc) => {
-            batch.delete(doc.ref);
+        querySnapshot.forEach((docSnapshot) => {
+            batch.delete(docSnapshot.ref);
         });
         
         await batch.commit();
@@ -290,7 +298,7 @@ export default function PresupuestoPage() {
         console.error("Error deleting all documents: ", error);
         toast({ title: "Error", description: "No se pudieron eliminar todos los registros.", variant: "destructive" });
     }
-};
+  };
 
   const onSubmit = async (values: z.infer<typeof presupuestoSchema>) => {
     try {
