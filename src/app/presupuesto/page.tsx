@@ -145,7 +145,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                         
                         const id = `${validatedData.descripcionLabor}-${validatedData.lote}`;
                         
-                        return { ...validatedData, id };
+                        return { ...validatedData, id, lote: validatedData.lote, descripcionLabor: validatedData.descripcionLabor, jornadas: validatedData.jornadas || 0, jrnHa: validatedData.jrnHa || 0 };
 
                     } catch(err) {
                         console.warn('Fila omitida por error de parseo:', row, err);
@@ -162,7 +162,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 normalizedData.forEach((item) => {
                   if (item && item.id) {
                     const docRef = doc(db, 'presupuesto', item.id);
-                    batch.set(docRef, item, { merge: true });
+                    const { id, ...dataToSet } = item;
+                    batch.set(docRef, dataToSet, { merge: true });
                   }
                 });
 
@@ -296,7 +297,7 @@ export default function PresupuestoPage() {
         const id = `${values.descripcionLabor}-${values.lote}`;
         const docRef = doc(db, "presupuesto", id);
         
-        await setDoc(docRef, { ...values, id }, { merge: true });
+        await setDoc(docRef, { ...values }, { merge: true });
 
         if (editingRecord) {
             if (editingRecord.id !== id) {
@@ -363,6 +364,12 @@ export default function PresupuestoPage() {
   
   const loading = fbLoading || masterLoading;
 
+  const handleCreateClick = () => {
+    setEditingRecord(null);
+    form.reset(defaultFormValues);
+    setCreateDialogOpen(true);
+  };
+  
   return (
     <TooltipProvider>
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -375,7 +382,7 @@ export default function PresupuestoPage() {
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Cargar Excel</p></TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={table.getRowModel().rows.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
                   <Dialog open={isCreateDialogOpen} onOpenChange={(isOpen) => { setCreateDialogOpen(isOpen); if (!isOpen) { form.reset(defaultFormValues); setEditingRecord(null); }}}>
-                      <DialogTrigger asChild><Button size="sm" className="h-9" onClick={() => { setEditingRecord(null); form.reset(defaultFormValues); }}><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button></DialogTrigger>
+                      <DialogTrigger asChild><Button size="sm" className="h-9" onClick={handleCreateClick}><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button></DialogTrigger>
                       <DialogContent className="sm:max-w-xl"><DialogHeader><DialogTitle>{editingRecord ? 'Editar' : 'Agregar'} Presupuesto</DialogTitle></DialogHeader><Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">{renderFormFields()}<DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose><Button type="submit">Guardar</Button></DialogFooter></form></Form></DialogContent>
                   </Dialog>
                    <AlertDialog>
@@ -412,5 +419,3 @@ export default function PresupuestoPage() {
     </TooltipProvider>
   );
 }
-
-    
