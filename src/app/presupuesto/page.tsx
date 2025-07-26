@@ -76,7 +76,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs, query } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
@@ -142,7 +142,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                         const validatedData = presupuestoSchema.parse(rowData);
                         const sanitizedDesc = validatedData.descripcionLabor.replace(/[\s\/]/g, '-');
                         const sanitizedLote = String(validatedData.lote).replace(/[\s\/]/g, '-');
-                        const id = `${sanitizedLote}-${sanitizedDesc}-${index}`;
+                        const id = `${sanitizedLote}-${sanitizedDesc}-${Date.now()}-${index}`;
                         
                         return { ...validatedData, id };
 
@@ -174,7 +174,6 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
             }
         };
         reader.onerror = (error) => reject(new Error('Error al leer el archivo.'));
-        reader.readAsBinaryString(file);
     });
 }
 
@@ -184,11 +183,11 @@ export default function PresupuestoPage() {
   const [loading, setLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<Presupuesto | null>(null);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
-  const [globalFilter, setGlobalFilter] = useState("");
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [filters, setFilters] = useState({ lote: '', labor: '' });
   
   const defaultFormValues = {
     descripcionLabor: "",
@@ -199,7 +198,8 @@ export default function PresupuestoPage() {
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, "presupuesto"), (snapshot) => {
+    const q = query(collection(db, "presupuesto"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const recordsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Presupuesto));
       setData(recordsData);
       setLoading(false);
@@ -258,11 +258,18 @@ export default function PresupuestoPage() {
     }
   };
 
-  const handleDeleteAll = async () => {
-    if (data.length === 0) return;
+ const handleDeleteAll = async () => {
+    if (data.length === 0) {
+      toast({ title: "Info", description: "No hay registros para eliminar." });
+      return;
+    }
     try {
-      const presupuestoCollection = collection(db, 'presupuesto');
-      const snapshot = await getDocs(presupuestoCollection);
+      const presupuestoCollectionRef = collection(db, 'presupuesto');
+      const snapshot = await getDocs(presupuestoCollectionRef);
+      if (snapshot.empty) {
+        toast({ title: "Info", description: "No hay registros en la base de datos para eliminar." });
+        return;
+      }
       const batch = writeBatch(db);
       snapshot.docs.forEach(doc => {
         batch.delete(doc.ref);
@@ -270,10 +277,11 @@ export default function PresupuestoPage() {
       await batch.commit();
       toast({ title: "Éxito", description: `Se eliminaron ${snapshot.size} registros.` });
     } catch (error) {
-      toast({ title: "Error", description: "No se pudieron eliminar todos los registros.", variant: "destructive" });
       console.error("Error deleting all documents: ", error);
+      toast({ title: "Error", description: "No se pudieron eliminar todos los registros.", variant: "destructive" });
     }
   };
+
 
   const handleEdit = (record: Presupuesto) => {
     setEditingRecord(record);
@@ -341,7 +349,18 @@ export default function PresupuestoPage() {
     []
   );
 
-  const table = useReactTable({ data, columns, state: { globalFilter }, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), getFilteredRowModel: getFilteredRowModel() });
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      const loteMatch = filters.lote ? item.lote === filters.lote : true;
+      const laborMatch = filters.labor ? item.descripcionLabor === filters.labor : true;
+      return loteMatch && laborMatch;
+    });
+  }, [data, filters]);
+
+  const table = useReactTable({ data: filteredData, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), getFilteredRowModel: getFilteredRowModel() });
+
+  const uniqueLotes = useMemo(() => [...new Set(data.map(item => item.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true})), [data]);
+  const uniqueLabors = useMemo(() => [...new Set(data.map(item => item.descripcionLabor))].sort(), [data]);
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
@@ -358,7 +377,16 @@ export default function PresupuestoPage() {
         <PageHeaderWithNav title="Maestro de Presupuesto" />
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <Input placeholder="Buscar por descripción..." value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} className="max-w-sm w-full h-9" />
+              <div className="flex gap-2 w-full sm:w-auto">
+                 <Select value={filters.lote} onValueChange={(value) => setFilters(prev => ({ ...prev, lote: value === 'all' ? '' : value }))}>
+                    <SelectTrigger className="w-full sm:w-[180px] h-9"><SelectValue placeholder="Filtrar por Lote" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todos los Lotes</SelectItem>{uniqueLotes.map(lote => <SelectItem key={lote} value={lote}>{lote}</SelectItem>)}</SelectContent>
+                 </Select>
+                 <Select value={filters.labor} onValueChange={(value) => setFilters(prev => ({ ...prev, labor: value === 'all' ? '' : value }))}>
+                    <SelectTrigger className="w-full sm:w-[180px] h-9"><SelectValue placeholder="Filtrar por Labor" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todas las Labores</SelectItem>{uniqueLabors.map(labor => <SelectItem key={labor} value={labor}>{labor}</SelectItem>)}</SelectContent>
+                 </Select>
+              </div>
               <div className="flex gap-2 w-full sm:w-auto">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
