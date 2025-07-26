@@ -276,12 +276,13 @@ export default function PresupuestoPage() {
     try {
       const batch = writeBatch(db);
       const querySnapshot = await getDocs(collection(db, "presupuesto"));
-      querySnapshot.forEach(doc => {
-        batch.delete(doc.ref);
+      querySnapshot.forEach(document => {
+        batch.delete(doc(db, "presupuesto", document.id));
       });
       await batch.commit();
       toast({ title: "Éxito", description: `Se eliminaron ${querySnapshot.size} registros.` });
     } catch (error) {
+      console.error("Error deleting all documents: ", error);
       toast({ title: "Error", description: "No se pudieron eliminar todos los registros.", variant: "destructive" });
     }
   };
