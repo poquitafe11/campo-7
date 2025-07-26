@@ -32,6 +32,7 @@ const navItems = [
       { href: "/maestro-labores", label: "Labores" },
       { href: "/asistentes", label: "Asistentes" },
       { href: "/min-max", label: "Min y Max" },
+      { href: "/presupuesto", label: "Presupuesto" },
     ],
   },
   {
