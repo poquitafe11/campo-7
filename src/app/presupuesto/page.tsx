@@ -90,7 +90,7 @@ const presupuestoSchema = z.object({
 type Presupuesto = z.infer<typeof presupuestoSchema> & { id: string };
 
 function normalizeKey(key: string): string {
-    return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '').replace(/\./g, '').replace(/\//g, '');
+    return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/\s/g, '').replace(/\./g, '').replace(/\//g, '');
 }
 
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
@@ -111,36 +111,32 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 }
                 
                 const header = Object.keys(json[0]);
-                const keyMap: { [key: string]: string } = {};
                 
-                const schemaKeys = Object.keys(presupuestoSchema.shape);
-                schemaKeys.forEach(field => {
-                    const normalizedField = normalizeKey(field);
-                    const foundKey = header.find(h => normalizeKey(h) === normalizedField || normalizeKey(h) === normalizeKey(h.replace(/\s/g, '')));
-                    if (foundKey) keyMap[field] = foundKey;
+                const normalizedHeaderMap: { [key: string]: string } = {};
+                header.forEach(h => {
+                    normalizedHeaderMap[normalizeKey(h)] = h;
                 });
 
-                 if (!keyMap.descripcionLabor || !keyMap.lote || !keyMap.jornadas || !keyMap.jrnHa) {
+                const descLaborKey = normalizedHeaderMap['descripcionlabor'];
+                const loteKey = normalizedHeaderMap['lote'];
+                const jornadasKey = normalizedHeaderMap['jornadas'];
+                const jrnHaKey = normalizedHeaderMap['jrnha'];
+                
+                 if (!descLaborKey || !loteKey || !jornadasKey || !jrnHaKey) {
                    return reject(new Error("El archivo debe contener columnas para 'DESCRIPCION LABOR', 'LOTE', 'JORNADAS' y 'JRN/HA'."));
                 }
                 
                 const normalizedData = json.map(row => {
                     try {
                         const rowData: any = {};
-                        for (const field in keyMap) {
-                            const excelKey = keyMap[field];
-                            let value = row[excelKey];
-                            const fieldSchema = (presupuestoSchema.shape as any)[field];
+                        
+                        rowData.descripcionLabor = String(row[descLaborKey] || '').trim();
+                        rowData.lote = String(row[loteKey] || '').trim();
+                        const jornadasVal = parseFloat(String(row[jornadasKey] || '0').replace(',', '.'));
+                        const jrnHaVal = parseFloat(String(row[jrnHaKey] || '0').replace(',', '.'));
 
-                             if (value === undefined || value === null || String(value).trim() === '') continue;
-
-                            if (fieldSchema._def.typeName === "ZodNumber") {
-                                const num = parseFloat(String(value).replace(',', '.'));
-                                if (!isNaN(num)) rowData[field] = num;
-                            } else {
-                                rowData[field] = String(value).trim();
-                            }
-                        }
+                        if (!isNaN(jornadasVal)) rowData.jornadas = jornadasVal;
+                        if (!isNaN(jrnHaVal)) rowData.jrnHa = jrnHaVal;
                         
                         const validatedData = presupuestoSchema.partial().parse(rowData);
                         
