@@ -38,6 +38,7 @@ import {
   Loader2,
   CheckCircle,
   X,
+  Filter,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -76,8 +77,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs, query } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 
 
 const presupuestoSchema = z.object({
@@ -187,7 +190,9 @@ export default function PresupuestoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [filters, setFilters] = useState({ lote: '', labor: '' });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({ lote: '', labor: '' });
+  const [popoverFilters, setPopoverFilters] = useState({ lote: '', labor: '' });
   
   const defaultFormValues = {
     descripcionLabor: "",
@@ -198,8 +203,7 @@ export default function PresupuestoPage() {
 
   useEffect(() => {
     setLoading(true);
-    const q = query(collection(db, "presupuesto"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(collection(db, "presupuesto"), (snapshot) => {
       const recordsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Presupuesto));
       setData(recordsData);
       setLoading(false);
@@ -351,11 +355,11 @@ export default function PresupuestoPage() {
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      const loteMatch = filters.lote ? item.lote === filters.lote : true;
-      const laborMatch = filters.labor ? item.descripcionLabor === filters.labor : true;
+      const loteMatch = activeFilters.lote ? item.lote === activeFilters.lote : true;
+      const laborMatch = activeFilters.labor ? item.descripcionLabor === activeFilters.labor : true;
       return loteMatch && laborMatch;
     });
-  }, [data, filters]);
+  }, [data, activeFilters]);
 
   const table = useReactTable({ data: filteredData, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), getFilteredRowModel: getFilteredRowModel() });
 
@@ -370,6 +374,18 @@ export default function PresupuestoPage() {
       <FormField control={form.control} name="jrnHa" render={({ field }) => ( <FormItem><FormLabel>JRN/HA</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
     </div>
   );
+
+  const handleApplyFilters = () => {
+    setActiveFilters(popoverFilters);
+    setIsFilterOpen(false);
+  };
+  
+  const handleClearFilters = () => {
+    const cleared = { lote: '', labor: '' };
+    setPopoverFilters(cleared);
+    setActiveFilters(cleared);
+    setIsFilterOpen(false);
+  };
   
   return (
     <TooltipProvider>
@@ -377,18 +393,32 @@ export default function PresupuestoPage() {
         <PageHeaderWithNav title="Maestro de Presupuesto" />
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex gap-2 w-full sm:w-auto">
-                 <Select value={filters.lote} onValueChange={(value) => setFilters(prev => ({ ...prev, lote: value === 'all' ? '' : value }))}>
-                    <SelectTrigger className="w-full sm:w-[180px] h-9"><SelectValue placeholder="Filtrar por Lote" /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todos los Lotes</SelectItem>{uniqueLotes.map(lote => <SelectItem key={lote} value={lote}>{lote}</SelectItem>)}</SelectContent>
-                 </Select>
-                 <Select value={filters.labor} onValueChange={(value) => setFilters(prev => ({ ...prev, labor: value === 'all' ? '' : value }))}>
-                    <SelectTrigger className="w-full sm:w-[180px] h-9"><SelectValue placeholder="Filtrar por Labor" /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todas las Labores</SelectItem>{uniqueLabors.map(labor => <SelectItem key={labor} value={labor}>{labor}</SelectItem>)}</SelectContent>
-                 </Select>
-              </div>
+              <div></div> {/* Spacer */}
               <div className="flex gap-2 w-full sm:w-auto">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
+                  <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-9">
+                            <Filter className="mr-2 h-4 w-4" />
+                            Filtros
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64" align="end">
+                        <div className="grid gap-4">
+                            <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+                            <div className="grid gap-2">
+                                <Label>Lote</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(prev => ({...prev, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los Lotes</SelectItem>{uniqueLotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                <Label>Labor</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(prev => ({...prev, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger className="h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas las Labores</SelectItem>{uniqueLabors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                              <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                            </div>
+                        </div>
+                    </PopoverContent>
+                  </Popover>
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={table.getRowModel().rows.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
                   <Button size="sm" className="h-9" onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button>
