@@ -175,7 +175,6 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
             }
         };
         reader.onerror = (error) => reject(new Error('Error al leer el archivo.'));
-        reader.readAsBinaryString(file);
     });
 }
 
@@ -275,23 +274,22 @@ export default function PresupuestoPage() {
   const handleDeleteAll = async () => {
     if (data.length === 0) return;
     try {
-      const collectionRef = collection(db, "presupuesto");
-      const q = query(collectionRef);
-      const querySnapshot = await getDocs(q);
-      
-      const batch = writeBatch(db);
-      querySnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      
-      await batch.commit();
-      
-      toast({ title: "Éxito", description: `Se eliminaron ${querySnapshot.size} registros.` });
+        const collectionRef = collection(db, "presupuesto");
+        const querySnapshot = await getDocs(query(collectionRef));
+        
+        const batch = writeBatch(db);
+        querySnapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+        
+        await batch.commit();
+        
+        toast({ title: "Éxito", description: `Se eliminaron ${querySnapshot.size} registros.` });
     } catch (error) {
-      console.error("Error deleting all documents: ", error);
-      toast({ title: "Error", description: "No se pudieron eliminar todos los registros.", variant: "destructive" });
+        console.error("Error deleting all documents: ", error);
+        toast({ title: "Error", description: "No se pudieron eliminar todos los registros.", variant: "destructive" });
     }
-  };
+};
 
   const onSubmit = async (values: z.infer<typeof presupuestoSchema>) => {
     try {
@@ -391,7 +389,16 @@ export default function PresupuestoPage() {
                           <TooltipContent><p>Eliminar Todo</p></TooltipContent>
                         </Tooltip>
                       </AlertDialogTrigger>
-                      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Estás seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará permanentemente {data.length} registros.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteAll}>Sí, eliminar todo</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>Esta acción eliminará permanentemente {data.length} registros.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteAll}>Sí, eliminar todo</AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
                   </AlertDialog>
               </div>
           </div>
@@ -405,3 +412,5 @@ export default function PresupuestoPage() {
     </TooltipProvider>
   );
 }
+
+    
