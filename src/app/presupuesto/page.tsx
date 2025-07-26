@@ -140,8 +140,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                         }
 
                         const validatedData = presupuestoSchema.parse(rowData);
-                        const sanitizedDesc = validatedData.descripcionLabor.replace(/\s+/g, '-').replace(/\//g, '-');
-                        const sanitizedLote = validatedData.lote.replace(/\s+/g, '-').replace(/\//g, '-');
+                        const sanitizedDesc = validatedData.descripcionLabor.replace(/[\s\/]/g, '-');
+                        const sanitizedLote = String(validatedData.lote).replace(/[\s\/]/g, '-');
                         const id = `${sanitizedLote}-${sanitizedDesc}-${index}`;
                         
                         return { ...validatedData, id };
@@ -289,8 +289,8 @@ export default function PresupuestoPage() {
 
   const onSubmit = async (values: z.infer<typeof presupuestoSchema>) => {
     try {
-        const sanitizedDesc = values.descripcionLabor.replace(/\s+/g, '-').replace(/\//g, '-');
-        const sanitizedLote = values.lote.replace(/\s+/g, '-').replace(/\//g, '-');
+        const sanitizedDesc = values.descripcionLabor.replace(/[\s\/]/g, '-');
+        const sanitizedLote = String(values.lote).replace(/[\s\/]/g, '-');
         let id = editingRecord ? editingRecord.id : `${sanitizedLote}-${sanitizedDesc}-${Date.now()}`;
         
         const docRef = doc(db, "presupuesto", id);
