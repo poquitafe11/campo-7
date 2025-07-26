@@ -6,7 +6,6 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -190,9 +189,9 @@ export default function PresupuestoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [activeFilters, setActiveFilters] = useState({ lote: '', labor: '' });
-  const [popoverFilters, setPopoverFilters] = useState({ lote: '', labor: '' });
+  
+  const [loteFilter, setLoteFilter] = useState('');
+  const [laborFilter, setLaborFilter] = useState('');
   
   const defaultFormValues = {
     descripcionLabor: "",
@@ -226,7 +225,7 @@ export default function PresupuestoPage() {
   };
   
   const handleDownload = () => {
-    const dataToExport = table.getFilteredRowModel().rows.map(row => row.original);
+    const dataToExport = table.getRowModel().rows.map(row => row.original);
     const worksheet = xlsx.utils.json_to_sheet(dataToExport.map(({ id, ...rest }) => ({
         "DESCRIPCION LABOR": rest.descripcionLabor,
         "LOTE": rest.lote,
@@ -235,7 +234,7 @@ export default function PresupuestoPage() {
     })));
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, "Presupuesto");
-    xlsx.writeFile(workbook, "Presupuesto.xlsx");
+    xlsx.writeFile(workbook, "MaestroDePresupuesto.xlsx");
   };
 
   const handleConfirmUpload = async () => {
@@ -262,16 +261,18 @@ export default function PresupuestoPage() {
     }
   };
 
- const handleDeleteAll = async () => {
+  const handleDeleteAll = async () => {
     if (data.length === 0) {
       toast({ title: "Info", description: "No hay registros para eliminar." });
       return;
     }
+    setLoading(true);
     try {
       const presupuestoCollectionRef = collection(db, 'presupuesto');
       const snapshot = await getDocs(presupuestoCollectionRef);
       if (snapshot.empty) {
         toast({ title: "Info", description: "No hay registros en la base de datos para eliminar." });
+        setLoading(false);
         return;
       }
       const batch = writeBatch(db);
@@ -283,6 +284,8 @@ export default function PresupuestoPage() {
     } catch (error) {
       console.error("Error deleting all documents: ", error);
       toast({ title: "Error", description: "No se pudieron eliminar todos los registros.", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -354,17 +357,17 @@ export default function PresupuestoPage() {
   );
 
   const filteredData = useMemo(() => {
-    return data.filter(item => {
-      const loteMatch = activeFilters.lote ? item.lote === activeFilters.lote : true;
-      const laborMatch = activeFilters.labor ? item.descripcionLabor === activeFilters.labor : true;
-      return loteMatch && laborMatch;
-    });
-  }, [data, activeFilters]);
+    let filtered = data;
+    if (loteFilter) {
+      filtered = filtered.filter(item => item.lote.toLowerCase().includes(loteFilter.toLowerCase()));
+    }
+    if (laborFilter) {
+      filtered = filtered.filter(item => item.descripcionLabor.toLowerCase().includes(laborFilter.toLowerCase()));
+    }
+    return filtered;
+  }, [data, loteFilter, laborFilter]);
 
-  const table = useReactTable({ data: filteredData, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), getFilteredRowModel: getFilteredRowModel() });
-
-  const uniqueLotes = useMemo(() => [...new Set(data.map(item => item.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true})), [data]);
-  const uniqueLabors = useMemo(() => [...new Set(data.map(item => item.descripcionLabor))].sort(), [data]);
+  const table = useReactTable({ data: filteredData, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel() });
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
@@ -374,18 +377,6 @@ export default function PresupuestoPage() {
       <FormField control={form.control} name="jrnHa" render={({ field }) => ( <FormItem><FormLabel>JRN/HA</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
     </div>
   );
-
-  const handleApplyFilters = () => {
-    setActiveFilters(popoverFilters);
-    setIsFilterOpen(false);
-  };
-  
-  const handleClearFilters = () => {
-    const cleared = { lote: '', labor: '' };
-    setPopoverFilters(cleared);
-    setActiveFilters(cleared);
-    setIsFilterOpen(false);
-  };
   
   return (
     <TooltipProvider>
@@ -393,32 +384,30 @@ export default function PresupuestoPage() {
         <PageHeaderWithNav title="Maestro de Presupuesto" />
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div></div> {/* Spacer */}
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Popover>
+                  <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9">
+                          <Filter className="mr-2 h-4 w-4" />
+                          Filtros
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                      <div className="grid gap-4">
+                          <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+                          <div className="grid gap-2">
+                              <Label htmlFor="lote-filter">Buscar por Lote</Label>
+                              <Input id="lote-filter" value={loteFilter} onChange={e => setLoteFilter(e.target.value)} placeholder="Escribe un lote..." />
+                              <Label htmlFor="labor-filter">Buscar por Labor</Label>
+                              <Input id="labor-filter" value={laborFilter} onChange={e => setLaborFilter(e.target.value)} placeholder="Escribe una labor..." />
+                          </div>
+                      </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
               <div className="flex gap-2 w-full sm:w-auto">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
-                  <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-9">
-                            <Filter className="mr-2 h-4 w-4" />
-                            Filtros
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64" align="end">
-                        <div className="grid gap-4">
-                            <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
-                            <div className="grid gap-2">
-                                <Label>Lote</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(prev => ({...prev, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los Lotes</SelectItem>{uniqueLotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                <Label>Labor</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(prev => ({...prev, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger className="h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas las Labores</SelectItem>{uniqueLabors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                              <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                            </div>
-                        </div>
-                    </PopoverContent>
-                  </Popover>
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={table.getRowModel().rows.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
                   <Button size="sm" className="h-9" onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button>
@@ -436,7 +425,7 @@ export default function PresupuestoPage() {
                         </Tooltip>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
-                          <AlertDialogHeader><AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará permanentemente los {data.length} registros.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogHeader><AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará permanentemente los {data.length} registros. Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
                           <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction onClick={handleDeleteAll}>Sí, eliminar todo</AlertDialogAction>
