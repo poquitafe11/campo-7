@@ -76,7 +76,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs, query } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMasterData } from "@/context/MasterDataContext";
 
@@ -274,12 +274,17 @@ export default function PresupuestoPage() {
   const handleDeleteAll = async () => {
     if (data.length === 0) return;
     try {
+      const collectionRef = collection(db, "presupuesto");
+      const q = query(collectionRef);
+      const querySnapshot = await getDocs(q);
+      
       const batch = writeBatch(db);
-      const querySnapshot = await getDocs(collection(db, "presupuesto"));
-      querySnapshot.forEach(document => {
-        batch.delete(doc(db, "presupuesto", document.id));
+      querySnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
       });
+      
       await batch.commit();
+      
       toast({ title: "Éxito", description: `Se eliminaron ${querySnapshot.size} registros.` });
     } catch (error) {
       console.error("Error deleting all documents: ", error);
