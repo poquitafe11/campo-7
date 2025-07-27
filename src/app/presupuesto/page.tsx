@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
@@ -76,7 +75,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, query, where, getDocs } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -202,7 +201,15 @@ export default function PresupuestoPage() {
 
   const fetchAndSetData = useCallback(() => {
     setLoading(true);
-    const q = query(collection(db, "presupuesto"));
+    let q = query(collection(db, "presupuesto"));
+
+    if (loteFilter) {
+      q = query(q, where("lote", "==", loteFilter));
+    }
+    if (laborFilter) {
+      q = query(q, where("descripcionLabor", "==", laborFilter));
+    }
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const recordsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Presupuesto));
         setData(recordsData);
@@ -213,7 +220,7 @@ export default function PresupuestoPage() {
         setLoading(false);
     });
     return unsubscribe;
-  }, [toast]);
+  }, [toast, loteFilter, laborFilter]);
   
   useEffect(() => {
     const unsubscribe = fetchAndSetData();
@@ -266,6 +273,19 @@ export default function PresupuestoPage() {
     } catch (error) {
         toast({ title: "Error", description: "No se pudo eliminar el registro.", variant: "destructive" });
     }
+  };
+
+  const handleDeleteAll = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "presupuesto"));
+        const batch = writeBatch(db);
+        querySnapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        toast({ title: "Éxito", description: `${querySnapshot.size} registros eliminados.` });
+      } catch (error) {
+        console.error("Error deleting all documents:", error);
+        toast({ title: "Error", description: "No se pudieron eliminar todos los registros.", variant: "destructive" });
+      }
   };
 
   const handleEdit = (record: Presupuesto) => {
@@ -334,18 +354,7 @@ export default function PresupuestoPage() {
     []
   );
 
-  const filteredData = useMemo(() => {
-    let filtered = data;
-    if (loteFilter) {
-      filtered = filtered.filter(item => item.lote.toLowerCase().includes(loteFilter.toLowerCase()));
-    }
-    if (laborFilter) {
-      filtered = filtered.filter(item => item.descripcionLabor.toLowerCase().includes(laborFilter.toLowerCase()));
-    }
-    return filtered;
-  }, [data, loteFilter, laborFilter]);
-
-  const table = useReactTable({ data: filteredData, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel() });
+  const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel() });
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
@@ -388,6 +397,27 @@ export default function PresupuestoPage() {
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={table.getRowModel().rows.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
                   <Button size="sm" className="h-9" onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button>
+                   <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="destructive" size="sm" disabled={data.length === 0} className="h-9">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Eliminar Todo</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará permanentemente los {data.length} registros.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteAll}>Sí, eliminar todo</AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
               </div>
           </div>
 
