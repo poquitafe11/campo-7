@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -9,10 +8,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface PageHeaderWithNavProps {
   title: string;
-  extraButton?: React.ReactNode;
+  extraActions?: React.ReactNode;
 }
 
-export function PageHeaderWithNav({ title, extraButton }: PageHeaderWithNavProps) {
+export function PageHeaderWithNav({ title, extraActions }: PageHeaderWithNavProps) {
   const router = useRouter();
 
   const handleBack = () => {
@@ -22,18 +21,6 @@ export function PageHeaderWithNav({ title, extraButton }: PageHeaderWithNavProps
   return (
     <header className="flex items-center justify-between mb-6 pb-4 border-b">
       <div className="flex items-center gap-2">
-        {extraButton && (
-           <TooltipProvider>
-              <Tooltip>
-                  <TooltipTrigger asChild>
-                      {extraButton}
-                  </TooltipTrigger>
-                  <TooltipContent>
-                      <p>Actualizar Datos</p>
-                  </TooltipContent>
-              </Tooltip>
-          </TooltipProvider>
-        )}
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
@@ -49,6 +36,7 @@ export function PageHeaderWithNav({ title, extraButton }: PageHeaderWithNavProps
         <h1 className="text-2xl font-bold tracking-tight text-foreground ml-2">{title}</h1>
       </div>
       <div className="flex items-center gap-2">
+        {extraActions}
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>

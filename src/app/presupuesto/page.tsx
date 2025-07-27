@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -76,7 +76,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs, query } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -200,19 +200,26 @@ export default function PresupuestoPage() {
     jrnHa: 0,
   };
 
-  useEffect(() => {
+  const fetchAndSetData = useCallback(() => {
     setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, "presupuesto"), (snapshot) => {
-      const recordsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Presupuesto));
-      setData(recordsData);
-      setLoading(false);
+    const q = query(collection(db, "presupuesto"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const recordsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Presupuesto));
+        setData(recordsData);
+        setLoading(false);
     }, (error) => {
-      console.error("Error fetching data from Firestore: ", error);
-      toast({ title: "Error de Conexión", description: "No se pudieron cargar los datos.", variant: "destructive" });
-      setLoading(false);
+        console.error("Error fetching data from Firestore: ", error);
+        toast({ title: "Error de Conexión", description: "No se pudieron cargar los datos.", variant: "destructive" });
+        setLoading(false);
     });
-    return () => unsubscribe();
+    return unsubscribe;
   }, [toast]);
+  
+  useEffect(() => {
+    const unsubscribe = fetchAndSetData();
+    return () => unsubscribe();
+  }, [fetchAndSetData]);
+
 
   const form = useForm<z.infer<typeof presupuestoSchema>>({
     resolver: zodResolver(presupuestoSchema),
@@ -377,35 +384,34 @@ export default function PresupuestoPage() {
       <FormField control={form.control} name="jrnHa" render={({ field }) => ( <FormItem><FormLabel>JRN/HA</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
     </div>
   );
+
+  const filterButton = (
+    <Popover>
+      <PopoverTrigger asChild>
+          <Button variant="outline" size="icon">
+              <Filter className="h-4 w-4" />
+          </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80" align="end">
+          <div className="grid gap-4">
+              <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+              <div className="grid gap-2">
+                  <Label htmlFor="lote-filter">Buscar por Lote</Label>
+                  <Input id="lote-filter" value={loteFilter} onChange={e => setLoteFilter(e.target.value)} placeholder="Escribe un lote..." />
+                  <Label htmlFor="labor-filter">Buscar por Labor</Label>
+                  <Input id="labor-filter" value={laborFilter} onChange={e => setLaborFilter(e.target.value)} placeholder="Escribe una labor..." />
+              </div>
+          </div>
+      </PopoverContent>
+    </Popover>
+  );
   
   return (
     <TooltipProvider>
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <PageHeaderWithNav title="Maestro de Presupuesto" />
+        <PageHeaderWithNav title="Maestro de Presupuesto" extraActions={filterButton} />
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Popover>
-                  <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-9">
-                          <Filter className="mr-2 h-4 w-4" />
-                          Filtros
-                      </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80" align="start">
-                      <div className="grid gap-4">
-                          <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
-                          <div className="grid gap-2">
-                              <Label htmlFor="lote-filter">Buscar por Lote</Label>
-                              <Input id="lote-filter" value={loteFilter} onChange={e => setLoteFilter(e.target.value)} placeholder="Escribe un lote..." />
-                              <Label htmlFor="labor-filter">Buscar por Labor</Label>
-                              <Input id="labor-filter" value={laborFilter} onChange={e => setLaborFilter(e.target.value)} placeholder="Escribe una labor..." />
-                          </div>
-                      </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
               <div className="flex gap-2 w-full sm:w-auto">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
