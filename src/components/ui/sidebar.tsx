@@ -194,7 +194,7 @@ const Sidebar = React.forwardRef<
 
     if (isMobile) {
       return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+        <Sheet open={openMobile} onOpenChange={setOpenMobile}>
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
@@ -207,7 +207,7 @@ const Sidebar = React.forwardRef<
             side={side}
           >
             <SheetHeader className="p-0">
-                <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+              <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
             </SheetHeader>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
