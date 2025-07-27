@@ -38,7 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <AvatarImage src={user?.photoURL || ''} alt={profile?.nombre} />
                 <AvatarFallback>{profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col">
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                   <span className="text-sm font-semibold text-sidebar-foreground truncate">
                       {profile?.nombre || 'Usuario'}
                   </span>
@@ -47,6 +47,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </span>
               </div>
             </div>
+            {/* The trigger is now inside the header, but only for mobile in this specific location */}
             <SidebarTrigger className="md:hidden" />
           </div>
           <ConnectionStatus />
@@ -57,7 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
           <Button variant="ghost" className="w-full justify-start gap-2" onClick={logout}>
             <LogOut className="h-4 w-4" />
-            <span>Cerrar Sesión</span>
+            <span className="group-data-[collapsible=icon]:hidden">Cerrar Sesión</span>
           </Button>
         </SidebarFooter>
       </Sidebar>

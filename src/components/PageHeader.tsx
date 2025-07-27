@@ -16,7 +16,7 @@ export function PageHeader({ title }: PageHeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-4 sm:px-6 sticky top-0 z-10">
         <div className="flex items-center gap-2">
-            <SidebarTrigger className="md:hidden" />
+            <SidebarTrigger />
             <h1 className="text-lg font-semibold tracking-tight text-foreground">{title}</h1>
         </div>
         <div className="flex items-center gap-4">
