@@ -10,6 +10,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarFooter,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
@@ -31,19 +32,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-3 p-2">
-             <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.photoURL || ''} alt={profile?.nombre} />
-              <AvatarFallback>{profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-                <span className="text-sm font-semibold text-sidebar-foreground truncate">
-                    {profile?.nombre || 'Usuario'}
-                </span>
-                <span className="text-xs text-sidebar-foreground/70">
-                    {profile?.rol || 'Invitado'}
-                </span>
+           <div className="flex items-center justify-between p-2">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={user?.photoURL || ''} alt={profile?.nombre} />
+                <AvatarFallback>{profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-sidebar-foreground truncate">
+                      {profile?.nombre || 'Usuario'}
+                  </span>
+                  <span className="text-xs text-sidebar-foreground/70">
+                      {profile?.rol || 'Invitado'}
+                  </span>
+              </div>
             </div>
+            <SidebarTrigger className="md:hidden" />
           </div>
           <ConnectionStatus />
         </SidebarHeader>
