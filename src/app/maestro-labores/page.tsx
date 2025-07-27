@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
+import { PageHeader } from "@/components/PageHeader";
 import {
   FileUp,
   FileDown,
@@ -344,8 +344,8 @@ export default function MaestroLaboresPage() {
 
   return (
     <TooltipProvider>
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <PageHeaderWithNav title="Maestro de Labores" />
+      <>
+        <PageHeader title="Maestro de Labores" />
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <Input
@@ -581,7 +581,7 @@ export default function MaestroLaboresPage() {
           </Dialog>
 
         </div>
-      </div>
+      </>
     </TooltipProvider>
   );
 }

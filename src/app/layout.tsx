@@ -4,8 +4,8 @@ import { AppDataProvider } from '@/context/AppDataContext';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import AuthWrapper from '@/components/AuthWrapper';
-import DynamicAppLayout from '@/components/DynamicAppLayout';
 import { MasterDataProvider } from '@/context/MasterDataContext';
+import AppLayout from '@/components/AppLayout';
 
 const APP_NAME = "Campo 7";
 const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo.";
@@ -48,12 +48,12 @@ export default function RootLayout({
         <AuthProvider>
           <AuthWrapper>
             <MasterDataProvider>
-              <DynamicAppLayout>
-                  <AppDataProvider>
-                      {children}
-                      <Toaster />
-                  </AppDataProvider>
-              </DynamicAppLayout>
+                <AppDataProvider>
+                  <AppLayout>
+                    {children}
+                  </AppLayout>
+                  <Toaster />
+                </AppDataProvider>
             </MasterDataProvider>
           </AuthWrapper>
         </AuthProvider>

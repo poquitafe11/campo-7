@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
+import { PageHeader } from "@/components/PageHeader";
 import {
   Trash2,
   Pencil,
@@ -384,8 +384,8 @@ export default function MinMaxPage() {
 
   return (
     <TooltipProvider>
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <PageHeaderWithNav title="Maestro de Mínimos y Máximos" />
+      <>
+        <PageHeader title="Maestro de Mínimos y Máximos" />
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <Input placeholder="Buscar por labor..." value={(table.getColumn('labor')?.getFilterValue() as string) ?? ''} onChange={(event) => table.getColumn('labor')?.setFilterValue(event.target.value)} className="max-w-sm w-full h-9" />
@@ -406,7 +406,7 @@ export default function MinMaxPage() {
           <div className="flex items-center justify-between gap-2 flex-wrap"><div className="flex items-center gap-2"><Select value={`${table.getState().pagination.pageSize}`} onValueChange={(value) => table.setPageSize(Number(value))}><SelectTrigger className="w-[70px] h-9"><SelectValue placeholder={table.getState().pagination.pageSize} /></SelectTrigger><SelectContent>{[10, 20, 50, 100].map((pageSize) => ( <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem> ))}</SelectContent></Select><span className="text-sm text-muted-foreground">Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{" "} de {table.getFilteredRowModel().rows.length}</span></div><div className="flex items-center gap-2"><Button variant="outline" size="icon" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronsLeft className="h-4 w-4" /></Button><Button variant="outline" size="icon" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronLeft className="h-4 w-4" /></Button><span className="text-sm">Página {table.getPageCount() > 0 ? table.getState().pagination.pageIndex + 1 : 0} de {table.getPageCount()}</span><Button variant="outline" size="icon" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronRight className="h-4 w-4" /></Button><Button variant="outline" size="icon" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronsRight className="h-4 w-4" /></Button></div></div>
           <Dialog open={!!editingRecord} onOpenChange={(open) => { if (!open) setEditingRecord(null); }}><DialogContent className="sm:max-w-3xl"><DialogHeader><DialogTitle>Editar Registro</DialogTitle></DialogHeader><Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">{renderFormFields()}<DialogFooter><DialogClose asChild><Button type="button" variant="secondary" onClick={() => setEditingRecord(null)}>Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter></form></Form></DialogContent></Dialog>
         </div>
-      </div>
+      </>
     </TooltipProvider>
   );
 }

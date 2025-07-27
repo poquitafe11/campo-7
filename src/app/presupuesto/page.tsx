@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
+import { PageHeader } from "@/components/PageHeader";
 import {
   Trash2,
   Pencil,
@@ -364,60 +364,39 @@ export default function PresupuestoPage() {
       <FormField control={form.control} name="jrnHa" render={({ field }) => ( <FormItem><FormLabel>JRN/HA</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
     </div>
   );
-
-  const filterButton = (
-    <Popover>
-      <PopoverTrigger asChild>
-          <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
-          </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
-          <div className="grid gap-4">
-              <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
-              <div className="grid gap-2">
-                  <Label htmlFor="lote-filter">Buscar por Lote</Label>
-                  <Input id="lote-filter" value={loteFilter} onChange={e => setLoteFilter(e.target.value)} placeholder="Escribe un lote..." />
-                  <Label htmlFor="labor-filter">Buscar por Labor</Label>
-                  <Input id="labor-filter" value={laborFilter} onChange={e => setLaborFilter(e.target.value)} placeholder="Escribe una labor..." />
-              </div>
-          </div>
-      </PopoverContent>
-    </Popover>
-  );
   
   return (
     <TooltipProvider>
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <PageHeaderWithNav title="Maestro de Presupuesto" extraActions={filterButton} />
+      <>
+        <PageHeader title="Maestro de Presupuesto" />
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+               <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">
+                        <Filter className="mr-2 h-4 w-4" />
+                        Filtros
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="start">
+                    <div className="grid gap-4">
+                        <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="lote-filter">Buscar por Lote</Label>
+                            <Input id="lote-filter" value={loteFilter} onChange={e => setLoteFilter(e.target.value)} placeholder="Escribe un lote..." />
+                            <Label htmlFor="labor-filter">Buscar por Labor</Label>
+                            <Input id="labor-filter" value={laborFilter} onChange={e => setLaborFilter(e.target.value)} placeholder="Escribe una labor..." />
+                        </div>
+                    </div>
+                </PopoverContent>
+              </Popover>
+            </div>
               <div className="flex gap-2 w-full sm:w-auto">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={table.getRowModel().rows.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
                   <Button size="sm" className="h-9" onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button>
-                   <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="destructive" size="sm" disabled={data.length === 0} className="h-9">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Eliminar Todo</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader><AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará permanentemente los {data.length} registros.</AlertDialogDescription></AlertDialogHeader>
-                          <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={handleDeleteAll}>Sí, eliminar todo</AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                  </AlertDialog>
               </div>
           </div>
 
@@ -450,7 +429,7 @@ export default function PresupuestoPage() {
           </Dialog>
 
         </div>
-      </div>
+      </>
     </TooltipProvider>
   );
 }

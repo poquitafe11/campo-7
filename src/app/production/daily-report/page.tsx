@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -29,7 +28,7 @@ const dailyReportFeatures = [
 
 export default function DailyReportPage() {
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+    <>
       <PageHeaderWithNav title="Parte Diario" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {dailyReportFeatures.map((feature) => (
@@ -44,6 +43,6 @@ export default function DailyReportPage() {
           </Link>
         ))}
       </div>
-    </div>
+    </>
   );
 }

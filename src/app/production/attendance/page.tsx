@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -29,7 +28,7 @@ const attendanceFeatures = [
 
 export default function AttendancePage() {
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+    <>
       <PageHeaderWithNav title="Asistencia de Personal" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {attendanceFeatures.map((feature) => (
@@ -44,6 +43,6 @@ export default function AttendancePage() {
           </Link>
         ))}
       </div>
-    </div>
+    </>
   );
 }

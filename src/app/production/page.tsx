@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
+import { PageHeader } from "@/components/PageHeader";
 import { ClipboardList, Users, PenSquare, LineChart } from "lucide-react";
 
 const productionFeatures = [
@@ -34,8 +34,8 @@ const productionFeatures = [
 
 export default function ProductionPage() {
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeaderWithNav title="Producción" />
+    <>
+      <PageHeader title="Producción" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {productionFeatures.map((feature) => (
           <Link href={feature.href} key={feature.title} className="block group">
@@ -49,6 +49,6 @@ export default function ProductionPage() {
           </Link>
         ))}
       </div>
-    </div>
+    </>
   );
 }

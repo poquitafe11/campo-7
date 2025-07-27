@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -29,7 +28,7 @@ const activityFeatures = [
 
 export default function ProductionActivitiesPage() {
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+    <>
       <PageHeaderWithNav title="Registro de Actividades" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {activityFeatures.map((feature) => (
@@ -44,6 +43,6 @@ export default function ProductionActivitiesPage() {
           </Link>
         ))}
       </div>
-    </div>
+    </>
   );
 }

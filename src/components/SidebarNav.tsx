@@ -3,29 +3,25 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import {
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
-} from "@/components/ui/sidebar"
-import {
   Tractor,
   Users,
   LayoutGrid,
   Layers,
+  ChevronDown
 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+
 
 const navItems = [
   {
     href: "/dashboard",
-    icon: <LayoutGrid />,
+    icon: <LayoutGrid className="h-5 w-5" />,
     label: "Dashboard",
   },
   {
     label: "Maestros",
-    icon: <Layers />,
+    icon: <Layers className="h-5 w-5" />,
     href: "/maestros", // Parent href for active state check
     items: [
       { href: "/maestro-lotes", label: "Lotes" },
@@ -38,15 +34,16 @@ const navItems = [
   {
     href: "/production",
     label: "Producción",
-    icon: <Tractor />,
+    icon: <Tractor className="h-5 w-5" />,
     items: [
         { href: "/production/attendance", label: "Asistencia" },
         { href: "/production/daily-report", label: "Parte Diario" },
+        { href: "/production/activities", label: "Actividades" },
     ]
   },
   {
     href: "/users",
-    icon: <Users />,
+    icon: <Users className="h-5 w-5" />,
     label: "Usuarios",
   },
 ]
@@ -56,53 +53,54 @@ export function SidebarNav() {
 
   const isParentActive = (item: (typeof navItems)[number]) => {
     if (!item.href) return false;
-    // For parent items, check if the current path starts with the item's href
     return item.items && pathname.startsWith(item.href);
   };
   
   const isChildActive = (href: string) => {
-    // Exact match or starts with the href followed by a slash
     return pathname === href || pathname.startsWith(href + "/");
   };
 
   return (
-    <SidebarMenu>
+     <nav className="grid items-start gap-1 px-2 text-sm font-medium">
       {navItems.map((item) =>
         item.items ? (
-          <SidebarMenuItem key={item.label}>
-            <SidebarMenuButton
-              isActive={isParentActive(item)}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </SidebarMenuButton>
-            <SidebarMenuSub>
-              {item.items.map((subItem) => (
-                <SidebarMenuSubItem key={subItem.href}>
-                  <SidebarMenuSubButton
-                    asChild
-                    isActive={isChildActive(subItem.href)}
-                  >
-                    <Link href={subItem.href}>{subItem.label}</Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              ))}
-            </SidebarMenuSub>
-          </SidebarMenuItem>
-        ) : (
-          <SidebarMenuItem key={item.href}>
-            <SidebarMenuButton
-              asChild
-              isActive={isChildActive(item.href!)}
-            >
-              <Link href={item.href!}>
+           <Collapsible key={item.label} defaultOpen={isParentActive(item)}>
+            <CollapsibleTrigger className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary w-full", isParentActive(item) && "text-primary")}>
                 {item.icon}
                 <span>{item.label}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+                <ChevronDown className="ml-auto h-4 w-4 transition-transform group-[data-state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-4">
+                 <div className="grid gap-1 mt-1">
+                 {item.items.map((subItem) => (
+                    <Link
+                      key={subItem.href}
+                      href={subItem.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                        isChildActive(subItem.href) && "bg-muted text-primary"
+                      )}
+                    >
+                      {subItem.label}
+                    </Link>
+                  ))}
+                 </div>
+            </CollapsibleContent>
+           </Collapsible>
+        ) : (
+          <Link
+            key={item.href}
+            href={item.href!}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+              isChildActive(item.href!) && "bg-muted text-primary"
+            )}
+          >
+            {item.icon}
+            {item.label}
+          </Link>
         )
       )}
-    </SidebarMenu>
+    </nav>
   )
 }
