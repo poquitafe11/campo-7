@@ -98,11 +98,23 @@ export default function ActivityDatabasePage() {
     return map;
   }, [lotes]);
   
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
     setLoading(true);
+    
+    // Fetch users once
+    getDocs(collection(db, "usuarios"))
+      .then(usersSnapshot => {
+        const usersData = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as User);
+        setUsers(usersData);
+      })
+      .catch(userError => {
+        console.error("Error fetching users: ", userError);
+      });
+
+    // Set up the listener for activities
     const q = query(collection(db, "actividades"), orderBy("registerDate", "desc"));
     
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const recordsData = snapshot.docs.map(doc => {
         const docData = doc.data();
         let registerDate: Date;
@@ -116,16 +128,7 @@ export default function ActivityDatabasePage() {
         return { ...docData, id: doc.id, registerDate } as ActivityRecordWithId;
       });
       setData(recordsData);
-
-      try {
-        const usersSnapshot = await getDocs(collection(db, "usuarios"));
-        const usersData = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as User);
-        setUsers(usersData);
-      } catch (userError) {
-         console.error("Error fetching users: ", userError);
-      }
       setLoading(false);
-
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
       toast({
@@ -135,13 +138,11 @@ export default function ActivityDatabasePage() {
       });
       setLoading(false);
     });
-    return unsubscribe;
+
+    // Return the unsubscribe function to be called on component unmount
+    return () => unsubscribe();
   }, [toast]);
 
-  useEffect(() => {
-    const unsubscribe = fetchData();
-    return () => unsubscribe();
-  }, [fetchData]);
 
   const handleEdit = (activity: ActivityRecordWithId) => {
     setSelectedActivity(activity);
