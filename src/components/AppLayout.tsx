@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
+  SheetTrigger,
   SheetContent,
   SheetHeader,
   SheetClose,
@@ -189,8 +190,8 @@ const Header = () => {
     }
   
     return (
-      <header className="sticky top-0 z-40 flex h-auto flex-col items-center border-b bg-background px-4 py-2">
-            <div className="flex w-full items-center justify-between">
+        <header className="sticky top-0 z-40 flex flex-col items-center border-b bg-background">
+            <div className="flex w-full items-center justify-between px-4 py-2">
                 <div className="flex items-center gap-2">
                     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                     <SheetTrigger asChild>
@@ -204,24 +205,25 @@ const Header = () => {
                     </SheetContent>
                     </Sheet>
                     
+                     {!isDashboard && (
+                        <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
+                        <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    )}
+
                     {isAttendanceSummary ? (
-                       <div>
-                            <h1 className="text-base font-semibold leading-tight">Resumen de</h1>
-                            <h1 className="text-base font-semibold leading-tight">Asistencia</h1>
+                       <div className="flex flex-col">
+                            <h1 className="text-sm font-semibold leading-tight">Resumen de</h1>
+                            <h1 className="text-sm font-semibold leading-tight">Asistencia</h1>
                        </div>
                     ) : (
                       <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
                         {title}
                       </h1>
                     )}
-
                 </div>
+
                 <div className="flex items-center gap-1">
-                 {!isDashboard && (
-                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
-                      <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                  )}
                  {isAttendanceSummary && (
                     <>
                       <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-9 w-9 shrink-0">
@@ -231,7 +233,7 @@ const Header = () => {
                         <PopoverTrigger asChild>
                           <Button id="date" variant={'ghost'} className={cn('w-auto justify-start text-left font-normal h-9 px-2 gap-1')}>
                             <CalendarIcon className="h-5 w-5" />
-                            {selectedDate ? format(selectedDate, 'dd LLL, yyyy', { locale: es }) : <span>Elige fecha</span>}
+                            <span className="hidden sm:inline">{selectedDate ? format(selectedDate, 'dd LLL, yyyy', { locale: es }) : <span>Elige fecha</span>}</span>
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="end">
