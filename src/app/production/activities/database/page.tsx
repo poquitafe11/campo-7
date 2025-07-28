@@ -343,7 +343,7 @@ export default function ActivityDatabasePage() {
 
   
   return (
-    <div className="w-full space-y-4">
+    <div className="space-y-4">
       <Input
           placeholder="Buscar por labor, lote, campaña..."
           value={globalFilter}
@@ -352,7 +352,7 @@ export default function ActivityDatabasePage() {
       />
       
       <div className="rounded-lg border overflow-x-auto">
-        <Table className="min-w-max">
+        <Table>
             <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -417,3 +417,5 @@ export default function ActivityDatabasePage() {
     </div>
   );
 }
+
+    
