@@ -31,6 +31,7 @@ import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 type ActivityRecordWithId = ActivityRecordData & { id: string };
@@ -64,8 +65,9 @@ export default function ActivityDatabasePage() {
   const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
   const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const filterTriggerRef = useRef<HTMLButtonElement>(null);
   
+  const { setActions } = useHeaderActions();
+
   const userMap = useMemo(() => {
     const map = new Map<string, string>();
     users.forEach(user => {
@@ -204,6 +206,69 @@ export default function ActivityDatabasePage() {
       xlsx.writeFile(workbook, "BaseDeActividades.xlsx");
   };
 
+  // Set header actions for this page
+  useEffect(() => {
+    setActions(
+      <>
+        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <Filter className="h-5 w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+              <div className="grid gap-4">
+                  <div className="space-y-2"><h4 className="font-medium leading-none">Filtros Avanzados</h4></div>
+                  <div className="grid gap-2">
+                      <div className="grid grid-cols-3 items-center gap-4">
+                          <Label>Campaña</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                      <div className="grid grid-cols-3 items-center gap-4">
+                          <Label>Lote</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label>Labor</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                       <div className="grid grid-cols-3 items-center gap-4">
+                          <Label>Pasada</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pasada: v === 'all' ? '' : v}))} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                      <div className="grid grid-cols-1 items-center gap-2">
+                          <Label>Fecha</Label>
+                          <Popover>
+                          <PopoverTrigger asChild>
+                              <Button id="date" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-8', !popoverFilters.dateRange.from && 'text-muted-foreground' )}>
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd, y')} - {format(popoverFilters.dateRange.to, 'LLL dd, y')}</>) : (format(popoverFilters.dateRange.from, 'LLL dd, y'))) : (<span>Seleccione un rango</span>)}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar initialFocus mode="range" defaultMonth={popoverFilters.dateRange?.from} selected={popoverFilters.dateRange} onSelect={(range) => setPopoverFilters(p => ({...p, dateRange: range || {from: undefined, to: undefined}}))} numberOfMonths={1} locale={es} />
+                          </PopoverContent>
+                          </Popover>
+                      </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                      <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                  </div>
+              </div>
+          </PopoverContent>
+        </Popover>
+        <Button variant="ghost" size="icon" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} className="h-9 w-9">
+          <FileDown className="h-5 w-5" />
+        </Button>
+      </>
+    );
+
+    // Cleanup on unmount
+    return () => setActions(null);
+  }, [setActions, isFilterOpen, popoverFilters, filterOptions, table.getRowModel().rows.length]);
+
+
   const columns = useMemo<ColumnDef<ActivityRecordWithId>[]>(() => [
     {
       accessorKey: 'registerDate',
@@ -284,56 +349,6 @@ export default function ActivityDatabasePage() {
   
   return (
     <div className="w-full space-y-4">
-      <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <PopoverTrigger asChild>
-          {/* This button is now located in AppLayout, this is just the trigger logic */}
-          <button ref={filterTriggerRef} className="hidden" aria-hidden="true">
-            Open Filters
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="end" anchorRef={filterTriggerRef}>
-            <div className="grid gap-4">
-                <div className="space-y-2"><h4 className="font-medium leading-none">Filtros Avanzados</h4></div>
-                <div className="grid gap-2">
-                    <div className="grid grid-cols-3 items-center gap-4">
-                        <Label>Campaña</Label>
-                        <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
-                        <Label>Lote</Label>
-                        <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                      <div className="grid grid-cols-3 items-center gap-4">
-                        <Label>Labor</Label>
-                        <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div className="grid grid-cols-3 items-center gap-4">
-                        <Label>Pasada</Label>
-                        <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pasada: v === 'all' ? '' : v}))} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                    <div className="grid grid-cols-1 items-center gap-2">
-                        <Label>Fecha</Label>
-                        <Popover>
-                        <PopoverTrigger asChild>
-                            <Button id="date" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-8', !popoverFilters.dateRange.from && 'text-muted-foreground' )}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd, y')} - {format(popoverFilters.dateRange.to, 'LLL dd, y')}</>) : (format(popoverFilters.dateRange.from, 'LLL dd, y'))) : (<span>Seleccione un rango</span>)}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar initialFocus mode="range" defaultMonth={popoverFilters.dateRange?.from} selected={popoverFilters.dateRange} onSelect={(range) => setPopoverFilters(p => ({...p, dateRange: range || {from: undefined, to: undefined}}))} numberOfMonths={1} locale={es} />
-                        </PopoverContent>
-                        </Popover>
-                    </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                    <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                </div>
-            </div>
-        </PopoverContent>
-      </Popover>
-      <PageHeader title="Base de Datos de Actividades" />
       <Input
           placeholder="Buscar por labor, lote, campaña..."
           value={globalFilter}
@@ -403,15 +418,6 @@ export default function ActivityDatabasePage() {
                 }}
             />
         )}
-        {/* These elements are passed to the AppLayout portal */}
-        <div data-el="header-actions" className="hidden">
-           <Button variant="ghost" size="icon" onClick={() => filterTriggerRef.current?.click()}>
-               <Filter className="h-5 w-5" />
-           </Button>
-           <Button variant="ghost" size="icon" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0}>
-               <FileDown className="h-5 w-5" />
-           </Button>
-        </div>
     </div>
   );
 }

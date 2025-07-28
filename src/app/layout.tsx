@@ -1,3 +1,4 @@
+
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppDataProvider } from '@/context/AppDataContext';
@@ -6,6 +7,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import AuthWrapper from '@/components/AuthWrapper';
 import { MasterDataProvider } from '@/context/MasterDataContext';
 import AppLayout from '@/components/AppLayout';
+import { HeaderActionsProvider } from '@/contexts/HeaderActionsContext';
 
 const APP_NAME = "Campo 7";
 const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo.";
@@ -48,12 +50,14 @@ export default function RootLayout({
         <AuthProvider>
           <AuthWrapper>
             <MasterDataProvider>
-                <AppDataProvider>
+              <AppDataProvider>
+                <HeaderActionsProvider>
                   <AppLayout>
                     {children}
                   </AppLayout>
-                  <Toaster />
-                </AppDataProvider>
+                </HeaderActionsProvider>
+                <Toaster />
+              </AppDataProvider>
             </MasterDataProvider>
           </AuthWrapper>
         </AuthProvider>

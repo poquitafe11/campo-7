@@ -1,10 +1,9 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { createPortal } from 'react-dom';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -28,14 +27,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
-  SheetTrigger,
   SheetContent,
-  SheetHeader,
+  SheetTrigger,
   SheetClose,
+  SheetHeader,
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 const navItems = [
@@ -147,19 +147,12 @@ const Header = () => {
     const title = pageTitles[pathname] || 'Campo 7';
     const isDashboard = pathname === '/dashboard';
     const isAttendanceSummary = pathname === '/production/attendance/summary';
-    const isActivitiesDatabase = pathname === '/production/activities/database';
 
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
+    const { actions } = useHeaderActions();
 
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   
-    useEffect(() => {
-      // Find the portal div from the child page and store it in state
-      const portalDiv = document.querySelector('[data-el="header-actions"]');
-      setHeaderActions(portalDiv as HTMLDivElement | null);
-    }, [pathname]); // Rerun when path changes
-
     useEffect(() => {
       if (isAttendanceSummary) {
         const dateParam = searchParams.get('date');
@@ -232,8 +225,7 @@ const Header = () => {
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button id="date" variant={'ghost'} className={cn('w-auto justify-start text-left font-normal h-9 px-2 gap-1')}>
-                            <CalendarIcon className="h-5 w-5" />
-                            <span className="hidden sm:inline">{selectedDate ? format(selectedDate, 'dd LLL, yyyy', { locale: es }) : <span>Elige fecha</span>}</span>
+                            <span>{selectedDate ? format(selectedDate, 'dd LLL, yyyy', { locale: es }) : <span>Elige fecha</span>}</span>
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="end">
@@ -248,14 +240,15 @@ const Header = () => {
                       </Popover>
                     </>
                  )}
-                 {isActivitiesDatabase && headerActions && createPortal(headerActions.children, document.body.querySelector(`[data-el-id="header-portal-${pathname.replace(/\//g, '')}"]`)!)}
+                 
+                 {/* This div will render the actions set by the child page */}
+                 {actions}
+
                  <Button variant="ghost" size="icon" asChild className="h-9 w-9">
                     <Link href="/dashboard">
                         <LayoutGrid className="h-5 w-5" />
                     </Link>
                 </Button>
-                {/* Portal target for page-specific actions */}
-                <div data-el-id={`header-portal-${pathname.replace(/\//g, '')}`} className="flex items-center gap-1" />
                 </div>
             </div>
       </header>
