@@ -138,17 +138,17 @@ export default function ActivityDatabasePage() {
       return { campaigns, lotes, labors, pasadas };
   }, [data]);
 
-  const handleApplyFilters = () => {
+  const handleApplyFilters = useCallback(() => {
     setActiveFilters(popoverFilters);
     setIsFilterOpen(false);
-  };
+  }, [popoverFilters]);
   
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     const cleared = getInitialFilters();
     setPopoverFilters(cleared);
     setActiveFilters(cleared);
     setIsFilterOpen(false);
-  };
+  }, []);
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
@@ -253,7 +253,7 @@ export default function ActivityDatabasePage() {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(() => {
     const dataToExport = table.getRowModel().rows.map(row => {
         const { id, createdBy, ...rest } = row.original;
         return {
@@ -279,7 +279,7 @@ export default function ActivityDatabasePage() {
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, "Actividades");
     xlsx.writeFile(workbook, "BaseDeActividades.xlsx");
-  };
+  }, [table, userMap]);
   
   useEffect(() => {
     setActions(
@@ -338,6 +338,7 @@ export default function ActivityDatabasePage() {
       </>
     );
 
+    // Cleanup on unmount
     return () => setActions(null);
   }, [setActions, isFilterOpen, popoverFilters, filterOptions, table, handleDownload, handleApplyFilters, handleClearFilters]);
 
