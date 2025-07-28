@@ -1,21 +1,17 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Loader2, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { format, differenceInDays, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { type AttendanceRecord, type LoteData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
-
 
 interface LoteHeaderInfo {
   lote: string; 
@@ -39,21 +35,24 @@ interface PivotData {
   grandTotalAbsent: number;
 }
 
-export default function AttendanceSummaryPage() {
+function AttendanceSummaryContent() {
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
   const [lotesMaestro, setLotesMaestro] = useState<LoteData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   
-  useEffect(() => {
-    setIsClient(true);
-    // Initialize date on client to avoid hydration errors
-    setSelectedDate(new Date());
-  }, []);
+  const selectedDateParam = searchParams.get('date');
+  const refreshParam = searchParams.get('refresh'); 
 
-  const loadData = useCallback(async (showToast = false) => {
+  const selectedDate = useMemo(() => {
+    if (selectedDateParam && isValid(parseISO(selectedDateParam))) {
+      return parseISO(selectedDateParam);
+    }
+    return new Date();
+  }, [selectedDateParam]);
+
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     if (!db) {
         toast({ 
@@ -75,18 +74,11 @@ export default function AttendanceSummaryPage() {
         
         const lotes = lotesSnapshot.docs.map(doc => {
             const data = doc.data();
-            // Handle Firestore Timestamp
             const fechaCianamida = data.fechaCianamida?.toDate ? data.fechaCianamida.toDate() : (data.fechaCianamida ? parseISO(data.fechaCianamida) : undefined);
             return { id: doc.id, ...data, fechaCianamida } as LoteData
         });
         setLotesMaestro(lotes);
 
-        if (showToast) {
-            toast({
-                title: 'Datos Actualizados',
-                description: 'El resumen ha sido actualizado.'
-            });
-        }
     } catch (error) {
         console.error("Error loading data: ", error);
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos.' });
@@ -97,7 +89,7 @@ export default function AttendanceSummaryPage() {
   
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, refreshParam]); // Re-run when refreshParam changes
 
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
@@ -105,11 +97,9 @@ export default function AttendanceSummaryPage() {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const recordsForDay = allRecords.filter(r => r.date === formattedDate);
     
-    // Get all unique lot numbers that have records for the day
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))]
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    // Create sorted header info from the unique lot numbers
     const loteHeaders: LoteHeaderInfo[] = uniqueLotesInRecords
       .map(loteNum => {
         const loteDataFromMaestro = lotesMaestro.find(l => l.lote === loteNum);
@@ -156,7 +146,6 @@ export default function AttendanceSummaryPage() {
             loteHeaders.forEach(h => labors[laborKey].lotes[h.lote] = 0);
         }
         
-        // Aggregate personnel and absent counts for the entire lot
         const personnel = record.totals.personnelCount;
         const absent = record.totals.absentCount;
 
@@ -172,7 +161,7 @@ export default function AttendanceSummaryPage() {
     return { loteHeaders, labors, columnTotals, absentTotalsByLote, grandTotalPersonnel, grandTotalAbsent };
   }, [allRecords, selectedDate, lotesMaestro]);
   
-  if (isLoading && !isClient) {
+  if (isLoading) {
       return (
            <div className="flex-1 p-4 sm:p-6">
                 <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
@@ -184,39 +173,7 @@ export default function AttendanceSummaryPage() {
 
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <div className="p-4 sm:p-6 space-y-4">
-        <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => loadData(true)} disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-            </Button>
-            <Popover>
-            <PopoverTrigger asChild>
-                <Button
-                    id="date"
-                    variant={'outline'}
-                    size="sm"
-                    className={cn(
-                    'w-[240px] justify-start text-left font-normal',
-                    !selectedDate && 'text-muted-foreground'
-                    )}
-                >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {isClient && selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-                {isClient && (
-                    <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                    locale={es}
-                    />
-                )}
-            </PopoverContent>
-            </Popover>
-        </div>
+      <div className="space-y-4">
         <Card>
           <CardContent className="p-2">
           {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
@@ -264,12 +221,10 @@ export default function AttendanceSummaryPage() {
                                     if (isSpecialA && !isSpecialB) return -1;
                                     if (!isSpecialA && isSpecialB) return 1;
                                     
-                                    // If both are special, sort them (e.g. 902 before 903)
                                     if (isSpecialA && isSpecialB) {
                                       return (Number(codeA) || 0) - (Number(codeB) || 0);
                                     }
 
-                                    // Fallback to numeric sort for other codes
                                     return (Number(codeA) || 9999) - (Number(codeB) || 9999);
                                 })
                                 .map(([labor, data]) => (
@@ -331,4 +286,13 @@ export default function AttendanceSummaryPage() {
       </div>
     </div>
   );
+}
+
+
+export default function AttendanceSummaryPage() {
+    return (
+        <Suspense fallback={<div className="flex h-48 items-center justify-center rounded-lg border border-dashed"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+            <AttendanceSummaryContent />
+        </Suspense>
+    )
 }

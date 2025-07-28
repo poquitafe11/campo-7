@@ -1,9 +1,11 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { format, parseISO, isValid } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   LayoutGrid,
   Box,
@@ -15,6 +17,8 @@ import {
   LogOut,
   Menu,
   ArrowLeft,
+  Calendar as CalendarIcon,
+  RefreshCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,10 +29,13 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   SheetClose,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
@@ -107,18 +114,17 @@ const MobileNavContent = () => {
   const { profile, logout } = useAuth();
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20">
-        <SheetTitle className="sr-only">Menu</SheetTitle>
-        <div className="flex flex-col items-center space-y-2">
-          <Avatar className="h-16 w-16 border-2 border-sidebar-accent">
-            <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
-            <AvatarFallback className="text-2xl bg-primary/20 text-sidebar-foreground">
-              {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <h2 className="text-lg font-bold text-center">{profile?.nombre}</h2>
-        </div>
-      </SheetHeader>
+        <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20 text-left">
+             <SheetTitle className="text-sidebar-foreground flex items-center gap-3">
+                 <Avatar className="h-10 w-10 border-2 border-sidebar-accent">
+                    <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
+                    <AvatarFallback className="text-xl bg-primary/20 text-sidebar-foreground">
+                    {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
+                    </AvatarFallback>
+                </Avatar>
+                <span className="text-lg font-bold">{profile?.nombre}</span>
+             </SheetTitle>
+        </SheetHeader>
 
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {navItems.map(item => (
@@ -146,12 +152,43 @@ const MobileNavContent = () => {
   );
 };
 
+
 const Header = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const title = pageTitles[pathname] || 'Campo 7';
+  const isDashboard = pathname === '/dashboard';
+  const isAttendanceSummary = pathname === '/production/attendance/summary';
+  
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  const isSubPage = pathname !== '/dashboard';
+  useEffect(() => {
+    if (isAttendanceSummary) {
+      const dateParam = searchParams.get('date');
+      if (dateParam && isValid(parseISO(dateParam))) {
+        setSelectedDate(parseISO(dateParam));
+      } else {
+        setSelectedDate(new Date());
+      }
+    }
+  }, [isAttendanceSummary, searchParams]);
+
+  const handleDateChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    if (date) {
+      const newPath = `${pathname}?date=${format(date, 'yyyy-MM-dd')}`;
+      router.replace(newPath, { scroll: false });
+    }
+  };
+  
+  const handleRefresh = () => {
+    if (selectedDate) {
+        const newPath = `${pathname}?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${new Date().getTime()}`;
+        router.replace(newPath, { scroll: false });
+    }
+  }
+
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4">
@@ -171,21 +208,56 @@ const Header = () => {
           {title}
         </h1>
       </div>
-      {isSubPage && (
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" asChild>
-            <Link href="/dashboard">
-              <LayoutGrid className="h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        {isAttendanceSummary && (
+           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+                <RefreshCcw className="h-4 w-4" />
+            </Button>
+            <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    id="date"
+                    variant={'outline'}
+                    size="sm"
+                    className={cn(
+                    'w-[240px] justify-start text-left font-normal',
+                    !selectedDate && 'text-muted-foreground'
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateChange}
+                    initialFocus
+                    locale={es}
+                    />
+            </PopoverContent>
+            </Popover>
+          </div>
+        )}
+        {!isDashboard && (
+          <>
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" asChild>
+              <Link href="/dashboard">
+                <LayoutGrid className="h-4 w-4" />
+              </Link>
+            </Button>
+          </>
+        )}
+      </div>
     </header>
   );
 };
+
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
