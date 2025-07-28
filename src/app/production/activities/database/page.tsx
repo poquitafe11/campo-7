@@ -110,7 +110,6 @@ export default function ActivityDatabasePage() {
   const presupuestoMap = useMemo(() => {
     const map = new Map<string, Presupuesto>();
     presupuestos.forEach(p => {
-        // Normalize key to handle cases like "073" vs "73"
         const loteKey = parseInt(p.lote, 10);
         const key = `${loteKey}-${p.descripcionLabor}`;
         map.set(key, p);
@@ -183,6 +182,27 @@ export default function ActivityDatabasePage() {
     };
   }, [fetchData]);
 
+  const cumulativeJrHaMap = useMemo(() => {
+    const cumulativeMap = new Map<string, number>();
+    const tempTotals = new Map<string, number>();
+
+    // Sort data chronologically (oldest first) to calculate cumulative sum correctly
+    const sortedData = [...data].sort((a, b) => a.registerDate.getTime() - b.registerDate.getTime());
+
+    sortedData.forEach(item => {
+        const key = `${item.lote}-${item.labor}`;
+        const totalHaProdForLote = loteHaProdMap.get(item.lote) || 0;
+        const jrHa = totalHaProdForLote > 0 ? (item.workdayCount || 0) / totalHaProdForLote : 0;
+        
+        const currentCumulative = tempTotals.get(key) || 0;
+        const newCumulative = currentCumulative + jrHa;
+        
+        tempTotals.set(key, newCumulative);
+        cumulativeMap.set(item.id, newCumulative);
+    });
+
+    return cumulativeMap;
+  }, [data, loteHaProdMap]);
 
   const handleEdit = (activity: ActivityRecordWithId) => {
     setSelectedActivity(activity);
@@ -277,7 +297,10 @@ export default function ActivityDatabasePage() {
         const presupuesto = presupuestoMap.get(key);
         return presupuesto ? presupuesto.jrnHa : '0';
     }},
-    { header: 'JHU p.', cell: () => '0' },
+    { header: 'JHU p.', cell: ({ row }) => {
+        const cumulativeJrHa = cumulativeJrHaMap.get(row.original.id);
+        return cumulativeJrHa !== undefined ? cumulativeJrHa.toFixed(2) : '0.00';
+    }},
     { header: 'Saldo', cell: () => '0' },
     { header: 'N° Pasada', accessorKey: 'pass' },
     { header: 'JR/Ha', cell: ({ row }) => {
@@ -336,7 +359,7 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap]);
+  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap]);
 
   const table = useReactTable({
     data: filteredData,
