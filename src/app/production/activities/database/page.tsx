@@ -14,7 +14,7 @@ import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firest
 import { db } from '@/lib/firebase';
 import { format, getWeek, parseISO, differenceInDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ActivityRecordData, User, LoteData } from '@/lib/types';
+import { ActivityRecordData, User, LoteData, Presupuesto } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,7 @@ const getInitialFilters = (): Filters => ({
 export default function ActivityDatabasePage() {
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecordWithId | null>(null);
@@ -98,22 +99,38 @@ export default function ActivityDatabasePage() {
     return map;
   }, [lotes]);
   
-  useEffect(() => {
+  const presupuestoMap = useMemo(() => {
+    const map = new Map<string, Presupuesto>();
+    presupuestos.forEach(p => {
+        // Normalize key to handle cases like "073" vs "73"
+        const loteKey = parseInt(p.lote, 10);
+        const key = `${loteKey}-${p.descripcionLabor}`;
+        map.set(key, p);
+    });
+    return map;
+  }, [presupuestos]);
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    
-    // Fetch users once
-    getDocs(collection(db, "usuarios"))
-      .then(usersSnapshot => {
+
+    const usersPromise = getDocs(collection(db, "usuarios"));
+    const presupuestoPromise = getDocs(collection(db, "presupuesto"));
+
+    try {
+        const [usersSnapshot, presupuestoSnapshot] = await Promise.all([usersPromise, presupuestoPromise]);
+
         const usersData = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as User);
         setUsers(usersData);
-      })
-      .catch(userError => {
-        console.error("Error fetching users: ", userError);
-      });
+        
+        const presupuestoData = presupuestoSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as Presupuesto);
+        setPresupuestos(presupuestoData);
 
-    // Set up the listener for activities
+    } catch (error) {
+        console.error("Error fetching related data: ", error);
+        toast({ title: "Error", description: "No se pudieron cargar los datos de usuarios o presupuesto.", variant: "destructive" });
+    }
+
     const q = query(collection(db, "actividades"), orderBy("registerDate", "desc"));
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const recordsData = snapshot.docs.map(doc => {
         const docData = doc.data();
@@ -130,7 +147,7 @@ export default function ActivityDatabasePage() {
       setData(recordsData);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching data from Firestore: ", error);
+      console.error("Error fetching activities: ", error);
       toast({
         title: "Error de Conexión",
         description: "No se pudieron cargar los registros.",
@@ -139,9 +156,24 @@ export default function ActivityDatabasePage() {
       setLoading(false);
     });
 
-    // Return the unsubscribe function to be called on component unmount
-    return () => unsubscribe();
+    return unsubscribe;
   }, [toast]);
+  
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    
+    const initFetch = async () => {
+      unsubscribe = await fetchData();
+    };
+    
+    initFetch();
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [fetchData]);
 
 
   const handleEdit = (activity: ActivityRecordWithId) => {
@@ -231,7 +263,12 @@ export default function ActivityDatabasePage() {
         }
         return 'N/A';
     } },
-    { header: 'JR presup.', cell: () => '0' },
+    { header: 'JR presup.', cell: ({ row }) => {
+        const loteKey = parseInt(row.original.lote, 10);
+        const key = `${loteKey}-${row.original.labor}`;
+        const presupuesto = presupuestoMap.get(key);
+        return presupuesto ? presupuesto.jrnHa : '0';
+    }},
     { header: 'JHU p.', cell: () => '0' },
     { header: 'Saldo', cell: () => '0' },
     { header: 'N° Pasada', accessorKey: 'pass' },
@@ -285,7 +322,7 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap, lotesMap]);
+  ], [userMap, lotesMap, presupuestoMap]);
 
   const table = useReactTable({
     data: filteredData,
@@ -470,3 +507,4 @@ export default function ActivityDatabasePage() {
       
 
     
+

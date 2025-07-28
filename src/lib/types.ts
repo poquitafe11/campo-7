@@ -169,3 +169,12 @@ export const ActivityRecordSchema = z.object({
     createdBy: z.string().email("Debe ser un email válido."),
 });
 export type ActivityRecordData = z.infer<typeof ActivityRecordSchema>;
+
+export const PresupuestoSchema = z.object({
+  id: z.string(),
+  descripcionLabor: z.string(),
+  lote: z.string(),
+  jornadas: z.number(),
+  jrnHa: z.number(),
+});
+export type Presupuesto = z.infer<typeof PresupuestoSchema>;
