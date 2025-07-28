@@ -100,20 +100,20 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
     const { profile, logout } = useAuth();
     return (
       <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-          <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20 text-left">
-               <div className="flex items-center gap-3">
-                   <Avatar className="h-12 w-12 border-2 border-sidebar-accent">
-                      <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
-                      <AvatarFallback className="text-xl bg-primary/20 text-sidebar-foreground">
-                      {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
-                      </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <p className="text-base font-bold">{profile?.nombre}</p>
-                    <p className="text-xs text-sidebar-muted-foreground font-normal">Rol: {profile?.rol}</p>
-                  </div>
-               </div>
-          </SheetHeader>
+         <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20 text-left">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12 border-2 border-sidebar-accent">
+                  <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
+                  <AvatarFallback className="text-xl bg-primary/20 text-sidebar-foreground">
+                  {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
+                  </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <p className="text-base font-bold">{profile?.nombre}</p>
+                <p className="text-xs text-sidebar-muted-foreground font-normal">Rol: {profile?.rol}</p>
+              </div>
+            </div>
+         </SheetHeader>
   
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {navItems.map(item => (
@@ -209,15 +209,9 @@ const Header = () => {
                     <Button
                         id="date"
                         variant={'outline'}
-                        className={cn('w-auto justify-start text-left font-normal h-9 px-2 sm:px-3')}
+                        className={cn('w-auto justify-start text-left font-normal h-9 px-3')}
                     >
-                        <CalendarIcon className="mr-0 sm:mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">
-                          {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Elige fecha</span>}
-                        </span>
-                         <span className="sm:hidden">
-                          {selectedDate ? format(selectedDate, 'dd MMM', { locale: es }) : <span>Fecha</span>}
-                        </span>
+                       {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Elige fecha</span>}
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
