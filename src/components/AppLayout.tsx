@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -25,6 +26,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetClose,
+  SheetTrigger,
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
 
@@ -35,7 +37,11 @@ const navItems = [
   { href: '/asistentes', icon: Users, label: 'Asistentes' },
   { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
   { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
-  { href: '/production/activities/create', icon: ClipboardList, label: 'Registro de Actividades' },
+  {
+    href: '/production/activities/create',
+    icon: ClipboardList,
+    label: 'Registro de Actividades',
+  },
 ];
 
 const pageTitles: { [key: string]: string } = {
@@ -60,14 +66,26 @@ const pageTitles: { [key: string]: string } = {
   '/maestros': 'Datos Maestros',
 };
 
-const NavItem = ({ href, icon: Icon, label, isMobile }: { href: string; icon: React.ElementType; label: string; isMobile?: boolean }) => {
+const NavItem = ({
+  href,
+  icon: Icon,
+  label,
+  isMobile,
+}: {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  isMobile?: boolean;
+}) => {
   const pathname = usePathname();
   const LinkContent = () => (
     <Link
       href={href}
       className={cn(
         'flex items-center gap-4 rounded-lg px-4 py-3 text-base font-medium transition-all hover:bg-sidebar-accent',
-        pathname === href ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted-foreground'
+        pathname === href
+          ? 'bg-sidebar-accent text-sidebar-foreground'
+          : 'text-sidebar-muted-foreground'
       )}
     >
       <Icon className="h-5 w-5" />
@@ -76,7 +94,11 @@ const NavItem = ({ href, icon: Icon, label, isMobile }: { href: string; icon: Re
   );
 
   if (isMobile) {
-    return <SheetClose asChild><LinkContent /></SheetClose>;
+    return (
+      <SheetClose asChild>
+        <LinkContent />
+      </SheetClose>
+    );
   }
   return <LinkContent />;
 };
@@ -88,7 +110,7 @@ const MobileNavContent = () => {
       <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20">
         <SheetTitle className="sr-only">Menu</SheetTitle>
         <div className="flex flex-col items-center space-y-2">
-           <Avatar className="h-16 w-16 border-2 border-sidebar-accent">
+          <Avatar className="h-16 w-16 border-2 border-sidebar-accent">
             <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
             <AvatarFallback className="text-2xl bg-primary/20 text-sidebar-foreground">
               {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
@@ -99,14 +121,16 @@ const MobileNavContent = () => {
       </SheetHeader>
 
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-        {navItems.map((item) => (
+        {navItems.map(item => (
           <NavItem {...item} key={item.href} isMobile />
         ))}
       </nav>
 
       <div className="mt-auto p-4 space-y-4 border-t border-sidebar-muted-foreground/20">
         <ConnectionStatus />
-        <div className="text-sm text-sidebar-muted-foreground">Rol: {profile?.rol}</div>
+        <div className="text-sm text-sidebar-muted-foreground">
+          Rol: {profile?.rol}
+        </div>
         <SheetClose asChild>
           <Button
             onClick={logout}
@@ -126,7 +150,7 @@ const Header = () => {
   const pathname = usePathname();
   const router = useRouter();
   const title = pageTitles[pathname] || 'Campo 7';
-  
+
   const isSubPage = pathname !== '/dashboard';
 
   return (
@@ -143,24 +167,25 @@ const Header = () => {
             <MobileNavContent />
           </SheetContent>
         </Sheet>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">{title}</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          {title}
+        </h1>
       </div>
-       {isSubPage && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => router.back()}>
-               <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" asChild>
-               <Link href="/dashboard">
-                  <LayoutGrid className="h-4 w-4" />
-               </Link>
-            </Button>
+      {isSubPage && (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" asChild>
+            <Link href="/dashboard">
+              <LayoutGrid className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
-       )}
+      )}
     </header>
   );
 };
-
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
