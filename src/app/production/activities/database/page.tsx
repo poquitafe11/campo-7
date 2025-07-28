@@ -94,15 +94,6 @@ export default function ActivityDatabasePage() {
     });
     return map;
   }, [lotes]);
-
-  const loteHaProdMap = useMemo(() => {
-    const haProdByLote = new Map<string, number>();
-    lotes.forEach(lote => {
-      const currentHa = haProdByLote.get(lote.lote) || 0;
-      haProdByLote.set(lote.lote, currentHa + (lote.haProd || 0));
-    });
-    return haProdByLote;
-  }, [lotes]);
   
   const presupuestoMap = useMemo(() => {
     const map = new Map<string, Presupuesto>();
@@ -199,10 +190,10 @@ export default function ActivityDatabasePage() {
 
   const filterOptions = useMemo(() => {
       const campaigns = [...new Set(data.map(item => item.campaign))].sort();
-      const lotes = [...new Set(data.map(item => item.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+      const lotesOptions = [...new Set(data.map(item => item.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
       const labors = [...new Set(data.map(item => item.labor).filter(Boolean) as string[])].sort();
       const pasadas = [...new Set(data.map(item => String(item.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-      return { campaigns, lotes, labors, pasadas };
+      return { campaigns, lotes: lotesOptions, labors, pasadas };
   }, [data]);
 
   const handleApplyFilters = useCallback(() => {
@@ -280,12 +271,18 @@ export default function ActivityDatabasePage() {
     { header: 'Saldo', cell: () => '0' },
     { header: 'N° Pasada', accessorKey: 'pass' },
     { header: 'JR/Ha', cell: ({ row }) => {
-        const loteData = lotesMap.get(row.original.lote);
-        if (!loteData) return '0.00';
-        const totalHaProd = loteHaProdMap.get(loteData.lote) || 0;
-        if (totalHaProd === 0) return '0.00';
+        const loteDataForActivity = lotesMap.get(row.original.lote);
+        if (!loteDataForActivity) return '0.00';
+
+        const loteNumber = loteDataForActivity.lote;
+        const totalHaProdForLote = lotes
+            .filter(l => l.lote === loteNumber)
+            .reduce((sum, current) => sum + (current.haProd || 0), 0);
+        
+        if (totalHaProdForLote === 0) return '0.00';
+        
         const jhu = row.original.workdayCount || 0;
-        const result = jhu / totalHaProd;
+        const result = jhu / totalHaProdForLote;
         return result.toFixed(2);
     }},
     { header: 'und medida', cell: () => 'N/A' },
@@ -336,7 +333,7 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap, lotesMap, presupuestoMap, loteHaProdMap]);
+  ], [userMap, lotesMap, presupuestoMap, lotes]);
 
   const table = useReactTable({
     data: filteredData,
