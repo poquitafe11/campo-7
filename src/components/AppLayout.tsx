@@ -6,17 +6,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutGrid,
-  ClipboardList,
-  Database,
-  BarChart3,
   Box,
-  ScrollText,
   Layers,
   Users,
-  Settings,
+  Thermometer,
+  ScrollText,
+  ClipboardList,
   LogOut,
   Menu,
-  Thermometer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,25 +39,25 @@ const navItems = [
   { href: '/production/activities/create', icon: ClipboardList, label: 'Registro de Actividades' },
 ];
 
-const NavItem = ({ href, icon: Icon, label, isMobile }: { href: string; icon: React.ElementType; label: string; isMobile: boolean }) => {
+const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string; }) => {
   const pathname = usePathname();
-  const linkContent = (
-    <Link
-      href={href}
-      className={cn(
-        'flex items-center gap-4 rounded-lg px-4 py-3 text-base font-medium transition-all hover:bg-sidebar-accent',
-        pathname === href ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted-foreground'
-      )}
-    >
-      <Icon className="h-5 w-5" />
-      <span>{label}</span>
-    </Link>
+  return (
+    <SheetClose asChild>
+      <Link
+        href={href}
+        className={cn(
+          'flex items-center gap-4 rounded-lg px-4 py-3 text-base font-medium transition-all hover:bg-sidebar-accent',
+          pathname === href ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted-foreground'
+        )}
+      >
+        <Icon className="h-5 w-5" />
+        <span>{label}</span>
+      </Link>
+    </SheetClose>
   );
-
-  return isMobile ? <SheetClose asChild>{linkContent}</SheetClose> : linkContent;
 };
 
-const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => {
+const NavContent = () => {
   const { profile, logout } = useAuth();
 
   return (
@@ -77,7 +74,7 @@ const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => {
 
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => (
-          <NavItem key={item.href} {...item} isMobile={isMobile} />
+          <NavItem key={item.href} {...item} />
         ))}
       </nav>
 
@@ -98,17 +95,9 @@ const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => {
   );
 };
 
-const DesktopSidebar = () => {
-  return (
-    <aside className="hidden md:flex md:w-72">
-      <NavContent />
-    </aside>
-  );
-};
-
 const Header = () => {
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4 md:hidden">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4">
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon">
@@ -120,9 +109,10 @@ const Header = () => {
           <SheetHeader>
             <SheetTitle className="sr-only">Menú Principal</SheetTitle>
           </SheetHeader>
-          <NavContent isMobile={true} />
+          <NavContent />
         </SheetContent>
       </Sheet>
+      {/* You can add other header elements here if needed, like the app title */}
     </header>
   );
 };
@@ -136,7 +126,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full bg-muted/40">
-      <DesktopSidebar />
       <div className="flex flex-col flex-1">
         <Header />
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto">

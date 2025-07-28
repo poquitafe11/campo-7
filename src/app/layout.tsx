@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5", // A purple color matching the new theme
+  themeColor: "#4338ca", // Deep purple from the design
 };
 
 export default function RootLayout({
