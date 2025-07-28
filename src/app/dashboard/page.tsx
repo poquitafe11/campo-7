@@ -12,6 +12,8 @@ import {
   Bug,
   Lightbulb,
   PieChart,
+  Users,
+  Settings,
 } from "lucide-react";
 
 const mainFeatures = [
@@ -57,7 +59,7 @@ export default function DashboardPage() {
         <div className="flex flex-col h-full">
             <PageHeader title="Áreas de Gestión" />
             <main className="flex-grow p-4 sm:p-0">
-               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {mainFeatures.map((link) => (
                         <Link href={link.href} key={link.title} className="block group">
                             <Card className="h-32 sm:h-36 transition-all duration-200 ease-in-out hover:shadow-lg hover:-translate-y-1 hover:border-primary/30">
