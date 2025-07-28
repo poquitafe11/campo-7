@@ -1,9 +1,8 @@
-
 "use client";
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutGrid,
   Box,
@@ -25,7 +24,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
@@ -87,10 +85,9 @@ const MobileNavContent = () => {
   const { profile, logout } = useAuth();
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <SheetHeader className="sr-only">
-        <SheetTitle>Menu</SheetTitle>
-      </SheetHeader>
-        <div className="flex flex-col items-center p-4 space-y-2 border-b border-sidebar-muted-foreground/20">
+      <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20">
+        <SheetTitle className="sr-only">Menu</SheetTitle>
+        <div className="flex flex-col items-center space-y-2">
            <Avatar className="h-16 w-16 border-2 border-sidebar-accent">
             <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
             <AvatarFallback className="text-2xl bg-primary/20 text-sidebar-foreground">
@@ -99,6 +96,7 @@ const MobileNavContent = () => {
           </Avatar>
           <h2 className="text-lg font-bold text-center">{profile?.nombre}</h2>
         </div>
+      </SheetHeader>
 
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => (
@@ -126,6 +124,7 @@ const MobileNavContent = () => {
 
 const Header = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const title = pageTitles[pathname] || 'Campo 7';
   
   const isSubPage = pathname !== '/dashboard';
@@ -148,6 +147,9 @@ const Header = () => {
       </div>
        {isSubPage && (
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+               <ArrowLeft className="h-4 w-4" />
+            </Button>
             <Button variant="outline" size="icon" asChild>
                <Link href="/dashboard">
                   <LayoutGrid className="h-4 w-4" />
