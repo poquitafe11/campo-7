@@ -13,13 +13,13 @@ import {
   Users,
   Thermometer,
   ScrollText,
-  ClipboardList,
   LogOut,
   Menu,
   ArrowLeft,
   ChevronRight,
   RefreshCcw,
   Calendar as CalendarIcon,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,7 +45,7 @@ const navItems = [
   { href: '/asistentes', icon: Users, label: 'Asistentes' },
   { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
   { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
-  { href: '/production/activities/create', icon: ClipboardList, label: 'Registro de Actividades' },
+  { href: '/users', icon: Shield, label: 'Usuarios' },
 ];
 
 const pageTitles: { [key: string]: string } = {
