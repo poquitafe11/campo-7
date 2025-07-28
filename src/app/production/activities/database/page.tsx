@@ -297,11 +297,24 @@ export default function ActivityDatabasePage() {
         const presupuesto = presupuestoMap.get(key);
         return presupuesto ? presupuesto.jrnHa : '0';
     }},
-    { header: 'JHU p.', cell: ({ row }) => {
+    { header: 'JHU/Ha', cell: ({ row }) => {
         const cumulativeJrHa = cumulativeJrHaMap.get(row.original.id);
         return cumulativeJrHa !== undefined ? cumulativeJrHa.toFixed(2) : '0.00';
     }},
-    { header: 'Saldo', cell: () => '0' },
+    { header: 'Saldo', cell: ({row}) => {
+        const loteKey = parseInt(row.original.lote, 10);
+        const key = `${loteKey}-${row.original.labor}`;
+        const presupuesto = presupuestoMap.get(key);
+        const jrPresup = presupuesto ? Number(presupuesto.jrnHa) : 0;
+        
+        const jhuHa = cumulativeJrHaMap.get(row.original.id) || 0;
+        
+        const saldo = jrPresup - jhuHa;
+        
+        const saldoClassName = saldo < 0 ? 'text-red-600 font-bold' : 'text-blue-600';
+        
+        return <span className={saldoClassName}>{saldo.toFixed(2)}</span>;
+    }},
     { header: 'N° Pasada', accessorKey: 'pass' },
     { header: 'JR/Ha', cell: ({ row }) => {
         const totalHaProdForLote = loteHaProdMap.get(row.original.lote) || 0;
@@ -551,3 +564,4 @@ export default function ActivityDatabasePage() {
     
 
     
+
