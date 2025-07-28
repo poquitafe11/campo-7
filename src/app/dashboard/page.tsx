@@ -3,7 +3,6 @@
 
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/PageHeader";
 import {
   Tractor,
   ShieldCheck,
@@ -55,8 +54,7 @@ const mainFeatures = [
 export default function DashboardPage() {
     return (
         <div className="flex flex-col h-full">
-            <PageHeader title="Áreas de Gestión" />
-            <main className="flex-grow p-4 sm:p-0">
+            <main className="flex-grow">
                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {mainFeatures.map((link) => (
                         <Link href={link.href} key={link.title} className="block group">

@@ -39,9 +39,9 @@ const navItems = [
   { href: '/production/activities/create', icon: ClipboardList, label: 'Registro de Actividades' },
 ];
 
-const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string; }) => {
+const NavItem = ({ href, icon: Icon, label, isMobile }: { href: string; icon: React.ElementType; label: string; isMobile?: boolean }) => {
   const pathname = usePathname();
-  return (
+  const LinkContent = () => (
     <Link
       href={href}
       className={cn(
@@ -53,14 +53,20 @@ const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.Elemen
       <span>{label}</span>
     </Link>
   );
+
+  if (isMobile) {
+    return <SheetClose asChild><LinkContent /></SheetClose>;
+  }
+  return <LinkContent />;
 };
+
 
 const MobileNavContent = () => {
   const { profile, logout } = useAuth();
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20">
-        <SheetTitle className="sr-only">Menu</SheetTitle>
+         <SheetTitle className="sr-only">Menu</SheetTitle>
         <div className="flex flex-col items-center p-2 space-y-2">
            <Avatar className="h-16 w-16 border-2 border-sidebar-accent">
             <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
@@ -74,9 +80,7 @@ const MobileNavContent = () => {
 
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => (
-          <SheetClose asChild key={item.href}>
-            <NavItem {...item} />
-          </SheetClose>
+          <NavItem {...item} key={item.href} isMobile />
         ))}
       </nav>
 
@@ -99,22 +103,31 @@ const MobileNavContent = () => {
 };
 
 const Header = () => {
+  const pathname = usePathname();
+  const isDashboard = pathname === '/dashboard';
+
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4">
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button variant="outline" size="icon">
-            <Menu className="h-6 w-6" />
-            <span className="sr-only">Abrir menú</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0">
-          <MobileNavContent />
-        </SheetContent>
-      </Sheet>
+      <div className="flex items-center gap-4">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Abrir menú</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 p-0">
+            <MobileNavContent />
+          </SheetContent>
+        </Sheet>
+        {isDashboard && (
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Áreas de Gestión</h1>
+        )}
+      </div>
     </header>
   );
 };
+
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
