@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
-import Link from 'next/link';
 import {
   ColumnDef,
   flexRender,
@@ -22,14 +21,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pencil, Trash2, Loader2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, FileDown, Filter, RefreshCcw, LayoutGrid, ArrowLeft } from 'lucide-react';
+import { Pencil, Trash2, Loader2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, FileDown, Filter, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteActivity } from './actions';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
-import { useRouter } from 'next/navigation';
 
 type ActivityRecordWithId = ActivityRecordData & { id: string };
 
@@ -42,7 +40,6 @@ const getInitialFilters = () => ({
 });
 
 export default function ActivityDatabasePage() {
-  const router = useRouter();
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -252,21 +249,28 @@ export default function ActivityDatabasePage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-       <header className="flex items-center justify-between mb-6 pb-4 border-b">
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => router.back()}>
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground ml-2">Base de Datos de Actividades</h1>
-            </div>
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => fetchData(true)} disabled={loading}>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+           <Input
+            placeholder="Buscar por labor, lote, campaña..."
+            value={popoverFilters.global}
+            onChange={(event) => {
+              const newGlobalFilter = event.target.value;
+              setPopoverFilters(prev => ({...prev, global: newGlobalFilter}));
+              setActiveFilters(prev => ({...prev, global: newGlobalFilter}));
+            }}
+            className="max-w-sm h-9"
+          />
+           <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={loading}>
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                    <span className="hidden sm:inline ml-2">Actualizar</span>
                 </Button>
                 <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                     <PopoverTrigger asChild>
-                        <Button variant="outline" size="icon">
+                        <Button variant="outline" size="sm">
                             <Filter className="h-4 w-4" />
+                             <span className="hidden sm:inline ml-2">Filtros</span>
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-64" align="end">
@@ -286,29 +290,11 @@ export default function ActivityDatabasePage() {
                         </div>
                     </PopoverContent>
                 </Popover>
-                <Button variant="outline" size="icon" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0}>
+                <Button variant="outline" size="sm" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0}>
                     <FileDown className="h-4 w-4" />
-                </Button>
-                 <Button variant="outline" size="icon" asChild>
-                    <Link href="/dashboard">
-                        <LayoutGrid className="h-4 w-4" />
-                    </Link>
+                     <span className="hidden sm:inline ml-2">Descargar</span>
                 </Button>
             </div>
-        </header>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-start">
-          <Input
-            placeholder="Buscar por labor, lote, campaña..."
-            value={popoverFilters.global}
-            onChange={(event) => {
-              const newGlobalFilter = event.target.value;
-              setPopoverFilters(prev => ({...prev, global: newGlobalFilter}));
-              setActiveFilters(prev => ({...prev, global: newGlobalFilter}));
-            }}
-            className="max-w-sm h-9"
-          />
         </div>
         <div className="rounded-md border">
             <Table>
@@ -372,5 +358,3 @@ export default function ActivityDatabasePage() {
     </div>
   );
 }
-
-    

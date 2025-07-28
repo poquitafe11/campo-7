@@ -2,9 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import Link from 'next/link';
 import {
-  ArrowLeft,
   Edit,
   Trash2,
   Calendar as CalendarIcon,
@@ -12,7 +10,6 @@ import {
   UserX,
   Filter,
   Loader2,
-  LayoutGrid
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -70,7 +67,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
 
 
 interface GroupedByLaborLot {
@@ -102,7 +98,6 @@ const getInitialFilters = () => ({
 });
 
 export default function AttendanceDatabasePage() {
-  const router = useRouter();
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
   const [dailyRecords, setDailyRecords] = useState<GroupedByDate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -322,24 +317,7 @@ export default function AttendanceDatabasePage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-        <h1 className="text-xl font-semibold">
-          Historial de Asistencia
-        </h1>
-        <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                <ArrowLeft className="h-5 w-5" />
-                <span className="sr-only">Volver</span>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-                <Link href="/dashboard">
-                    <LayoutGrid className="h-5 w-5" />
-                    <span className="sr-only">Menú Principal</span>
-                </Link>
-            </Button>
-        </div>
-      </header>
+    <div className="flex flex-1 flex-col bg-background">
       <main className="flex-1 p-4 sm:p-6">
         <Card>
           <CardHeader>

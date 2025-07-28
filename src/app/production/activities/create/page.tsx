@@ -1,14 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo, useTransition } from 'react';
-import Link from 'next/link';
+import { useEffect, useMemo, useTransition } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-  ArrowLeft,
   Calendar as CalendarIcon,
   Tag,
   Wrench,
@@ -145,18 +143,7 @@ export default function CreateActivityPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/20">
-      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/production/activities">
-              <ArrowLeft />
-              <span className="sr-only">Volver</span>
-            </Link>
-          </Button>
-          <h1 className="text-xl font-semibold font-headline">Nueva Ficha de Registro</h1>
-        </div>
-      </header>
+    <div className="flex flex-1 w-full flex-col bg-muted/20">
       <main className="flex-1 p-4 sm:p-6">
         <div className="mx-auto max-w-4xl">
           <Form {...form}>

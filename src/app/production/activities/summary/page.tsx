@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { PageHeaderWithNav } from "@/components/PageHeaderWithNav";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -15,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useMasterData } from '@/context/MasterDataContext';
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart, ResponsiveContainer, LabelList } from 'recharts';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -265,8 +264,6 @@ export default function ActivitySummaryPage() {
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <PageHeaderWithNav title="Resumen de Actividades" />
-            
             <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
                      <Button variant="ghost" size="sm" onClick={() => loadData(true)} disabled={isLoading} className="text-sm">
@@ -382,15 +379,9 @@ export default function ActivitySummaryPage() {
                                         <YAxis yAxisId="promedio" orientation="right" stroke="hsl(var(--chart-2))" hide={true} />
                                         <ChartTooltip content={<ChartTooltipContent />} />
                                         <Legend />
-                                        <Bar dataKey="jhu" yAxisId="jhu" fill="var(--color-jhu)" radius={4}>
-                                            <LabelList dataKey="jhu" position="top" offset={4} className="fill-foreground" fontSize={10} />
-                                        </Bar>
-                                        <Line type="monotone" dataKey="has" yAxisId="has" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)" }}>
-                                            <LabelList dataKey="has" position="top" offset={4} className="fill-foreground" fontSize={10} />
-                                        </Line>
-                                        <Line type="monotone" dataKey="promedio" yAxisId="promedio" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)" }}>
-                                            <LabelList dataKey="promedio" position="top" offset={4} className="fill-foreground" fontSize={10} />
-                                        </Line>
+                                        <Bar dataKey="jhu" yAxisId="jhu" fill="var(--color-jhu)" radius={4} />
+                                        <Line type="monotone" dataKey="has" yAxisId="has" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)" }} />
+                                        <Line type="monotone" dataKey="promedio" yAxisId="promedio" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)" }} />
                                     </ComposedChart>
                                 </ChartContainer>
                             </CardContent>

@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { PageHeader } from "@/components/PageHeader";
 import { PlusCircle, Pencil, Trash2, Loader2, UserX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -172,20 +171,16 @@ export default function UsersPage() {
   
   if (!canManageUsers) {
     return (
-      <>
-        <PageHeader title="Gestión de Usuarios" />
-        <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-muted/50">
-            <UserX className="h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">Acceso Denegado</h3>
-            <p className="mt-1 text-sm text-muted-foreground">No tienes permiso para gestionar usuarios.</p>
-        </div>
-      </>
+      <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-muted/50">
+          <UserX className="h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold">Acceso Denegado</h3>
+          <p className="mt-1 text-sm text-muted-foreground">No tienes permiso para gestionar usuarios.</p>
+      </div>
     )
   }
 
   return (
     <>
-      <PageHeader title="Gestión de Usuarios" />
       <div className="flex justify-end mb-4">
         <Button onClick={() => { setEditingUser(null); setFormOpen(true); }}>
           <PlusCircle className="mr-2 h-4 w-4" />

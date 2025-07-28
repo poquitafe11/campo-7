@@ -14,6 +14,7 @@ import {
   ClipboardList,
   LogOut,
   Menu,
+  ArrowLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,6 +40,28 @@ const navItems = [
   { href: '/production/activities/create', icon: ClipboardList, label: 'Registro de Actividades' },
 ];
 
+const pageTitles: { [key: string]: string } = {
+  '/dashboard': 'Áreas de Gestión',
+  '/maestro-lotes': 'Maestro de Lotes',
+  '/maestro-labores': 'Maestro de Labores',
+  '/asistentes': 'Gestión de Asistentes',
+  '/min-max': 'Maestro de Mínimos y Máximos',
+  '/presupuesto': 'Maestro de Presupuesto',
+  '/production': 'Producción',
+  '/production/activities': 'Registro de Actividades',
+  '/production/activities/create': 'Crear Ficha de Actividad',
+  '/production/activities/database': 'Base de Datos de Actividades',
+  '/production/activities/summary': 'Resumen de Actividades',
+  '/production/attendance': 'Asistencia de Personal',
+  '/production/attendance/daily-entry': 'Registro de Asistencia',
+  '/production/attendance/database': 'Historial de Asistencia',
+  '/production/attendance/summary': 'Resumen de Asistencia',
+  '/production/daily-report': 'Parte Diario',
+  '/production/daily-report/create': 'Crear Parte Diario',
+  '/users': 'Gestión de Usuarios',
+  '/maestros': 'Datos Maestros',
+};
+
 const NavItem = ({ href, icon: Icon, label, isMobile }: { href: string; icon: React.ElementType; label: string; isMobile?: boolean }) => {
   const pathname = usePathname();
   const LinkContent = () => (
@@ -60,14 +83,14 @@ const NavItem = ({ href, icon: Icon, label, isMobile }: { href: string; icon: Re
   return <LinkContent />;
 };
 
-
 const MobileNavContent = () => {
   const { profile, logout } = useAuth();
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20">
-         <SheetTitle className="sr-only">Menu</SheetTitle>
-        <div className="flex flex-col items-center p-2 space-y-2">
+      <SheetHeader className="sr-only">
+        <SheetTitle>Menu</SheetTitle>
+      </SheetHeader>
+        <div className="flex flex-col items-center p-4 space-y-2 border-b border-sidebar-muted-foreground/20">
            <Avatar className="h-16 w-16 border-2 border-sidebar-accent">
             <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
             <AvatarFallback className="text-2xl bg-primary/20 text-sidebar-foreground">
@@ -76,7 +99,6 @@ const MobileNavContent = () => {
           </Avatar>
           <h2 className="text-lg font-bold text-center">{profile?.nombre}</h2>
         </div>
-      </SheetHeader>
 
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => (
@@ -104,7 +126,9 @@ const MobileNavContent = () => {
 
 const Header = () => {
   const pathname = usePathname();
-  const isDashboard = pathname === '/dashboard';
+  const title = pageTitles[pathname] || 'Campo 7';
+  
+  const isSubPage = pathname !== '/dashboard';
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4">
@@ -120,10 +144,17 @@ const Header = () => {
             <MobileNavContent />
           </SheetContent>
         </Sheet>
-        {isDashboard && (
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Áreas de Gestión</h1>
-        )}
+        <h1 className="text-xl font-bold tracking-tight text-foreground">{title}</h1>
       </div>
+       {isSubPage && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" asChild>
+               <Link href="/dashboard">
+                  <LayoutGrid className="h-4 w-4" />
+               </Link>
+            </Button>
+        </div>
+       )}
     </header>
   );
 };

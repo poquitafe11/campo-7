@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-  ArrowLeft,
-  LayoutGrid,
   Calendar as CalendarIcon,
   Code,
   Wrench,
@@ -316,30 +313,9 @@ export default function RegistroAsistenciaPage() {
   const canAddAssistant = !!loteIdValue && !!laborValue;
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/production/attendance">
-              <ArrowLeft />
-              <span className="sr-only">Volver a Gestión de Asistencia</span>
-            </Link>
-          </Button>
-          <h1 className="text-lg font-semibold font-headline sm:text-xl">
-            Registro de Asistencia
-          </h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/dashboard">
-              <LayoutGrid />
-              <span className="sr-only">Volver al Dashboard</span>
-            </Link>
-          </Button>
-        </div>
-      </header>
-      <main className="flex flex-1 justify-center p-4 sm:p-6">
-        <div className="w-full max-w-5xl">
+    <div className="flex flex-1 flex-col bg-background">
+      <main className="flex-1 justify-center p-4 sm:p-6">
+        <div className="w-full max-w-5xl mx-auto">
            <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

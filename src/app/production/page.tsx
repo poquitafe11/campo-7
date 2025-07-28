@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PageHeader } from "@/components/PageHeader";
 import { ClipboardList, Users, PenSquare, LineChart } from "lucide-react";
 
 const productionFeatures = [
@@ -34,21 +33,18 @@ const productionFeatures = [
 
 export default function ProductionPage() {
   return (
-    <>
-      <PageHeader title="Producción" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {productionFeatures.map((feature) => (
-          <Link href={feature.href} key={feature.title} className="block group">
-            <Card className="h-full transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:border-primary/50">
-              <CardHeader>
-                <div className="mb-3">{feature.icon}</div>
-                <CardTitle>{feature.title}</CardTitle>
-                <CardDescription className="pt-1">{feature.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
-      </div>
-    </>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {productionFeatures.map((feature) => (
+        <Link href={feature.href} key={feature.title} className="block group">
+          <Card className="h-full transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:border-primary/50">
+            <CardHeader>
+              <div className="mb-3">{feature.icon}</div>
+              <CardTitle>{feature.title}</CardTitle>
+              <CardDescription className="pt-1">{feature.description}</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+      ))}
+    </div>
   );
 }

@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Loader2, Calendar as CalendarIcon, RefreshCcw, LayoutGrid } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
 import { format, differenceInDays, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -175,81 +174,55 @@ export default function AttendanceSummaryPage() {
   
   if (isLoading && !isClient) {
       return (
-          <div className="flex min-h-screen w-full flex-col bg-background">
-               <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-                <div className="flex items-center gap-2 sm:gap-4">
-                    <Button variant="ghost" size="icon" asChild>
-                        <Link href="/production/attendance">
-                        <ArrowLeft />
-                        <span className="sr-only">Volver a Gestión de Asistencia</span>
-                        </Link>
-                    </Button>
-                    <h1 className="flex-1 text-lg font-semibold font-headline sm:text-xl">Resumen de Asistencia</h1>
+           <div className="flex-1 p-4 sm:p-6">
+                <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-               </header>
-               <main className="flex-1 p-4 sm:p-6">
-                    <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-               </main>
-          </div>
+           </div>
       )
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/production/attendance">
-              <ArrowLeft />
-              <span className="sr-only">Volver a Gestión de Asistencia</span>
-            </Link>
-          </Button>
-           <div>
-              <h1 className="text-lg font-semibold font-headline sm:text-xl">Resumen de Asistencia</h1>
-           </div>
+    <div className="flex flex-1 flex-col bg-background">
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <h2 className="text-xl font-semibold">
+                Resumen Diario
+            </h2>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => loadData(true)} disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                <span className="ml-2 hidden sm:inline">Actualizar</span>
+                </Button>
+                <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                        id="date"
+                        variant={'outline'}
+                        size="sm"
+                        className={cn(
+                        'w-[240px] justify-start text-left font-normal',
+                        !selectedDate && 'text-muted-foreground'
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {isClient && selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                    {isClient && (
+                        <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        initialFocus
+                        locale={es}
+                        />
+                    )}
+                </PopoverContent>
+                </Popover>
+            </div>
         </div>
-        <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading} className="h-9 w-9">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-              <span className="sr-only">Actualizar</span>
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                  <Button
-                      id="date"
-                      variant={'outline'}
-                      className={cn(
-                      'w-[240px] justify-start text-left font-normal',
-                      !selectedDate && 'text-muted-foreground'
-                      )}
-                  >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {isClient && selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                  </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                  {isClient && (
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      initialFocus
-                      locale={es}
-                    />
-                  )}
-              </PopoverContent>
-            </Popover>
-            <Button variant="ghost" size="icon" asChild>
-                <Link href="/dashboard">
-                    <LayoutGrid className="h-5 w-5" />
-                    <span className="sr-only">Menú Principal</span>
-                </Link>
-            </Button>
-        </div>
-      </header>
-      <main className="flex-1 p-4 sm:p-6">
         <Card>
           <CardContent className="p-2">
           {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
@@ -361,7 +334,7 @@ export default function AttendanceSummaryPage() {
            )}
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }
