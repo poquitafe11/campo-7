@@ -12,9 +12,9 @@ import {
 } from '@tanstack/react-table';
 import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, getWeek, parseISO } from 'date-fns';
+import { format, getWeek, parseISO, differenceInDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ActivityRecordData, User } from '@/lib/types';
+import { ActivityRecordData, User, LoteData } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
+import { useMasterData } from '@/context/MasterDataContext';
 
 
 type ActivityRecordWithId = ActivityRecordData & { id: string };
@@ -65,6 +66,7 @@ export default function ActivityDatabasePage() {
   const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   
+  const { lotes, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
 
   const userMap = useMemo(() => {
@@ -75,6 +77,18 @@ export default function ActivityDatabasePage() {
     map.set('marcoromau@gmail.com', 'Marco Romau');
     return map;
   }, [users]);
+  
+  const lotesMap = useMemo(() => {
+    const map = new Map<string, LoteData>();
+    lotes.forEach(lote => {
+      // Assuming a unique identifier for lotes is `lote` number.
+      // If a single lot number can have multiple definitions, this needs adjustment.
+      if (!map.has(lote.lote)) {
+        map.set(lote.lote, lote);
+      }
+    });
+    return map;
+  }, [lotes]);
   
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -184,14 +198,20 @@ export default function ActivityDatabasePage() {
   
   const columns = useMemo<ColumnDef<ActivityRecordWithId>[]>(() => [
     { header: 'Año', cell: ({ row }) => format(row.original.registerDate, 'yyyy')},
-    { header: 'Mes', cell: ({ row }) => format(row.original.registerDate, 'LLL', { locale: es })},
-    { header: 'Dia', cell: ({ row }) => format(row.original.registerDate, 'E', { locale: es }) },
+    { header: 'Mes', cell: ({ row }) => format(row.original.registerDate, 'LLL', { locale: es }).replace('.','') },
+    { header: 'Dia', cell: ({ row }) => format(row.original.registerDate, 'E', { locale: es }).replace('.','') },
     { header: 'Sem.', cell: ({ row }) => getWeek(row.original.registerDate, { weekStartsOn: 1, locale: es })},
     { header: 'Fecha', cell: ({ row }) => format(row.original.registerDate, 'dd/MM/yyyy')},
     { header: 'PROYEC.', accessorKey: 'stage' },
     { header: 'CAMPAÑA', accessorKey: 'campaign' },
-    { header: 'DDC', cell: () => 'N/A' },
-    { header: 'var', cell: () => 'N/A' },
+    { header: 'DDC', cell: ({ row }) => {
+        const loteData = lotesMap.get(row.original.lote);
+        if (loteData && loteData.fechaCianamida && isValid(loteData.fechaCianamida) && isValid(row.original.registerDate)) {
+            return differenceInDays(row.original.registerDate, loteData.fechaCianamida);
+        }
+        return 'N/A';
+    }},
+    { header: 'var', cell: ({row}) => lotesMap.get(row.original.lote)?.variedad || 'N/A' },
     { header: 'Cod Lote', accessorKey: 'lote' },
     { header: 'COD. LABOR', accessorKey: 'code' },
     { header: 'Labor', accessorKey: 'labor' },
@@ -251,7 +271,7 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap]);
+  ], [userMap, lotesMap]);
 
   const table = useReactTable({
     data: filteredData,
@@ -294,140 +314,143 @@ export default function ActivityDatabasePage() {
         xlsx.writeFile(workbook, "BaseDeActividades.xlsx");
     }, [table, userMap]);
 
-  useEffect(() => {
-    setActions(
-      <>
-        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <Filter className="h-5 w-5" />
+    useEffect(() => {
+      const handleActions = () => {
+        setActions(
+          <>
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Filter className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                  <div className="grid gap-4">
+                      <div className="space-y-2"><h4 className="font-medium leading-none">Filtros Avanzados</h4></div>
+                      <div className="grid gap-2">
+                          <div className="grid grid-cols-3 items-center gap-4">
+                              <Label>Campaña</Label>
+                              <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                          </div>
+                          <div className="grid grid-cols-3 items-center gap-4">
+                              <Label>Lote</Label>
+                              <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                          </div>
+                            <div className="grid grid-cols-3 items-center gap-4">
+                              <Label>Labor</Label>
+                              <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                          </div>
+                           <div className="grid grid-cols-3 items-center gap-4">
+                              <Label>Pasada</Label>
+                              <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pasada: v === 'all' ? '' : v}))} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
+                          </div>
+                          <div className="grid grid-cols-1 items-center gap-2">
+                              <Label>Fecha</Label>
+                              <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button id="date" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-8', !popoverFilters.dateRange.from && 'text-muted-foreground' )}>
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es })} - {format(popoverFilters.dateRange.to, 'LLL dd, y', { locale: es })}</>) : (format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es }))) : (<span>Seleccione un rango</span>)}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar initialFocus mode="range" defaultMonth={popoverFilters.dateRange?.from} selected={popoverFilters.dateRange} onSelect={(range) => setPopoverFilters(p => ({...p, dateRange: range || {from: undefined, to: undefined}}))} numberOfMonths={1} locale={es} />
+                              </PopoverContent>
+                              </Popover>
+                          </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                          <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                          <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                      </div>
+                  </div>
+              </PopoverContent>
+            </Popover>
+            <Button variant="ghost" size="icon" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} className="h-9 w-9">
+              <FileDown className="h-5 w-5" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80" align="end">
-              <div className="grid gap-4">
-                  <div className="space-y-2"><h4 className="font-medium leading-none">Filtros Avanzados</h4></div>
-                  <div className="grid gap-2">
-                      <div className="grid grid-cols-3 items-center gap-4">
-                          <Label>Campaña</Label>
-                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                      <div className="grid grid-cols-3 items-center gap-4">
-                          <Label>Lote</Label>
-                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                        <div className="grid grid-cols-3 items-center gap-4">
-                          <Label>Labor</Label>
-                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                       <div className="grid grid-cols-3 items-center gap-4">
-                          <Label>Pasada</Label>
-                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pasada: v === 'all' ? '' : v}))} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                      <div className="grid grid-cols-1 items-center gap-2">
-                          <Label>Fecha</Label>
-                          <Popover>
-                          <PopoverTrigger asChild>
-                              <Button id="date" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-8', !popoverFilters.dateRange.from && 'text-muted-foreground' )}>
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es })} - {format(popoverFilters.dateRange.to, 'LLL dd, y', { locale: es })}</>) : (format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es }))) : (<span>Seleccione un rango</span>)}
-                              </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar initialFocus mode="range" defaultMonth={popoverFilters.dateRange?.from} selected={popoverFilters.dateRange} onSelect={(range) => setPopoverFilters(p => ({...p, dateRange: range || {from: undefined, to: undefined}}))} numberOfMonths={1} locale={es} />
-                          </PopoverContent>
-                          </Popover>
-                      </div>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-2">
-                      <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                      <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                  </div>
-              </div>
-          </PopoverContent>
-        </Popover>
-        <Button variant="ghost" size="icon" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} className="h-9 w-9">
-          <FileDown className="h-5 w-5" />
-        </Button>
-      </>
-    );
-    return () => setActions(null);
-  }, [setActions, isFilterOpen, popoverFilters, filterOptions, table, handleDownload, handleApplyFilters, handleClearFilters]);
+          </>
+        );
+      };
+      handleActions();
+      return () => setActions(null);
+    }, [setActions, isFilterOpen, popoverFilters, filterOptions, table, handleDownload, handleApplyFilters, handleClearFilters]);
 
   
-  return (
-    <div className="flex flex-col h-full space-y-4">
-      <Input
-          placeholder="Buscar por labor, lote, campaña..."
-          value={globalFilter}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="w-full sm:max-w-sm h-9"
-      />
+    return (
+      <div className="flex flex-col h-full space-y-4">
+        <Input
+            placeholder="Buscar por labor, lote, campaña..."
+            value={globalFilter}
+            onChange={(event) => setGlobalFilter(event.target.value)}
+            className="w-full sm:max-w-sm h-9"
+        />
+        
+        <div className="flex-1 rounded-lg border overflow-x-auto min-h-0">
+          <Table>
+              <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id} className="whitespace-nowrap px-3 py-2 text-xs">
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                  ))}
+                  </TableRow>
+              ))}
+              </TableHeader>
+              <TableBody>
+              {(loading || masterLoading) ? (
+                  <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
+              ) : table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="whitespace-nowrap px-3 py-2 text-xs">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>
+                  ))
+              ) : (
+                  <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No se encontraron registros.</TableCell></TableRow>
+              )}
+              </TableBody>
+          </Table>
+        </div>
+  
+        <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-muted-foreground">
+                  Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+              </span>
+            <div className="flex items-center gap-2">
+              <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+              >
+                  <ChevronLeft className="h-4 w-4 mr-1"/>
+                  Anterior
+              </Button>
+              <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+              >
+                  Siguiente
+                  <ChevronRight className="h-4 w-4 ml-1"/>
+              </Button>
+            </div>
+        </div>
+         {selectedActivity && (
+              <EditActivityDialog
+                  isOpen={isEditDialogOpen}
+                  onOpenChange={setIsEditDialogOpen}
+                  activity={selectedActivity}
+                  onSuccess={() => {
+                      setIsEditDialogOpen(false);
+                      setSelectedActivity(null);
+                  }}
+              />
+          )}
+      </div>
+    );
+  }
+  
       
-      <div className="flex-1 rounded-lg border overflow-x-auto min-h-0">
-        <Table>
-            <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="whitespace-nowrap px-3 py-2 text-xs">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                ))}
-                </TableRow>
-            ))}
-            </TableHeader>
-            <TableBody>
-            {loading ? (
-                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
-            ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="whitespace-nowrap px-3 py-2 text-xs">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>
-                ))
-            ) : (
-                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No se encontraron registros.</TableCell></TableRow>
-            )}
-            </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex items-center justify-between gap-2">
-            <span className="text-sm text-muted-foreground">
-                Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
-            </span>
-          <div className="flex items-center gap-2">
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-            >
-                <ChevronLeft className="h-4 w-4 mr-1"/>
-                Anterior
-            </Button>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-            >
-                Siguiente
-                <ChevronRight className="h-4 w-4 ml-1"/>
-            </Button>
-          </div>
-      </div>
-       {selectedActivity && (
-            <EditActivityDialog
-                isOpen={isEditDialogOpen}
-                onOpenChange={setIsEditDialogOpen}
-                activity={selectedActivity}
-                onSuccess={() => {
-                    setIsEditDialogOpen(false);
-                    setSelectedActivity(null);
-                }}
-            />
-        )}
-    </div>
-  );
-}
-
-    
