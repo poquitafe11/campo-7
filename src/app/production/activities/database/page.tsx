@@ -70,11 +70,19 @@ export default function ActivityDatabasePage() {
   const { setActions } = useHeaderActions();
 
   const userMap = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, User>();
     users.forEach(user => {
-        map.set(user.email, user.nombre);
+        map.set(user.email, user);
     });
-    map.set('marcoromau@gmail.com', 'Marco Romau');
+    // Add special admin user
+    map.set('marcoromau@gmail.com', {
+        email: 'marcoromau@gmail.com',
+        nombre: 'Marco Romau',
+        rol: 'Admin',
+        active: true,
+        dni: '00000000',
+        celular: '000000000'
+    });
     return map;
   }, [users]);
   
@@ -90,7 +98,7 @@ export default function ActivityDatabasePage() {
     return map;
   }, [lotes]);
   
-  const fetchData = useCallback(() => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     const q = query(collection(db, "actividades"), orderBy("registerDate", "desc"));
     
@@ -111,7 +119,7 @@ export default function ActivityDatabasePage() {
 
       try {
         const usersSnapshot = await getDocs(collection(db, "usuarios"));
-        const usersData = usersSnapshot.docs.map(doc => doc.data() as User);
+        const usersData = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as User);
         setUsers(usersData);
       } catch (userError) {
          console.error("Error fetching users: ", userError);
@@ -215,13 +223,18 @@ export default function ActivityDatabasePage() {
     { header: 'Cod Lote', accessorKey: 'lote' },
     { header: 'COD. LABOR', accessorKey: 'code' },
     { header: 'Labor', accessorKey: 'labor' },
-    { header: 'Asistente', cell: () => 'N/A' }, // Placeholder for now
+    { header: 'Asistente', cell: ({ row }) => {
+        const user = userMap.get(row.original.createdBy);
+        if (user && user.rol === 'Asistente') {
+            return user.nombre;
+        }
+        return 'N/A';
+    } },
     { header: 'JR presup.', cell: () => '0' },
     { header: 'JHU p.', cell: () => '0' },
     { header: 'Saldo', cell: () => '0' },
     { header: 'N° Pasada', accessorKey: 'pass' },
     { header: 'JR/Ha', cell: () => '0' },
-    // Duplicated 'Asistente' column in user prompt, interpreting as another placeholder or error for now.
     { header: 'Asistente', id: 'asistente_2', cell: () => 'N/A' }, 
     { header: 'und medida', cell: () => 'N/A' },
     { header: 'Rdto total', accessorKey: 'performance' },
@@ -242,7 +255,7 @@ export default function ActivityDatabasePage() {
     { header: 'Pago Neto Prom. / JHU', cell: () => '0' },
     { header: 'Costo Labor', cell: () => '0' },
     { header: 'Costo Empresa', cell: () => '0' },
-    { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy) || row.original.createdBy },
+    { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy)?.nombre || row.original.createdBy },
     {
       id: 'actions',
       header: 'Acciones',
@@ -305,7 +318,7 @@ export default function ActivityDatabasePage() {
                 Min: rest.minRange,
                 Max: rest.maxRange,
                 Observaciones: rest.observations,
-                Usuario: userMap.get(createdBy) || createdBy,
+                Usuario: userMap.get(createdBy)?.nombre || createdBy,
             };
         });
         const worksheet = xlsx.utils.json_to_sheet(dataToExport);
@@ -454,3 +467,5 @@ export default function ActivityDatabasePage() {
   }
   
       
+
+    
