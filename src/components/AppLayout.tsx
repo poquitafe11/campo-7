@@ -17,9 +17,7 @@ import {
   LogOut,
   Menu,
   ArrowLeft,
-  RefreshCcw,
   ChevronRight,
-  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,10 +29,9 @@ import {
   SheetTrigger,
   SheetClose,
   SheetHeader,
+  SheetTitle,
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Calendar } from './ui/calendar';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
@@ -102,6 +99,7 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
     return (
       <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
          <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20 text-left">
+            <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12 border-2 border-sidebar-accent">
                   <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
@@ -143,44 +141,10 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
 const Header = () => {
     const pathname = usePathname();
     const router = useRouter();
-    const searchParams = useSearchParams();
     const title = pageTitles[pathname] || 'Campo 7';
     const isDashboard = pathname === '/dashboard';
-    const isAttendanceSummary = pathname === '/production/attendance/summary';
-
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const { actions } = useHeaderActions();
-
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  
-    useEffect(() => {
-      if (isAttendanceSummary) {
-        const dateParam = searchParams.get('date');
-        if (dateParam && isValid(parseISO(dateParam))) {
-          setSelectedDate(parseISO(dateParam));
-        } else {
-          const today = new Date();
-          setSelectedDate(today);
-          const newPath = `${pathname}?date=${format(today, 'yyyy-MM-dd')}`;
-          router.replace(newPath, { scroll: false });
-        }
-      }
-    }, [isAttendanceSummary, pathname, searchParams, router]);
-  
-    const handleDateChange = (date: Date | undefined) => {
-      setSelectedDate(date);
-      if (date) {
-        const newPath = `${pathname}?date=${format(date, 'yyyy-MM-dd')}`;
-        router.replace(newPath, { scroll: false });
-      }
-    };
-    
-    const handleRefresh = () => {
-      if (selectedDate) {
-          const newPath = `${pathname}?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${new Date().getTime()}`;
-          router.replace(newPath, { scroll: false });
-      }
-    }
   
     return (
         <header className="sticky top-0 z-40 flex flex-col items-center border-b bg-background">
@@ -204,44 +168,12 @@ const Header = () => {
                         </Button>
                     )}
 
-                    {isAttendanceSummary ? (
-                       <div className="flex flex-col">
-                            <h1 className="text-sm font-semibold leading-tight">Resumen de</h1>
-                            <h1 className="text-sm font-semibold leading-tight">Asistencia</h1>
-                       </div>
-                    ) : (
-                      <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
+                    <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
                         {title}
-                      </h1>
-                    )}
+                    </h1>
                 </div>
 
                 <div className="flex items-center gap-1">
-                 {isAttendanceSummary && (
-                    <>
-                      <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-9 w-9 shrink-0">
-                        <RefreshCcw className="h-5 w-5" />
-                      </Button>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button id="date" variant={'ghost'} className={cn('w-auto justify-start text-left font-normal h-9 px-2 gap-1')}>
-                            <span>{selectedDate ? format(selectedDate, 'dd LLL, yyyy', { locale: es }) : <span>Elige fecha</span>}</span>
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="end">
-                          <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={handleDateChange}
-                            initialFocus
-                            locale={es}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </>
-                 )}
-                 
-                 {/* This div will render the actions set by the child page */}
                  {actions}
 
                  <Button variant="ghost" size="icon" asChild className="h-9 w-9">
