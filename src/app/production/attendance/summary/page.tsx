@@ -185,43 +185,37 @@ export default function AttendanceSummaryPage() {
   return (
     <div className="flex flex-1 flex-col bg-background">
       <div className="p-4 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold">
-                Resumen Diario
-            </h2>
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => loadData(true)} disabled={isLoading}>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => loadData(true)} disabled={isLoading}>
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                <span className="ml-2 hidden sm:inline">Actualizar</span>
-                </Button>
-                <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        id="date"
-                        variant={'outline'}
-                        size="sm"
-                        className={cn(
-                        'w-[240px] justify-start text-left font-normal',
-                        !selectedDate && 'text-muted-foreground'
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {isClient && selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                    {isClient && (
-                        <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        initialFocus
-                        locale={es}
-                        />
+            </Button>
+            <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    id="date"
+                    variant={'outline'}
+                    size="sm"
+                    className={cn(
+                    'w-[240px] justify-start text-left font-normal',
+                    !selectedDate && 'text-muted-foreground'
                     )}
-                </PopoverContent>
-                </Popover>
-            </div>
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {isClient && selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+                {isClient && (
+                    <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                    locale={es}
+                    />
+                )}
+            </PopoverContent>
+            </Popover>
         </div>
         <Card>
           <CardContent className="p-2">
