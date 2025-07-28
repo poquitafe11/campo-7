@@ -42,54 +42,57 @@ const navItems = [
 const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string; }) => {
   const pathname = usePathname();
   return (
-    <SheetClose asChild>
-      <Link
-        href={href}
-        className={cn(
-          'flex items-center gap-4 rounded-lg px-4 py-3 text-base font-medium transition-all hover:bg-sidebar-accent',
-          pathname === href ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted-foreground'
-        )}
-      >
-        <Icon className="h-5 w-5" />
-        <span>{label}</span>
-      </Link>
-    </SheetClose>
+    <Link
+      href={href}
+      className={cn(
+        'flex items-center gap-4 rounded-lg px-4 py-3 text-base font-medium transition-all hover:bg-sidebar-accent',
+        pathname === href ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted-foreground'
+      )}
+    >
+      <Icon className="h-5 w-5" />
+      <span>{label}</span>
+    </Link>
   );
 };
 
-const NavContent = () => {
+const MobileNavContent = () => {
   const { profile, logout } = useAuth();
-
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <div className="flex flex-col items-center p-6 space-y-4">
-        <Avatar className="h-20 w-20 border-2 border-primary">
-          <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
-          <AvatarFallback className="text-3xl bg-primary/20 text-primary-foreground">
-            {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
-          </AvatarFallback>
-        </Avatar>
-        <h2 className="text-xl font-bold text-center">{profile?.nombre}</h2>
-      </div>
+      <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20">
+        <SheetTitle className="sr-only">Menu</SheetTitle>
+        <div className="flex flex-col items-center p-2 space-y-2">
+           <Avatar className="h-16 w-16 border-2 border-sidebar-accent">
+            <AvatarImage src={profile?.fotoURL || ''} alt={profile?.nombre} />
+            <AvatarFallback className="text-2xl bg-primary/20 text-sidebar-foreground">
+              {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <h2 className="text-lg font-bold text-center">{profile?.nombre}</h2>
+        </div>
+      </SheetHeader>
 
-      <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => (
-          <NavItem key={item.href} {...item} />
+          <SheetClose asChild key={item.href}>
+            <NavItem {...item} />
+          </SheetClose>
         ))}
       </nav>
 
-      <div className="mt-auto p-6 space-y-4">
+      <div className="mt-auto p-4 space-y-4 border-t border-sidebar-muted-foreground/20">
         <ConnectionStatus />
-        <hr className="border-sidebar-muted-foreground/20" />
         <div className="text-sm text-sidebar-muted-foreground">Rol: {profile?.rol}</div>
-        <Button
-          onClick={logout}
-          variant="ghost"
-          className="w-full justify-start p-0 text-base font-medium h-auto hover:bg-transparent hover:text-sidebar-foreground text-sidebar-muted-foreground"
-        >
-          <LogOut className="mr-4 h-5 w-5" />
-          Cerrar Sesión
-        </Button>
+        <SheetClose asChild>
+          <Button
+            onClick={logout}
+            variant="ghost"
+            className="w-full justify-start p-0 text-base font-medium h-auto hover:bg-transparent hover:text-sidebar-foreground text-sidebar-muted-foreground"
+          >
+            <LogOut className="mr-4 h-5 w-5" />
+            Cerrar Sesión
+          </Button>
+        </SheetClose>
       </div>
     </div>
   );
@@ -97,7 +100,7 @@ const NavContent = () => {
 
 const Header = () => {
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4">
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon">
@@ -106,13 +109,9 @@ const Header = () => {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0">
-          <SheetHeader>
-            <SheetTitle className="sr-only">Menú Principal</SheetTitle>
-          </SheetHeader>
-          <NavContent />
+          <MobileNavContent />
         </SheetContent>
       </Sheet>
-      {/* You can add other header elements here if needed, like the app title */}
     </header>
   );
 };
