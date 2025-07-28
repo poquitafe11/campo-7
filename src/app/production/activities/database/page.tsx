@@ -30,7 +30,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { PageHeader } from '@/components/PageHeader';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
@@ -153,7 +152,6 @@ export default function ActivityDatabasePage() {
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
-        // Global text filter
         const lowerGlobalFilter = globalFilter.toLowerCase();
         const matchesGlobal = globalFilter ? 
             (item.labor?.toLowerCase().includes(lowerGlobalFilter) || 
@@ -161,7 +159,6 @@ export default function ActivityDatabasePage() {
              item.campaign?.toLowerCase().includes(lowerGlobalFilter))
             : true;
 
-        // Advanced filters
         const matchesCampaign = activeFilters.campaign ? item.campaign === activeFilters.campaign : true;
         const matchesLote = activeFilters.lote ? item.lote === activeFilters.lote : true;
         const matchesLabor = activeFilters.labor ? item.labor === activeFilters.labor : true;
@@ -177,97 +174,6 @@ export default function ActivityDatabasePage() {
         return matchesGlobal && matchesCampaign && matchesLote && matchesLabor && matchesPasada && matchesDate;
     });
   }, [data, globalFilter, activeFilters]);
-
-  const handleDownload = () => {
-      const dataToExport = table.getRowModel().rows.map(row => {
-          const { id, createdBy, ...rest } = row.original;
-          return {
-              Fecha: format(rest.registerDate, 'dd/MM/yyyy'),
-              Campaña: rest.campaign,
-              Etapa: rest.stage,
-              Lote: rest.lote,
-              'Cód.': rest.code,
-              Labor: rest.labor,
-              Rendimiento: rest.performance,
-              '# Pers.': rest.personnelCount,
-              '# Jorn.': rest.workdayCount,
-              'Costo (S/)': rest.cost,
-              Turno: rest.shift,
-              Pasada: rest.pass,
-              Min: rest.minRange,
-              Max: rest.maxRange,
-              Observaciones: rest.observations,
-              Usuario: userMap.get(createdBy) || createdBy,
-          };
-      });
-      const worksheet = xlsx.utils.json_to_sheet(dataToExport);
-      const workbook = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(workbook, worksheet, "Actividades");
-      xlsx.writeFile(workbook, "BaseDeActividades.xlsx");
-  };
-
-  // Set header actions for this page
-  useEffect(() => {
-    setActions(
-      <>
-        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <Filter className="h-5 w-5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80" align="end">
-              <div className="grid gap-4">
-                  <div className="space-y-2"><h4 className="font-medium leading-none">Filtros Avanzados</h4></div>
-                  <div className="grid gap-2">
-                      <div className="grid grid-cols-3 items-center gap-4">
-                          <Label>Campaña</Label>
-                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                      <div className="grid grid-cols-3 items-center gap-4">
-                          <Label>Lote</Label>
-                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                        <div className="grid grid-cols-3 items-center gap-4">
-                          <Label>Labor</Label>
-                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                       <div className="grid grid-cols-3 items-center gap-4">
-                          <Label>Pasada</Label>
-                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pasada: v === 'all' ? '' : v}))} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                      <div className="grid grid-cols-1 items-center gap-2">
-                          <Label>Fecha</Label>
-                          <Popover>
-                          <PopoverTrigger asChild>
-                              <Button id="date" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-8', !popoverFilters.dateRange.from && 'text-muted-foreground' )}>
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd, y')} - {format(popoverFilters.dateRange.to, 'LLL dd, y')}</>) : (format(popoverFilters.dateRange.from, 'LLL dd, y'))) : (<span>Seleccione un rango</span>)}
-                              </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar initialFocus mode="range" defaultMonth={popoverFilters.dateRange?.from} selected={popoverFilters.dateRange} onSelect={(range) => setPopoverFilters(p => ({...p, dateRange: range || {from: undefined, to: undefined}}))} numberOfMonths={1} locale={es} />
-                          </PopoverContent>
-                          </Popover>
-                      </div>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-2">
-                      <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                      <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                  </div>
-              </div>
-          </PopoverContent>
-        </Popover>
-        <Button variant="ghost" size="icon" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} className="h-9 w-9">
-          <FileDown className="h-5 w-5" />
-        </Button>
-      </>
-    );
-
-    // Cleanup on unmount
-    return () => setActions(null);
-  }, [setActions, isFilterOpen, popoverFilters, filterOptions, table.getRowModel().rows.length]);
-
 
   const columns = useMemo<ColumnDef<ActivityRecordWithId>[]>(() => [
     {
@@ -346,6 +252,96 @@ export default function ActivityDatabasePage() {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
+
+  const handleDownload = () => {
+    const dataToExport = table.getRowModel().rows.map(row => {
+        const { id, createdBy, ...rest } = row.original;
+        return {
+            Fecha: format(rest.registerDate, 'dd/MM/yyyy'),
+            Campaña: rest.campaign,
+            Etapa: rest.stage,
+            Lote: rest.lote,
+            'Cód.': rest.code,
+            Labor: rest.labor,
+            Rendimiento: rest.performance,
+            '# Pers.': rest.personnelCount,
+            '# Jorn.': rest.workdayCount,
+            'Costo (S/)': rest.cost,
+            Turno: rest.shift,
+            Pasada: rest.pass,
+            Min: rest.minRange,
+            Max: rest.maxRange,
+            Observaciones: rest.observations,
+            Usuario: userMap.get(createdBy) || createdBy,
+        };
+    });
+    const worksheet = xlsx.utils.json_to_sheet(dataToExport);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Actividades");
+    xlsx.writeFile(workbook, "BaseDeActividades.xlsx");
+  };
+  
+  // Set header actions for this page
+  useEffect(() => {
+    setActions(
+      <>
+        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <Filter className="h-5 w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+              <div className="grid gap-4">
+                  <div className="space-y-2"><h4 className="font-medium leading-none">Filtros Avanzados</h4></div>
+                  <div className="grid gap-2">
+                      <div className="grid grid-cols-3 items-center gap-4">
+                          <Label>Campaña</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                      <div className="grid grid-cols-3 items-center gap-4">
+                          <Label>Lote</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label>Labor</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                       <div className="grid grid-cols-3 items-center gap-4">
+                          <Label>Pasada</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pasada: v === 'all' ? '' : v}))} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                      <div className="grid grid-cols-1 items-center gap-2">
+                          <Label>Fecha</Label>
+                          <Popover>
+                          <PopoverTrigger asChild>
+                              <Button id="date" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-8', !popoverFilters.dateRange.from && 'text-muted-foreground' )}>
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es })} - {format(popoverFilters.dateRange.to, 'LLL dd, y', { locale: es })}</>) : (format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es }))) : (<span>Seleccione un rango</span>)}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar initialFocus mode="range" defaultMonth={popoverFilters.dateRange?.from} selected={popoverFilters.dateRange} onSelect={(range) => setPopoverFilters(p => ({...p, dateRange: range || {from: undefined, to: undefined}}))} numberOfMonths={1} locale={es} />
+                          </PopoverContent>
+                          </Popover>
+                      </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                      <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                  </div>
+              </div>
+          </PopoverContent>
+        </Popover>
+        <Button variant="ghost" size="icon" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} className="h-9 w-9">
+          <FileDown className="h-5 w-5" />
+        </Button>
+      </>
+    );
+
+    // Cleanup on unmount
+    return () => setActions(null);
+  }, [setActions, isFilterOpen, popoverFilters, filterOptions, table.getRowModel().rows.length]);
   
   return (
     <div className="w-full space-y-4">
