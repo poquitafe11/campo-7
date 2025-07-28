@@ -5,6 +5,8 @@ import { useEffect, useMemo, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,
@@ -27,28 +29,19 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ActivityRecordData, LoteData } from '@/lib/types';
+import { ActivityRecordData, ActivityRecordSchema, LoteData } from '@/lib/types';
 import { useMasterData } from '@/context/MasterDataContext';
 import { updateActivity } from '@/app/production/activities/database/actions';
-import { Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { cn } from '@/lib/utils';
 
 
-const EditActivityFormSchema = z.object({
-  campaign: z.string().min(1, "La campaña es requerida."),
-  stage: z.string().min(1, "La etapa es requerida."),
-  lote: z.string().min(1, "El lote es requerido."),
-  code: z.string().optional(),
-  labor: z.string().optional(),
-  performance: z.coerce.number(),
-  personnelCount: z.coerce.number().int().min(1, "Debe haber al menos una persona."),
-  workdayCount: z.coerce.number(),
-  cost: z.coerce.number(),
-  shift: z.string().min(1, "El turno es requerido."),
-  minRange: z.coerce.number(),
-  maxRange: z.coerce.number(),
-  pass: z.coerce.number(),
-  observations: z.string().optional(),
+const EditActivityFormSchema = ActivityRecordSchema.partial().extend({
+  registerDate: z.date({required_error: "La fecha es requerida."}),
 });
+
 type EditActivityFormValues = z.infer<typeof EditActivityFormSchema>;
 
 interface EditActivityDialogProps {
@@ -90,21 +83,19 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
 
   useEffect(() => {
     if (activity && isOpen) {
+        let registerDate;
+        if (activity.registerDate instanceof Date) {
+            registerDate = activity.registerDate;
+        } else if (typeof activity.registerDate === 'string') {
+            registerDate = parseISO(activity.registerDate);
+        } else {
+             // Fallback for Firestore Timestamp
+            registerDate = (activity.registerDate as any).toDate ? (activity.registerDate as any).toDate() : new Date();
+        }
+
       form.reset({
-        campaign: activity.campaign,
-        stage: activity.stage,
-        lote: activity.lote,
-        code: activity.code,
-        labor: activity.labor,
-        performance: activity.performance,
-        personnelCount: activity.personnelCount,
-        workdayCount: activity.workdayCount,
-        cost: activity.cost,
-        shift: activity.shift,
-        minRange: activity.minRange,
-        maxRange: activity.maxRange,
-        pass: activity.pass,
-        observations: activity.observations,
+        ...activity,
+        registerDate,
       });
     }
   }, [activity, isOpen, form]);
@@ -136,11 +127,39 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
         <DialogHeader>
           <DialogTitle>Editar Ficha de Actividad</DialogTitle>
           <DialogDescription>
-            Modifica los detalles del registro de actividad. La fecha y el usuario creador no se pueden cambiar.
+            Modifica los detalles del registro de actividad.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+            
+            <FormField
+              control={form.control}
+              name="registerDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de Registro</FormLabel>
+                   <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={es} />
+                      </PopoverContent>
+                    </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                <FormField control={form.control} name="campaign" render={({ field }) => (
                 <FormItem>

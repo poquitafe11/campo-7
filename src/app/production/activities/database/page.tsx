@@ -12,7 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format } from 'date-fns';
+import { format, getWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ActivityRecordData, User } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -83,7 +83,14 @@ export default function ActivityDatabasePage() {
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const recordsData = snapshot.docs.map(doc => {
         const docData = doc.data();
-        const registerDate = docData.registerDate?.toDate ? docData.registerDate.toDate() : new Date();
+        let registerDate: Date;
+        if (docData.registerDate?.toDate) {
+            registerDate = docData.registerDate.toDate();
+        } else if (typeof docData.registerDate === 'string') {
+            registerDate = parseISO(docData.registerDate);
+        } else {
+            registerDate = new Date();
+        }
         return { ...docData, id: doc.id, registerDate } as ActivityRecordWithId;
       });
       setData(recordsData);
@@ -176,41 +183,46 @@ export default function ActivityDatabasePage() {
   }, [data, globalFilter, activeFilters]);
   
   const columns = useMemo<ColumnDef<ActivityRecordWithId>[]>(() => [
-    {
-      accessorKey: 'registerDate',
-      header: 'Fecha',
-      cell: ({ row }) => format(row.original.registerDate, 'dd/MM/yyyy', { locale: es }),
-    },
-    { accessorKey: 'campaign', header: 'Campaña' },
-    { accessorKey: 'stage', header: 'Etapa' },
-    { accessorKey: 'lote', header: 'Lote' },
-    { accessorKey: 'code', header: 'Cód.' },
-    { 
-      accessorKey: 'labor', 
-      header: 'Labor',
-      cell: ({ row }) => <div className="min-w-[200px] truncate">{row.original.labor}</div>
-    },
-    { accessorKey: 'performance', header: 'Rendimiento' },
-    { accessorKey: 'personnelCount', header: '# Pers.' },
-    { accessorKey: 'workdayCount', header: '# Jorn.' },
-    { 
-      accessorKey: 'cost', 
-      header: 'Costo (S/)',
-      cell: ({ row }) => `S/ ${row.original.cost.toFixed(2)}`
-    },
-    { accessorKey: 'shift', header: 'Turno' },
-    { accessorKey: 'pass', header: 'Pasada' },
-    { accessorKey: 'minRange', header: 'Min' },
-    { accessorKey: 'maxRange', header: 'Max' },
-    { 
-        accessorKey: 'createdBy', 
-        header: 'Usuario',
-        cell: ({ row }) => {
-            const email = row.original.createdBy;
-            const name = userMap.get(email);
-            return <div className="min-w-[150px] truncate">{name || email}</div>
-        }
-    },
+    { header: 'Año', cell: ({ row }) => format(row.original.registerDate, 'yyyy')},
+    { header: 'Mes', cell: ({ row }) => format(row.original.registerDate, 'MM')},
+    { header: 'Dia', cell: ({ row }) => format(row.original.registerDate, 'dd')},
+    { header: 'Sem.', cell: ({ row }) => getWeek(row.original.registerDate, { weekStartsOn: 1, locale: es })},
+    { header: 'Fecha', cell: ({ row }) => format(row.original.registerDate, 'dd/MM/yyyy')},
+    { header: 'PROYEC.', cell: () => 'N/A' },
+    { header: 'CAMPAÑA', accessorKey: 'campaign' },
+    { header: 'DDC', cell: () => 'N/A' },
+    { header: 'var', cell: () => 'N/A' },
+    { header: 'Cod Lote', accessorKey: 'lote' },
+    { header: 'COD. LABOR', accessorKey: 'code' },
+    { header: 'Labor', accessorKey: 'labor' },
+    { header: 'Asistente', cell: () => 'N/A' }, // Placeholder for now
+    { header: 'JR presup.', cell: () => '0' },
+    { header: 'JHU p.', cell: () => '0' },
+    { header: 'Saldo', cell: () => '0' },
+    { header: 'N° Pasada', accessorKey: 'pass' },
+    { header: 'JR/Ha', cell: () => '0' },
+    // Duplicated 'Asistente' column in user prompt, interpreting as another placeholder or error for now.
+    { header: 'Asistente', id: 'asistente_2', cell: () => 'N/A' }, 
+    { header: 'und medida', cell: () => 'N/A' },
+    { header: 'Rdto total', accessorKey: 'performance' },
+    { header: 'Area Avanzada', cell: () => '0' },
+    { header: 'Racimo o jabas', cell: () => '0' },
+    { header: 'Min Estab.', accessorKey: 'minRange' },
+    { header: 'Max Estab.', accessorKey: 'maxRange' },
+    { header: 'Min', cell: () => '0' },
+    { header: 'Max', cell: () => '0' },
+    { header: 'Personas', accessorKey: 'personnelCount' },
+    { header: 'JHU', accessorKey: 'workdayCount' },
+    { header: 'Costo Plta, Jaba, Racimo', accessorKey: 'cost' },
+    { header: 'TURNO', accessorKey: 'shift' },
+    { header: 'Prom./ Jhu', cell: () => '0' },
+    { header: 'Prom./ Persona', cell: () => '0' },
+    { header: 'costo por planta', cell: () => '0' },
+    { header: 'costo plta emp.', cell: () => '0' },
+    { header: 'Pago Neto Prom. / JHU', cell: () => '0' },
+    { header: 'Costo Labor', cell: () => '0' },
+    { header: 'Costo Empresa', cell: () => '0' },
+    { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy) || row.original.createdBy },
     {
       id: 'actions',
       header: 'Acciones',
@@ -357,7 +369,7 @@ export default function ActivityDatabasePage() {
             {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="whitespace-nowrap px-3 py-2">
+                    <TableHead key={header.id} className="whitespace-nowrap px-3 py-2 text-xs">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                 ))}
@@ -369,7 +381,7 @@ export default function ActivityDatabasePage() {
                 <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
             ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="whitespace-nowrap px-3 py-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>
+                <TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="whitespace-nowrap px-3 py-2 text-xs">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>
                 ))
             ) : (
                 <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No se encontraron registros.</TableCell></TableRow>

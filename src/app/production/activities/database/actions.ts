@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 
 // We only need to allow updating a subset of fields.
 // The ID, creation date, and creator should not be changed.
-const UpdateActivityRecordSchema = ActivityRecordSchema.partial().omit({ createdBy: true, registerDate: true});
+const UpdateActivityRecordSchema = ActivityRecordSchema.partial().omit({ createdBy: true });
 type UpdateActivityRecordData = z.infer<typeof UpdateActivityRecordSchema>;
 
 
@@ -20,7 +20,11 @@ export async function updateActivity(id: string, values: UpdateActivityRecordDat
     
     const docRef = doc(db, 'actividades', id);
     
-    await updateDoc(docRef, validatedData);
+    await updateDoc(docRef, {
+      ...validatedData,
+      // Ensure date is a Firestore-compatible format if it's being updated
+      ...(validatedData.registerDate ? { registerDate: validatedData.registerDate } : {}),
+    });
     
     revalidatePath('/production/activities/database');
     return { success: true, message: 'Actividad actualizada correctamente.' };

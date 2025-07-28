@@ -151,7 +151,7 @@ export type NewUser = z.infer<typeof NewUserSchema>;
 
 // Registro de Actividades (Parte Diario)
 export const ActivityRecordSchema = z.object({
-    registerDate: z.date(),
+    registerDate: z.date({required_error: "La fecha es requerida."}),
     campaign: z.string().min(1, "La campaña es requerida."),
     stage: z.string().min(1, "La etapa es requerida."),
     lote: z.string().min(1, "El lote es requerido."),
