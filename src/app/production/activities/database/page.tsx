@@ -8,19 +8,17 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
-  ColumnFiltersState,
-  VisibilityState,
+  getFilteredRowModel,
 } from '@tanstack/react-table';
 import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import * as xlsx from "xlsx";
 import { ActivityRecordData, User } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Pencil, Trash2, Loader2, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteActivity } from './actions';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
@@ -36,19 +34,7 @@ export default function ActivityDatabasePage() {
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecordWithId | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  
   const [globalFilter, setGlobalFilter] = useState('');
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-      // Hide columns by default on mobile
-      performance: false,
-      cost: false,
-      shift: false,
-      minRange: false,
-      maxRange: false,
-      createdBy: false,
-      workdayCount: false,
-      personnelCount: false
-  });
 
   const userMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -60,7 +46,7 @@ export default function ActivityDatabasePage() {
     return map;
   }, [users]);
   
-  const fetchData = useCallback((showToast = false) => {
+  const fetchData = useCallback(() => {
     setLoading(true);
     const q = query(collection(db, "actividades"), orderBy("registerDate", "desc"));
     
@@ -181,27 +167,16 @@ export default function ActivityDatabasePage() {
     },
   ], [userMap]);
 
-  const filteredData = useMemo(() => {
-    const filterText = globalFilter.toLowerCase();
-    if (!filterText) return data;
-
-    return data.filter(item => {
-      return (item.labor?.toLowerCase().includes(filterText) || 
-              item.lote?.toLowerCase().includes(filterText) ||
-              item.campaign?.toLowerCase().includes(filterText));
-    });
-  }, [data, globalFilter]);
-
   const table = useReactTable({
-    data: filteredData,
+    data,
     columns,
     state: {
         globalFilter,
-        columnVisibility,
     },
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
   });
   
   return (
