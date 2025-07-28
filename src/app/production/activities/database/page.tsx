@@ -350,8 +350,9 @@ export default function ActivityDatabasePage() {
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="w-full sm:max-w-sm h-9"
       />
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
+      
+      <div className="rounded-lg border overflow-x-auto">
+        <Table className="min-w-max">
             <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
