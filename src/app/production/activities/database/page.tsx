@@ -338,7 +338,6 @@ export default function ActivityDatabasePage() {
         </Button>
       </>
     );
-    // Cleanup on unmount
     return () => setActions(null);
   }, [setActions, isFilterOpen, popoverFilters, filterOptions, table, handleDownload, handleApplyFilters, handleClearFilters]);
 
