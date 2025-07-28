@@ -20,6 +20,7 @@ import {
   RefreshCcw,
   Power,
   ChevronRight,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,7 +32,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose
+  SheetClose,
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -182,77 +183,80 @@ const Header = () => {
     }
   
     return (
-      <header className="sticky top-0 z-40 flex flex-col border-b bg-background px-2 sm:px-4 py-2 gap-2">
-        {/* Fila Superior */}
-        <div className="flex w-full items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Abrir menú</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-0">
-                 <MobileNavContent closeSheet={() => setIsSheetOpen(false)} />
-              </SheetContent>
-            </Sheet>
-            <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
-              {title}
-            </h1>
-          </div>
-          <div className="w-full sm:max-w-xs">
-            {isAttendanceSummary && <Input className="h-9" placeholder="" />}
-          </div>
-        </div>
-        
-        {/* Fila Inferior (Controles) */}
-        <div className="flex w-full items-center justify-between gap-2">
-          <div className='flex items-center gap-2'>
-            {isAttendanceSummary && (
-               <>
-                 <Button variant="outline" size="icon" onClick={handleRefresh} className="h-9 w-9 shrink-0">
-                    <RefreshCcw className="h-5 w-5" />
-                 </Button>
-                 <Popover>
-                  <PopoverTrigger asChild>
-                      <Button
-                          id="date"
-                          variant={'outline'}
-                          className={cn('w-auto justify-start text-left font-normal h-9 px-3')}
-                      >
-                        {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Elige fecha</span>}
-                      </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={handleDateChange}
-                          initialFocus
-                          locale={es}
-                          />
-                  </PopoverContent>
-                 </Popover>
-               </>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {!isDashboard && (
-              <>
-                <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <Button variant="outline" size="icon" asChild className="h-9 w-9">
-                  <Link href="/dashboard">
-                    <LayoutGrid className="h-5 w-5" />
-                  </Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+      <header className="sticky top-0 z-40 flex h-auto flex-col items-center border-b bg-background px-4 py-2">
+        {isAttendanceSummary ? (
+            <div className="flex w-full items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
+                        <ArrowLeft className="h-6 w-6" />
+                    </Button>
+                    <div>
+                        <h1 className="text-base font-semibold leading-tight">Resumen de</h1>
+                        <h1 className="text-base font-semibold leading-tight">Asistencia</h1>
+                    </div>
+                </div>
+                <div className="flex items-center gap-1">
+                     <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-9 w-9 shrink-0">
+                        <RefreshCcw className="h-5 w-5" />
+                     </Button>
+                     <Popover>
+                      <PopoverTrigger asChild>
+                          <Button id="date" variant={'ghost'} className={cn('w-auto justify-start text-left font-normal h-9 px-2 gap-1')}>
+                            <CalendarIcon className="h-5 w-5" />
+                            {selectedDate ? format(selectedDate, 'dd LLL yyyy', { locale: es }) : <span>Elige fecha</span>}
+                          </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                              <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={handleDateChange}
+                              initialFocus
+                              locale={es}
+                              />
+                      </PopoverContent>
+                     </Popover>
+                     <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+                      <Link href="/dashboard">
+                        <LayoutGrid className="h-5 w-5" />
+                      </Link>
+                    </Button>
+                </div>
+            </div>
+        ) : (
+            <div className="flex w-full items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                    <SheetTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Abrir menú</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-72 p-0">
+                        <MobileNavContent closeSheet={() => setIsSheetOpen(false)} />
+                    </SheetContent>
+                    </Sheet>
+                    <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
+                    {title}
+                    </h1>
+                </div>
+                <div className="flex items-center gap-2">
+                {!isDashboard && (
+                <>
+                    <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9">
+                    <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <Button variant="outline" size="icon" asChild className="h-9 w-9">
+                    <Link href="/dashboard">
+                        <LayoutGrid className="h-5 w-5" />
+                    </Link>
+                    </Button>
+                </>
+                )}
+                </div>
+            </div>
+        )}
       </header>
     );
   };
