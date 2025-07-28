@@ -25,6 +25,8 @@ import { cn } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
@@ -32,13 +34,12 @@ import ConnectionStatus from './ConnectionStatus';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
-  { href: '/maestro-lotes', icon: Box, label: 'Maestro de Lotes' },
-  { href: '/maestro-labores', icon: Layers, label: 'Maestro de Labores' },
-  { href: '/asistentes', icon: Users, label: 'Maestro de Asistentes' },
+  { href: '/maestro-lotes', icon: Box, label: 'Lotes' },
+  { href: '/maestro-labores', icon: Layers, label: 'Labores' },
+  { href: '/asistentes', icon: Users, label: 'Asistentes' },
   { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
   { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
   { href: '/production/activities/create', icon: ClipboardList, label: 'Registro de Actividades' },
-  { href: '/users', icon: Settings, label: 'Usuarios' },
 ];
 
 const NavItem = ({ href, icon: Icon, label, isMobile }: { href: string; icon: React.ElementType; label: string; isMobile: boolean }) => {
@@ -116,6 +117,9 @@ const Header = () => {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0">
+          <SheetHeader>
+            <SheetTitle className="sr-only">Menú Principal</SheetTitle>
+          </SheetHeader>
           <NavContent isMobile={true} />
         </SheetContent>
       </Sheet>
