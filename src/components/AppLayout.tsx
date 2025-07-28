@@ -122,7 +122,10 @@ const MobileNavContent = () => {
                     {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
                     </AvatarFallback>
                 </Avatar>
-                <span className="text-lg font-bold">{profile?.nombre}</span>
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold">{profile?.nombre}</span>
+                  <span className="text-xs text-sidebar-muted-foreground font-normal">Rol: {profile?.rol}</span>
+                </div>
              </SheetTitle>
         </SheetHeader>
 
@@ -134,9 +137,6 @@ const MobileNavContent = () => {
 
       <div className="mt-auto p-4 space-y-4 border-t border-sidebar-muted-foreground/20">
         <ConnectionStatus />
-        <div className="text-sm text-sidebar-muted-foreground">
-          Rol: {profile?.rol}
-        </div>
         <SheetClose asChild>
           <Button
             onClick={logout}
@@ -168,7 +168,7 @@ const Header = () => {
       const dateParam = searchParams.get('date');
       if (dateParam && isValid(parseISO(dateParam))) {
         setSelectedDate(parseISO(dateParam));
-      } else {
+      } else if (!dateParam){
         setSelectedDate(new Date());
       }
     }
@@ -191,12 +191,12 @@ const Header = () => {
 
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-40 flex h-auto min-h-16 flex-wrap items-center justify-between border-b bg-background px-4 py-2 gap-2">
+      <div className="flex items-center gap-2">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Menu className="h-6 w-6" />
+            <Button variant="outline" size="icon" className="h-9 w-9">
+              <Menu className="h-5 w-5" />
               <span className="sr-only">Abrir menú</span>
             </Button>
           </SheetTrigger>
@@ -204,29 +204,25 @@ const Header = () => {
             <MobileNavContent />
           </SheetContent>
         </Sheet>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">
+        <h1 className="text-lg font-bold tracking-tight text-foreground">
           {title}
         </h1>
       </div>
       <div className="flex items-center gap-2">
         {isAttendanceSummary && (
            <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-                <RefreshCcw className="h-4 w-4" />
+             <Button variant="outline" size="icon" onClick={handleRefresh} className="h-9 w-9">
+                <RefreshCcw className="h-5 w-5" />
             </Button>
             <Popover>
             <PopoverTrigger asChild>
                 <Button
                     id="date"
                     variant={'outline'}
-                    size="sm"
-                    className={cn(
-                    'w-[240px] justify-start text-left font-normal',
-                    !selectedDate && 'text-muted-foreground'
-                    )}
+                    size="icon"
+                    className="h-9 w-9"
                 >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                    <CalendarIcon className="h-5 w-5" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
@@ -243,12 +239,12 @@ const Header = () => {
         )}
         {!isDashboard && (
           <>
-            <Button variant="outline" size="icon" onClick={() => router.back()}>
-              <ArrowLeft className="h-4 w-4" />
+            <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9">
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            <Button variant="outline" size="icon" asChild>
+            <Button variant="outline" size="icon" asChild className="h-9 w-9">
               <Link href="/dashboard">
-                <LayoutGrid className="h-4 w-4" />
+                <LayoutGrid className="h-5 w-5" />
               </Link>
             </Button>
           </>
