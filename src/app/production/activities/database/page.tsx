@@ -41,13 +41,13 @@ export default function ActivityDatabasePage() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
       // Hide columns by default on mobile
       performance: false,
-      personnelCount: false,
-      workdayCount: false,
       cost: false,
       shift: false,
       minRange: false,
       maxRange: false,
       createdBy: false,
+      workdayCount: false,
+      personnelCount: false
   });
 
   const userMap = useMemo(() => {
@@ -182,12 +182,13 @@ export default function ActivityDatabasePage() {
   ], [userMap]);
 
   const filteredData = useMemo(() => {
+    const filterText = globalFilter.toLowerCase();
+    if (!filterText) return data;
+
     return data.filter(item => {
-      const globalFilter = globalFilter.toLowerCase();
-      return globalFilter ? 
-        (item.labor?.toLowerCase().includes(globalFilter) || 
-         item.lote?.toLowerCase().includes(globalFilter) ||
-         item.campaign?.toLowerCase().includes(globalFilter)) : true;
+      return (item.labor?.toLowerCase().includes(filterText) || 
+              item.lote?.toLowerCase().includes(filterText) ||
+              item.campaign?.toLowerCase().includes(filterText));
     });
   }, [data, globalFilter]);
 
