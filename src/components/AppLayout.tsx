@@ -1,10 +1,10 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { format, parseISO, isValid } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   LayoutGrid,
@@ -18,6 +18,8 @@ import {
   Menu,
   ArrowLeft,
   ChevronRight,
+  RefreshCcw,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,14 +28,15 @@ import { cn } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
-  SheetTrigger,
   SheetClose,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
-
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
@@ -141,52 +144,107 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
 const Header = () => {
     const pathname = usePathname();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    
     const title = pageTitles[pathname] || 'Campo 7';
-    const isDashboard = pathname === '/dashboard';
+    const isAttendanceSummary = pathname === '/production/attendance/summary';
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const { actions } = useHeaderActions();
-  
-    return (
-        <header className="sticky top-0 z-40 flex flex-col items-center border-b bg-background">
-            <div className="flex w-full items-center justify-between px-4 py-2">
-                <div className="flex items-center gap-2">
-                    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                    <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
-                        <Menu className="h-5 w-5" />
-                        <span className="sr-only">Abrir menú</span>
+
+    const selectedDateParam = searchParams.get('date');
+    const selectedDate = selectedDateParam ? new Date(selectedDateParam) : new Date();
+
+    const handleDateSelect = (date: Date | undefined) => {
+        if (date) {
+            const newPath = `${pathname}?date=${format(date, 'yyyy-MM-dd')}`;
+            router.push(newPath);
+        }
+    };
+    
+    const handleRefresh = () => {
+       const currentDate = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd');
+       router.push(`${pathname}?date=${currentDate}&refresh=${new Date().getTime()}`);
+    };
+
+    const renderDefaultHeader = () => (
+        <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-2 border-b bg-background">
+            <div className="flex items-center gap-2">
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Abrir menú</span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-72 p-0">
+                    <MobileNavContent closeSheet={() => setIsSheetOpen(false)} />
+                </SheetContent>
+                </Sheet>
+                
+                {pathname !== '/dashboard' && (
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
+                    <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                )}
+
+                <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
+                    {title}
+                </h1>
+            </div>
+
+            <div className="flex items-center gap-1">
+             {actions}
+             <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+                <Link href="/dashboard">
+                    <LayoutGrid className="h-5 w-5" />
+                </Link>
+            </Button>
+            </div>
+        </header>
+    );
+
+    const renderAttendanceSummaryHeader = () => (
+        <header className="sticky top-0 z-40 flex items-center justify-between px-2 py-2 border-b bg-background">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
+                <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex flex-col items-center">
+                <span className="text-sm font-medium">Resumen de</span>
+                <span className="text-lg font-bold -mt-1">Asistencia</span>
+            </div>
+            <div className="flex items-center gap-1">
+                 <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-9 w-9">
+                    <RefreshCcw className="h-5 w-5" />
+                </Button>
+                 <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" className="h-9 px-2 gap-1">
+                            <CalendarIcon className="h-5 w-5" />
+                            <span className="text-xs">{format(selectedDate, 'd MMM yyyy', { locale: es })}</span>
                         </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-72 p-0">
-                        <MobileNavContent closeSheet={() => setIsSheetOpen(false)} />
-                    </SheetContent>
-                    </Sheet>
-                    
-                     {!isDashboard && (
-                        <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
-                        <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                    )}
-
-                    <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
-                        {title}
-                    </h1>
-                </div>
-
-                <div className="flex items-center gap-1">
-                 {actions}
-
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateSelect}
+                            initialFocus
+                            locale={es}
+                        />
+                    </PopoverContent>
+                </Popover>
                  <Button variant="ghost" size="icon" asChild className="h-9 w-9">
                     <Link href="/dashboard">
                         <LayoutGrid className="h-5 w-5" />
                     </Link>
                 </Button>
-                </div>
             </div>
-      </header>
+        </header>
     );
-  };
 
+    return isAttendanceSummary ? renderAttendanceSummaryHeader() : renderDefaultHeader();
+};
+  
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 

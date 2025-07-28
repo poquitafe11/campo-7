@@ -46,11 +46,11 @@ function AttendanceSummaryContent() {
   const refreshParam = searchParams.get('refresh'); 
 
   const selectedDate = useMemo(() => {
+    // Default to today if no date is in the URL
     if (selectedDateParam && isValid(parseISO(selectedDateParam))) {
       return parseISO(selectedDateParam);
     }
-    // Return null or a default if the param is missing or invalid
-    return null;
+    return new Date();
   }, [selectedDateParam]);
 
   const loadData = useCallback(async () => {
@@ -90,7 +90,7 @@ function AttendanceSummaryContent() {
   
   useEffect(() => {
     loadData();
-  }, [loadData, refreshParam]); // Re-run when refreshParam changes
+  }, [loadData, refreshParam, selectedDate]); 
 
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
