@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
 import {
   Tractor,
@@ -56,8 +56,8 @@ export default function DashboardPage() {
     return (
         <div className="flex flex-col h-full">
             <PageHeader title="Áreas de Gestión" />
-            <main className="flex-grow p-4 sm:p-6">
-               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+            <main className="flex-grow p-4 sm:p-0">
+               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {mainFeatures.map((link) => (
                         <Link href={link.href} key={link.title} className="block group">
                             <Card className="h-32 sm:h-36 transition-all duration-200 ease-in-out hover:shadow-lg hover:-translate-y-1 hover:border-primary/30">
