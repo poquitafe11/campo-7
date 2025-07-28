@@ -281,7 +281,6 @@ export default function ActivityDatabasePage() {
     xlsx.writeFile(workbook, "BaseDeActividades.xlsx");
   };
   
-  // Set header actions for this page
   useEffect(() => {
     setActions(
       <>
@@ -339,9 +338,9 @@ export default function ActivityDatabasePage() {
       </>
     );
 
-    // Cleanup on unmount
     return () => setActions(null);
-  }, [setActions, isFilterOpen, popoverFilters, filterOptions, table.getRowModel().rows.length]);
+  }, [setActions, isFilterOpen, popoverFilters, filterOptions, table, handleDownload, handleApplyFilters, handleClearFilters]);
+
   
   return (
     <div className="w-full space-y-4">
