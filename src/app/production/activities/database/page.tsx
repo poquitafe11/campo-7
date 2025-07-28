@@ -90,13 +90,18 @@ export default function ActivityDatabasePage() {
   const lotesMap = useMemo(() => {
     const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
-      // Assuming a unique identifier for lotes is `lote` number.
-      // If a single lot number can have multiple definitions, this needs adjustment.
-      if (!map.has(lote.lote)) {
-        map.set(lote.lote, lote);
-      }
+        map.set(lote.id, lote);
     });
     return map;
+  }, [lotes]);
+
+  const loteHaProdMap = useMemo(() => {
+    const haProdByLote = new Map<string, number>();
+    lotes.forEach(lote => {
+      const currentHa = haProdByLote.get(lote.lote) || 0;
+      haProdByLote.set(lote.lote, currentHa + (lote.haProd || 0));
+    });
+    return haProdByLote;
   }, [lotes]);
   
   const presupuestoMap = useMemo(() => {
@@ -264,7 +269,9 @@ export default function ActivityDatabasePage() {
         return 'N/A';
     } },
     { header: 'JR presup.', cell: ({ row }) => {
-        const loteKey = parseInt(row.original.lote, 10);
+        const loteData = lotesMap.get(row.original.lote);
+        if (!loteData) return '0';
+        const loteKey = parseInt(loteData.lote, 10);
         const key = `${loteKey}-${row.original.labor}`;
         const presupuesto = presupuestoMap.get(key);
         return presupuesto ? presupuesto.jrnHa : '0';
@@ -272,7 +279,15 @@ export default function ActivityDatabasePage() {
     { header: 'JHU p.', cell: () => '0' },
     { header: 'Saldo', cell: () => '0' },
     { header: 'N° Pasada', accessorKey: 'pass' },
-    { header: 'JR/Ha', cell: () => '0' },
+    { header: 'JR/Ha', cell: ({ row }) => {
+        const loteData = lotesMap.get(row.original.lote);
+        if (!loteData) return '0.00';
+        const totalHaProd = loteHaProdMap.get(loteData.lote) || 0;
+        if (totalHaProd === 0) return '0.00';
+        const jhu = row.original.workdayCount || 0;
+        const result = jhu / totalHaProd;
+        return result.toFixed(2);
+    }},
     { header: 'und medida', cell: () => 'N/A' },
     { header: 'Rdto total', accessorKey: 'performance' },
     { header: 'Area Avanzada', cell: () => '0' },
@@ -321,7 +336,7 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap, lotesMap, presupuestoMap]);
+  ], [userMap, lotesMap, presupuestoMap, loteHaProdMap]);
 
   const table = useReactTable({
     data: filteredData,
@@ -508,3 +523,6 @@ export default function ActivityDatabasePage() {
     
 
 
+
+
+    
