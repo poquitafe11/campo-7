@@ -1,9 +1,10 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -18,7 +19,6 @@ import {
   Menu,
   ArrowLeft,
   RefreshCcw,
-  Power,
   ChevronRight,
   Calendar as CalendarIcon,
 } from 'lucide-react';
@@ -30,14 +30,11 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
-  SheetTitle,
-  SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
-import { Input } from './ui/input';
 
 
 const navItems = [
@@ -149,10 +146,19 @@ const Header = () => {
     const title = pageTitles[pathname] || 'Campo 7';
     const isDashboard = pathname === '/dashboard';
     const isAttendanceSummary = pathname === '/production/attendance/summary';
+    const isActivitiesDatabase = pathname === '/production/activities/database';
+
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    
+    const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
+
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   
+    useEffect(() => {
+      // Find the portal div from the child page and store it in state
+      const portalDiv = document.querySelector('[data-el="header-actions"]');
+      setHeaderActions(portalDiv as HTMLDivElement | null);
+    }, [pathname]); // Rerun when path changes
+
     useEffect(() => {
       if (isAttendanceSummary) {
         const dateParam = searchParams.get('date');
@@ -184,51 +190,11 @@ const Header = () => {
   
     return (
       <header className="sticky top-0 z-40 flex h-auto flex-col items-center border-b bg-background px-4 py-2">
-        {isAttendanceSummary ? (
-            <div className="flex w-full items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
-                        <ArrowLeft className="h-6 w-6" />
-                    </Button>
-                    <div>
-                        <h1 className="text-base font-semibold leading-tight">Resumen de</h1>
-                        <h1 className="text-base font-semibold leading-tight">Asistencia</h1>
-                    </div>
-                </div>
-                <div className="flex items-center gap-1">
-                     <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-9 w-9 shrink-0">
-                        <RefreshCcw className="h-5 w-5" />
-                     </Button>
-                     <Popover>
-                      <PopoverTrigger asChild>
-                          <Button id="date" variant={'ghost'} className={cn('w-auto justify-start text-left font-normal h-9 px-2 gap-1')}>
-                            <CalendarIcon className="h-5 w-5" />
-                            {selectedDate ? format(selectedDate, 'dd LLL yyyy', { locale: es }) : <span>Elige fecha</span>}
-                          </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                              <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={handleDateChange}
-                              initialFocus
-                              locale={es}
-                              />
-                      </PopoverContent>
-                     </Popover>
-                     <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-                      <Link href="/dashboard">
-                        <LayoutGrid className="h-5 w-5" />
-                      </Link>
-                    </Button>
-                </div>
-            </div>
-        ) : (
             <div className="flex w-full items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                     <SheetTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
                         <Menu className="h-5 w-5" />
                         <span className="sr-only">Abrir menú</span>
                         </Button>
@@ -237,26 +203,59 @@ const Header = () => {
                         <MobileNavContent closeSheet={() => setIsSheetOpen(false)} />
                     </SheetContent>
                     </Sheet>
-                    <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
-                    {title}
-                    </h1>
+                    
+                    {isAttendanceSummary ? (
+                       <div>
+                            <h1 className="text-base font-semibold leading-tight">Resumen de</h1>
+                            <h1 className="text-base font-semibold leading-tight">Asistencia</h1>
+                       </div>
+                    ) : (
+                      <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
+                        {title}
+                      </h1>
+                    )}
+
                 </div>
-                <div className="flex items-center gap-2">
-                {!isDashboard && (
-                <>
-                    <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9">
-                    <ArrowLeft className="h-5 w-5" />
+                <div className="flex items-center gap-1">
+                 {!isDashboard && (
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
+                      <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <Button variant="outline" size="icon" asChild className="h-9 w-9">
+                  )}
+                 {isAttendanceSummary && (
+                    <>
+                      <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-9 w-9 shrink-0">
+                        <RefreshCcw className="h-5 w-5" />
+                      </Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button id="date" variant={'ghost'} className={cn('w-auto justify-start text-left font-normal h-9 px-2 gap-1')}>
+                            <CalendarIcon className="h-5 w-5" />
+                            {selectedDate ? format(selectedDate, 'dd LLL, yyyy', { locale: es }) : <span>Elige fecha</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateChange}
+                            initialFocus
+                            locale={es}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </>
+                 )}
+                 {isActivitiesDatabase && headerActions && createPortal(headerActions.children, document.body.querySelector(`[data-el-id="header-portal-${pathname.replace(/\//g, '')}"]`)!)}
+                 <Button variant="ghost" size="icon" asChild className="h-9 w-9">
                     <Link href="/dashboard">
                         <LayoutGrid className="h-5 w-5" />
                     </Link>
-                    </Button>
-                </>
-                )}
+                </Button>
+                {/* Portal target for page-specific actions */}
+                <div data-el-id={`header-portal-${pathname.replace(/\//g, '')}`} className="flex items-center gap-1" />
                 </div>
             </div>
-        )}
       </header>
     );
   };
