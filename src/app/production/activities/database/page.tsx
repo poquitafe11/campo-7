@@ -184,11 +184,11 @@ export default function ActivityDatabasePage() {
   
   const columns = useMemo<ColumnDef<ActivityRecordWithId>[]>(() => [
     { header: 'Año', cell: ({ row }) => format(row.original.registerDate, 'yyyy')},
-    { header: 'Mes', cell: ({ row }) => format(row.original.registerDate, 'MM')},
-    { header: 'Dia', cell: ({ row }) => format(row.original.registerDate, 'dd')},
+    { header: 'Mes', cell: ({ row }) => format(row.original.registerDate, 'LLL', { locale: es })},
+    { header: 'Dia', cell: ({ row }) => format(row.original.registerDate, 'E', { locale: es }) },
     { header: 'Sem.', cell: ({ row }) => getWeek(row.original.registerDate, { weekStartsOn: 1, locale: es })},
     { header: 'Fecha', cell: ({ row }) => format(row.original.registerDate, 'dd/MM/yyyy')},
-    { header: 'PROYEC.', cell: () => 'N/A' },
+    { header: 'PROYEC.', accessorKey: 'stage' },
     { header: 'CAMPAÑA', accessorKey: 'campaign' },
     { header: 'DDC', cell: () => 'N/A' },
     { header: 'var', cell: () => 'N/A' },
@@ -429,3 +429,5 @@ export default function ActivityDatabasePage() {
     </div>
   );
 }
+
+    
