@@ -252,7 +252,7 @@ export default function ActivityDatabasePage() {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
-
+  
   const handleDownload = useCallback(() => {
     const dataToExport = table.getRowModel().rows.map(row => {
         const { id, createdBy, ...rest } = row.original;
@@ -280,7 +280,7 @@ export default function ActivityDatabasePage() {
     xlsx.utils.book_append_sheet(workbook, worksheet, "Actividades");
     xlsx.writeFile(workbook, "BaseDeActividades.xlsx");
   }, [table, userMap]);
-  
+
   useEffect(() => {
     setActions(
       <>
@@ -338,7 +338,6 @@ export default function ActivityDatabasePage() {
       </>
     );
 
-    // Cleanup on unmount
     return () => setActions(null);
   }, [setActions, isFilterOpen, popoverFilters, filterOptions, table, handleDownload, handleApplyFilters, handleClearFilters]);
 
@@ -352,7 +351,7 @@ export default function ActivityDatabasePage() {
           className="w-full sm:max-w-sm h-9"
       />
       <div className="overflow-x-auto rounded-lg border">
-        <Table className="min-w-max">
+        <Table>
             <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -417,5 +416,3 @@ export default function ActivityDatabasePage() {
     </div>
   );
 }
-
-    
