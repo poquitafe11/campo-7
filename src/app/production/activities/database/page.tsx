@@ -273,7 +273,6 @@ export default function ActivityDatabasePage() {
     { header: 'Saldo', cell: () => '0' },
     { header: 'N° Pasada', accessorKey: 'pass' },
     { header: 'JR/Ha', cell: () => '0' },
-    { header: 'Asistente', id: 'asistente_2', cell: () => 'N/A' }, 
     { header: 'und medida', cell: () => 'N/A' },
     { header: 'Rdto total', accessorKey: 'performance' },
     { header: 'Area Avanzada', cell: () => '0' },
@@ -507,4 +506,5 @@ export default function ActivityDatabasePage() {
       
 
     
+
 
