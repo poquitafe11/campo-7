@@ -17,7 +17,6 @@ import {
   LogOut,
   Menu,
   ArrowLeft,
-  Calendar as CalendarIcon,
   RefreshCcw,
   Power,
   ChevronRight,
@@ -31,13 +30,14 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
-  SheetClose,
   SheetTrigger,
+  SheetClose
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
+import { Input } from './ui/input';
+
 
 const navItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
@@ -77,22 +77,24 @@ const NavItem = ({ href, icon: Icon, label, closeSheet }: { href: string; icon: 
     const isActive = pathname === href;
   
     return (
-      <Link
-        href={href}
-        onClick={closeSheet}
-        className={cn(
-          'flex items-center justify-between rounded-lg px-4 py-3 text-base font-medium transition-colors',
-          isActive
-            ? 'bg-sidebar-accent text-sidebar-foreground'
-            : 'text-sidebar-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
-        )}
-      >
-        <div className="flex items-center gap-4">
-            <Icon className="h-5 w-5" />
-            <span>{label}</span>
-        </div>
-        <ChevronRight className="h-5 w-5" />
-      </Link>
+      <SheetClose asChild>
+        <Link
+          href={href}
+          onClick={closeSheet}
+          className={cn(
+            'flex items-center justify-between rounded-lg px-4 py-3 text-base font-medium transition-colors',
+            isActive
+              ? 'bg-sidebar-accent text-sidebar-foreground'
+              : 'text-sidebar-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+          )}
+        >
+          <div className="flex items-center gap-4">
+              <Icon className="h-5 w-5" />
+              <span>{label}</span>
+          </div>
+          <ChevronRight className="h-5 w-5" />
+        </Link>
+      </SheetClose>
     );
   };
   
@@ -156,7 +158,6 @@ const Header = () => {
         if (dateParam && isValid(parseISO(dateParam))) {
           setSelectedDate(parseISO(dateParam));
         } else {
-          // If no date is in URL, set it to today and update the URL
           const today = new Date();
           setSelectedDate(today);
           const newPath = `${pathname}?date=${format(today, 'yyyy-MM-dd')}`;
@@ -181,63 +182,76 @@ const Header = () => {
     }
   
     return (
-      <header className="sticky top-0 z-40 flex h-auto min-h-[4rem] flex-wrap items-center justify-between border-b bg-background px-2 sm:px-4 py-2 gap-2">
-        <div className="flex items-center gap-2">
-          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Abrir menú</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
-               <MobileNavContent closeSheet={() => setIsSheetOpen(false)} />
-            </SheetContent>
-          </Sheet>
-          <h1 className="text-lg font-bold tracking-tight text-foreground">
-            {title}
-          </h1>
+      <header className="sticky top-0 z-40 flex flex-col border-b bg-background px-2 sm:px-4 py-2 gap-2">
+        {/* Fila Superior */}
+        <div className="flex w-full items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Abrir menú</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-0">
+                 <MobileNavContent closeSheet={() => setIsSheetOpen(false)} />
+              </SheetContent>
+            </Sheet>
+            <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
+              {title}
+            </h1>
+          </div>
+          <div className="w-full sm:max-w-xs">
+            {isAttendanceSummary && <Input className="h-9" placeholder="" />}
+          </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          {isAttendanceSummary && (
-             <div className="flex items-center gap-1 sm:gap-2">
-               <Button variant="outline" size="icon" onClick={handleRefresh} className="h-9 w-9 shrink-0">
-                  <RefreshCcw className="h-5 w-5" />
-              </Button>
-              <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        id="date"
-                        variant={'outline'}
-                        className={cn('w-auto justify-start text-left font-normal h-9 px-3')}
-                    >
-                       {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Elige fecha</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={handleDateChange}
-                        initialFocus
-                        locale={es}
-                        />
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-          {!isDashboard && (
-            <>
-              <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="icon" asChild className="h-9 w-9">
-                <Link href="/dashboard">
-                  <LayoutGrid className="h-5 w-5" />
-                </Link>
-              </Button>
-            </>
-          )}
+        
+        {/* Fila Inferior (Controles) */}
+        <div className="flex w-full items-center justify-between gap-2">
+          <div className='flex items-center gap-2'>
+            {isAttendanceSummary && (
+               <>
+                 <Button variant="outline" size="icon" onClick={handleRefresh} className="h-9 w-9 shrink-0">
+                    <RefreshCcw className="h-5 w-5" />
+                 </Button>
+                 <Popover>
+                  <PopoverTrigger asChild>
+                      <Button
+                          id="date"
+                          variant={'outline'}
+                          className={cn('w-auto justify-start text-left font-normal h-9 px-3')}
+                      >
+                        {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Elige fecha</span>}
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={handleDateChange}
+                          initialFocus
+                          locale={es}
+                          />
+                  </PopoverContent>
+                 </Popover>
+               </>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {!isDashboard && (
+              <>
+                <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <Button variant="outline" size="icon" asChild className="h-9 w-9">
+                  <Link href="/dashboard">
+                    <LayoutGrid className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </header>
     );
