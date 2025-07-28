@@ -7,9 +7,9 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
-  getFilteredRowModel,
   useReactTable,
   ColumnFiltersState,
+  VisibilityState,
 } from '@tanstack/react-table';
 import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -20,24 +20,13 @@ import { ActivityRecordData, User } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pencil, Trash2, Loader2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, FileDown, Filter, RefreshCcw } from 'lucide-react';
+import { Pencil, Trash2, Loader2, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteActivity } from './actions';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Label } from '@/components/ui/label';
 
 type ActivityRecordWithId = ActivityRecordData & { id: string };
-
-const getInitialFilters = () => ({
-  campaign: '',
-  lote: '',
-  labor: '',
-  pasada: '',
-  global: ''
-});
 
 export default function ActivityDatabasePage() {
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
@@ -48,17 +37,18 @@ export default function ActivityDatabasePage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   
-  const [activeFilters, setActiveFilters] = useState(getInitialFilters());
-  const [popoverFilters, setPopoverFilters] = useState(getInitialFilters());
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-  const filterOptions = useMemo(() => {
-    const campaigns = [...new Set(data.map(a => a.campaign))].sort();
-    const lotes = [...new Set(data.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-    const labors = [...new Set(data.map(a => a.labor).filter(Boolean) as string[])].sort();
-    const pasadas = [...new Set(data.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-    return { campaigns, lotes, labors, pasadas };
-  }, [data]);
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+      // Hide columns by default on mobile
+      performance: false,
+      personnelCount: false,
+      workdayCount: false,
+      cost: false,
+      shift: false,
+      minRange: false,
+      maxRange: false,
+      createdBy: false,
+  });
 
   const userMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -89,16 +79,8 @@ export default function ActivityDatabasePage() {
         setUsers(usersData);
       } catch (userError) {
          console.error("Error fetching users: ", userError);
-         toast({
-          title: "Error",
-          description: "No se pudieron cargar los nombres de los usuarios.",
-          variant: "destructive"
-        });
       }
       setLoading(false);
-      if (showToast) {
-        toast({ title: 'Éxito', description: 'Datos actualizados correctamente.' });
-      }
 
     }, (error) => {
       console.error("Error fetching data from Firestore: ", error);
@@ -146,7 +128,7 @@ export default function ActivityDatabasePage() {
     { 
       accessorKey: 'labor', 
       header: 'Labor',
-      cell: ({ row }) => <div className="min-w-[250px]">{row.original.labor}</div>
+      cell: ({ row }) => <div className="min-w-[200px] truncate">{row.original.labor}</div>
     },
     { accessorKey: 'performance', header: 'Rendimiento' },
     { accessorKey: 'personnelCount', header: '# Pers.' },
@@ -173,13 +155,13 @@ export default function ActivityDatabasePage() {
       id: 'actions',
       header: 'Acciones',
       cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEdit(row.original)}>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(row.original)}>
             <Pencil className="h-4 w-4" />
           </Button>
           <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/90">
                     <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -201,146 +183,85 @@ export default function ActivityDatabasePage() {
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      const campaignMatch = activeFilters.campaign ? item.campaign === activeFilters.campaign : true;
-      const loteMatch = activeFilters.lote ? item.lote === activeFilters.lote : true;
-      const laborMatch = activeFilters.labor ? item.labor === activeFilters.labor : true;
-      const pasadaMatch = activeFilters.pasada ? String(item.pass) === activeFilters.pasada : true;
-      
-      const globalFilter = activeFilters.global.toLowerCase();
-      const globalMatch = activeFilters.global ? 
+      const globalFilter = globalFilter.toLowerCase();
+      return globalFilter ? 
         (item.labor?.toLowerCase().includes(globalFilter) || 
          item.lote?.toLowerCase().includes(globalFilter) ||
          item.campaign?.toLowerCase().includes(globalFilter)) : true;
-      
-      return campaignMatch && loteMatch && laborMatch && pasadaMatch && globalMatch;
     });
-  }, [data, activeFilters]);
+  }, [data, globalFilter]);
 
   const table = useReactTable({
     data: filteredData,
     columns,
+    state: {
+        globalFilter,
+        columnVisibility,
+    },
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
   
-  const handlePopoverFilterChange = (filterName: keyof typeof popoverFilters, value: string) => {
-    setPopoverFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
-  };
-
-  const handleApplyFilters = () => {
-    setActiveFilters(popoverFilters);
-    setIsFilterOpen(false);
-  };
-  
-  const handleDownload = () => {
-    const dataToExport = table.getFilteredRowModel().rows.map(row => {
-        const { id, createdBy, ...rest } = row.original;
-        return {
-            ...rest,
-            registerDate: format(rest.registerDate, 'dd/MM/yyyy'),
-            createdBy: userMap.get(createdBy) || createdBy,
-        };
-    });
-    const worksheet = xlsx.utils.json_to_sheet(dataToExport);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, "Actividades");
-    xlsx.writeFile(workbook, "BaseDeDatos_Actividades.xlsx");
-  };
-
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-           <Input
-            placeholder="Buscar por labor, lote, campaña..."
-            value={popoverFilters.global}
-            onChange={(event) => {
-              const newGlobalFilter = event.target.value;
-              setPopoverFilters(prev => ({...prev, global: newGlobalFilter}));
-              setActiveFilters(prev => ({...prev, global: newGlobalFilter}));
-            }}
-            className="max-w-sm h-9"
-          />
-           <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={loading}>
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                    <span className="hidden sm:inline ml-2">Actualizar</span>
-                </Button>
-                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <Filter className="h-4 w-4" />
-                             <span className="hidden sm:inline ml-2">Filtros</span>
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64" align="end">
-                        <div className="grid gap-4">
-                            <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
-                            <div className="grid gap-2">
-                                <Label>Campaña</Label>
-                                <Select onValueChange={(v) => handlePopoverFilterChange('campaign', v)} value={popoverFilters.campaign}><SelectTrigger className="h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                <Label>Lote</Label>
-                                <Select onValueChange={(v) => handlePopoverFilterChange('lote', v)} value={popoverFilters.lote}><SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                <Label>Labor</Label>
-                                <Select onValueChange={(v) => handlePopoverFilterChange('labor', v)} value={popoverFilters.labor}><SelectTrigger className="h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                <Label>Pasada</Label>
-                                <Select onValueChange={(v) => handlePopoverFilterChange('pasada', v)} value={popoverFilters.pasada}><SelectTrigger className="h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                            </div>
-                            <Button onClick={handleApplyFilters}>Aplicar</Button>
-                        </div>
-                    </PopoverContent>
-                </Popover>
-                <Button variant="outline" size="sm" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0}>
-                    <FileDown className="h-4 w-4" />
-                     <span className="hidden sm:inline ml-2">Descargar</span>
-                </Button>
-            </div>
-        </div>
-        <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id}>
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                    ))}
-                    </TableRow>
+    <div className="w-full space-y-4">
+      <Input
+        placeholder="Buscar por labor, lote, campaña..."
+        value={globalFilter}
+        onChange={(event) => setGlobalFilter(event.target.value)}
+        className="w-full h-10"
+      />
+     
+      <div className="w-full overflow-x-auto rounded-lg border">
+        <Table>
+            <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="whitespace-nowrap px-3 py-2">
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                 ))}
-                </TableHeader>
-                <TableBody>
-                {loading ? (
-                    <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
-                ) : table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>
-                    ))
-                ) : (
-                    <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No se encontraron registros.</TableCell></TableRow>
-                )}
-                </TableBody>
-            </Table>
-        </div>
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Select value={`${table.getState().pagination.pageSize}`} onValueChange={(value) => table.setPageSize(Number(value))}>
-                  <SelectTrigger className="w-[70px] h-9"><SelectValue placeholder={table.getState().pagination.pageSize} /></SelectTrigger>
-                  <SelectContent>{[10, 20, 50, 100].map((pageSize) => ( <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem> ))}</SelectContent>
-                </Select>
-                <span className="text-sm text-muted-foreground">
-                  Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-
-                  {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{" "}
-                  de {table.getFilteredRowModel().rows.length}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronsLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="text-sm">Página {table.getPageCount() > 0 ? table.getState().pagination.pageIndex + 1 : 0} de {table.getPageCount()}</span>
-                <Button variant="outline" size="icon" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronRight className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronsRight className="h-4 w-4" /></Button>
-              </div>
+                </TableRow>
+            ))}
+            </TableHeader>
+            <TableBody>
+            {loading ? (
+                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
+            ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="whitespace-nowrap px-3 py-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>
+                ))
+            ) : (
+                <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No se encontraron registros.</TableCell></TableRow>
+            )}
+            </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-muted-foreground">
+                Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+            </span>
+          <div className="flex items-center gap-2">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+            >
+                <ChevronLeft className="h-4 w-4 mr-1"/>
+                Anterior
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+            >
+                Siguiente
+                <ChevronRight className="h-4 w-4 ml-1"/>
+            </Button>
           </div>
       </div>
        {selectedActivity && (
@@ -351,7 +272,6 @@ export default function ActivityDatabasePage() {
                 onSuccess={() => {
                     setIsEditDialogOpen(false);
                     setSelectedActivity(null);
-                    // The onSnapshot listener will update the data automatically
                 }}
             />
         )}
