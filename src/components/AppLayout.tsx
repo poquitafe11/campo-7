@@ -36,7 +36,10 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetClose
+  SheetClose,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
@@ -256,15 +259,18 @@ const Header = () => {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col p-0">
-               <div className="flex items-center h-16 border-b px-4 shrink-0">
-                  <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                      <Avatar className="h-8 w-8">
-                          <AvatarImage src={'/logo.png'} alt="Campo 7" />
-                          <AvatarFallback>C7</AvatarFallback>
-                      </Avatar>
-                      <span>Campo 7</span>
-                  </Link>
-              </div>
+               <SheetHeader className="h-16 flex flex-row items-center border-b px-4">
+                  <SheetTitle className="flex items-center gap-2">
+                      <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                          <Avatar className="h-8 w-8">
+                              <AvatarImage src={'/logo.png'} alt="Campo 7" />
+                              <AvatarFallback>C7</AvatarFallback>
+                          </Avatar>
+                          <span>Campo 7</span>
+                      </Link>
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">Menú principal de navegación</SheetDescription>
+               </SheetHeader>
               <NavContent />
               <div className="mt-auto p-4 border-t">
                   <UserMenu isCollapsed={false} />
