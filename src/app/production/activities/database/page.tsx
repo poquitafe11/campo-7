@@ -90,9 +90,21 @@ export default function ActivityDatabasePage() {
   const lotesMap = useMemo(() => {
     const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
-        map.set(lote.id, lote);
+      // Create a representative entry for each unique lot number
+      if (!map.has(lote.lote)) {
+        map.set(lote.lote, lote);
+      }
     });
     return map;
+  }, [lotes]);
+  
+  const loteHaProdMap = useMemo(() => {
+    const haMap = new Map<string, number>();
+    lotes.forEach(lote => {
+        const currentHa = haMap.get(lote.lote) || 0;
+        haMap.set(lote.lote, currentHa + (lote.haProd || 0));
+    });
+    return haMap;
   }, [lotes]);
   
   const presupuestoMap = useMemo(() => {
@@ -260,9 +272,7 @@ export default function ActivityDatabasePage() {
         return 'N/A';
     } },
     { header: 'JR presup.', cell: ({ row }) => {
-        const loteData = lotesMap.get(row.original.lote);
-        if (!loteData) return '0';
-        const loteKey = parseInt(loteData.lote, 10);
+        const loteKey = parseInt(row.original.lote, 10);
         const key = `${loteKey}-${row.original.labor}`;
         const presupuesto = presupuestoMap.get(key);
         return presupuesto ? presupuesto.jrnHa : '0';
@@ -271,14 +281,7 @@ export default function ActivityDatabasePage() {
     { header: 'Saldo', cell: () => '0' },
     { header: 'N° Pasada', accessorKey: 'pass' },
     { header: 'JR/Ha', cell: ({ row }) => {
-        const loteDataForActivity = lotesMap.get(row.original.lote);
-        if (!loteDataForActivity) return '0.00';
-
-        const loteNumber = loteDataForActivity.lote;
-        const totalHaProdForLote = lotes
-            .filter(l => l.lote === loteNumber)
-            .reduce((sum, current) => sum + (current.haProd || 0), 0);
-        
+        const totalHaProdForLote = loteHaProdMap.get(row.original.lote) || 0;
         if (totalHaProdForLote === 0) return '0.00';
         
         const jhu = row.original.workdayCount || 0;
@@ -333,7 +336,7 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap, lotesMap, presupuestoMap, lotes]);
+  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap]);
 
   const table = useReactTable({
     data: filteredData,
