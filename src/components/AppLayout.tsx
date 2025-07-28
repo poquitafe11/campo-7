@@ -16,6 +16,7 @@ import {
   Settings,
   LogOut,
   Menu,
+  Thermometer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,9 +25,6 @@ import { cn } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
@@ -34,13 +32,12 @@ import ConnectionStatus from './ConnectionStatus';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
-  { href: '/production/activities/create', icon: ClipboardList, label: 'Registro Act.' },
-  { href: '/production/activities/database', icon: Database, label: 'Base Act.' },
-  { href: '/production/activities/summary', icon: BarChart3, label: 'Análisis' },
-  { href: '/maestro-lotes', icon: Box, label: 'Datos de Lote' },
+  { href: '/maestro-lotes', icon: Box, label: 'Maestro de Lotes' },
+  { href: '/maestro-labores', icon: Layers, label: 'Maestro de Labores' },
+  { href: '/asistentes', icon: Users, label: 'Maestro de Asistentes' },
+  { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
   { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
-  { href: '/maestro-labores', icon: Layers, label: 'Maestro Labores' },
-  { href: '/asistentes', icon: Users, label: 'Maestro Trab.' },
+  { href: '/production/activities/create', icon: ClipboardList, label: 'Registro de Actividades' },
   { href: '/users', icon: Settings, label: 'Usuarios' },
 ];
 
@@ -59,11 +56,7 @@ const NavItem = ({ href, icon: Icon, label, isMobile }: { href: string; icon: Re
     </Link>
   );
 
-  if (isMobile) {
-    return <SheetClose asChild>{linkContent}</SheetClose>;
-  }
-
-  return linkContent;
+  return isMobile ? <SheetClose asChild>{linkContent}</SheetClose> : linkContent;
 };
 
 const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => {
@@ -81,7 +74,7 @@ const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => {
         <h2 className="text-xl font-bold text-center">{profile?.nombre}</h2>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2">
+      <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => (
           <NavItem key={item.href} {...item} isMobile={isMobile} />
         ))}
@@ -123,12 +116,6 @@ const Header = () => {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0">
-          <SheetHeader className="p-4 border-b">
-            <SheetTitle>Menú</SheetTitle>
-            <SheetDescription>
-              Selecciona un área para gestionar.
-            </SheetDescription>
-          </SheetHeader>
           <NavContent isMobile={true} />
         </SheetContent>
       </Sheet>

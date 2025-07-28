@@ -138,6 +138,7 @@ export const UserSchema = z.object({
   email: z.string().email("El email no es válido."),
   rol: UserRole,
   active: z.boolean().default(true),
+  fotoURL: z.string().url().optional(),
 });
 
 export const NewUserSchema = UserSchema.extend({

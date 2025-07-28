@@ -3,7 +3,7 @@
 
 import { FeatureCard } from "@/components/FeatureCard";
 import { PageHeader } from "@/components/PageHeader";
-import { Layers, Box, Users, Thermometer, Ruler, ScrollText } from "lucide-react";
+import { Layers, Box, Users, Thermometer, ScrollText } from "lucide-react";
 
 const masterFeatures = [
   {

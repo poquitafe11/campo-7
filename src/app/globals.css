@@ -4,44 +4,34 @@
 
 @layer base {
   :root {
-    --background: 240 5% 96%; /* Lighter gray for main background */
-    --foreground: 240 6% 10%; /* Dark text for contrast */
-
-    --card: 240 5% 96%; /* Cards same as background */
+    --background: 240 5% 96%;
+    --foreground: 240 6% 10%;
+    --card: 240 5% 96%;
     --card-foreground: 240 6% 10%;
-
     --popover: 240 5% 100%;
     --popover-foreground: 240 6% 10%;
-
-    --primary: 260 65% 55%; /* Main purple from active item */
+    --primary: 260 65% 55%;
     --primary-foreground: 240 5% 98%;
-
     --secondary: 240 5% 90%;
     --secondary-foreground: 240 6% 10%;
-
     --muted: 240 5% 90%;
     --muted-foreground: 240 4% 45%;
-
     --accent: 260 65% 55%;
     --accent-foreground: 240 5% 98%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 240 5% 98%;
-
     --border: 240 6% 88%;
     --input: 240 6% 92%;
     --ring: 260 65% 55%;
-
     --radius: 0.75rem;
 
-    /* Custom Sidebar Colors */
+    /* Custom Sidebar Colors from reference image */
     --sidebar: 260 35% 25%; /* Deep purple sidebar background */
     --sidebar-foreground: 240 5% 98%; /* White text */
     --sidebar-muted-foreground: 260 15% 75%; /* Lighter text for inactive items */
     --sidebar-accent: 260 65% 55%; /* Active item background */
   }
 
-  /* No dark mode needed */
   .dark {
     --background: 240 5% 96%;
     --foreground: 240 6% 10%;
