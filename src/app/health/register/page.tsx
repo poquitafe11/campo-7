@@ -26,7 +26,7 @@ const DataItem = ({ label, value }: { label: string, value: any }) => (
     <p><strong className="font-medium text-foreground/80">{label}:</strong> {String(value)}</p>
 );
 
-type ParsedRow = { [key: string]: any };
+type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
 
 const editRecordSchema = z.object({
   id: z.string(),
@@ -34,6 +34,7 @@ const editRecordSchema = z.object({
   Etapa: z.string(),
   Variedad: z.string(),
   Banda: z.string(),
+  // Add other fields from your table that you want to be editable
 });
 
 export default function RegisterHealthPage() {
@@ -59,7 +60,19 @@ export default function RegisterHealthPage() {
 
   useEffect(() => {
     if (editingRecord) {
-        form.reset(editingRecord);
+        // Dynamically create a schema based on the editing record's keys
+        const dynamicSchema = z.object({
+            id: z.string(),
+            ...Object.keys(editingRecord).reduce((acc, key) => {
+                if (key !== 'id' && key !== 'internalId') {
+                    (acc as any)[key] = z.string();
+                }
+                return acc;
+            }, {})
+        });
+        
+        const resolver = zodResolver(dynamicSchema);
+        form.reset(editingRecord, { resolver } as any);
     }
   }, [editingRecord, form]);
 
@@ -195,19 +208,30 @@ export default function RegisterHealthPage() {
         toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el registro." });
     }
   };
-
-  const onUpdateSubmit = async (values: z.infer<typeof editRecordSchema>) => {
+  
+  const onUpdateSubmit = async (values: any) => {
     if (!editingRecord) return;
-    try {
-        const docRef = doc(db, "registros-sanidad", editingRecord.id);
-        const { id, ...dataToUpdate } = values;
-        await updateDoc(docRef, dataToUpdate);
-        toast({ title: "Éxito", description: "Registro actualizado." });
-        setEditingRecord(null);
-    } catch(error) {
-        console.error("Error updating record:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el registro." });
+    
+    // Check if we are editing a preview or a saved record
+    if (editingRecord.internalId) {
+        // Update preview data in state
+        setParsedData(prev => prev.map(row => 
+            row.internalId === editingRecord.internalId ? { ...row, ...values } : row
+        ));
+        toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
+    } else {
+        // Update saved record in Firestore
+        try {
+            const docRef = doc(db, "registros-sanidad", editingRecord.id);
+            const { id, ...dataToUpdate } = values;
+            await updateDoc(docRef, dataToUpdate);
+            toast({ title: "Éxito", description: "Registro actualizado en la base de datos." });
+        } catch(error) {
+            console.error("Error updating record:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el registro." });
+        }
     }
+    setEditingRecord(null);
   };
   
   const renderList = (items: any[]) => {
@@ -250,6 +274,27 @@ export default function RegisterHealthPage() {
         case 'verde': return 'bg-green-200 text-green-800';
         default: return '';
     }
+  };
+  
+  const renderEditFormFields = () => {
+    if (!editingRecord) return null;
+    return Object.keys(editingRecord).map(key => {
+        if (key === 'id' || key === 'internalId') return null;
+        return (
+            <FormField
+                key={key}
+                control={form.control}
+                name={key as any}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>{key}</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+        );
+    });
   };
 
   return (
@@ -319,8 +364,14 @@ export default function RegisterHealthPage() {
                                             <TableCell key={`${row.internalId}-${header}`} className={cn('whitespace-nowrap', header.toLowerCase() === 'banda' && getBandColorClass(row[header]))}>
                                                 {header === 'Acciones' ? (
                                                   <div className="flex gap-2">
-                                                    <Button variant="outline" size="icon" className="h-7 w-7" disabled><Pencil className="h-4 w-4"/></Button>
-                                                    <Button variant="destructive" size="icon" className="h-7 w-7" onClick={() => handleDeletePreview(row.internalId)}><Trash2 className="h-4 w-4"/></Button>
+                                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord({...row, id: row.internalId })}><Pencil className="h-4 w-4"/></Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará la fila de la vista previa.</AlertDialogDescription></AlertDialogHeader>
+                                                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePreview(row.internalId!)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
                                                   </div>
                                                 ) : String(row[header])}
                                             </TableCell>
@@ -352,12 +403,9 @@ export default function RegisterHealthPage() {
         <DialogContent>
             <DialogHeader><DialogTitle>Editar Registro de Sanidad</DialogTitle></DialogHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-4">
-                    <FormField control={form.control} name="Campaña" render={({ field }) => ( <FormItem><FormLabel>Campaña</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="Etapa" render={({ field }) => ( <FormItem><FormLabel>Etapa</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="Variedad" render={({ field }) => ( <FormItem><FormLabel>Variedad</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="Banda" render={({ field }) => ( <FormItem><FormLabel>Banda</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <DialogFooter>
+                <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
+                    {renderEditFormFields()}
+                    <DialogFooter className="pt-4 sticky bottom-0 bg-background">
                         <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
                         <Button type="submit">Guardar Cambios</Button>
                     </DialogFooter>
@@ -368,3 +416,5 @@ export default function RegisterHealthPage() {
     </>
   );
 }
+
+    
