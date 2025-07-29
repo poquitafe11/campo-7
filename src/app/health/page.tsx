@@ -16,7 +16,6 @@ import { HealthData, HealthSchema } from "@/lib/types";
 import { useAppData } from "@/context/AppDataContext";
 import { digitizeHealthTable } from "@/ai/flows/digitize-health-table";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const DataItem = ({ label, value }: { label: string, value: string | number | undefined }) => (
     <p><strong className="font-medium text-foreground/80">{label}:</strong> {value}</p>
@@ -92,114 +91,103 @@ export default function HealthPage() {
   };
 
   return (
-    <div className="container mx-auto p-0 sm:p-2 lg:p-4">
-      <Tabs defaultValue="registro" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="registro">Registro</TabsTrigger>
-          <TabsTrigger value="resumen">Resumen</TabsTrigger>
-        </TabsList>
-        <TabsContent value="registro" className="mt-6">
-            <div className="space-y-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <FileDigit className="h-6 w-6" />
-                            Digitalizar Tabla desde Imagen
-                        </CardTitle>
-                        <CardDescription>
-                            Sube una foto de una tabla y la IA extraerá los datos por ti.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                    <input
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                    />
-                    <Button onClick={() => fileInputRef.current?.click()} variant="outline">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Seleccionar Imagen
-                    </Button>
+    <div className="container mx-auto p-0 sm:p-2 lg:p-4 space-y-8">
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <FileDigit className="h-6 w-6" />
+                Digitalizar Tabla desde Imagen
+            </CardTitle>
+            <CardDescription>
+                Sube una foto de una tabla y la IA extraerá los datos por ti.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+        <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+        />
+        <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+            <Upload className="mr-2 h-4 w-4" />
+            Seleccionar Imagen
+        </Button>
 
-                    {imagePreview && (
-                        <div className="space-y-4">
-                        <div className="relative max-w-lg">
-                            <img src={imagePreview} alt="Vista previa de la tabla" className="rounded-md border" />
-                            <Button
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 h-7 w-7"
-                                onClick={() => {
-                                    setImagePreview(null);
-                                    setDigitizedText('');
-                                    if(fileInputRef.current) fileInputRef.current.value = '';
-                                }}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <Button onClick={handleDigitize} disabled={isDigitizing}>
-                            {isDigitizing ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            )}
-                            {isDigitizing ? "Digitalizando..." : "Digitalizar Tabla"}
-                        </Button>
-                        </div>
-                    )}
-
-                    {(isDigitizing || digitizedText) && (
-                        <div className="space-y-2">
-                            <Label htmlFor="digitized-result">Resultado</Label>
-                            {isDigitizing ? (
-                            <div className="space-y-2 rounded-md border p-4">
-                                <div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div>
-                                <div className="h-4 bg-muted rounded-full w-1/2 animate-pulse"></div>
-                                <div className="h-4 bg-muted rounded-full w-5/6 animate-pulse"></div>
-                            </div>
-                            ) : (
-                                <Textarea
-                                id="digitized-result"
-                                value={digitizedText}
-                                readOnly
-                                rows={10}
-                                placeholder="Los datos de la tabla aparecerán aquí."
-                                />
-                            )}
-                        </div>
-                    )}
-
-                    </CardContent>
-                </Card>
+        {imagePreview && (
+            <div className="space-y-4">
+            <div className="relative max-w-lg">
+                <img src={imagePreview} alt="Vista previa de la tabla" className="rounded-md border" />
+                <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7"
+                    onClick={() => {
+                        setImagePreview(null);
+                        setDigitizedText('');
+                        if(fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                >
+                    <X className="h-4 w-4" />
+                </Button>
             </div>
-        </TabsContent>
-        <TabsContent value="resumen" className="mt-6">
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <List className="h-6 w-6" />
-                        Resumen de Aplicaciones Sanitarias
-                    </CardTitle>
-                    <CardDescription>
-                        Historial de todos los registros de sanidad guardados.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {renderList(state.health, (item: HealthData) => (
-                        <>
-                        <DataItem label="Fecha" value={format(item.observationDate, 'PPP')} />
-                        <DataItem label="Problema" value={item.disease} />
-                        <DataItem label="Tratamiento" value={item.treatment} />
-                        {item.notes && <DataItem label="Notas" value={item.notes} />}
-                        </>
-                    ))}
-                </CardContent>
-            </Card>
-        </TabsContent>
-      </Tabs>
+            <Button onClick={handleDigitize} disabled={isDigitizing}>
+                {isDigitizing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                {isDigitizing ? "Digitalizando..." : "Digitalizar Tabla"}
+            </Button>
+            </div>
+        )}
+
+        {(isDigitizing || digitizedText) && (
+            <div className="space-y-2">
+                <Label htmlFor="digitized-result">Resultado</Label>
+                {isDigitizing ? (
+                <div className="space-y-2 rounded-md border p-4">
+                    <div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div>
+                    <div className="h-4 bg-muted rounded-full w-1/2 animate-pulse"></div>
+                    <div className="h-4 bg-muted rounded-full w-5/6 animate-pulse"></div>
+                </div>
+                ) : (
+                    <Textarea
+                    id="digitized-result"
+                    value={digitizedText}
+                    readOnly
+                    rows={10}
+                    placeholder="Los datos de la tabla aparecerán aquí."
+                    />
+                )}
+            </div>
+        )}
+
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <List className="h-6 w-6" />
+                Resumen de Aplicaciones Sanitarias
+            </CardTitle>
+            <CardDescription>
+                Historial de todos los registros de sanidad guardados.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            {renderList(state.health, (item: HealthData) => (
+                <>
+                <DataItem label="Fecha" value={format(item.observationDate, 'PPP')} />
+                <DataItem label="Problema" value={item.disease} />
+                <DataItem label="Tratamiento" value={item.treatment} />
+                {item.notes && <DataItem label="Notas" value={item.notes} />}
+                </>
+            ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
