@@ -22,7 +22,7 @@ export type DigitizeHealthTableInput = z.infer<typeof DigitizeHealthTableInputSc
 
 const DigitizeHealthTableOutputSchema = z.object({
   tableContent: z.string().describe('The full content of the table, extracted as plain text.'),
-  structuredData: z.array(z.record(z.any())).describe('The table data extracted into a structured JSON array of objects, where each object represents a row.'),
+  structuredData: z.array(z.object({})).describe('The table data extracted into a structured JSON array of objects, where each object represents a row.'),
 });
 export type DigitizeHealthTableOutput = z.infer<typeof DigitizeHealthTableOutputSchema>;
 
