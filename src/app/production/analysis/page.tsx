@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import type { ActivityRecordData, LoteData, Presupuesto } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Filter, RefreshCcw } from 'lucide-react';
@@ -188,6 +188,7 @@ export default function AnalysisPage() {
 
     const filteredPresupuestos = useMemo(() => {
         return allPresupuestos.filter(p => {
+             // We can't filter by campaign on Presupuesto, so we ignore it.
             const loteMatch = !activeFilters.lote || parseInt(p.lote, 10) === parseInt(activeFilters.lote, 10);
             const laborMatch = !activeFilters.labor || p.descripcionLabor === activeFilters.labor;
             return loteMatch && laborMatch;
@@ -222,6 +223,7 @@ export default function AnalysisPage() {
         });
 
         const totalPresupuestoJrHa = filteredPresupuestos.reduce((sum, p) => sum + (p.jrnHa || 0), 0);
+        
         const totalUsedJrHa = filteredActivities.reduce((sum, act) => {
              const loteData = allLotes.find(l => l.lote === act.lote);
              const totalHaProdForLote = loteData?.haProd || 0;
@@ -262,133 +264,141 @@ export default function AnalysisPage() {
             compliancePercentage: parseFloat(percentage.toFixed(1)),
         };
     }, [filteredActivities, filteredPresupuestos, allLotes, activeFilters.lote]);
+    
+    const renderContent = () => {
+        if (isLoading || masterLoading) {
+            return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+        }
 
-    if (isLoading || masterLoading) {
-        return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-    }
-
-    return (
-        <div className="space-y-6">
-            {filteredActivities.length === 0 ? (
+        if (filteredActivities.length === 0) {
+            return (
                  <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
                     <p>No se encontraron datos para los filtros seleccionados.<br/>Intenta con otros criterios.</p>
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle>Cumplimiento de Jornadas/Ha</CardTitle>
-                            <CardDescription>Comparación de Jornadas/Ha usadas vs. presupuestadas.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-center">
-                            <ChartContainer
-                                config={chartConfigGauge}
-                                className="mx-auto aspect-square h-64 w-full max-w-sm"
-                            >
-                                <RadialBarChart
-                                    data={analysisData.complianceData}
-                                    startAngle={180}
-                                    endAngle={0}
-                                    innerRadius="70%"
-                                    outerRadius="100%"
-                                    barSize={72}
-                                    cy="60%"
-                                >
-                                <RadialBar
-                                    dataKey="value"
-                                    background={{ fill: "var(--color-background)" }}
-                                    cornerRadius={10}
-                                />
-                                <text
-                                    x="50%"
-                                    y="50%"
-                                    textAnchor="middle"
-                                    dominantBaseline="middle"
-                                    className="fill-foreground text-5xl font-bold"
-                                >
-                                    {analysisData.compliancePercentage.toLocaleString('es-PE')}%
-                                </text>
-                                 <text
-                                    x="50%"
-                                    y="70%"
-                                    textAnchor="middle"
-                                    dominantBaseline="middle"
-                                    className="fill-muted-foreground text-lg"
-                                >
-                                    {analysisData.totalUsedJrHa.toFixed(2)} de {analysisData.totalPresupuestoJrHa.toFixed(2)} jrn/ha
-                                </text>
-                                </RadialBarChart>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
+            );
+        }
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Costo Total por Labor</CardTitle>
-                            <CardDescription>Costo de empresa (S/) según los filtros aplicados.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ChartContainer config={chartConfigCosto} className="min-h-[300px] w-full">
-                                <BarChart data={analysisData.costByLaborChart} layout="vertical" margin={{ left: 50, right: 20 }}>
-                                    <CartesianGrid horizontal={false} />
-                                    <XAxis type="number" dataKey="costo" tickFormatter={(value) => `S/ ${value.toLocaleString('en-US')}`} />
-                                    <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                                    <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
-                                    <Bar dataKey="costo" fill="var(--color-costo)" radius={4} />
-                                </BarChart>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Jornadas/Ha por Labor</CardTitle>
-                            <CardDescription>Suma de Jornadas por Hectárea (JR/Ha) según los filtros.</CardDescription>
-                        </Header>
-                         <CardContent>
-                            <ChartContainer config={chartConfigJornadas} className="min-h-[300px] w-full">
-                                <BarChart data={analysisData.workdaysByLaborChart} layout="vertical" margin={{ left: 50, right: 20 }}>
-                                    <CartesianGrid horizontal={false} />
-                                    <XAxis type="number" dataKey="jornadas" />
-                                    <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="jornadas" fill="var(--color-jornadas)" radius={4} />
-                                </BarChart>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
-                    <Card className="lg:col-span-2">
-                        <CardHeader><CardTitle>Tabla de Resumen por Labor</CardTitle></CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Labor</TableHead>
-                                        <TableHead className="text-right">Rendimiento Total</TableHead>
-                                        <TableHead className="text-right">Jornadas / Ha</TableHead>
-                                        <TableHead className="text-right">Costo Empresa Total (S/)</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.keys(analysisData.summaryTable).length > 0 ? (
-                                        Object.entries(analysisData.summaryTable).map(([labor, data]) => (
-                                            <TableRow key={labor}>
-                                                <TableCell className="font-medium">{labor}</TableCell>
-                                                <TableCell className="text-right">{data.totalPerformance.toLocaleString('en-US')}</TableCell>
-                                                <TableCell className="text-right">{data.totalJornadasHa.toFixed(2)}</TableCell>
-                                                <TableCell className="text-right">{data.totalCost.toLocaleString('en-US', { style: 'currency', currency: 'PEN' })}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center">No hay datos para los filtros seleccionados.</TableCell>
+        return (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Cumplimiento de Jornadas/Ha</CardTitle>
+                        <CardDescription>Comparación de Jornadas/Ha usadas vs. presupuestadas.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center">
+                        <ChartContainer
+                            config={chartConfigGauge}
+                            className="mx-auto aspect-square h-64 w-full max-w-sm"
+                        >
+                            <RadialBarChart
+                                data={analysisData.complianceData}
+                                startAngle={180}
+                                endAngle={0}
+                                innerRadius="70%"
+                                outerRadius="100%"
+                                barSize={72}
+                                cy="60%"
+                            >
+                            <RadialBar
+                                dataKey="value"
+                                background={{ fill: "var(--color-background)" }}
+                                cornerRadius={10}
+                            />
+                            <text
+                                x="50%"
+                                y="50%"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                className="fill-foreground text-5xl font-bold"
+                            >
+                                {analysisData.compliancePercentage.toLocaleString('es-PE')}%
+                            </text>
+                             <text
+                                x="50%"
+                                y="70%"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                className="fill-muted-foreground text-lg"
+                            >
+                                {analysisData.totalUsedJrHa.toFixed(2)} de {analysisData.totalPresupuestoJrHa.toFixed(2)} jrn/ha
+                            </text>
+                            </RadialBarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Costo Total por Labor</CardTitle>
+                        <CardDescription>Costo de empresa (S/) según los filtros aplicados.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={chartConfigCosto} className="min-h-[300px] w-full">
+                            <BarChart data={analysisData.costByLaborChart} layout="vertical" margin={{ left: 50, right: 20 }}>
+                                <CartesianGrid horizontal={false} />
+                                <XAxis type="number" dataKey="costo" tickFormatter={(value) => `S/ ${value.toLocaleString('en-US')}`} />
+                                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                                <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
+                                <Bar dataKey="costo" fill="var(--color-costo)" radius={4} />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Jornadas/Ha por Labor</CardTitle>
+                        <CardDescription>Suma de Jornadas por Hectárea (JR/Ha) según los filtros.</CardDescription>
+                    </CardHeader>
+                     <CardContent>
+                        <ChartContainer config={chartConfigJornadas} className="min-h-[300px] w-full">
+                            <BarChart data={analysisData.workdaysByLaborChart} layout="vertical" margin={{ left: 50, right: 20 }}>
+                                <CartesianGrid horizontal={false} />
+                                <XAxis type="number" dataKey="jornadas" />
+                                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Bar dataKey="jornadas" fill="var(--color-jornadas)" radius={4} />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+                <Card className="lg:col-span-2">
+                    <CardHeader><CardTitle>Tabla de Resumen por Labor</CardTitle></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Labor</TableHead>
+                                    <TableHead className="text-right">Rendimiento Total</TableHead>
+                                    <TableHead className="text-right">Jornadas / Ha</TableHead>
+                                    <TableHead className="text-right">Costo Empresa Total (S/)</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {Object.keys(analysisData.summaryTable).length > 0 ? (
+                                    Object.entries(analysisData.summaryTable).map(([labor, data]) => (
+                                        <TableRow key={labor}>
+                                            <TableCell className="font-medium">{labor}</TableCell>
+                                            <TableCell className="text-right">{data.totalPerformance.toLocaleString('en-US')}</TableCell>
+                                            <TableCell className="text-right">{data.totalJornadasHa.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">{data.totalCost.toLocaleString('en-US', { style: 'currency', currency: 'PEN' })}</TableCell>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">No hay datos para los filtros seleccionados.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-6">
+            {renderContent()}
         </div>
     );
 }
