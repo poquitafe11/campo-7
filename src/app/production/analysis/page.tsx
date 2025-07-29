@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -49,7 +48,7 @@ const getInitialFilters = () => ({
 export default function AnalysisPage() {
   const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
   const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
-  const { lotes: allLotes, labors: allLabors, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+  const { lotes: allLotes, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
   const [isLoading, setIsLoading] = useState(true);
   
   const [filters, setFilters] = useState(getInitialFilters());
