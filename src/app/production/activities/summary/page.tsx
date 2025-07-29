@@ -51,11 +51,11 @@ const chartConfig = {
   },
   promedio: {
     label: "Promedio",
-    color: "hsl(var(--chart-2))",
+    color: "hsl(var(--chart-3))",
   },
   has: {
     label: "Hectáreas",
-    color: "hsl(var(--chart-3))",
+    color: "hsl(var(--chart-2))",
   }
 } satisfies ChartConfig
 
@@ -371,12 +371,12 @@ export default function ActivitySummaryPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                                    <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                    <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="fecha" tickLine={false} axisLine={false} tickMargin={8} />
-                                        <YAxis yAxisId="jhu" orientation="left" stroke="hsl(var(--chart-1))" domain={[0, 'dataMax + 20']} />
-                                        <YAxis yAxisId="has" orientation="right" stroke="hsl(var(--chart-3))" domain={[0, 'dataMax + 5']} />
-                                        <YAxis yAxisId="promedio" orientation="right" stroke="hsl(var(--chart-2))" hide={true} />
+                                        <YAxis yAxisId="jhu" orientation="left" stroke="var(--color-jhu)" />
+                                        <YAxis yAxisId="has" orientation="right" stroke="var(--color-has)" />
+                                        <YAxis yAxisId="promedio" orientation="right" stroke="var(--color-promedio)" hide={true} />
                                         <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                         <Legend />
                                         <Bar dataKey="jhu" yAxisId="jhu" fill="var(--color-jhu)" radius={4}>
