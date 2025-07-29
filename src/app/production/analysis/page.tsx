@@ -187,7 +187,6 @@ export default function AnalysisPage() {
 
     const filteredPresupuestos = useMemo(() => {
         return allPresupuestos.filter(p => {
-             // We can't filter by campaign on Presupuesto, so we ignore it.
             const loteMatch = !activeFilters.lote || p.lote === activeFilters.lote;
             const laborMatch = !activeFilters.labor || p.descripcionLabor === activeFilters.labor;
             return loteMatch && laborMatch;
@@ -222,12 +221,8 @@ export default function AnalysisPage() {
         });
 
         const totalPresupuestoJrHa = filteredPresupuestos.reduce((sum, p) => sum + (p.jrnHa || 0), 0);
-        const totalUsedJrHa = filteredActivities.reduce((sum, act) => {
-             const loteData = allLotes.find(l => l.lote === act.lote);
-             const totalHaProdForLote = loteData?.haProd || 0;
-             const jrHa = totalHaProdForLote > 0 ? (act.workdayCount || 0) / totalHaProdForLote : 0;
-             return sum + jrHa;
-        }, 0);
+        
+        const totalUsedJrHa = Object.values(dataByLabor).reduce((sum, data) => sum + data.totalJornadasHa, 0);
 
         const percentage = totalPresupuestoJrHa > 0 ? (totalUsedJrHa / totalPresupuestoJrHa) * 100 : 0;
 
@@ -298,6 +293,7 @@ export default function AnalysisPage() {
                                     dataKey="value"
                                     background={{ fill: "var(--color-background)" }}
                                     cornerRadius={10}
+                                    endAngle={ -360 * ( (analysisData.compliancePercentage > 100 ? 100 : analysisData.compliancePercentage) / 200)}
                                 />
                                 <text
                                     x="50%"
