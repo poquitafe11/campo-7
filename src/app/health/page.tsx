@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { PageHeader } from "@/components/PageHeader";
 import { HealthData, HealthSchema } from "@/lib/types";
 import { useAppData } from "@/context/AppDataContext";
 import { digitizeHealthTable } from "@/ai/flows/digitize-health-table";
@@ -93,8 +92,7 @@ export default function HealthPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Sanidad" />
+    <div className="container mx-auto p-0 sm:p-2 lg:p-4">
       <Tabs defaultValue="registro" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="registro">Registro</TabsTrigger>
@@ -133,7 +131,11 @@ export default function HealthPage() {
                                 variant="destructive"
                                 size="icon"
                                 className="absolute top-2 right-2 h-7 w-7"
-                                onClick={() => setImagePreview(null)}
+                                onClick={() => {
+                                    setImagePreview(null);
+                                    setDigitizedText('');
+                                    if(fileInputRef.current) fileInputRef.current.value = '';
+                                }}
                             >
                                 <X className="h-4 w-4" />
                             </Button>
