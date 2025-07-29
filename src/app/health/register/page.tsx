@@ -258,7 +258,13 @@ export default function RegisterHealthPage() {
 
   const savedRecordsHeaders = useMemo(() => {
     if (savedRecords.length === 0) return [];
-    
+
+    const PREFERRED_ORDER = [
+        'Campaña', 'Etapa', 'Variedad', 'Turno', 'Fecha Plan de Aplicación', 
+        'Lote', 'Cuartel', 'Tipo de App', 'Producto', 'Objetivo', 
+        'Ingrediente Activo', 'Categoria', 'P.R. Horas', 'Banda'
+    ];
+
     const headers = new Set<string>();
     savedRecords.forEach(record => {
         Object.keys(record).forEach(key => {
@@ -267,14 +273,22 @@ export default function RegisterHealthPage() {
     });
 
     const headersArray = Array.from(headers);
+    
+    // Normalize headers for comparison
+    const normalize = (s: string) => s.toLowerCase().replace(/ /g, '');
 
-    // Sort the headers: 'Campaña', then 'Etapa', then alphabetically for the rest
+    const normalizedOrder = PREFERRED_ORDER.map(normalize);
+
     headersArray.sort((a, b) => {
-        if (a === 'Campaña') return -1;
-        if (b === 'Campaña') return 1;
-        if (a === 'Etapa') return -1;
-        if (b === 'Etapa') return 1;
-        return a.localeCompare(b);
+        const normA = normalize(a);
+        const normB = normalize(b);
+        const indexA = normalizedOrder.indexOf(normA);
+        const indexB = normalizedOrder.indexOf(normB);
+
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both in preferred order
+        if (indexA !== -1) return -1; // A is in order, B is not
+        if (indexB !== -1) return 1;  // B is in order, A is not
+        return a.localeCompare(b); // Neither is in order, sort alphabetically
     });
 
     return headersArray;
