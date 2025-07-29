@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useMasterData } from '@/context/MasterDataContext';
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart } from 'recharts';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -370,18 +370,24 @@ export default function ActivitySummaryPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-                                    <ComposedChart data={chartData}>
+                                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                                    <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="fecha" tickLine={false} axisLine={false} tickMargin={8} />
-                                        <YAxis yAxisId="jhu" orientation="left" stroke="hsl(var(--chart-1))" />
-                                        <YAxis yAxisId="has" orientation="right" stroke="hsl(var(--chart-3))" />
+                                        <YAxis yAxisId="jhu" orientation="left" stroke="hsl(var(--chart-1))" domain={[0, 'dataMax + 20']} />
+                                        <YAxis yAxisId="has" orientation="right" stroke="hsl(var(--chart-3))" domain={[0, 'dataMax + 5']} />
                                         <YAxis yAxisId="promedio" orientation="right" stroke="hsl(var(--chart-2))" hide={true} />
-                                        <ChartTooltip content={<ChartTooltipContent />} />
+                                        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                         <Legend />
-                                        <Bar dataKey="jhu" yAxisId="jhu" fill="var(--color-jhu)" radius={4} />
-                                        <Line type="monotone" dataKey="has" yAxisId="has" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)" }} />
-                                        <Line type="monotone" dataKey="promedio" yAxisId="promedio" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)" }} />
+                                        <Bar dataKey="jhu" yAxisId="jhu" fill="var(--color-jhu)" radius={4}>
+                                            <LabelList dataKey="jhu" position="top" offset={8} className="fill-foreground text-xs" formatter={(value: number) => value.toFixed(2)} />
+                                        </Bar>
+                                        <Line type="monotone" dataKey="has" yAxisId="has" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)", r: 4 }}>
+                                            <LabelList dataKey="has" position="top" offset={8} className="fill-foreground text-xs" />
+                                        </Line>
+                                        <Line type="monotone" dataKey="promedio" yAxisId="promedio" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)", r: 4 }}>
+                                             <LabelList dataKey="promedio" position="top" offset={8} className="fill-foreground text-xs" />
+                                        </Line>
                                     </ComposedChart>
                                 </ChartContainer>
                             </CardContent>
