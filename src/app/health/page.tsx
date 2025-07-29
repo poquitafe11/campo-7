@@ -22,6 +22,7 @@ import { HealthSchema } from "@/lib/types";
 import { useAppData } from "@/context/AppDataContext";
 import { digitizeHealthTable } from "@/ai/flows/digitize-health-table";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 
 export default function HealthPage() {
   const { dispatch } = useAppData();
