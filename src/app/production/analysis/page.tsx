@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -288,21 +287,21 @@ export default function AnalysisPage() {
                             >
                                 <RadialBarChart
                                     data={analysisData.complianceData}
-                                    startAngle={-90}
-                                    endAngle={90}
+                                    startAngle={180}
+                                    endAngle={0}
                                     innerRadius="70%"
                                     outerRadius="100%"
-                                    barSize={32}
-                                    cy="100%"
+                                    barSize={72}
+                                    cy="60%"
                                 >
                                 <RadialBar
                                     dataKey="value"
                                     background={{ fill: "var(--color-background)" }}
-                                    cornerRadius={8}
+                                    cornerRadius={10}
                                 />
                                 <text
                                     x="50%"
-                                    y="100%"
+                                    y="50%"
                                     textAnchor="middle"
                                     dominantBaseline="middle"
                                     className="fill-foreground text-5xl font-bold"
@@ -311,7 +310,7 @@ export default function AnalysisPage() {
                                 </text>
                                  <text
                                     x="50%"
-                                    y="125%"
+                                    y="70%"
                                     textAnchor="middle"
                                     dominantBaseline="middle"
                                     className="fill-muted-foreground text-lg"
