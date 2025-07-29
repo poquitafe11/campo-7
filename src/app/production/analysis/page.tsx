@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
-import type { ActivityRecordData, LoteData } from '@/lib/types';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import type { ActivityRecordData, LoteData, Presupuesto } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Filter, RefreshCcw } from 'lucide-react';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart } from 'recharts';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, RadialBar, RadialBarChart } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -44,10 +44,22 @@ const chartConfigJornadas = {
   },
 } satisfies ChartConfig;
 
+const chartConfigGauge = {
+    value: {
+        label: "Cumplimiento",
+        color: "#ef4444", // red-500
+    },
+    background: {
+        label: "Faltante",
+        color: "#e5e7eb", // gray-200
+    }
+} satisfies ChartConfig;
+
 export default function AnalysisPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
+    const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
     const { lotes: allLotes, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
 
     const [activeFilters, setActiveFilters] = useState<AnalysisFilters>(getInitialFilters());
@@ -65,6 +77,10 @@ export default function AnalysisPage() {
                 return { ...data, registerDate } as ActivityRecordData;
             });
             setAllActivities(activitiesData);
+            
+            const presupuestosSnapshot = await getDocs(collection(db, 'presupuesto'));
+            const presupuestosData = presupuestosSnapshot.docs.map(doc => doc.data() as Presupuesto);
+            setAllPresupuestos(presupuestosData);
             
             await refreshMasterData();
 
@@ -170,9 +186,17 @@ export default function AnalysisPage() {
         });
     }, [allActivities, activeFilters]);
 
+    const filteredPresupuestos = useMemo(() => {
+        return allPresupuestos.filter(p => {
+             // We can't filter by campaign on Presupuesto, so we ignore it.
+            const loteMatch = !activeFilters.lote || p.lote === activeFilters.lote;
+            const laborMatch = !activeFilters.labor || p.descripcionLabor === activeFilters.labor;
+            return loteMatch && laborMatch;
+        });
+    }, [allPresupuestos, activeFilters]);
+
     const analysisData = useMemo(() => {
         const dataByLabor: { [key: string]: { totalCost: number, totalJornadasHa: number, totalPerformance: number } } = {};
-        const lotesMap = new Map<string, LoteData>(allLotes.map(lote => [lote.id, lote]));
         
         filteredActivities.forEach(act => {
             const cost = act.cost || 0;
@@ -197,6 +221,22 @@ export default function AnalysisPage() {
                 dataByLabor[act.labor].totalPerformance += act.performance;
             }
         });
+
+        const totalPresupuestoJrHa = filteredPresupuestos.reduce((sum, p) => sum + (p.jrnHa || 0), 0);
+        const totalUsedJrHa = filteredActivities.reduce((sum, act) => {
+             const loteData = allLotes.find(l => l.lote === act.lote);
+             const totalHaProdForLote = loteData?.haProd || 0;
+             const jrHa = totalHaProdForLote > 0 ? (act.workdayCount || 0) / totalHaProdForLote : 0;
+             return sum + jrHa;
+        }, 0);
+
+        const percentage = totalPresupuestoJrHa > 0 ? (totalUsedJrHa / totalPresupuestoJrHa) * 100 : 0;
+
+        const complianceData = [{
+            name: "cumplimiento",
+            value: totalUsedJrHa,
+            fill: "var(--color-value)",
+        }];
         
         const costByLaborChart = Object.entries(dataByLabor).map(([labor, data]) => ({
             name: labor,
@@ -212,8 +252,17 @@ export default function AnalysisPage() {
           .filter(l => !activeFilters.lote || l.lote === activeFilters.lote)
           .reduce((acc, lote) => acc + (lote.ha || 0), 0);
 
-        return { costByLaborChart, workdaysByLaborChart, summaryTable: dataByLabor, totalHa: totalHaForFilteredLotes };
-    }, [filteredActivities, allLotes, activeFilters.lote]);
+        return { 
+            costByLaborChart, 
+            workdaysByLaborChart, 
+            summaryTable: dataByLabor, 
+            totalHa: totalHaForFilteredLotes,
+            totalUsedJrHa,
+            totalPresupuestoJrHa,
+            complianceData,
+            compliancePercentage: parseFloat(percentage.toFixed(1)),
+        };
+    }, [filteredActivities, filteredPresupuestos, allLotes, activeFilters.lote]);
 
     if (isLoading || masterLoading) {
         return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -227,6 +276,53 @@ export default function AnalysisPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle>Cumplimiento de Jornadas/Ha</CardTitle>
+                            <CardDescription>Comparación de Jornadas/Ha usadas vs. presupuestadas.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-center">
+                            <ChartContainer
+                                config={chartConfigGauge}
+                                className="mx-auto aspect-square h-64 w-full max-w-sm"
+                            >
+                                <RadialBarChart
+                                    data={analysisData.complianceData}
+                                    startAngle={-90}
+                                    endAngle={90}
+                                    innerRadius="70%"
+                                    outerRadius="100%"
+                                    barSize={32}
+                                    cy="100%"
+                                >
+                                <RadialBar
+                                    dataKey="value"
+                                    background={{ fill: "var(--color-background)" }}
+                                    cornerRadius={8}
+                                />
+                                <text
+                                    x="50%"
+                                    y="100%"
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    className="fill-foreground text-5xl font-bold"
+                                >
+                                    {analysisData.compliancePercentage.toLocaleString('es-PE')}%
+                                </text>
+                                 <text
+                                    x="50%"
+                                    y="125%"
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    className="fill-muted-foreground text-lg"
+                                >
+                                    {analysisData.totalUsedJrHa.toFixed(2)} de {analysisData.totalPresupuestoJrHa.toFixed(2)} jrn/ha
+                                </text>
+                                </RadialBarChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Costo Total por Labor</CardTitle>
