@@ -318,7 +318,10 @@ export default function RegisterHealthPage() {
                                         {tableHeaders.map(header => (
                                             <TableCell key={`${row.internalId}-${header}`} className={cn('whitespace-nowrap', header.toLowerCase() === 'banda' && getBandColorClass(row[header]))}>
                                                 {header === 'Acciones' ? (
-                                                  <Button variant="destructive" size="icon" className="h-7 w-7" onClick={() => handleDeletePreview(row.internalId)}><Trash2 className="h-4 w-4"/></Button>
+                                                  <div className="flex gap-2">
+                                                    <Button variant="outline" size="icon" className="h-7 w-7" disabled><Pencil className="h-4 w-4"/></Button>
+                                                    <Button variant="destructive" size="icon" className="h-7 w-7" onClick={() => handleDeletePreview(row.internalId)}><Trash2 className="h-4 w-4"/></Button>
+                                                  </div>
                                                 ) : String(row[header])}
                                             </TableCell>
                                         ))}
@@ -365,6 +368,3 @@ export default function RegisterHealthPage() {
     </>
   );
 }
-
-
-    
