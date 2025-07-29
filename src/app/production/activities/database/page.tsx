@@ -338,13 +338,13 @@ export default function ActivityDatabasePage() {
         const result = jhu / totalHaProdForLote;
         return result.toFixed(2);
     }},
-    { header: 'Rdto total', accessorKey: 'performance', cell: ({ row }) => row.original.performance?.toLocaleString('es-ES') || '0' },
+    { header: 'Rdto total', accessorKey: 'performance', cell: ({ row }) => row.original.performance?.toLocaleString('en-US') || '0' },
     { header: 'Area Avanzada', cell: ({row}) => {
       const loteData = lotesMap.get(row.original.lote);
       const densidad = loteData?.densidad || 0;
       const performance = row.original.performance || 0;
       if (densidad > 0) {
-        return (performance / densidad).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (performance / densidad).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
       return '0.00';
     }},
@@ -365,7 +365,7 @@ export default function ActivityDatabasePage() {
     { header: 'Max', accessorKey: 'maxRange' },
     { header: 'Personas', accessorKey: 'personnelCount' },
     { header: 'JHU', accessorKey: 'workdayCount' },
-    { header: 'Costo Plta, Jaba, Racimo', accessorKey: 'cost' },
+    { header: 'Costo Plta, Jaba, Racimo', accessorKey: 'cost', cell: ({ row }) => `S/ ${row.original.cost?.toLocaleString('en-US') || '0.00'}` },
     { header: 'TURNO', accessorKey: 'shift' },
     { header: 'Prom./ Jhu', cell: () => '0' },
     { header: 'Prom./ Persona', cell: () => '0' },
@@ -595,6 +595,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 
