@@ -1,11 +1,13 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2 } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2, Crop } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -26,16 +28,43 @@ type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
 
 const editRecordSchema = z.object({
   id: z.string(),
-  // Dynamic fields will be added in effect
 });
+
+function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string> {
+  const canvas = document.createElement('canvas');
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
+  canvas.width = crop.width * scaleX;
+  canvas.height = crop.height * scaleY;
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) {
+    return Promise.reject(new Error('Canvas context not available'));
+  }
+
+  ctx.drawImage(
+    image,
+    crop.x * scaleX,
+    crop.y * scaleY,
+    crop.width * scaleX,
+    crop.height * scaleY,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  return new Promise((resolve) => {
+    resolve(canvas.toDataURL('image/jpeg'));
+  });
+}
 
 export default function RegisterHealthPage() {
   const { toast } = useToast();
 
-  const [digitizedText, setDigitizedText] = useState("");
   const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
   const [tableHeaders, setTableHeaders] = useState<string[]>([]);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
   const [isDigitizing, setIsDigitizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedRecords, setSavedRecords] = useState<any[]>([]);
@@ -46,13 +75,19 @@ export default function RegisterHealthPage() {
   
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
 
+  // Cropping state
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [crop, setCrop] = useState<CropType>();
+  const [completedCrop, setCompletedCrop] = useState<CropType>();
+  const [sourceImage, setSourceImage] = useState<string | null>(null);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
+
   const form = useForm<z.infer<typeof editRecordSchema>>({
     resolver: zodResolver(editRecordSchema),
   });
 
   useEffect(() => {
     if (editingRecord) {
-        // Dynamically create a schema based on the editing record's keys
         const dynamicSchemaFields = Object.keys(editingRecord).reduce((acc, key) => {
             if (key !== 'id' && key !== 'internalId') {
                 (acc as any)[key] = z.string().optional();
@@ -83,18 +118,38 @@ export default function RegisterHealthPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setDigitizedText("");
+        setSourceImage(reader.result as string);
+        setCroppedImage(null);
         setParsedData([]);
         setTableHeaders([]);
+        setCrop(undefined);
       };
       reader.readAsDataURL(file);
     }
   };
+  
+  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+      imgRef.current = e.currentTarget;
+      const { width, height } = e.currentTarget;
+      const initialCrop = centerCrop(
+        makeAspectCrop({ unit: '%', width: 90 }, 16 / 9, width, height),
+        width,
+        height
+      );
+      setCrop(initialCrop);
+  }
+
+  const handleApplyCrop = async () => {
+    if (imgRef.current && completedCrop) {
+      const croppedDataUrl = await getCroppedImg(imgRef.current, completedCrop);
+      setCroppedImage(croppedDataUrl);
+      setSourceImage(null);
+    }
+  }
 
   const handleDigitize = async () => {
-    if (!imagePreview) {
-      toast({ variant: "destructive", title: "Error", description: "Por favor, selecciona una imagen primero." });
+    if (!croppedImage) {
+      toast({ variant: "destructive", title: "Error", description: "Por favor, recorta y usa una imagen primero." });
       return;
     }
     if (!campaign || !stage) {
@@ -103,13 +158,11 @@ export default function RegisterHealthPage() {
     }
     
     setIsDigitizing(true);
-    setDigitizedText("");
     setParsedData([]);
     setTableHeaders([]);
 
     try {
-      const result = await digitizeHealthTable({ photoDataUri: imagePreview });
-      setDigitizedText(result.tableContent);
+      const result = await digitizeHealthTable({ photoDataUri: croppedImage });
       
       try {
         const data = JSON.parse(result.tableContent);
@@ -172,9 +225,8 @@ export default function RegisterHealthPage() {
         
         toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados.` });
         
-        // Clear the state after saving
-        setImagePreview(null);
-        setDigitizedText('');
+        setSourceImage(null);
+        setCroppedImage(null);
         setParsedData([]);
         setTableHeaders([]);
         setCampaign('');
@@ -257,40 +309,22 @@ export default function RegisterHealthPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    if (savedRecords.length === 0) return [];
-
-    const PREFERRED_ORDER = [
-        'Campaña', 'Etapa', 'Variedad', 'Turno', 'Fecha Plan de Aplicación', 
-        'Lote', 'Cuartel', 'Tipo de App', 'Producto', 'Objetivo', 
-        'Ingrediente Activo', 'Categoria', 'P.R. Horas', 'Banda'
-    ];
-
+    const PREFERRED_ORDER = [ 'Campaña', 'Etapa', 'Variedad', 'Turno', 'Fecha Plan de Aplicación', 'Lote', 'Cuartel', 'Tipo de App', 'Producto', 'Objetivo', 'Ingrediente Activo', 'Categoria', 'P.R. Horas', 'Banda' ];
     const headers = new Set<string>();
-    savedRecords.forEach(record => {
-        Object.keys(record).forEach(key => {
-            if (key !== 'id') headers.add(key);
-        });
-    });
-
+    savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
-    
-    // Normalize headers for comparison
     const normalize = (s: string) => s.toLowerCase().replace(/ /g, '');
-
     const normalizedOrder = PREFERRED_ORDER.map(normalize);
-
     headersArray.sort((a, b) => {
         const normA = normalize(a);
         const normB = normalize(b);
         const indexA = normalizedOrder.indexOf(normA);
         const indexB = normalizedOrder.indexOf(normB);
-
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both in preferred order
-        if (indexA !== -1) return -1; // A is in order, B is not
-        if (indexB !== -1) return 1;  // B is in order, A is not
-        return a.localeCompare(b); // Neither is in order, sort alphabetically
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
     });
-
     return headersArray;
   }, [savedRecords]);
 
@@ -305,7 +339,7 @@ export default function RegisterHealthPage() {
                 Digitalizar Tabla desde Imagen
             </CardTitle>
             <CardDescription>
-                Sube una foto de una tabla y la IA extraerá los datos por ti.
+                Sube una foto de una tabla, ajústala y la IA extraerá los datos por ti.
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -315,40 +349,39 @@ export default function RegisterHealthPage() {
                     Seleccionar Imagen
                 </Button>
                 <div className="flex gap-4 w-full sm:w-auto">
-                    <Select value={campaign} onValueChange={setCampaign}>
-                        <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Campaña" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="2025">2025</SelectItem>
-                            <SelectItem value="2026">2026</SelectItem>
-                            <SelectItem value="2027">2027</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select value={stage} onValueChange={setStage}>
-                        <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Habilitacion">Habilitacion</SelectItem>
-                            <SelectItem value="Formacion">Formacion</SelectItem>
-                            <SelectItem value="Produccion">Produccion</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <Select value={campaign} onValueChange={setCampaign}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select>
+                    <Select value={stage} onValueChange={setStage}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger><SelectContent><SelectItem value="Habilitacion">Habilitacion</SelectItem><SelectItem value="Formacion">Formacion</SelectItem><SelectItem value="Produccion">Produccion</SelectItem></SelectContent></Select>
                 </div>
             </div>
              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-            {imagePreview && (
+
+            {sourceImage && (
                 <div className="space-y-4">
-                <div className="relative max-w-lg">
-                    <img src={imagePreview} alt="Vista previa de la tabla" className="rounded-md border" />
-                    <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => { setImagePreview(null); setDigitizedText(''); setParsedData([]); setTableHeaders([]); if(fileInputRef.current) fileInputRef.current.value = ''; }}>
-                        <X className="h-4 w-4" />
-                    </Button>
+                    <div className="relative max-w-lg mx-auto">
+                        <ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)}>
+                            <img ref={imgRef} src={sourceImage} alt="Recortar imagen" onLoad={onImageLoad} style={{ maxHeight: '70vh' }}/>
+                        </ReactCrop>
+                    </div>
+                    <div className="flex justify-center gap-4">
+                        <Button onClick={handleApplyCrop} disabled={!completedCrop?.width || !completedCrop?.height}><Crop className="mr-2 h-4 w-4"/> Cortar y Usar Imagen</Button>
+                        <Button variant="destructive" onClick={() => { setSourceImage(null); setCroppedImage(null); if(fileInputRef.current) fileInputRef.current.value = ''; }}><X className="mr-2 h-4 w-4"/> Cancelar</Button>
+                    </div>
                 </div>
+            )}
+            
+            {croppedImage && (
+              <div className="space-y-4">
+                <p className="text-sm font-medium">Vista Previa Recortada:</p>
+                <img src={croppedImage} alt="Vista previa recortada" className="rounded-md border max-w-sm" />
                 <Button onClick={handleDigitize} disabled={isDigitizing || !campaign || !stage}>
                     {isDigitizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                     {isDigitizing ? "Digitalizando..." : "Digitalizar Tabla"}
                 </Button>
-                </div>
+              </div>
             )}
+
             {isDigitizing && ( <div className="space-y-2"><Label htmlFor="digitized-result">Resultado</Label><div className="space-y-2 rounded-md border p-4"><div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-1/2 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-5/6 animate-pulse"></div></div></div> )}
+            
             {!isDigitizing && parsedData.length > 0 && (
                 <div className="space-y-4">
                     <Label>Resultado (Vista Previa)</Label>
