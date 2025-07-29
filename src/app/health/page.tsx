@@ -66,7 +66,17 @@ export default function HealthPage() {
 
     try {
       const result = await digitizeHealthTable({ photoDataUri: imagePreview });
-      setDigitizedText(result.tableContent);
+      
+      try {
+        // Try to format the JSON for better readability
+        const parsedJson = JSON.parse(result.tableContent);
+        const formattedJson = JSON.stringify(parsedJson, null, 2);
+        setDigitizedText(formattedJson);
+      } catch {
+        // If it's not valid JSON, just show the raw text
+        setDigitizedText(result.tableContent);
+      }
+
       toast({
         title: "¡Digitalización Completa!",
         description: "La tabla ha sido extraída de la imagen.",

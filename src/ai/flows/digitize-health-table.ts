@@ -21,8 +21,7 @@ const DigitizeHealthTableInputSchema = z.object({
 export type DigitizeHealthTableInput = z.infer<typeof DigitizeHealthTableInputSchema>;
 
 const DigitizeHealthTableOutputSchema = z.object({
-  tableContent: z.string().describe('The full content of the table, extracted as plain text.'),
-  structuredData: z.array(z.object({})).describe('The table data extracted into a structured JSON array of objects, where each object represents a row.'),
+  tableContent: z.string().describe('The full content of the table, extracted as a JSON array of objects, where each object represents a row. If the table cannot be extracted, return an empty array string "[]".'),
 });
 export type DigitizeHealthTableOutput = z.infer<typeof DigitizeHealthTableOutputSchema>;
 
@@ -36,9 +35,15 @@ const prompt = ai.definePrompt({
   output: {schema: DigitizeHealthTableOutputSchema},
   prompt: `You are an expert data entry specialist. Your task is to accurately extract information from a table in the provided image.
 
-Analyze the image and transcribe the entire content of the table into a structured format.
-1. Extract the full table content as plain text. Preserve the rows and columns as best as you can.
-2. Extract the table data into a structured JSON array, where each object in the array represents a row from the table. Use the table headers as the keys for the JSON objects.
+Analyze the image and transcribe the entire content of the table into a structured JSON array format.
+Each object in the array should represent a row from the table. Use the table headers as the keys for the JSON objects.
+The final output must be a single string containing a valid JSON array.
+
+Example output format:
+[
+  { "Header 1": "Row 1 Col 1", "Header 2": "Row 1 Col 2" },
+  { "Header 1": "Row 2 Col 1", "Header 2": "Row 2 Col 2" }
+]
 
 Image with the table:
 {{media url=photoDataUri}}`,
