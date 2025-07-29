@@ -10,14 +10,16 @@ import React, { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { HealthData } from "@/lib/types";
 import { digitizeHealthTable } from "@/ai/flows/digitize-health-table";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, onSnapshot, writeBatch } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, writeBatch, doc } from "firebase/firestore";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
 
 const DataItem = ({ label, value }: { label: string, value: any }) => (
     <p><strong className="font-medium text-foreground/80">{label}:</strong> {String(value)}</p>
@@ -36,6 +38,9 @@ export default function HealthPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedRecords, setSavedRecords] = useState<any[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [campaign, setCampaign] = useState('');
+  const [stage, setStage] = useState('');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "registros-sanidad"), (snapshot) => {
@@ -61,11 +66,11 @@ export default function HealthPage() {
 
   const handleDigitize = async () => {
     if (!imagePreview) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Por favor, selecciona una imagen primero.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Por favor, selecciona una imagen primero." });
+      return;
+    }
+    if (!campaign || !stage) {
+      toast({ variant: "destructive", title: "Error", description: "Por favor, selecciona Campaña y Etapa." });
       return;
     }
     
@@ -81,8 +86,26 @@ export default function HealthPage() {
       try {
         const data = JSON.parse(result.tableContent);
         if (Array.isArray(data) && data.length > 0) {
-          setTableHeaders(Object.keys(data[0]));
-          setParsedData(data);
+          const firstRow = data[0];
+          const currentHeaders = Object.keys(firstRow);
+          
+          // Reorder headers to place Campaña and Etapa first
+          const varietyIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'variedad');
+          const finalHeaders = ['Campaña', 'Etapa'];
+          if (varietyIndex !== -1) {
+              finalHeaders.push(...currentHeaders.slice(0, varietyIndex), ...currentHeaders.slice(varietyIndex));
+          } else {
+              finalHeaders.push(...currentHeaders);
+          }
+          // Remove duplicates if any
+          setTableHeaders([...new Set(finalHeaders)]);
+
+          const enrichedData = data.map(row => ({
+            'Campaña': campaign,
+            'Etapa': stage,
+            ...row
+          }));
+          setParsedData(enrichedData);
         } else {
              toast({
                 variant: "destructive",
@@ -132,6 +155,8 @@ export default function HealthPage() {
         setDigitizedText('');
         setParsedData([]);
         setTableHeaders([]);
+        setCampaign('');
+        setStage('');
         if(fileInputRef.current) fileInputRef.current.value = '';
 
     } catch(error) {
@@ -157,6 +182,16 @@ export default function HealthPage() {
         )
     })}</div>;
   };
+  
+  const getBandColorClass = (bandValue: string) => {
+    const lowerCaseBand = String(bandValue || '').toLowerCase();
+    switch (lowerCaseBand) {
+        case 'rojo': return 'bg-red-200 text-red-800';
+        case 'amarillo': return 'bg-yellow-200 text-yellow-800';
+        case 'verde': return 'bg-green-200 text-green-800';
+        default: return '';
+    }
+  };
 
   return (
     <div className="container mx-auto p-0 sm:p-2 lg:p-4 space-y-8">
@@ -171,17 +206,41 @@ export default function HealthPage() {
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-        <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-        />
-        <Button onClick={() => fileInputRef.current?.click()} variant="outline">
-            <Upload className="mr-2 h-4 w-4" />
-            Seleccionar Imagen
-        </Button>
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Seleccionar Imagen
+                </Button>
+                <div className="flex gap-4 w-full sm:w-auto">
+                    <Select value={campaign} onValueChange={setCampaign}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Campaña" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="2025">2025</SelectItem>
+                            <SelectItem value="2026">2026</SelectItem>
+                            <SelectItem value="2027">2027</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select value={stage} onValueChange={setStage}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Etapa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Habilitacion">Habilitacion</SelectItem>
+                            <SelectItem value="Formacion">Formacion</SelectItem>
+                            <SelectItem value="Produccion">Produccion</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+             <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+            />
 
         {imagePreview && (
             <div className="space-y-4">
@@ -202,7 +261,7 @@ export default function HealthPage() {
                     <X className="h-4 w-4" />
                 </Button>
             </div>
-            <Button onClick={handleDigitize} disabled={isDigitizing}>
+            <Button onClick={handleDigitize} disabled={isDigitizing || !campaign || !stage}>
                 {isDigitizing ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -227,7 +286,7 @@ export default function HealthPage() {
         {!isDigitizing && parsedData.length > 0 && (
             <div className="space-y-4">
                 <Label>Resultado</Label>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -237,7 +296,14 @@ export default function HealthPage() {
                         <TableBody>
                             {parsedData.map((row, rowIndex) => (
                                 <TableRow key={rowIndex}>
-                                    {tableHeaders.map(header => <TableCell key={`${rowIndex}-${header}`}>{String(row[header])}</TableCell>)}
+                                    {tableHeaders.map(header => (
+                                      <TableCell 
+                                        key={`${rowIndex}-${header}`}
+                                        className={cn(header.toLowerCase() === 'banda' && getBandColorClass(row[header]))}
+                                      >
+                                        {String(row[header])}
+                                      </TableCell>
+                                    ))}
                                 </TableRow>
                             ))}
                         </TableBody>
