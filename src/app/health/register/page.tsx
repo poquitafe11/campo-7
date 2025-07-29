@@ -258,13 +258,26 @@ export default function RegisterHealthPage() {
 
   const savedRecordsHeaders = useMemo(() => {
     if (savedRecords.length === 0) return [];
+    
     const headers = new Set<string>();
     savedRecords.forEach(record => {
         Object.keys(record).forEach(key => {
             if (key !== 'id') headers.add(key);
         });
     });
-    return Array.from(headers);
+
+    const headersArray = Array.from(headers);
+
+    // Sort the headers: 'Campaña', then 'Etapa', then alphabetically for the rest
+    headersArray.sort((a, b) => {
+        if (a === 'Campaña') return -1;
+        if (b === 'Campaña') return 1;
+        if (a === 'Etapa') return -1;
+        if (b === 'Etapa') return 1;
+        return a.localeCompare(b);
+    });
+
+    return headersArray;
   }, [savedRecords]);
 
 
