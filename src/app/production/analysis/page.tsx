@@ -269,11 +269,10 @@ export default function AnalysisPage() {
                                     )}
                                 </TableBody>
                             </Table>
-                        </div>
+                        </CardContent>
                     </Card>
                 </div>
             )}
         </div>
     );
 }
-
