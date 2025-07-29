@@ -378,26 +378,41 @@ export default function ActivityDatabasePage() {
     { header: 'costo por planta', cell: () => '0' },
     { header: 'costo plta emp.', cell: () => '0' },
     { header: 'Pago Neto Prom. / JHU', cell: ({ row }) => {
-        const specialLabors = ['46', '67'];
-        const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
-        const jhu = row.original.workdayCount || 0;
-        const promJhu = jhu > 0 ? numerator / jhu : 0;
         const cost = row.original.cost || 0;
-        const pagoNeto = promJhu * cost;
+        let pagoNeto = 0;
+        if (cost === 0) {
+            pagoNeto = 60; // jornal
+        } else {
+            const specialLabors = ['46', '67'];
+            const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
+            const jhu = row.original.workdayCount || 0;
+            const promJhu = jhu > 0 ? numerator / jhu : 0;
+            pagoNeto = promJhu * cost;
+        }
         return `S/ ${pagoNeto.toFixed(2)}`;
     } },
     { header: 'Costo Labor', cell: ({ row }) => {
-        const specialLabors = ['46', '67'];
-        const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
         const cost = row.original.cost || 0;
-        const costoLabor = numerator * cost;
+        let costoLabor = 0;
+        if (cost === 0) {
+            costoLabor = (row.original.workdayCount || 0) * 60;
+        } else {
+            const specialLabors = ['46', '67'];
+            const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
+            costoLabor = numerator * cost;
+        }
         return `S/ ${costoLabor.toFixed(2)}`;
     } },
     { header: 'Costo Empresa', cell: ({ row }) => {
-        const specialLabors = ['46', '67'];
-        const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
         const cost = row.original.cost || 0;
-        const costoLabor = numerator * cost;
+        let costoLabor = 0;
+        if (cost === 0) {
+            costoLabor = (row.original.workdayCount || 0) * 60;
+        } else {
+            const specialLabors = ['46', '67'];
+            const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
+            costoLabor = numerator * cost;
+        }
         const costoEmpresa = costoLabor * 1.30;
         return `S/ ${costoEmpresa.toFixed(2)}`;
     } },
@@ -622,6 +637,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 
