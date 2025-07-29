@@ -7,7 +7,6 @@ import { collection, getDocs } from 'firebase/firestore';
 import type { ActivityRecordData, LoteData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Filter, RefreshCcw } from 'lucide-react';
-import { parseISO } from 'date-fns';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -15,30 +14,30 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ComposedChart, BarChart } from 'recharts';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface AnalysisFilters {
     campaign: string;
-    lotes: string[];
+    variety: string;
 }
 
 const getInitialFilters = (): AnalysisFilters => ({
     campaign: '',
-    lotes: [],
+    variety: '',
 });
 
 const chartConfigCosto = {
   costo: {
-    label: "Costo Empresa (S/)",
+    label: "Costo / Ha (S/)",
     color: "#38bdf8",
   },
 } satisfies ChartConfig;
 
 const chartConfigJornadas = {
   jornadas: {
-    label: "Jornadas",
+    label: "Jornadas / Ha",
     color: "#10b981",
   },
 } satisfies ChartConfig;
@@ -86,8 +85,8 @@ export default function AnalysisPage() {
     
     const filterOptions = useMemo(() => {
         const campaigns = [...new Set(allActivities.map(a => a.campaign))].sort();
-        const lotes = [...new Set(allLotes.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        return { campaigns, lotes };
+        const varieties = [...new Set(allLotes.map(a => a.variedad))].sort();
+        return { campaigns, varieties };
     }, [allActivities, allLotes]);
 
     const handleApplyFilters = () => {
@@ -125,10 +124,10 @@ export default function AnalysisPage() {
                                     <SelectTrigger><SelectValue placeholder="Seleccione Campaña" /></SelectTrigger>
                                     <SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                                 </Select>
-                                <Label>Lotes</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lotes: [v]}))} value={popoverFilters.lotes[0] || ''}>
-                                    <SelectTrigger><SelectValue placeholder="Seleccione Lote" /></SelectTrigger>
-                                    <SelectContent>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                                <Label>Variedad</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, variety: v}))} value={popoverFilters.variety}>
+                                    <SelectTrigger><SelectValue placeholder="Seleccione Variedad" /></SelectTrigger>
+                                    <SelectContent>{filterOptions.varieties.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
                                 </Select>
                             </div>
                             <div className="flex justify-end gap-2">
@@ -144,18 +143,30 @@ export default function AnalysisPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isFilterOpen, isLoading, popoverFilters, filterOptions]);
 
+    const lotesForSelectedVariety = useMemo(() => {
+      if (!activeFilters.variety) return [];
+      return allLotes.filter(l => l.variedad === activeFilters.variety);
+    }, [activeFilters.variety, allLotes]);
+    
+    const totalHaForVariety = useMemo(() => {
+        return lotesForSelectedVariety.reduce((acc, lote) => acc + (lote.ha || 0), 0);
+    }, [lotesForSelectedVariety]);
+
+
     const filteredActivities = useMemo(() => {
+        if (!activeFilters.campaign || !activeFilters.variety) return [];
+        const loteNamesForVariety = lotesForSelectedVariety.map(l => l.lote);
+        
         return allActivities.filter(a => {
-            const campaignMatch = activeFilters.campaign ? a.campaign === activeFilters.campaign : true;
-            const loteMatch = activeFilters.lotes.length > 0 ? activeFilters.lotes.includes(a.lote) : true;
+            const campaignMatch = a.campaign === activeFilters.campaign;
+            const loteMatch = loteNamesForVariety.includes(a.lote);
             return campaignMatch && loteMatch;
         });
-    }, [allActivities, activeFilters]);
+    }, [allActivities, activeFilters, lotesForSelectedVariety]);
 
     const analysisData = useMemo(() => {
         const dataByLabor: { [key: string]: { totalCost: number, totalWorkdays: number, totalPerformance: number } } = {};
-        const dataByLote: { [key: string]: { totalWorkdays: number } } = {};
-
+        
         filteredActivities.forEach(act => {
             const cost = act.cost || 0;
             let costoLabor = 0;
@@ -174,25 +185,20 @@ export default function AnalysisPage() {
                 dataByLabor[act.labor].totalWorkdays += act.workdayCount;
                 dataByLabor[act.labor].totalPerformance += act.performance;
             }
-
-            if(act.lote) {
-                if (!dataByLote[act.lote]) dataByLote[act.lote] = { totalWorkdays: 0 };
-                dataByLote[act.lote].totalWorkdays += act.workdayCount;
-            }
         });
         
-        const costByLaborChart = Object.entries(dataByLabor).map(([labor, data]) => ({
+        const costByLaborPerHaChart = Object.entries(dataByLabor).map(([labor, data]) => ({
             name: labor,
-            costo: parseFloat(data.totalCost.toFixed(2)),
+            costo: totalHaForVariety > 0 ? parseFloat((data.totalCost / totalHaForVariety).toFixed(2)) : 0,
         })).sort((a,b) => b.costo - a.costo);
 
-        const workdaysByLoteChart = Object.entries(dataByLote).map(([lote, data]) => ({
-            name: `Lote ${lote}`,
-            jornadas: parseFloat(data.totalWorkdays.toFixed(2)),
+        const workdaysByLaborPerHaChart = Object.entries(dataByLabor).map(([labor, data]) => ({
+            name: labor,
+            jornadas: totalHaForVariety > 0 ? parseFloat((data.totalWorkdays / totalHaForVariety).toFixed(2)) : 0,
         })).sort((a,b) => b.jornadas - a.jornadas);
 
-        return { costByLaborChart, workdaysByLoteChart, summaryTable: dataByLabor };
-    }, [filteredActivities]);
+        return { costByLaborPerHaChart, workdaysByLaborPerHaChart, summaryTable: dataByLabor };
+    }, [filteredActivities, totalHaForVariety]);
 
     if (isLoading || masterLoading) {
         return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -200,20 +206,20 @@ export default function AnalysisPage() {
 
     return (
         <div className="space-y-6">
-            {!activeFilters.campaign && !activeFilters.lotes.length ? (
+            {!activeFilters.campaign || !activeFilters.variety ? (
                  <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                    <p>Seleccione filtros (Campaña y/o Lote) para iniciar el análisis.</p>
+                    <p>Seleccione una Campaña y una Variedad para iniciar el análisis.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Costo Total por Labor</CardTitle>
-                            <CardDescription>Costo de empresa (S/) para cada labor en los filtros seleccionados.</CardDescription>
+                            <CardTitle>Costo por Hectárea por Labor</CardTitle>
+                            <CardDescription>Costo de empresa (S/) por hectárea para la variedad {activeFilters.variety}.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ChartContainer config={chartConfigCosto} className="min-h-[300px] w-full">
-                                <BarChart data={analysisData.costByLaborChart} layout="vertical" margin={{ left: 50, right: 20 }}>
+                                <BarChart data={analysisData.costByLaborPerHaChart} layout="vertical" margin={{ left: 50, right: 20 }}>
                                     <CartesianGrid horizontal={false} />
                                     <XAxis type="number" dataKey="costo" tickFormatter={(value) => `S/ ${value.toLocaleString('en-US')}`} />
                                     <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
@@ -225,15 +231,15 @@ export default function AnalysisPage() {
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Jornadas Totales por Lote</CardTitle>
-                            <CardDescription>Suma de jornadas de trabajo (JHU) por cada lote.</CardDescription>
+                            <CardTitle>Jornadas por Hectárea por Labor</CardTitle>
+                            <CardDescription>Suma de jornadas de trabajo (JHU) por hectárea para la variedad {activeFilters.variety}.</CardDescription>
                         </CardHeader>
                          <CardContent>
                             <ChartContainer config={chartConfigJornadas} className="min-h-[300px] w-full">
-                                <BarChart data={analysisData.workdaysByLoteChart}>
-                                    <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="name" tick={{ fontSize: 12 }}/>
-                                    <YAxis />
+                                <BarChart data={analysisData.workdaysByLaborPerHaChart} layout="vertical" margin={{ left: 50, right: 20 }}>
+                                    <CartesianGrid horizontal={false} />
+                                    <XAxis type="number" dataKey="jornadas" />
+                                    <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
                                     <Tooltip content={<ChartTooltipContent />} />
                                     <Bar dataKey="jornadas" fill="var(--color-jornadas)" radius={4} />
                                 </BarChart>
@@ -241,15 +247,15 @@ export default function AnalysisPage() {
                         </CardContent>
                     </Card>
                     <Card className="lg:col-span-2">
-                        <CardHeader><CardTitle>Tabla de Resumen por Labor</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Tabla de Resumen por Labor (Variedad: {activeFilters.variety})</CardTitle></CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Labor</TableHead>
                                         <TableHead className="text-right">Rendimiento Total</TableHead>
-                                        <TableHead className="text-right">Jornadas Totales</TableHead>
-                                        <TableHead className="text-right">Costo Empresa Total (S/)</TableHead>
+                                        <TableHead className="text-right">Jornadas / Ha</TableHead>
+                                        <TableHead className="text-right">Costo Empresa / Ha (S/)</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -258,13 +264,13 @@ export default function AnalysisPage() {
                                             <TableRow key={labor}>
                                                 <TableCell className="font-medium">{labor}</TableCell>
                                                 <TableCell className="text-right">{data.totalPerformance.toLocaleString('en-US')}</TableCell>
-                                                <TableCell className="text-right">{data.totalWorkdays.toFixed(2)}</TableCell>
-                                                <TableCell className="text-right">{data.totalCost.toLocaleString('en-US', { style: 'currency', currency: 'PEN' })}</TableCell>
+                                                <TableCell className="text-right">{totalHaForVariety > 0 ? (data.totalWorkdays / totalHaForVariety).toFixed(2) : '0.00'}</TableCell>
+                                                <TableCell className="text-right">{totalHaForVariety > 0 ? (data.totalCost / totalHaForVariety).toLocaleString('en-US', { style: 'currency', currency: 'PEN' }) : 'S/ 0.00'}</TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center">No hay datos para mostrar.</TableCell>
+                                            <TableCell colSpan={4} className="h-24 text-center">No hay datos para los filtros seleccionados.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
