@@ -338,7 +338,6 @@ export default function ActivityDatabasePage() {
         const result = jhu / totalHaProdForLote;
         return result.toFixed(2);
     }},
-    { header: 'und medida', cell: () => 'N/A' },
     { header: 'Rdto total', accessorKey: 'performance', cell: ({ row }) => row.original.performance?.toLocaleString('es-ES') || '0' },
     { header: 'Area Avanzada', cell: ({row}) => {
       const loteData = lotesMap.get(row.original.lote);
@@ -596,5 +595,6 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
