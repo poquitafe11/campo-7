@@ -309,14 +309,14 @@ export default function RegisterHealthPage() {
             {!isDigitizing && parsedData.length > 0 && (
                 <div className="space-y-4">
                     <Label>Resultado (Vista Previa)</Label>
-                    <div className="rounded-md border overflow-x-auto">
-                        <Table>
+                    <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
+                        <Table className="bg-background">
                             <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader>
                             <TableBody>
                                 {parsedData.map((row) => (
                                     <TableRow key={row.internalId}>
                                         {tableHeaders.map(header => (
-                                            <TableCell key={`${row.internalId}-${header}`} className={cn(header.toLowerCase() === 'banda' && getBandColorClass(row[header]))}>
+                                            <TableCell key={`${row.internalId}-${header}`} className={cn('whitespace-nowrap', header.toLowerCase() === 'banda' && getBandColorClass(row[header]))}>
                                                 {header === 'Acciones' ? (
                                                   <Button variant="destructive" size="icon" className="h-7 w-7" onClick={() => handleDeletePreview(row.internalId)}><Trash2 className="h-4 w-4"/></Button>
                                                 ) : String(row[header])}
@@ -365,3 +365,6 @@ export default function RegisterHealthPage() {
     </>
   );
 }
+
+
+    
