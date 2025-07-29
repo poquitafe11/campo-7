@@ -1,404 +1,400 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Filter,
+  Loader2,
+  LayoutGrid,
+  RefreshCcw,
+  Calendar as CalendarIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { format, parseISO, isValid } from 'date-fns';
+import { es } from 'date-fns/locale';
 import type { ActivityRecordData, LoteData, Presupuesto } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Filter, RefreshCcw } from 'lucide-react';
-import { useHeaderActions } from '@/contexts/HeaderActionsContext';
-import { useMasterData } from '@/context/MasterDataContext';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, RadialBar, RadialBarChart } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ChartConfig, ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
+import { Bar, BarChart, CartesianGrid, Legend, RadialBar, RadialBarChart, XAxis, YAxis } from 'recharts';
+import { useMasterData } from '@/context/MasterDataContext';
 
-interface AnalysisFilters {
-    campaign: string;
-    lote: string;
-    labor: string;
-}
 
-const getInitialFilters = (): AnalysisFilters => ({
-    campaign: '',
-    lote: '',
-    labor: '',
+const getInitialFilters = () => ({
+  date: undefined as Date | undefined,
+  lote: '',
+  labor: '',
+  pass: '',
 });
 
-const chartConfigCosto = {
-  costo: {
-    label: "Costo / Ha (S/)",
-    color: "#38bdf8",
-  },
-} satisfies ChartConfig;
-
-const chartConfigJornadas = {
-  jornadas: {
-    label: "Jornadas / Ha",
-    color: "#10b981",
-  },
-} satisfies ChartConfig;
-
-const chartConfigGauge = {
-    value: {
-        label: "Cumplimiento",
-        color: "#ef4444", // red-500
-    },
-    background: {
-        label: "Faltante",
-        color: "#e5e7eb", // gray-200
-    }
-} satisfies ChartConfig;
-
 export default function AnalysisPage() {
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(true);
-    const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
-    const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
-    const { lotes: allLotes, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+  const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
+  const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
+  const { lotes: allLotes, labors: allLabors, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [filters, setFilters] = useState(getInitialFilters());
+  const [drilldownLote, setDrilldownLote] = useState<string | null>(null);
+  const [drilldownLabor, setDrilldownLabor] = useState<string | null>(null);
 
-    const [activeFilters, setActiveFilters] = useState<AnalysisFilters>(getInitialFilters());
-    const [popoverFilters, setPopoverFilters] = useState<AnalysisFilters>(getInitialFilters());
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const { setActions } = useHeaderActions();
+  const { toast } = useToast();
 
-    const loadData = useCallback(async (showToast = false) => {
-        setIsLoading(true);
+  const loadData = useCallback(async (showToast = false) => {
+    setIsLoading(true);
+    try {
+      const [activitiesSnapshot, presupuestosSnapshot] = await Promise.all([
+        getDocs(collection(db, 'actividades')),
+        getDocs(collection(db, 'presupuesto')),
+      ]);
+      
+      const activitiesData = activitiesSnapshot.docs.map(doc => {
+          const data = doc.data();
+          const registerDate = data.registerDate?.toDate ? data.registerDate.toDate() : new Date();
+          return { ...data, registerDate } as ActivityRecordData;
+      });
+      setAllActivities(activitiesData);
+      
+      const presupuestosData = presupuestosSnapshot.docs.map(doc => doc.data() as Presupuesto);
+      setAllPresupuestos(presupuestosData);
+            
+      await refreshMasterData();
+
+      if (showToast) {
+        toast({ title: 'Datos actualizados', description: 'La información más reciente ha sido cargada.' });
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos.' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast, refreshMasterData]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+  
+  const uniqueLotesOptions = useMemo(() => {
+    return [...new Set(allLotes.map(l => l.lote))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [allLotes]);
+  
+  const dynamicOptions = useMemo(() => {
+    let recordsForOptions = allActivities;
+
+    if (filters.date) {
+      const formattedDate = format(filters.date, 'yyyy-MM-dd');
+      recordsForOptions = recordsForOptions.filter(r => {
+        if (!r.registerDate) return false;
         try {
-            const activitiesSnapshot = await getDocs(collection(db, 'actividades'));
-            const activitiesData = activitiesSnapshot.docs.map(doc => {
-                const data = doc.data();
-                const registerDate = data.registerDate?.toDate ? data.registerDate.toDate() : new Date();
-                return { ...data, registerDate } as ActivityRecordData;
-            });
-            setAllActivities(activitiesData);
-            
-            const presupuestosSnapshot = await getDocs(collection(db, 'presupuesto'));
-            const presupuestosData = presupuestosSnapshot.docs.map(doc => doc.data() as Presupuesto);
-            setAllPresupuestos(presupuestosData);
-            
-            await refreshMasterData();
+          const recordDate = format(r.registerDate, 'yyyy-MM-dd');
+          return recordDate === formattedDate;
+        } catch (e) { return false; }
+      });
+    }
 
-            if (showToast) {
-                toast({ title: "Éxito", description: "Los datos han sido actualizados." });
-            }
+    if (filters.lote) {
+      recordsForOptions = recordsForOptions.filter(r => r.lote === filters.lote);
+    }
 
-        } catch (error) {
-            console.error("Error loading analysis data:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos para el análisis." });
-        } finally {
-            setIsLoading(false);
+    const labors = [...new Set(recordsForOptions.map(r => r.labor).filter(Boolean) as string[])].sort();
+    
+    if (filters.labor) {
+      recordsForOptions = recordsForOptions.filter(r => r.labor === filters.labor);
+    }
+    
+    const pasadas = [...new Set(recordsForOptions.map(r => String(r.pass)))].sort((a,b) => Number(a) - Number(b));
+
+    return { labors, pasadas };
+  }, [filters.lote, filters.date, filters.labor, allActivities]);
+  
+  const filteredRecords = useMemo(() => {
+    if (allActivities.length === 0) return [];
+    
+    return allActivities.filter(r => {
+      if (filters.date) {
+        if (!r.registerDate) return false;
+        try {
+          if (format(r.registerDate, 'yyyy-MM-dd') !== format(filters.date as Date, 'yyyy-MM-dd')) return false;
+        } catch (e) { return false; }
+      }
+      if (filters.lote && r.lote !== filters.lote) return false;
+      if (filters.labor && r.labor !== filters.labor) return false;
+      if (filters.pass && String(r.pass) !== filters.pass) return false;
+      return true;
+    });
+  }, [filters, allActivities]);
+  
+  const calculateCostoLabor = useCallback((reg: ActivityRecordData): number => {
+    const costoUnitario = reg.cost || 0;
+    const costoPorJornada = 60;
+    let costoLabor = 0;
+
+    if (costoUnitario > 0) {
+      // Logic for labors 46, 67 can be added here if needed
+      costoLabor = costoUnitario * (reg.performance || 0);
+    } else {
+      costoLabor = (reg.workdayCount || 0) * costoPorJornada;
+    }
+    return costoLabor;
+  }, []);
+
+  const calculatePromJhu = useCallback((reg: ActivityRecordData): number => {
+    const jornadas = reg.workdayCount || 0;
+    if (jornadas === 0) return 0;
+    const rendimiento = reg.performance || 0;
+    const result = rendimiento / jornadas;
+    if (isNaN(result) || !isFinite(result)) return 0;
+    return Math.round(result);
+  }, []);
+  
+  const chartsData = useMemo(() => {
+    let recordsForCharts = filteredRecords.filter(record => allLotes.some(l => l.lote === record.lote));
+
+    let groupByKey: 'lote' | 'labor' = 'lote';
+
+    if (drilldownLote) {
+      recordsForCharts = recordsForCharts.filter(r => r.lote === drilldownLote);
+      groupByKey = 'labor';
+    } else if (filters.lote) {
+      groupByKey = 'labor';
+    }
+
+    const groupedData = recordsForCharts.reduce((acc, record) => {
+        const key = groupByKey === 'labor' ? record.labor : record.lote;
+        const loteData = allLotes.find(l => l.lote === record.lote);
+        if (!key || !loteData) return acc;
+
+        if (!acc[key]) {
+            acc[key] = { jrHa: 0, costo: 0, ha: 0, promJhuSum: 0, promJhuCount: 0, lotsProcessed: new Set() };
         }
-    }, [toast, refreshMasterData]);
+        
+        const jrHaValue = (loteData.haProd || 0) > 0 ? (record.workdayCount || 0) / loteData.haProd : 0;
+        if (!isNaN(jrHaValue)) {
+            acc[key].jrHa += jrHaValue;
+        }
 
-    useEffect(() => {
-        loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-    
-    const filterOptions = useMemo(() => {
-        const campaigns = [...new Set(allActivities.map(a => a.campaign))].sort();
-        const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
-        return { campaigns, lotes, labors };
-    }, [allActivities]);
+        acc[key].costo += calculateCostoLabor(record);
 
-    const handleApplyFilters = () => {
-        setActiveFilters(popoverFilters);
-        setIsFilterOpen(false);
-    };
+        const promJhuValue = calculatePromJhu(record);
+        if (promJhuValue > 0) {
+            acc[key].promJhuSum += promJhuValue;
+            acc[key].promJhuCount += 1;
+        }
+
+        if (!acc[key].lotsProcessed.has(loteData.id)) {
+            acc[key].ha += loteData.haProd || 0;
+            acc[key].lotsProcessed.add(loteData.id);
+        }
+        
+        return acc;
+    }, {} as Record<string, { jrHa: number; costo: number; ha: number; promJhuSum: number; promJhuCount: number, lotsProcessed: Set<string> }>);
     
-    const handleClearFilters = () => {
-        const cleared = getInitialFilters();
-        setPopoverFilters(cleared);
-        setActiveFilters(cleared);
-        setIsFilterOpen(false);
+    const finalData = Object.entries(groupedData).map(([key, data]) => ({
+      name: key,
+      jrHa: data.jrHa,
+      costoHa: data.ha > 0 ? data.costo / data.ha : 0,
+      promJhu: data.promJhuCount > 0 ? data.promJhuSum / data.promJhuCount : 0,
+    }));
+
+    return { 
+      data: finalData,
+      groupBy: groupByKey
     };
-    
-    useEffect(() => {
-        setActions(
-            <>
-                <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={isLoading} className="h-9 w-9 shrink-0">
-                  <RefreshCcw className="h-5 w-5" />
-                  <span className="sr-only">Actualizar</span>
-                </Button>
-                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
-                            <Filter className="h-5 w-5" />
-                             <span className="sr-only">Filtros</span>
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80" align="end">
+  }, [filteredRecords, allLotes, filters.lote, drilldownLote, calculateCostoLabor, calculatePromJhu]);
+
+  const handleClearFilters = () => {
+    setFilters(getInitialFilters());
+    setDrilldownLote(null);
+  };
+  
+  const handleBarClick = (data: any) => {
+    if (chartsData.groupBy === 'lote' && data && data.name) {
+      setDrilldownLote(data.name);
+    }
+  };
+  
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true)
+  }, []);
+
+  const chartConfig: ChartConfig = {
+    jrHa: { label: "Jornadas/Ha", color: "#3b82f6" },
+    costoHa: { label: "Costo/Ha (S/)", color: "#10b981" },
+    promJhu: { label: "Prom./JHU", color: "#f97316" },
+  };
+
+  const loading = isLoading || masterLoading;
+
+  return (
+    <div className="flex min-h-screen w-full flex-col bg-background">
+       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/production">
+              <ArrowLeft />
+              <span className="sr-only">Volver a Producción</span>
+            </Link>
+          </Button>
+          <h1 className="text-lg font-semibold font-headline sm:text-xl">
+            Análisis y Reportes
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" className="shrink-0">
+                        <Filter className="h-4 w-4" />
+                        <span className="sr-only">Filtrar</span>
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[90vw] max-w-sm p-4 sm:w-auto" align="end">
+                    <div className="grid gap-4">
+                        <div className="space-y-2">
+                            <h4 className="font-medium leading-none">Filtros de Búsqueda</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Selecciona los filtros para ver el resumen.
+                            </p>
+                        </div>
                         <div className="grid gap-4">
-                            <div className="space-y-2"><h4 className="font-medium leading-none">Filtros de Análisis</h4></div>
-                            <div className="grid gap-2">
-                                <Label>Campaña</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}>
-                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
-                                        {filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <Label>Lote</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}>
-                                    <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todos</SelectItem>
-                                        {filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <Label>Labor</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}>
-                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
-                                        {filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                                    </SelectContent>
+                             <div className="grid grid-cols-1 items-center gap-2">
+                                <Label htmlFor="date-filter">Fecha</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button id="date-filter" variant="outline" className={cn("w-full justify-start text-left font-normal", !filters.date && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {isClient && filters.date ? format(filters.date, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={filters.date} onSelect={(date) => setFilters(prev => ({...getInitialFilters(), date: date || undefined, lote: prev.lote}))} initialFocus locale={es}/></PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="grid grid-cols-1 items-center gap-2">
+                                <Label htmlFor="lote-filter">Lote (Opcional)</Label>
+                                <Select
+                                value={filters.lote}
+                                onValueChange={(value) =>
+                                    setFilters((prev) => ({ ...prev, lote: value === 'all' ? '' : value, labor: '', pass: '' }))
+                                }
+                                >
+                                <SelectTrigger id="lote-filter">
+                                    <SelectValue placeholder="Todos los Lotes" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos los Lotes</SelectItem>
+                                    {uniqueLotesOptions.map(lote => <SelectItem key={lote} value={lote}>{lote}</SelectItem>)}
+                                </SelectContent>
                                 </Select>
                             </div>
-                            <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                            <div className="grid grid-cols-1 items-center gap-2">
+                                <Label htmlFor="labor-filter">Labor (Opcional)</Label>
+                                <Select
+                                value={filters.labor}
+                                onValueChange={(value) =>
+                                    setFilters((prev) => ({ ...prev, labor: value === 'all' ? '' : value, pass: '' }))
+                                }
+                                disabled={dynamicOptions.labors.length === 0}
+                                >
+                                <SelectTrigger id="labor-filter"><SelectValue placeholder="Todas las Labores" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas las Labores</SelectItem>
+                                    {dynamicOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="grid grid-cols-1 items-center gap-2">
+                                <Label htmlFor="pasada-filter">Pasada (Opcional)</Label>
+                                <Select
+                                value={filters.pass}
+                                onValueChange={(value) =>
+                                    setFilters((prev) => ({ ...prev, pass: value === 'all' ? '' : value }))
+                                }
+                                disabled={dynamicOptions.pasadas.length === 0}
+                                >
+                                <SelectTrigger id="pasada-filter"><SelectValue placeholder="Todas las Pasadas" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas las Pasadas</SelectItem>
+                                    {dynamicOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                    </PopoverContent>
-                </Popover>
-            </>
-        );
-         return () => setActions(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isFilterOpen, isLoading, popoverFilters, filterOptions]);
-
-    
-    const filteredActivities = useMemo(() => {
-        return allActivities.filter(a => {
-            const campaignMatch = !activeFilters.campaign || a.campaign === activeFilters.campaign;
-            const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
-            const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
-            return campaignMatch && loteMatch && laborMatch;
-        });
-    }, [allActivities, activeFilters]);
-
-    const filteredPresupuestos = useMemo(() => {
-        return allPresupuestos.filter(p => {
-             // We can't filter by campaign on Presupuesto, so we ignore it.
-            const loteMatch = !activeFilters.lote || parseInt(p.lote, 10) === parseInt(activeFilters.lote, 10);
-            const laborMatch = !activeFilters.labor || p.descripcionLabor === activeFilters.labor;
-            return loteMatch && laborMatch;
-        });
-    }, [allPresupuestos, activeFilters]);
-
-    const analysisData = useMemo(() => {
-        const dataByLabor: { [key: string]: { totalCost: number, totalJornadasHa: number, totalPerformance: number } } = {};
-        
-        filteredActivities.forEach(act => {
-            const cost = act.cost || 0;
-            let costoLabor = 0;
-            if (cost === 0) {
-                costoLabor = (act.workdayCount || 0) * 60;
-            } else {
-                const specialLabors = ['46', '67'];
-                const numerator = specialLabors.includes(act.code || '') ? 0 : (act.performance || 0);
-                costoLabor = numerator * cost;
-            }
-            const costoEmpresa = costoLabor * 1.30;
-            
-            const loteData = allLotes.find(l => l.lote === act.lote);
-            const totalHaProdForLote = loteData?.haProd || 0;
-            const jrHa = totalHaProdForLote > 0 ? (act.workdayCount || 0) / totalHaProdForLote : 0;
-            
-            if (act.labor) {
-                if (!dataByLabor[act.labor]) dataByLabor[act.labor] = { totalCost: 0, totalJornadasHa: 0, totalPerformance: 0 };
-                dataByLabor[act.labor].totalCost += costoEmpresa;
-                dataByLabor[act.labor].totalJornadasHa += jrHa;
-                dataByLabor[act.labor].totalPerformance += act.performance;
-            }
-        });
-
-        const totalPresupuestoJrHa = filteredPresupuestos.reduce((sum, p) => sum + (p.jrnHa || 0), 0);
-        
-        const totalUsedJrHa = filteredActivities.reduce((sum, act) => {
-             const loteData = allLotes.find(l => l.lote === act.lote);
-             const totalHaProdForLote = loteData?.haProd || 0;
-             const jrHa = totalHaProdForLote > 0 ? (act.workdayCount || 0) / totalHaProdForLote : 0;
-             return sum + jrHa;
-        }, 0);
-
-        const percentage = totalPresupuestoJrHa > 0 ? (totalUsedJrHa / totalPresupuestoJrHa) * 100 : 0;
-
-        const complianceData = [{
-            name: "cumplimiento",
-            value: totalUsedJrHa,
-            fill: "var(--color-value)",
-        }];
-        
-        const costByLaborChart = Object.entries(dataByLabor).map(([labor, data]) => ({
-            name: labor,
-            costo: parseFloat(data.totalCost.toFixed(2)),
-        })).sort((a,b) => b.costo - a.costo);
-
-        const workdaysByLaborChart = Object.entries(dataByLabor).map(([labor, data]) => ({
-            name: labor,
-            jornadas: parseFloat(data.totalJornadasHa.toFixed(2)),
-        })).sort((a,b) => b.jornadas - a.jornadas);
-        
-        const totalHaForFilteredLotes = allLotes
-          .filter(l => !activeFilters.lote || l.lote === activeFilters.lote)
-          .reduce((acc, lote) => acc + (lote.ha || 0), 0);
-
-        return { 
-            costByLaborChart, 
-            workdaysByLaborChart, 
-            summaryTable: dataByLabor, 
-            totalHa: totalHaForFilteredLotes,
-            totalUsedJrHa,
-            totalPresupuestoJrHa,
-            complianceData,
-            compliancePercentage: parseFloat(percentage.toFixed(1)),
-        };
-    }, [filteredActivities, filteredPresupuestos, allLotes, activeFilters.lote]);
-    
-    const renderContent = () => {
-        if (isLoading || masterLoading) {
-            return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-        }
-
-        if (filteredActivities.length === 0) {
-            return (
-                 <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                    <p>No se encontraron datos para los filtros seleccionados.<br/>Intenta con otros criterios.</p>
-                </div>
-            );
-        }
-
-        return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Cumplimiento de Jornadas/Ha</CardTitle>
-                        <CardDescription>Comparación de Jornadas/Ha usadas vs. presupuestadas.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-center">
-                        <ChartContainer
-                            config={chartConfigGauge}
-                            className="mx-auto aspect-square h-64 w-full max-w-sm"
-                        >
-                            <RadialBarChart
-                                data={analysisData.complianceData}
-                                startAngle={180}
-                                endAngle={0}
-                                innerRadius="70%"
-                                outerRadius="100%"
-                                barSize={72}
-                                cy="60%"
-                            >
-                            <RadialBar
-                                dataKey="value"
-                                background={{ fill: "var(--color-background)" }}
-                                cornerRadius={10}
-                            />
-                            <text
-                                x="50%"
-                                y="50%"
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                className="fill-foreground text-5xl font-bold"
-                            >
-                                {analysisData.compliancePercentage.toLocaleString('es-PE')}%
-                            </text>
-                             <text
-                                x="50%"
-                                y="70%"
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                className="fill-muted-foreground text-lg"
-                            >
-                                {analysisData.totalUsedJrHa.toFixed(2)} de {analysisData.totalPresupuestoJrHa.toFixed(2)} jrn/ha
-                            </text>
-                            </RadialBarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Costo Total por Labor</CardTitle>
-                        <CardDescription>Costo de empresa (S/) según los filtros aplicados.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={chartConfigCosto} className="min-h-[300px] w-full">
-                            <BarChart data={analysisData.costByLaborChart} layout="vertical" margin={{ left: 50, right: 20 }}>
-                                <CartesianGrid horizontal={false} />
-                                <XAxis type="number" dataKey="costo" tickFormatter={(value) => `S/ ${value.toLocaleString('en-US')}`} />
-                                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                                <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
-                                <Bar dataKey="costo" fill="var(--color-costo)" radius={4} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Jornadas/Ha por Labor</CardTitle>
-                        <CardDescription>Suma de Jornadas por Hectárea (JR/Ha) según los filtros.</CardDescription>
-                    </CardHeader>
-                     <CardContent>
-                        <ChartContainer config={chartConfigJornadas} className="min-h-[300px] w-full">
-                            <BarChart data={analysisData.workdaysByLaborChart} layout="vertical" margin={{ left: 50, right: 20 }}>
-                                <CartesianGrid horizontal={false} />
-                                <XAxis type="number" dataKey="jornadas" />
-                                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="jornadas" fill="var(--color-jornadas)" radius={4} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-                <Card className="lg:col-span-2">
-                    <CardHeader><CardTitle>Tabla de Resumen por Labor</CardTitle></CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Labor</TableHead>
-                                    <TableHead className="text-right">Rendimiento Total</TableHead>
-                                    <TableHead className="text-right">Jornadas / Ha</TableHead>
-                                    <TableHead className="text-right">Costo Empresa Total (S/)</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {Object.keys(analysisData.summaryTable).length > 0 ? (
-                                    Object.entries(analysisData.summaryTable).map(([labor, data]) => (
-                                        <TableRow key={labor}>
-                                            <TableCell className="font-medium">{labor}</TableCell>
-                                            <TableCell className="text-right">{data.totalPerformance.toLocaleString('en-US')}</TableCell>
-                                            <TableCell className="text-right">{data.totalJornadasHa.toFixed(2)}</TableCell>
-                                            <TableCell className="text-right">{data.totalCost.toLocaleString('en-US', { style: 'currency', currency: 'PEN' })}</TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">No hay datos para los filtros seleccionados.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    };
-
-    return (
-        <div className="space-y-6">
-            {renderContent()}
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                                Limpiar
+                            </Button>
+                        </div>
+                    </div>
+                </PopoverContent>
+            </Popover>
+           <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={loading}>
+              <RefreshCcw className="h-4 w-4" />
+              <span className="sr-only">Actualizar datos</span>
+           </Button>
+           <Button variant="ghost" size="icon" asChild>
+             <Link href="/dashboard">
+               <LayoutGrid />
+               <span className="sr-only">Volver al dashboard</span>
+             </Link>
+           </Button>
         </div>
-    );
+      </header>
+
+      <main className="flex-1 p-4 sm:p-6 space-y-6">
+         {loading ? (
+            <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+         ) : filteredRecords.length === 0 ? (
+            <Card className="h-64 flex items-center justify-center">
+              <CardContent className="text-center text-muted-foreground">
+                <p>No se encontraron datos para los filtros seleccionados.</p>
+                <p className="text-sm">Intenta con otros criterios de búsqueda.</p>
+              </CardContent>
+            </Card>
+         ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>
+                      Análisis por {chartsData.groupBy === 'lote' ? 'Lote' : `Lote ${drilldownLote} > Labor`}
+                    </CardTitle>
+                    <CardDescription>
+                       Haz clic en una barra de {chartsData.groupBy === 'lote' ? 'lote' : 'labor'} para ver el detalle.
+                    </CardDescription>
+                  </div>
+                  {drilldownLote && (
+                    <Button variant="outline" size="sm" onClick={() => setDrilldownLote(null)}>Volver a Lotes</Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
+                  <BarChart data={chartsData.data} onClick={handleBarClick}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Bar dataKey="jrHa" fill="var(--color-jrHa)" name="Jornadas/Ha" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="costoHa" fill="var(--color-costoHa)" name="Costo/Ha (S/)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="promJhu" fill="var(--color-promJhu)" name="Prom./JHU" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </>
+         )}
+      </main>
+    </div>
+  );
 }
