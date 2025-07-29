@@ -365,18 +365,59 @@ export default function ActivityDatabasePage() {
         const specialLabors = ['46', '67'];
         const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0); // Using 0 for "Racimos o jabas" for now
         const jhu = row.original.workdayCount || 0;
-        if (jhu === 0) return '0';
+        if (jhu === 0) return '0.00';
         return (numerator / jhu).toFixed(2);
     } },
     { header: 'Prom./ Persona', cell: ({ row }) => {
         const specialLabors = ['46', '67'];
         const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0); // Using 0 for "Racimos o jabas" for now
         const personas = row.original.personnelCount || 0;
-        if (personas === 0) return '0';
+        if (personas === 0) return '0.00';
         return (numerator / personas).toFixed(2);
     } },
-    { header: 'costo por planta', cell: () => '0' },
-    { header: 'costo plta emp.', cell: () => '0' },
+    { header: 'costo por planta', cell: ({ row }) => {
+        const cost = row.original.cost || 0;
+        let costoLabor = 0;
+        if (cost === 0) {
+            costoLabor = (row.original.workdayCount || 0) * 60;
+        } else {
+            const specialLabors = ['46', '67'];
+            const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
+            costoLabor = numerator * cost;
+        }
+
+        const specialLabors = ['46', '67'];
+        const isSpecial = specialLabors.includes(row.original.code || '');
+        const divisor = isSpecial ? 0 : (row.original.performance || 0);
+
+        let costoPorPlanta = 0;
+        if (divisor > 0) {
+            costoPorPlanta = costoLabor / divisor;
+        }
+        return `S/ ${costoPorPlanta.toFixed(2)}`;
+    } },
+    { header: 'costo plta emp.', cell: ({ row }) => {
+        const cost = row.original.cost || 0;
+        let costoLabor = 0;
+        if (cost === 0) {
+            costoLabor = (row.original.workdayCount || 0) * 60;
+        } else {
+            const specialLabors = ['46', '67'];
+            const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
+            costoLabor = numerator * cost;
+        }
+        const costoEmpresa = costoLabor * 1.30;
+
+        const specialLabors = ['46', '67'];
+        const isSpecial = specialLabors.includes(row.original.code || '');
+        const divisor = isSpecial ? 0 : (row.original.performance || 0);
+
+        let costoPltaEmp = 0;
+        if (divisor > 0) {
+            costoPltaEmp = costoEmpresa / divisor;
+        }
+        return `S/ ${costoPltaEmp.toFixed(2)}`;
+    } },
     { header: 'Pago Neto Prom. / JHU', cell: ({ row }) => {
         const cost = row.original.cost || 0;
         let pagoNeto = 0;
@@ -401,7 +442,7 @@ export default function ActivityDatabasePage() {
             const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0);
             costoLabor = numerator * cost;
         }
-        return `S/ ${costoLabor.toFixed(2)}`;
+        return `S/ ${costoLabor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     } },
     { header: 'Costo Empresa', cell: ({ row }) => {
         const cost = row.original.cost || 0;
@@ -414,7 +455,7 @@ export default function ActivityDatabasePage() {
             costoLabor = numerator * cost;
         }
         const costoEmpresa = costoLabor * 1.30;
-        return `S/ ${costoEmpresa.toFixed(2)}`;
+        return `S/ ${costoEmpresa.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     } },
     { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy)?.nombre || row.original.createdBy },
     {
@@ -637,6 +678,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 
