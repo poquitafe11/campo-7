@@ -17,6 +17,7 @@ import { useMasterData } from '@/context/MasterDataContext';
 import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 interface SummaryValues {
@@ -68,6 +69,7 @@ export default function ActivitySummaryPage() {
     const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
     const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const { setActions } = useHeaderActions();
 
     const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
@@ -124,6 +126,60 @@ export default function ActivitySummaryPage() {
         setActiveFilters(cleared);
         setIsFilterOpen(false);
     };
+    
+     useEffect(() => {
+        setActions(
+            <>
+                <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={isLoading} className="h-9 w-9 shrink-0">
+                  <RefreshCcw className="h-5 w-5" />
+                  <span className="sr-only">Actualizar</span>
+                </Button>
+                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                            <Filter className="h-5 w-5" />
+                             <span className="sr-only">Filtros</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                        <div className="grid gap-4">
+                            <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Aplicar Filtros</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Selecciona los criterios para el resumen.
+                                </p>
+                            </div>
+                            <div className="grid gap-2">
+                                <div className="grid grid-cols-3 items-center gap-4">
+                                    <Label>Campaña</Label>
+                                    <Select onValueChange={(v) => handlePopoverFilterChange('campaign', v)} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                                <div className="grid grid-cols-3 items-center gap-4">
+                                    <Label>Lote</Label>
+                                    <Select onValueChange={(v) => handlePopoverFilterChange('lote', v)} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Lote" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                                <div className="grid grid-cols-3 items-center gap-4">
+                                    <Label>Labor</Label>
+                                    <Select onValueChange={(v) => handlePopoverFilterChange('labor', v)} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Labor" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                                <div className="grid grid-cols-3 items-center gap-4">
+                                    <Label>Pasada</Label>
+                                    <Select onValueChange={(v) => handlePopoverFilterChange('pasada', v)} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Pasada" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                            </div>
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            </>
+        );
+         return () => setActions(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isFilterOpen, isLoading, popoverFilters, filterOptions]);
+
 
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
         if (!activeFilters.lote || !activeFilters.labor) return null;
@@ -263,55 +319,8 @@ export default function ActivitySummaryPage() {
 
 
     return (
-        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="container mx-auto p-0 sm:p-2 lg:p-4">
             <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                     <Button variant="ghost" size="sm" onClick={() => loadData(true)} disabled={isLoading} className="text-sm">
-                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
-                      Actualizar
-                    </Button>
-                    <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                        <PopoverTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-sm">
-                                <Filter className="mr-2 h-4 w-4" />
-                                Filtros
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80" align="end">
-                            <div className="grid gap-4">
-                                <div className="space-y-2">
-                                    <h4 className="font-medium leading-none">Aplicar Filtros</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Selecciona los criterios para el resumen.
-                                    </p>
-                                </div>
-                                <div className="grid gap-2">
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Campaña</Label>
-                                        <Select onValueChange={(v) => handlePopoverFilterChange('campaign', v)} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Lote</Label>
-                                        <Select onValueChange={(v) => handlePopoverFilterChange('lote', v)} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Lote" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Labor</Label>
-                                        <Select onValueChange={(v) => handlePopoverFilterChange('labor', v)} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Labor" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Pasada</Label>
-                                        <Select onValueChange={(v) => handlePopoverFilterChange('pasada', v)} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Pasada" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                    <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                                    <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                                </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-
                 {loading ? (
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
@@ -378,13 +387,13 @@ export default function ActivitySummaryPage() {
                                         <YAxis yAxisId="right" orientation="right" stroke={chartConfig.has.color} />
                                         <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                         <Legend />
-                                        <Bar dataKey="jhu" yAxisId="left" fill={chartConfig.jhu.color} radius={4}>
+                                        <Bar dataKey="jhu" yAxisId="left" fill="var(--color-jhu)" radius={4}>
                                             <LabelList dataKey="jhu" position="top" offset={8} className="fill-foreground text-xs" formatter={(value: number) => value.toFixed(2)} />
                                         </Bar>
-                                        <Line type="monotone" dataKey="has" yAxisId="right" stroke={chartConfig.has.color} strokeWidth={2} dot={{ fill: chartConfig.has.color, r: 4 }}>
+                                        <Line type="monotone" dataKey="has" yAxisId="right" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)", r: 4 }}>
                                             <LabelList dataKey="has" position="top" offset={8} className="fill-foreground text-xs" />
                                         </Line>
-                                        <Line type="monotone" dataKey="promedio" yAxisId="left" stroke={chartConfig.promedio.color} strokeWidth={2} dot={{ fill: chartConfig.promedio.color, r: 4 }}>
+                                        <Line type="monotone" dataKey="promedio" yAxisId="left" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)", r: 4 }}>
                                              <LabelList dataKey="promedio" position="top" offset={8} className="fill-foreground text-xs" />
                                         </Line>
                                     </ComposedChart>
