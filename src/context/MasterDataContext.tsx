@@ -29,8 +29,8 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  const loadMasterData = useCallback(async (isInitialLoad = false) => {
-    if (isInitialLoad) setLoading(true);
+  const loadMasterData = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
       const lotesSnapshot = await getDocs(collection(db, 'maestro-lotes'));
@@ -67,12 +67,12 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         description: 'No se pudieron cargar los datos maestros. La funcionalidad sin conexión puede verse afectada.',
       });
     } finally {
-      if (isInitialLoad) setLoading(false);
+      setLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    loadMasterData(true);
+    loadMasterData();
 
     const lotesUnsub = onSnapshot(collection(db, 'maestro-lotes'), () => loadMasterData());
     const laboresUnsub = onSnapshot(collection(db, 'maestro-labores'), () => loadMasterData());
@@ -88,7 +88,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
 
   }, [loadMasterData]);
 
-  const value = { ...data, loading, error, refreshData: () => loadMasterData(false) };
+  const value = { ...data, loading, error, refreshData: loadMasterData };
 
   return (
     <MasterDataContext.Provider value={value}>
