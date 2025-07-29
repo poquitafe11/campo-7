@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useRef } from 'react';
@@ -365,10 +366,22 @@ export default function ActivityDatabasePage() {
     { header: 'Max', accessorKey: 'maxRange' },
     { header: 'Personas', accessorKey: 'personnelCount' },
     { header: 'JHU', accessorKey: 'workdayCount' },
-    { header: 'Costo Plta, Jaba, Racimo', accessorKey: 'cost', cell: ({ row }) => `S/ ${row.original.cost?.toLocaleString('en-US') || '0.00'}` },
+    { header: 'Costo Plta, Jaba, Racimo', accessorKey: 'cost', cell: ({ row }) => `S/ ${row.original.cost?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` },
     { header: 'TURNO', accessorKey: 'shift' },
-    { header: 'Prom./ Jhu', cell: () => '0' },
-    { header: 'Prom./ Persona', cell: () => '0' },
+    { header: 'Prom./ Jhu', cell: ({ row }) => {
+        const specialLabors = ['46', '67'];
+        const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0); // Using 0 for "Racimos o jabas" for now
+        const jhu = row.original.workdayCount || 0;
+        if (jhu === 0) return '0';
+        return (numerator / jhu).toFixed(2);
+    } },
+    { header: 'Prom./ Persona', cell: ({ row }) => {
+        const specialLabors = ['46', '67'];
+        const numerator = specialLabors.includes(row.original.code || '') ? 0 : (row.original.performance || 0); // Using 0 for "Racimos o jabas" for now
+        const personas = row.original.personnelCount || 0;
+        if (personas === 0) return '0';
+        return (numerator / personas).toFixed(2);
+    } },
     { header: 'costo por planta', cell: () => '0' },
     { header: 'costo plta emp.', cell: () => '0' },
     { header: 'Pago Neto Prom. / JHU', cell: () => '0' },
@@ -595,6 +608,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 
