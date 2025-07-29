@@ -14,7 +14,7 @@ import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firest
 import { db } from '@/lib/firebase';
 import { format, getWeek, parseISO, differenceInDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ActivityRecordData, User, LoteData, Presupuesto } from '@/lib/types';
+import { ActivityRecordData, User, LoteData, Presupuesto, MinMax } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +56,7 @@ export default function ActivityDatabasePage() {
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
+  const [minMax, setMinMax] = useState<MinMax[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecordWithId | null>(null);
@@ -117,24 +118,37 @@ export default function ActivityDatabasePage() {
     return map;
   }, [presupuestos]);
 
+  const minMaxMap = useMemo(() => {
+    const map = new Map<string, MinMax>();
+    minMax.forEach(item => {
+      const key = `${item.campana}-${item.lote}-${item.codigo}-${item.pasada}`;
+      map.set(key, item);
+    });
+    return map;
+  }, [minMax]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
 
     const usersPromise = getDocs(collection(db, "usuarios"));
     const presupuestoPromise = getDocs(collection(db, "presupuesto"));
+    const minMaxPromise = getDocs(collection(db, "min-max"));
 
     try {
-        const [usersSnapshot, presupuestoSnapshot] = await Promise.all([usersPromise, presupuestoPromise]);
+        const [usersSnapshot, presupuestoSnapshot, minMaxSnapshot] = await Promise.all([usersPromise, presupuestoPromise, minMaxPromise]);
 
         const usersData = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as User);
         setUsers(usersData);
         
         const presupuestoData = presupuestoSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as Presupuesto);
         setPresupuestos(presupuestoData);
+        
+        const minMaxData = minMaxSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as MinMax));
+        setMinMax(minMaxData);
 
     } catch (error) {
         console.error("Error fetching related data: ", error);
-        toast({ title: "Error", description: "No se pudieron cargar los datos de usuarios o presupuesto.", variant: "destructive" });
+        toast({ title: "Error", description: "No se pudieron cargar los datos de usuarios, presupuesto o min-max.", variant: "destructive" });
     }
 
     const q = query(collection(db, "actividades"), orderBy("registerDate", "desc"));
@@ -325,13 +339,31 @@ export default function ActivityDatabasePage() {
         return result.toFixed(2);
     }},
     { header: 'und medida', cell: () => 'N/A' },
-    { header: 'Rdto total', accessorKey: 'performance' },
-    { header: 'Area Avanzada', cell: () => '0' },
+    { header: 'Rdto total', accessorKey: 'performance', cell: ({ row }) => row.original.performance?.toLocaleString('es-ES') || '0' },
+    { header: 'Area Avanzada', cell: ({row}) => {
+      const loteData = lotesMap.get(row.original.lote);
+      const densidad = loteData?.densidad || 0;
+      const performance = row.original.performance || 0;
+      if (densidad > 0) {
+        return (performance / densidad).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      return '0.00';
+    }},
     { header: 'Racimo o jabas', cell: () => '0' },
-    { header: 'Min Estab.', accessorKey: 'minRange' },
-    { header: 'Max Estab.', accessorKey: 'maxRange' },
-    { header: 'Min', cell: () => '0' },
-    { header: 'Max', cell: () => '0' },
+    { header: 'Min Estab.', cell: ({ row }) => {
+        const { campaign, lote, code, pass } = row.original;
+        const key = `${campaign}-${lote}-${code}-${pass}`;
+        const record = minMaxMap.get(key);
+        return record ? record.min : 'N/A';
+    }},
+    { header: 'Max Estab.', cell: ({ row }) => {
+        const { campaign, lote, code, pass } = row.original;
+        const key = `${campaign}-${lote}-${code}-${pass}`;
+        const record = minMaxMap.get(key);
+        return record ? record.max : 'N/A';
+    }},
+    { header: 'Min', accessorKey: 'minRange' },
+    { header: 'Max', accessorKey: 'maxRange' },
     { header: 'Personas', accessorKey: 'personnelCount' },
     { header: 'JHU', accessorKey: 'workdayCount' },
     { header: 'Costo Plta, Jaba, Racimo', accessorKey: 'cost' },
@@ -372,7 +404,7 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap]);
+  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap, minMaxMap]);
 
   const table = useReactTable({
     data: filteredData,
@@ -564,4 +596,5 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
