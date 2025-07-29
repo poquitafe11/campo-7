@@ -47,16 +47,16 @@ const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', p
 const chartConfig = {
   jhu: {
     label: "JHU",
-    color: "hsl(var(--chart-1))",
-  },
-  promedio: {
-    label: "Promedio",
-    color: "hsl(var(--chart-3))",
+    color: "#38bdf8", // Celeste
   },
   has: {
     label: "Hectáreas",
-    color: "hsl(var(--chart-2))",
-  }
+    color: "#10b981", // Verde Esmeralda
+  },
+  promedio: {
+    label: "Promedio",
+    color: "#f59e0b", // Ámbar
+  },
 } satisfies ChartConfig
 
 export default function ActivitySummaryPage() {
@@ -374,18 +374,17 @@ export default function ActivitySummaryPage() {
                                     <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="fecha" tickLine={false} axisLine={false} tickMargin={8} />
-                                        <YAxis yAxisId="jhu" orientation="left" stroke="var(--color-jhu)" />
-                                        <YAxis yAxisId="has" orientation="right" stroke="var(--color-has)" />
-                                        <YAxis yAxisId="promedio" orientation="right" stroke="var(--color-promedio)" hide={true} />
+                                        <YAxis yAxisId="left" orientation="left" stroke={chartConfig.jhu.color} />
+                                        <YAxis yAxisId="right" orientation="right" stroke={chartConfig.has.color} />
                                         <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                                         <Legend />
-                                        <Bar dataKey="jhu" yAxisId="jhu" fill="var(--color-jhu)" radius={4}>
+                                        <Bar dataKey="jhu" yAxisId="left" fill={chartConfig.jhu.color} radius={4}>
                                             <LabelList dataKey="jhu" position="top" offset={8} className="fill-foreground text-xs" formatter={(value: number) => value.toFixed(2)} />
                                         </Bar>
-                                        <Line type="monotone" dataKey="has" yAxisId="has" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)", r: 4 }}>
+                                        <Line type="monotone" dataKey="has" yAxisId="right" stroke={chartConfig.has.color} strokeWidth={2} dot={{ fill: chartConfig.has.color, r: 4 }}>
                                             <LabelList dataKey="has" position="top" offset={8} className="fill-foreground text-xs" />
                                         </Line>
-                                        <Line type="monotone" dataKey="promedio" yAxisId="promedio" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)", r: 4 }}>
+                                        <Line type="monotone" dataKey="promedio" yAxisId="left" stroke={chartConfig.promedio.color} strokeWidth={2} dot={{ fill: chartConfig.promedio.color, r: 4 }}>
                                              <LabelList dataKey="promedio" position="top" offset={8} className="fill-foreground text-xs" />
                                         </Line>
                                     </ComposedChart>
