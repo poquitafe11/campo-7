@@ -22,12 +22,22 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { ActivityRecordData, LoteData, Presupuesto } from '@/lib/types';
+import type { ActivityRecordData, Presupuesto } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { ChartConfig, ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
 import { Bar, BarChart, CartesianGrid, Legend, RadialBar, RadialBarChart, XAxis, YAxis } from 'recharts';
 import { useMasterData } from '@/context/MasterDataContext';
 
+
+const formatNumber = (num: number, digits = 2) => {
+  if (isNaN(num) || !isFinite(num)) {
+    return '0.00';
+  }
+  return num.toLocaleString('es-PE', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+};
 
 const getInitialFilters = () => ({
   date: undefined as Date | undefined,
@@ -59,7 +69,7 @@ export default function AnalysisPage() {
       const activitiesData = activitiesSnapshot.docs.map(doc => {
           const data = doc.data();
           const registerDate = data.registerDate?.toDate ? data.registerDate.toDate() : new Date();
-          return { ...data, registerDate } as ActivityRecordData;
+          return { ...data, id: doc.id, registerDate } as ActivityRecordData & {id: string};
       });
       setAllActivities(activitiesData);
       
@@ -133,13 +143,48 @@ export default function AnalysisPage() {
     });
   }, [filters, allActivities]);
   
+    const cumplimientoChartData = useMemo(() => {
+    const lotesInScope = filters.lote
+      ? allLotes.filter(l => l.lote === filters.lote)
+      : allLotes;
+
+    if (lotesInScope.length === 0) {
+      return { ejecutado: 0, presupuestado: 0, percentage: 0, data: [{ name: 'Empty', value: 1, fill: '#e0e0e0' }] };
+    }
+    
+    const totalHaProd = lotesInScope.reduce((sum, l) => sum + (l.haProd || 0), 0);
+
+    const budgetRowsToConsider = allPresupuestos.filter(p => {
+        return lotesInScope.some(loteMaster => loteMaster.lote === p.lote);
+    });
+    
+    const totalBudgetedJornadas = budgetRowsToConsider.reduce((sum, row) => sum + (row.jornadas || 0), 0);
+    
+    const presupuestado = totalHaProd > 0 ? totalBudgetedJornadas / totalHaProd : 0;
+    
+    const recordsToProcess = filteredRecords;
+    const ejecutado = recordsToProcess.reduce((sum, r) => sum + ((r.workdayCount || 0) / (allLotes.find(l => l.lote === r.lote)?.haProd || 1)), 0);
+
+    const percentage = presupuestado > 0 ? (ejecutado / presupuestado) * 100 : (ejecutado > 0 ? 100 : 0);
+
+    const data = [
+      { name: 'Ejecutado', value: ejecutado, fill: 'hsl(var(--primary))' },
+    ];
+
+    return {
+      data,
+      ejecutado: ejecutado,
+      presupuestado: presupuestado,
+      percentage: percentage,
+    };
+  }, [filteredRecords, allLotes, allPresupuestos, filters.lote]);
+  
   const calculateCostoLabor = useCallback((reg: ActivityRecordData): number => {
     const costoUnitario = reg.cost || 0;
     const costoPorJornada = 60;
     let costoLabor = 0;
 
     if (costoUnitario > 0) {
-      // Logic for labors 46, 67 can be added here if needed
       costoLabor = costoUnitario * (reg.performance || 0);
     } else {
       costoLabor = (reg.workdayCount || 0) * costoPorJornada;
@@ -210,10 +255,71 @@ export default function AnalysisPage() {
       groupBy: groupByKey
     };
   }, [filteredRecords, allLotes, filters.lote, drilldownLote, calculateCostoLabor, calculatePromJhu]);
+  
+  const evolutionChartData = useMemo(() => {
+    let dataForChart;
+
+    if (drilldownLabor) {
+      const dailyData = filteredRecords
+        .filter(r => r.labor === drilldownLabor)
+        .reduce((acc, record) => {
+          const date = format(record.registerDate, 'yyyy-MM-dd');
+          if (!acc[date]) {
+            acc[date] = { jrHaSum: 0, promJhuSum: 0, count: 0, costoHaSum: 0, haSum: 0 };
+          }
+          const loteData = allLotes.find(l => l.lote === record.lote);
+          if (loteData?.haProd) {
+            acc[date].jrHaSum += (record.workdayCount || 0) / loteData.haProd;
+            const costoLabor = calculateCostoLabor(record);
+            acc[date].costoHaSum += costoLabor / loteData.haProd;
+          }
+          acc[date].promJhuSum += calculatePromJhu(record);
+          acc[date].count++;
+          return acc;
+        }, {} as Record<string, { jrHaSum: number; promJhuSum: number; count: number; costoHaSum: number; haSum: number }>);
+
+      dataForChart = Object.entries(dailyData)
+        .map(([date, values]) => ({
+          name: date,
+          ejecutadas: values.jrHaSum,
+          promJhu: values.count > 0 ? values.promJhuSum / values.count : 0,
+          costoHa: values.costoHaSum
+        }))
+        .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime())
+        .map(item => ({ ...item, name: format(new Date(item.name), "dd MMM", { locale: es }) }));
+    } else {
+      const laborData = filteredRecords.reduce((acc, record) => {
+        const labor = record.labor;
+        if (!labor) return acc;
+        if (!acc[labor]) {
+          acc[labor] = { jrHaSum: 0, promJhuSum: 0, count: 0, costoHaSum: 0, haSum: 0 };
+        }
+        const loteData = allLotes.find(l => l.lote === record.lote);
+        if (loteData?.haProd) {
+            acc[labor].jrHaSum += (record.workdayCount || 0) / loteData.haProd;
+            const costoLabor = calculateCostoLabor(record);
+            acc[labor].costoHaSum += costoLabor / loteData.haProd;
+        }
+        acc[labor].promJhuSum += calculatePromJhu(record);
+        acc[labor].count++;
+        return acc;
+      }, {} as Record<string, { jrHaSum: number; promJhuSum: number; count: number; costoHaSum: number; haSum: number }>);
+
+      dataForChart = Object.entries(laborData).map(([labor, values]) => ({
+        name: labor,
+        ejecutadas: values.jrHaSum,
+        promJhu: values.count > 0 ? values.promJhuSum / values.count : 0,
+        costoHa: values.costoHaSum,
+      }));
+    }
+    return dataForChart;
+  }, [filteredRecords, drilldownLabor, calculatePromJhu, calculateCostoLabor, allLotes]);
+
 
   const handleClearFilters = () => {
     setFilters(getInitialFilters());
     setDrilldownLote(null);
+    setDrilldownLabor(null);
   };
   
   const handleBarClick = (data: any) => {
@@ -222,7 +328,13 @@ export default function AnalysisPage() {
     }
   };
   
-  const [isClient, setIsClient] = useState(false);
+  const handleEvolutionBarClick = (data: any) => {
+    if (data && data.name && !drilldownLabor) {
+      setDrilldownLabor(data.name);
+    }
+  };
+  
+  const [isClient, setIsClient] = useState(false)
   useEffect(() => {
     setIsClient(true)
   }, []);
@@ -231,6 +343,7 @@ export default function AnalysisPage() {
     jrHa: { label: "Jornadas/Ha", color: "#3b82f6" },
     costoHa: { label: "Costo/Ha (S/)", color: "#10b981" },
     promJhu: { label: "Prom./JHU", color: "#f97316" },
+    ejecutadas: { label: "Jr/Ha Ejecutadas", color: "hsl(var(--primary))" },
   };
 
   const loading = isLoading || masterLoading;
@@ -360,8 +473,35 @@ export default function AnalysisPage() {
               </CardContent>
             </Card>
          ) : (
-          <>
-            <Card>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+             <Card className="lg:col-span-1">
+                <CardHeader>
+                    <CardTitle>Cumplimiento del Presupuesto</CardTitle>
+                    <CardDescription>Comparación de Jornadas/Ha ejecutadas vs. presupuestadas.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center gap-4">
+                    <ChartContainer config={chartConfig} className="h-48 w-48">
+                        <RadialBarChart 
+                            data={cumplimientoChartData.data} 
+                            startAngle={90} 
+                            endAngle={-270} 
+                            innerRadius="70%" 
+                            outerRadius="100%"
+                            barSize={20}
+                        >
+                            <RadialBar dataKey="value" background={{ fill: '#e0e0e0' }} cornerRadius={10} />
+                            <ChartTooltip content={<ChartTooltipContent nameKey="name" hideIndicator />} />
+                        </RadialBarChart>
+                    </ChartContainer>
+                     <div className="text-center">
+                        <p className="text-4xl font-bold text-primary">{formatNumber(cumplimientoChartData.percentage, 0)}%</p>
+                        <p className="text-sm text-muted-foreground">
+                            Ejec: {formatNumber(cumplimientoChartData.ejecutado, 2)} / Presup: {formatNumber(cumplimientoChartData.presupuestado, 2)}
+                        </p>
+                    </div>
+                </CardContent>
+             </Card>
+             <Card className="lg:col-span-2">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
@@ -369,7 +509,7 @@ export default function AnalysisPage() {
                       Análisis por {chartsData.groupBy === 'lote' ? 'Lote' : `Lote ${drilldownLote} > Labor`}
                     </CardTitle>
                     <CardDescription>
-                       Haz clic en una barra de {chartsData.groupBy === 'lote' ? 'lote' : 'labor'} para ver el detalle.
+                       Haz clic en una barra para ver el detalle.
                     </CardDescription>
                   </div>
                   {drilldownLote && (
@@ -378,21 +518,52 @@ export default function AnalysisPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
-                  <BarChart data={chartsData.data} onClick={handleBarClick}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis />
+                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                  <BarChart data={chartsData.data} onClick={handleBarClick} layout="vertical">
+                    <CartesianGrid horizontal={false} />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Legend />
-                    <Bar dataKey="jrHa" fill="var(--color-jrHa)" name="Jornadas/Ha" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="costoHa" fill="var(--color-costoHa)" name="Costo/Ha (S/)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="promJhu" fill="var(--color-promJhu)" name="Prom./JHU" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="jrHa" fill="var(--color-jrHa)" name="Jornadas/Ha" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="costoHa" fill="var(--color-costoHa)" name="Costo/Ha (S/)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="promJhu" fill="var(--color-promJhu)" name="Prom./JHU" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ChartContainer>
               </CardContent>
             </Card>
-          </>
+             <Card className="lg:col-span-3">
+                <CardHeader>
+                     <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>
+                                Evolución de {drilldownLabor ? `Labor: ${drilldownLabor}` : 'Labores'}
+                            </CardTitle>
+                             <CardDescription>
+                                {drilldownLabor ? 'Vista diaria de la labor seleccionada.' : 'Haz clic en una labor para ver el detalle diario.'}
+                            </CardDescription>
+                        </div>
+                        {drilldownLabor && (
+                            <Button variant="outline" size="sm" onClick={() => setDrilldownLabor(null)}>Volver a Labores</Button>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                     <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                        <BarChart data={evolutionChartData} onClick={handleEvolutionBarClick}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                            <YAxis />
+                            <ChartTooltip content={<ChartTooltipContent />} />
+                            <Legend />
+                            <Bar dataKey="ejecutadas" fill="var(--color-ejecutadas)" name="Jr/Ha Ejecutadas" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="promJhu" fill="var(--color-promJhu)" name="Prom./JHU" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="costoHa" fill="var(--color-costoHa)" name="Costo/Ha" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+          </div>
          )}
       </main>
     </div>
