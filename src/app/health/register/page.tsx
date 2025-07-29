@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,19 +22,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-const DataItem = ({ label, value }: { label: string, value: any }) => (
-    <p><strong className="font-medium text-foreground/80">{label}:</strong> {String(value)}</p>
-);
-
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
 
 const editRecordSchema = z.object({
   id: z.string(),
-  Campaña: z.string(),
-  Etapa: z.string(),
-  Variedad: z.string(),
-  Banda: z.string(),
-  // Add other fields from your table that you want to be editable
+  // Dynamic fields will be added in effect
 });
 
 export default function RegisterHealthPage() {
@@ -61,14 +53,16 @@ export default function RegisterHealthPage() {
   useEffect(() => {
     if (editingRecord) {
         // Dynamically create a schema based on the editing record's keys
+        const dynamicSchemaFields = Object.keys(editingRecord).reduce((acc, key) => {
+            if (key !== 'id' && key !== 'internalId') {
+                (acc as any)[key] = z.string().optional();
+            }
+            return acc;
+        }, {} as Record<string, z.ZodType<any, any>>);
+        
         const dynamicSchema = z.object({
             id: z.string(),
-            ...Object.keys(editingRecord).reduce((acc, key) => {
-                if (key !== 'id' && key !== 'internalId') {
-                    (acc as any)[key] = z.string();
-                }
-                return acc;
-            }, {})
+            ...dynamicSchemaFields
         });
         
         const resolver = zodResolver(dynamicSchema);
@@ -212,15 +206,12 @@ export default function RegisterHealthPage() {
   const onUpdateSubmit = async (values: any) => {
     if (!editingRecord) return;
     
-    // Check if we are editing a preview or a saved record
     if (editingRecord.internalId) {
-        // Update preview data in state
         setParsedData(prev => prev.map(row => 
-            row.internalId === editingRecord.internalId ? { ...row, ...values } : row
+            row.internalId === editingRecord.internalId ? { ...row, ...values, id: row.id } : row
         ));
         toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
-        // Update saved record in Firestore
         try {
             const docRef = doc(db, "registros-sanidad", editingRecord.id);
             const { id, ...dataToUpdate } = values;
@@ -234,39 +225,7 @@ export default function RegisterHealthPage() {
     setEditingRecord(null);
   };
   
-  const renderList = (items: any[]) => {
-    if (items.length === 0) {
-      return <CardDescription>Aún no se han registrado datos de sanidad.</CardDescription>;
-    }
-    return (
-        <div className="space-y-4 max-h-[40rem] overflow-y-auto pr-2">
-            {items.map(item => {
-                const { id, ...rest } = item;
-                return (
-                    <div key={id} className="p-4 border rounded-md bg-background/50 text-sm relative group">
-                       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord(item)}><Pencil className="h-4 w-4" /></Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
-                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSaved(id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                       </div>
-                       <div className="space-y-1">
-                          {Object.entries(rest).map(([key, value]) => (
-                              <DataItem key={key} label={key} value={value} />
-                          ))}
-                       </div>
-                    </div>
-                )
-            })}
-        </div>
-    );
-  };
-  
-  const getBandColorClass = (bandValue: string) => {
+  const getBandColorClass = (bandValue: any) => {
     const lowerCaseBand = String(bandValue || '').toLowerCase();
     switch (lowerCaseBand) {
         case 'rojo': return 'bg-red-200 text-red-800';
@@ -288,7 +247,7 @@ export default function RegisterHealthPage() {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>{key}</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -296,6 +255,18 @@ export default function RegisterHealthPage() {
         );
     });
   };
+
+  const savedRecordsHeaders = useMemo(() => {
+    if (savedRecords.length === 0) return [];
+    const headers = new Set<string>();
+    savedRecords.forEach(record => {
+        Object.keys(record).forEach(key => {
+            if (key !== 'id') headers.add(key);
+        });
+    });
+    return Array.from(headers);
+  }, [savedRecords]);
+
 
   return (
     <>
@@ -373,7 +344,7 @@ export default function RegisterHealthPage() {
                                                         </AlertDialogContent>
                                                     </AlertDialog>
                                                   </div>
-                                                ) : String(row[header])}
+                                                ) : String(row[header] ?? '')}
                                             </TableCell>
                                         ))}
                                     </TableRow>
@@ -395,7 +366,45 @@ export default function RegisterHealthPage() {
             <CardTitle className="flex items-center gap-2"><List className="h-6 w-6" />Base de Datos de Sanidad</CardTitle>
             <CardDescription>Historial de todos los registros de sanidad guardados.</CardDescription>
         </CardHeader>
-        <CardContent>{renderList(savedRecords)}</CardContent>
+        <CardContent>
+            {savedRecords.length > 0 ? (
+                <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
+                    <Table className="bg-background">
+                        <TableHeader>
+                            <TableRow>
+                                {savedRecordsHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}
+                                <TableHead>Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {savedRecords.map(record => (
+                                <TableRow key={record.id}>
+                                    {savedRecordsHeaders.map(header => (
+                                        <TableCell key={`${record.id}-${header}`} className={cn('whitespace-nowrap', header.toLowerCase() === 'banda' && getBandColorClass(record[header]))}>
+                                            {String(record[header] ?? '')}
+                                        </TableCell>
+                                    ))}
+                                    <TableCell>
+                                        <div className="flex gap-2">
+                                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord(record)}><Pencil className="h-4 w-4" /></Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
+                                                    <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSaved(record.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            ) : (
+                <CardDescription>Aún no se han registrado datos de sanidad.</CardDescription>
+            )}
+        </CardContent>
       </Card>
     </div>
     
@@ -416,5 +425,3 @@ export default function RegisterHealthPage() {
     </>
   );
 }
-
-    
