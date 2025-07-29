@@ -27,7 +27,7 @@ const productionFeatures = [
     icon: <LineChart className="h-8 w-8 text-primary" />,
     title: "Análisis y Reportes",
     description: "Visualiza análisis y reportes de producción.",
-    href: "#", // Placeholder
+    href: "/production/analysis",
   },
 ];
 
