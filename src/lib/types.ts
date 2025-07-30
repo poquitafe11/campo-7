@@ -178,3 +178,12 @@ export const PresupuestoSchema = z.object({
   jrnHa: z.number(),
 });
 export type Presupuesto = z.infer<typeof PresupuestoSchema>;
+
+// Maestro de Trabajadores
+export const WorkerMasterSchema = z.object({
+  dni: z.string(),
+  name: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type WorkerMasterItem = z.infer<typeof WorkerMasterSchema>;

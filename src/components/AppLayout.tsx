@@ -42,6 +42,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
   { href: '/maestro-lotes', icon: Box, label: 'Lotes' },
   { href: '/maestro-labores', icon: Layers, label: 'Labores' },
+  { href: '/maestro-trabajadores', icon: Users, label: 'Trabajadores' },
   { href: '/asistentes', icon: Users, label: 'Asistentes' },
   { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
   { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
@@ -53,6 +54,7 @@ const pageTitles: { [key: string]: string } = {
     '/maestros': 'Datos Maestros',
     '/maestro-lotes': 'Maestro de Lotes',
     '/maestro-labores': 'Maestro de Labores',
+    '/maestro-trabajadores': 'Maestro de Trabajadores',
     '/asistentes': 'Gestión de Asistentes',
     '/min-max': 'Maestro de Mínimos y Máximos',
     '/presupuesto': 'Maestro de Presupuesto',
@@ -69,12 +71,12 @@ const pageTitles: { [key: string]: string } = {
     '/production/daily-report/create': 'Crear Parte Diario',
     '/users': 'Gestión de Usuarios',
   };
-  
+
 
 const NavItem = ({ href, icon: Icon, label, closeSheet }: { href: string; icon: React.ElementType; label: string; closeSheet: () => void; }) => {
     const pathname = usePathname();
     const isActive = pathname === href;
-  
+
     return (
       <SheetClose asChild>
         <Link
@@ -96,7 +98,7 @@ const NavItem = ({ href, icon: Icon, label, closeSheet }: { href: string; icon: 
       </SheetClose>
     );
   };
-  
+
 const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
     const { profile, logout } = useAuth();
     return (
@@ -116,13 +118,13 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
               </div>
             </div>
          </SheetHeader>
-  
+
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {navItems.map(item => (
             <NavItem {...item} key={item.href} closeSheet={closeSheet} />
           ))}
         </nav>
-  
+
         <div className="mt-auto p-4 space-y-4 border-t border-sidebar-muted-foreground/20">
           <ConnectionStatus />
           <Button
@@ -140,12 +142,12 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
       </div>
     );
   };
-  
+
 const Header = () => {
     const pathname = usePathname();
     const router = useRouter();
     const searchParams = useSearchParams();
-    
+
     const title = pageTitles[pathname] || 'Campo 7';
     const isAttendanceSummary = pathname === '/production/attendance/summary';
     const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -160,7 +162,7 @@ const Header = () => {
             router.push(newPath);
         }
     };
-    
+
     const handleRefresh = () => {
        const currentDate = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd');
        router.push(`${pathname}?date=${currentDate}&refresh=${new Date().getTime()}`);
@@ -180,7 +182,7 @@ const Header = () => {
                     <MobileNavContent closeSheet={() => setIsSheetOpen(false)} />
                 </SheetContent>
                 </Sheet>
-                
+
                 {pathname !== '/dashboard' && (
                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
                     <ArrowLeft className="h-5 w-5" />
@@ -244,7 +246,7 @@ const Header = () => {
 
     return isAttendanceSummary ? renderAttendanceSummaryHeader() : renderDefaultHeader();
 };
-  
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
