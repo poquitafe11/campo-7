@@ -230,8 +230,8 @@ export default function CreateActivityPage() {
                   </div>
 
                   <div className="grid grid-cols-6 gap-6">
-                      <FormField control={form.control} name="code" render={({ field }) => ( <FormItem className="col-span-1"> <FormLabel><IconWrapper><Tag className="h-4 w-4" /> Cód.</IconWrapper></FormLabel> <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                      <FormField control={form.control} name="labor" render={({ field }) => ( <FormItem className="col-span-5"> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Labor</IconWrapper></FormLabel> <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl> <FormMessage /> </FormItem> )} />
+                      <FormField control={form.control} name="code" render={({ field }) => ( <FormItem className="col-span-2"> <FormLabel><IconWrapper><Tag className="h-4 w-4" /> Cód.</IconWrapper></FormLabel> <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                      <FormField control={form.control} name="labor" render={({ field }) => ( <FormItem className="col-span-4"> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Labor</IconWrapper></FormLabel> <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl> <FormMessage /> </FormItem> )} />
                   </div>
                   
                   <div className="grid grid-cols-3 gap-6">
