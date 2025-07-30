@@ -115,6 +115,7 @@ export default function CreateActivityPage() {
                 title: 'Éxito',
                 description: 'Ficha de actividad guardada correctamente.',
             });
+            // Explicitly reset all form fields to their initial empty/default state
             form.reset({
               registerDate: new Date(),
               campaign: '',
@@ -183,7 +184,7 @@ export default function CreateActivityPage() {
                       <FormItem>
                         <FormLabel><IconWrapper><Briefcase className="h-4 w-4" /> Campaña</IconWrapper></FormLabel>
                         <FormControl>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="2025">2025</SelectItem>
@@ -199,7 +200,7 @@ export default function CreateActivityPage() {
                       <FormItem>
                         <FormLabel><IconWrapper><Flame className="h-4 w-4" /> Etapa</IconWrapper></FormLabel>
                         <FormControl>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="habilitacion">Habilitacion</SelectItem>
@@ -246,7 +247,7 @@ export default function CreateActivityPage() {
                        <FormItem>
                          <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel>
                          <FormControl>
-                           <Select onValueChange={field.onChange} defaultValue={field.value}>
+                           <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
                              <SelectContent>
                                <SelectItem value="Mañana">Mañana</SelectItem>
