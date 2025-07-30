@@ -167,12 +167,6 @@ export default function RegisterIrrigationPage() {
       try {
         const data = JSON.parse(result.tableContent);
         if (Array.isArray(data) && data.length > 0) {
-          const firstRow = data[0];
-          const currentHeaders = Object.keys(firstRow);
-          
-          const finalHeaders = ['Campaña', 'Etapa', ...currentHeaders, 'Acciones'];
-          setTableHeaders([...new Set(finalHeaders)]);
-
           const enrichedData = data.map((row, index) => ({
             internalId: `preview-${index}`,
             'Campaña': campaign,
@@ -180,6 +174,25 @@ export default function RegisterIrrigationPage() {
             ...row
           }));
           setParsedData(enrichedData);
+
+          const firstRow = enrichedData[0];
+          const allHeaders = Object.keys(firstRow);
+          
+          const PREFERRED_ORDER = ['Fundo', 'Día', 'Fecha', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total m3/Dia', 'Ha.', 'm3/Ha /Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
+          
+          const sortedHeaders = allHeaders
+            .filter(h => h !== 'internalId')
+            .sort((a, b) => {
+              const indexA = PREFERRED_ORDER.indexOf(a);
+              const indexB = PREFERRED_ORDER.indexOf(b);
+              if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+              if (indexA !== -1) return -1;
+              if (indexB !== -1) return 1;
+              return a.localeCompare(b);
+            });
+
+          setTableHeaders([...sortedHeaders, 'Acciones']);
+
         } else {
              toast({
                 variant: "destructive",
@@ -299,14 +312,13 @@ export default function RegisterIrrigationPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
+    const PREFERRED_ORDER = ['Fundo', 'Día', 'Fecha', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total m3/Dia', 'Ha.', 'm3/Ha /Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
     const headers = new Set<string>();
     savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
-    
-    const preferredOrder = ['Campaña', 'Etapa', 'Fecha', 'Lote', 'Cuartel'];
     headersArray.sort((a, b) => {
-        const indexA = preferredOrder.indexOf(a);
-        const indexB = preferredOrder.indexOf(b);
+        const indexA = PREFERRED_ORDER.indexOf(a);
+        const indexB = PREFERRED_ORDER.indexOf(b);
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
         if (indexA !== -1) return -1;
         if (indexB !== -1) return 1;

@@ -33,17 +33,47 @@ const prompt = ai.definePrompt({
   name: 'digitizeIrrigationTablePrompt',
   input: {schema: DigitizeIrrigationTableInputSchema},
   output: {schema: DigitizeIrrigationTableOutputSchema},
-  prompt: `You are an expert data entry specialist. Your task is to accurately extract information from an irrigation and fertigation table in the provided image.
+  prompt: `You are an expert data entry specialist. Your task is to accurately extract information from a potentially complex irrigation program provided in an image. The image may contain a main title and multiple, horizontally-aligned tables.
 
-Analyze the image and transcribe the entire content of the table into a structured JSON array format.
-Each object in the array should represent a row from the table. Use the table headers as the keys for the JSON objects.
-Ensure all values, including numbers and text, are extracted precisely. The final output must be a single string containing a valid JSON array.
+First, extract the general information from the title:
+- The farm name (e.g., "Los Brujos"). Store it as 'Fundo'.
+- The day of the week (e.g., "martes"). Store it as 'Dia'.
+- The full date (e.g., "15 de Julio de 2025"). Store it as 'Fecha'.
+- Extract the 'eT' value if present.
 
-Example output format:
-[
-  { "Fecha": "15/07/2024", "Lote": "1", "Cuartel": "A", "Insumo 1": "10.5", "Insumo 2": "5.2" },
-  { "Fecha": "16/07/2024", "Lote": "2", "Cuartel": "B", "Insumo 1": "11.0", "Insumo 2": "5.5" }
-]
+Next, analyze all the tables in the image. The rows are related horizontally across all tables, even if they are visually separated. For each main row (identified by 'Bomba N°' or similar), combine the data from all tables into a single JSON object.
+
+- Use the headers provided in the image as keys for the JSON objects.
+- For columns under 'Unidades/Ha', use the specific header (e.g., 'N', 'P2O5', 'K').
+- Include the extracted 'Fundo', 'Dia', 'Fecha', and 'eT' in every single row object of the final JSON array.
+- Ensure all values, including numbers, text, and empty cells (represented as empty strings), are extracted precisely.
+- The final output must be a single, valid JSON array string.
+
+Example of a single object in the output array:
+{
+  "Fundo": "Los Brujos",
+  "Dia": "martes",
+  "Fecha": "15 de Julio de 2025",
+  "eT": "2.6",
+  "Bomba N°": "002",
+  "Sector": "Autumn Crisp",
+  "Lote": "072",
+  "De": "11:00 a. m.",
+  "Hasta": "3:00 p. m.",
+  "Total Horas": "04:00",
+  "Observaciones": "",
+  "Kc": "1.2",
+  "Total m3/Dia": "1,003.8",
+  "Ha.": "31.00",
+  "m3/Ha /Hora": "8.1",
+  "Lps Ideal": "70",
+  "Lps adicion al 10%": "77",
+  "Tiosulfato de Calcio (Lts)": "",
+  "Tiosulfato de Magnesio (Lts)": "",
+  "N": "",
+  "P2O5": "",
+  "K": ""
+}
 
 Image with the table:
 {{media url=photoDataUri}}`,
