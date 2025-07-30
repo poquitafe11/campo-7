@@ -9,7 +9,9 @@ import { useForm } from "react-hook-form";
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import * as xlsx from "xlsx";
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
+import { es } from 'date-fns/locale';
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,6 +27,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
 
@@ -60,6 +63,25 @@ function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string>
     resolve(canvas.toDataURL('image/jpeg'));
   });
 }
+
+// Function to parse Spanish dates like "15 de Julio de 2025"
+const parseSpanishDate = (dateString: string): Date => {
+    const months: { [key: string]: number } = {
+        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+    };
+    const parts = dateString.toLowerCase().split(' de ');
+    if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = months[parts[1]];
+        const year = parseInt(parts[2], 10);
+        if (!isNaN(day) && month !== undefined && !isNaN(year)) {
+            return new Date(year, month, day);
+        }
+    }
+    return new Date('invalid');
+};
+
 
 export default function RegisterIrrigationPage() {
   const { toast } = useToast();
@@ -115,13 +137,15 @@ export default function RegisterIrrigationPage() {
       const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       const sortedRecords = records.sort((a, b) => {
-        const dateA = a.Fecha ? (a.Fecha.toDate ? a.Fecha.toDate() : (isValid(parseISO(a.Fecha)) ? parseISO(a.Fecha) : 0)) : 0;
-        const dateB = b.Fecha ? (b.Fecha.toDate ? b.Fecha.toDate() : (isValid(parseISO(b.Fecha)) ? parseISO(b.Fecha) : 0)) : 0;
-        
-        if (dateA && dateB) {
-            return dateB.getTime() - dateA.getTime();
-        }
-        return 0;
+          const dateA = a.Fecha ? parseSpanishDate(a.Fecha) : new Date(0);
+          const dateB = b.Fecha ? parseSpanishDate(b.Fecha) : new Date(0);
+          
+          if (isValid(dateA) && isValid(dateB)) {
+              return dateB.getTime() - dateA.getTime();
+          }
+          if (isValid(dateA)) return -1;
+          if (isValid(dateB)) return 1;
+          return 0;
       });
 
       setSavedRecords(sortedRecords);
@@ -479,25 +503,38 @@ export default function RegisterIrrigationPage() {
               </div>
               <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={handleDownloadExcel} disabled={filteredRecords.length === 0}><FileDown className="mr-2 h-4 w-4" />Descargar</Button>
+                   <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                <Filter className="mr-2 h-4 w-4" />
+                                Filtros
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80" align="end">
+                            <div className="grid gap-4">
+                                <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+                                <div className="grid gap-2">
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label>Campaña</Label>
+                                        <Select value={filters.campana} onValueChange={(value) => setFilters(f => ({...f, campana: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campanas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label>Lote</Label>
+                                        <Select value={filters.lote} onValueChange={(value) => setFilters(f => ({...f, lote: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label>Etapa</Label>
+                                        <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label>Fecha</Label>
+                                        <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
               </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                <Select value={filters.campana} onValueChange={(value) => setFilters(f => ({...f, campana: value === 'all' ? '' : value}))}>
-                    <SelectTrigger><SelectValue placeholder="Filtrar por Campaña" /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todas las Campañas</SelectItem>{filterOptions.campanas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                </Select>
-                 <Select value={filters.lote} onValueChange={(value) => setFilters(f => ({...f, lote: value === 'all' ? '' : value}))}>
-                    <SelectTrigger><SelectValue placeholder="Filtrar por Lote" /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todos los Lotes</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                </Select>
-                 <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}>
-                    <SelectTrigger><SelectValue placeholder="Filtrar por Etapa" /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todas las Etapas</SelectItem>{filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                </Select>
-                 <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}>
-                    <SelectTrigger><SelectValue placeholder="Filtrar por Fecha" /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todas las Fechas</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                </Select>
             </div>
         </CardHeader>
         <CardContent>
@@ -559,3 +596,4 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
+
