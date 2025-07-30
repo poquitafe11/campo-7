@@ -314,7 +314,15 @@ export default function RegisterHealthPage() {
     savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
     
-    const normalize = (s: string) => s.toLowerCase().replace(/[\s_.]/g, '');
+    const normalize = (s: string) => {
+        return s
+            .toLowerCase()
+            .replace(/[áéíóú]/g, (match) => ({'á':'a','é':'e','í':'i','ó':'o','ú':'u'}[match]!))
+            .replace(/[\s_.-]+/g, '')
+            .replace(/s$/, '') // remove plural s
+            .substring(0, 5); // compare a prefix
+    };
+
     const normalizedOrder = PREFERRED_ORDER.map(normalize);
 
     headersArray.sort((a, b) => {
