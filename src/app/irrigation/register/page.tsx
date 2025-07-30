@@ -2,12 +2,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2, Crop } from "lucide-react";
+import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2, Crop, FileDown, Filter } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import * as xlsx from "xlsx";
+import { format, parseISO, isValid } from 'date-fns';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,7 +18,7 @@ import { digitizeIrrigationTable } from "@/ai/flows/digitize-irrigation-table";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, onSnapshot, writeBatch, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, writeBatch, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -68,6 +70,7 @@ export default function RegisterIrrigationPage() {
   const [isDigitizing, setIsDigitizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedRecords, setSavedRecords] = useState<any[]>([]);
+  const [filteredRecords, setFilteredRecords] = useState<any[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [campaign, setCampaign] = useState('');
@@ -81,6 +84,8 @@ export default function RegisterIrrigationPage() {
   const [completedCrop, setCompletedCrop] = useState<CropType>();
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
+
+  const [filters, setFilters] = useState({ campana: '', lote: '', etapa: '', fecha: '' });
 
   const form = useForm<z.infer<typeof editRecordSchema>>({
     resolver: zodResolver(editRecordSchema),
@@ -108,10 +113,33 @@ export default function RegisterIrrigationPage() {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "registros-riego"), (snapshot) => {
       const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSavedRecords(records);
+      
+      const sortedRecords = records.sort((a, b) => {
+        const dateA = a.Fecha ? (a.Fecha.toDate ? a.Fecha.toDate() : (isValid(parseISO(a.Fecha)) ? parseISO(a.Fecha) : 0)) : 0;
+        const dateB = b.Fecha ? (b.Fecha.toDate ? b.Fecha.toDate() : (isValid(parseISO(b.Fecha)) ? parseISO(b.Fecha) : 0)) : 0;
+        
+        if (dateA && dateB) {
+            return dateB.getTime() - dateA.getTime();
+        }
+        return 0;
+      });
+
+      setSavedRecords(sortedRecords);
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const result = savedRecords.filter(record => {
+        return (
+            (filters.campana ? record['Campaña'] === filters.campana : true) &&
+            (filters.lote ? record.Lote === filters.lote : true) &&
+            (filters.etapa ? record['Etapa'] === filters.etapa : true) &&
+            (filters.fecha ? record.Fecha === filters.fecha : true)
+        );
+    });
+    setFilteredRecords(result);
+  }, [filters, savedRecords]);
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -271,15 +299,17 @@ export default function RegisterIrrigationPage() {
   const onUpdateSubmit = async (values: any) => {
     if (!editingRecord) return;
     
+    const dataToUpdate = { ...values };
+    delete dataToUpdate.id; // Remove id from the object to be updated
+
     if (editingRecord.internalId) {
         setParsedData(prev => prev.map(row => 
-            row.internalId === editingRecord.internalId ? { ...row, ...values, id: row.id } : row
+            row.internalId === editingRecord.internalId ? { ...row, ...values } : row
         ));
         toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
         try {
             const docRef = doc(db, "registros-riego", editingRecord.id);
-            const { id, ...dataToUpdate } = values;
             await updateDoc(docRef, dataToUpdate);
             toast({ title: "Éxito", description: "Registro actualizado en la base de datos." });
         } catch(error) {
@@ -328,6 +358,25 @@ export default function RegisterIrrigationPage() {
     return headersArray;
   }, [savedRecords]);
 
+  const handleDownloadExcel = () => {
+    const dataToExport = filteredRecords.map(record => {
+      const { id, ...rest } = record;
+      return rest;
+    });
+    const worksheet = xlsx.utils.json_to_sheet(dataToExport);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, "RegistrosRiego");
+    xlsx.writeFile(workbook, "RegistrosRiego.xlsx");
+    toast({ title: "Éxito", description: "La descarga ha comenzado." });
+  };
+  
+  const filterOptions = useMemo(() => {
+      const campanas = [...new Set(savedRecords.map(r => r['Campaña']))].filter(Boolean);
+      const lotes = [...new Set(savedRecords.map(r => r.Lote))].filter(Boolean);
+      const etapas = [...new Set(savedRecords.map(r => r['Etapa']))].filter(Boolean);
+      const fechas = [...new Set(savedRecords.map(r => r.Fecha))].filter(Boolean);
+      return { campanas, lotes, etapas, fechas };
+  }, [savedRecords]);
 
   return (
     <>
@@ -423,11 +472,36 @@ export default function RegisterIrrigationPage() {
       
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><List className="h-6 w-6" />Base de Datos de Riego</CardTitle>
-            <CardDescription>Historial de todos los registros de riego guardados.</CardDescription>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2"><List className="h-6 w-6" />Base de Datos de Riego</CardTitle>
+                <CardDescription>Historial de todos los registros de riego guardados.</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleDownloadExcel} disabled={filteredRecords.length === 0}><FileDown className="mr-2 h-4 w-4" />Descargar</Button>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                <Select value={filters.campana} onValueChange={(value) => setFilters(f => ({...f, campana: value === 'all' ? '' : value}))}>
+                    <SelectTrigger><SelectValue placeholder="Filtrar por Campaña" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todas las Campañas</SelectItem>{filterOptions.campanas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                </Select>
+                 <Select value={filters.lote} onValueChange={(value) => setFilters(f => ({...f, lote: value === 'all' ? '' : value}))}>
+                    <SelectTrigger><SelectValue placeholder="Filtrar por Lote" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todos los Lotes</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                </Select>
+                 <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}>
+                    <SelectTrigger><SelectValue placeholder="Filtrar por Etapa" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todas las Etapas</SelectItem>{filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                </Select>
+                 <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}>
+                    <SelectTrigger><SelectValue placeholder="Filtrar por Fecha" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todas las Fechas</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
         </CardHeader>
         <CardContent>
-            {savedRecords.length > 0 ? (
+            {filteredRecords.length > 0 ? (
                 <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
                     <Table className="bg-background">
                         <TableHeader>
@@ -437,7 +511,7 @@ export default function RegisterIrrigationPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {savedRecords.map(record => (
+                            {filteredRecords.map(record => (
                                 <TableRow key={record.id}>
                                     {savedRecordsHeaders.map(header => (
                                         <TableCell key={`${record.id}-${header}`} className='whitespace-nowrap'>
@@ -462,13 +536,13 @@ export default function RegisterIrrigationPage() {
                     </Table>
                 </div>
             ) : (
-                <CardDescription>Aún no se han registrado datos de riego.</CardDescription>
+                <CardDescription>Aún no se han registrado datos de riego o no hay resultados para los filtros seleccionados.</CardDescription>
             )}
         </CardContent>
       </Card>
     </div>
     
-    <Dialog open={!!editingRecord} onOpenChange={setEditingRecord}>
+    <Dialog open={!!editingRecord} onOpenChange={(isOpen) => { if(!isOpen) setEditingRecord(null) }}>
         <DialogContent>
             <DialogHeader><DialogTitle>Editar Registro de Riego</DialogTitle></DialogHeader>
             <Form {...form}>
