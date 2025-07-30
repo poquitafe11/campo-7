@@ -28,10 +28,14 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: APP_NAME,
   },
+  icons: [
+    { rel: "icon", url: "/icon-7.svg" },
+    { rel: "apple-touch-icon", url: "/icon-7.svg" },
+  ],
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4338ca", // Deep purple from the design
+  themeColor: "#6d28d9", 
 };
 
 export default function RootLayout({

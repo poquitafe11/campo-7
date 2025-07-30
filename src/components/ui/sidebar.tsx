@@ -35,7 +35,7 @@ export function Sidebar() {
            <div className="flex items-center h-16 border-b px-4 shrink-0">
              <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/logo.png" alt="Campo 7" />
+                  <AvatarImage src="/icon-7.svg" alt="Campo 7" />
                   <AvatarFallback>C7</AvatarFallback>
                 </Avatar>
                 <span>Campo 7</span>
@@ -81,7 +81,7 @@ export function Sidebar() {
             <div className="flex h-16 items-center border-b px-4">
                <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src="/logo.png" alt="Campo 7" />
+                        <AvatarImage src="/icon-7.svg" alt="Campo 7" />
                         <AvatarFallback>C7</AvatarFallback>
                     </Avatar>
                     <span>Campo 7</span>
