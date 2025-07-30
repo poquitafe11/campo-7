@@ -302,6 +302,7 @@ export default function ActivityDatabasePage() {
         return 'N/A';
     }},
     { header: 'var', cell: ({row}) => lotesMap.get(row.original.lote)?.variedad || 'N/A' },
+    { header: 'Asistente', cell: ({ row }) => userMap.get(row.original.createdBy)?.nombre || row.original.createdBy },
     { header: 'Cod Lote', accessorKey: 'lote' },
     { header: 'COD. LABOR', accessorKey: 'code' },
     { header: 'Labor', accessorKey: 'labor' },
@@ -463,6 +464,7 @@ export default function ActivityDatabasePage() {
         const costoEmpresa = costoLabor * 1.30;
         return `S/ ${costoEmpresa.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     } },
+    { header: 'Obs.', accessorKey: 'observations' },
     { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy)?.nombre || row.original.createdBy },
     {
       id: 'actions',
@@ -688,6 +690,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 
