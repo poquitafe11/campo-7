@@ -309,7 +309,7 @@ export default function RegisterHealthPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    const PREFERRED_ORDER = [ 'Campaña', 'Etapa', 'Variedad', 'Turno', 'Fecha Plan de Aplicación', 'Lote', 'Cuartel', 'Tipo de App', 'Producto', 'Objetivo', 'Ingrediente Activo', 'Categoria', 'P.R. Horas', 'Banda' ];
+    const PREFERRED_ORDER = ['Campaña', 'Etapa', 'Variedad', 'Turno', 'Fecha Plan de Aplicación', 'Lote', 'Cuartel', 'Tipo de App', 'Producto', 'Objetivo', 'Ingrediente Activo', 'Categoria', 'P.R. Horas', 'Banda'];
     const headers = new Set<string>();
     savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
