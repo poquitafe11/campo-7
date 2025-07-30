@@ -347,7 +347,7 @@ export default function ActivitySummaryPage() {
                             </table>
                         </div>
                         <div className="overflow-x-auto pb-4">
-                            <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs min-w-full">
+                            <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs">
                                 <thead className="text-center font-bold text-black">
                                     <tr className="bg-gray-300">
                                         <td className="border border-black px-4 py-2 font-bold w-36">FECHA</td>
