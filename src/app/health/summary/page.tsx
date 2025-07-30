@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import * as xlsx from 'xlsx';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 type HealthRecord = {
     id: string;
@@ -42,6 +43,7 @@ export default function HealthSummaryPage() {
     const { lotes, loading: masterLoading } = useMasterData();
     const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const { setActions } = useHeaderActions();
 
     const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
     const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
@@ -161,6 +163,46 @@ export default function HealthSummaryPage() {
         toast({ title: "Descarga Iniciada", description: "El archivo se está descargando." });
     };
 
+    useEffect(() => {
+        setActions(
+          <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Filter className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="grid gap-4">
+                <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label>Campaña</Label>
+                    <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campana: v === 'all' ? '' : v}))} value={popoverFilters.campana}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label>Lote</Label>
+                    <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label>Objetivo</Label>
+                    <Select onValueChange={(v) => setPopoverFilters(p => ({...p, objetivo: v === 'all' ? '' : v}))} value={popoverFilters.objetivo}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.objetivos.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label>Categoría</Label>
+                    <Select onValueChange={(v) => setPopoverFilters(p => ({...p, categoria: v === 'all' ? '' : v}))} value={popoverFilters.categoria}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                  <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        );
+        return () => setActions(null);
+    }, [setActions, isFilterOpen, popoverFilters, filterOptions, handleApplyFilters, handleClearFilters]);
+
     const isContentReady = !loading && !masterLoading;
 
     return (
@@ -172,76 +214,12 @@ export default function HealthSummaryPage() {
             ) : !activeFilters.lote || !activeFilters.objetivo ? (
                 <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
                     <p className="text-muted-foreground text-center mb-4">Seleccione al menos un Lote y un Objetivo para ver el resumen.</p>
-                     <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline"><Filter className="mr-2 h-4 w-4" />Filtros</Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80" align="center">
-                            <div className="grid gap-4">
-                                <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
-                                <div className="grid gap-2">
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Campaña</Label>
-                                        <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campana: v === 'all' ? '' : v}))} value={popoverFilters.campana}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Lote</Label>
-                                        <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Objetivo</Label>
-                                        <Select onValueChange={(v) => setPopoverFilters(p => ({...p, objetivo: v === 'all' ? '' : v}))} value={popoverFilters.objetivo}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.objetivos.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Categoría</Label>
-                                        <Select onValueChange={(v) => setPopoverFilters(p => ({...p, categoria: v === 'all' ? '' : v}))} value={popoverFilters.categoria}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                                    <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                                </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
                 </div>
             ) : (
                 <div className="space-y-6">
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader>
                             <CardTitle>Información del Filtro</CardTitle>
-                             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" />Filtros</Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-80" align="end">
-                                    <div className="grid gap-4">
-                                        <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
-                                        <div className="grid gap-2">
-                                            <div className="grid grid-cols-3 items-center gap-4">
-                                                <Label>Campaña</Label>
-                                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campana: v === 'all' ? '' : v}))} value={popoverFilters.campana}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                            </div>
-                                            <div className="grid grid-cols-3 items-center gap-4">
-                                                <Label>Lote</Label>
-                                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                            </div>
-                                            <div className="grid grid-cols-3 items-center gap-4">
-                                                <Label>Objetivo</Label>
-                                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, objetivo: v === 'all' ? '' : v}))} value={popoverFilters.objetivo}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.objetivos.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
-                                            </div>
-                                            <div className="grid grid-cols-3 items-center gap-4">
-                                                <Label>Categoría</Label>
-                                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, categoria: v === 'all' ? '' : v}))} value={popoverFilters.categoria}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end gap-2 pt-2">
-                                            <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                                            <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                                        </div>
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
                         </CardHeader>
                         <CardContent>
                             <Table>
