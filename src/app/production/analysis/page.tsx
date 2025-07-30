@@ -19,14 +19,14 @@ import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
-import { format, parseISO, isValid } from 'date-fns';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { ActivityRecordData, Presupuesto } from '@/lib/types';
+import type { ActivityRecordData, LoteData, Presupuesto } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { ChartConfig, ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, Legend, RadialBar, RadialBarChart, XAxis, YAxis } from 'recharts';
 import { useMasterData } from '@/context/MasterDataContext';
+import { Bar, BarChart, CartesianGrid, Legend, RadialBar, RadialBarChart, XAxis, YAxis } from 'recharts';
 
 
 const formatNumber = (num: number, digits = 2) => {
@@ -45,6 +45,7 @@ const getInitialFilters = () => ({
   labor: '',
   pass: '',
 });
+
 
 export default function AnalysisPage() {
   const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
@@ -163,7 +164,11 @@ export default function AnalysisPage() {
     const presupuestado = totalHaProd > 0 ? totalBudgetedJornadas / totalHaProd : 0;
     
     const recordsToProcess = filteredRecords;
-    const ejecutado = recordsToProcess.reduce((sum, r) => sum + ((r.workdayCount || 0) / (allLotes.find(l => l.lote === r.lote)?.haProd || 1)), 0);
+    const ejecutado = recordsToProcess.reduce((sum, r) => {
+        const loteData = allLotes.find(l => l.lote === r.lote);
+        const haProd = loteData?.haProd || 1; // Avoid division by zero
+        return sum + ((r.workdayCount || 0) / haProd)
+    }, 0);
 
     const percentage = presupuestado > 0 ? (ejecutado / presupuestado) * 100 : (ejecutado > 0 ? 100 : 0);
 
@@ -334,9 +339,9 @@ export default function AnalysisPage() {
     }
   };
   
-  const [isClient, setIsClient] = useState(false)
+  const [isClient, setIsClient] = useState(false);
   useEffect(() => {
-    setIsClient(true)
+    setIsClient(true);
   }, []);
 
   const chartConfig: ChartConfig = {
@@ -344,7 +349,7 @@ export default function AnalysisPage() {
     costoHa: { label: "Costo/Ha (S/)", color: "#10b981" },
     promJhu: { label: "Prom./JHU", color: "#f97316" },
     ejecutadas: { label: "Jr/Ha Ejecutadas", color: "hsl(var(--primary))" },
-  }
+  };
 
   const loading = isLoading || masterLoading;
 
@@ -538,7 +543,7 @@ export default function AnalysisPage() {
                         <div>
                             <CardTitle>
                                 Evolución de {drilldownLabor ? `Labor: ${drilldownLabor}` : 'Labores'}
-                            </Title>
+                            </CardTitle>
                              <CardDescription>
                                 {drilldownLabor ? 'Vista diaria de la labor seleccionada.' : 'Haz clic en una labor para ver el detalle diario.'}
                             </CardDescription>
