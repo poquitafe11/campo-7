@@ -313,13 +313,16 @@ export default function RegisterHealthPage() {
     const headers = new Set<string>();
     savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
-    const normalize = (s: string) => s.toLowerCase().replace(/ /g, '');
+    
+    const normalize = (s: string) => s.toLowerCase().replace(/[\s_.]/g, '');
     const normalizedOrder = PREFERRED_ORDER.map(normalize);
+
     headersArray.sort((a, b) => {
         const normA = normalize(a);
         const normB = normalize(b);
         const indexA = normalizedOrder.indexOf(normA);
         const indexB = normalizedOrder.indexOf(normB);
+
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
         if (indexA !== -1) return -1;
         if (indexB !== -1) return 1;
