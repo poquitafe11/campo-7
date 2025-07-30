@@ -82,17 +82,17 @@ export default function HealthSummaryPage() {
         return { campaigns, lotes: lotesOptions, objetivos, categorias };
     }, [healthRecords]);
 
-    const handleApplyFilters = () => {
+    const handleApplyFilters = useCallback(() => {
         setActiveFilters(popoverFilters);
         setIsFilterOpen(false);
-    };
+    }, [popoverFilters]);
 
-    const handleClearFilters = () => {
+    const handleClearFilters = useCallback(() => {
         const cleared = getInitialFilters();
         setPopoverFilters(cleared);
         setActiveFilters(cleared);
         setIsFilterOpen(false);
-    };
+    }, []);
 
     const processedData = useMemo(() => {
         if (!activeFilters.lote || !activeFilters.objetivo) return [];
