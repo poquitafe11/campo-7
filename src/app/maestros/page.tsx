@@ -17,6 +17,12 @@ const masterFeatures = [
     description: "Administra las diferentes labores del campo.",
     href: "/maestro-labores",
   },
+   {
+    icon: <Users className="h-8 w-8" />,
+    title: "Trabajadores",
+    description: "Administra la lista de trabajadores de la empresa.",
+    href: "/maestro-trabajadores",
+  },
   {
     icon: <Users className="h-8 w-8" />,
     title: "Asistentes",

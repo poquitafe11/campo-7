@@ -77,19 +77,21 @@ export type Labor = {
   descripcion: string;
 };
 
-export type LoteData = {
-  id: string;
-  lote: string;
-  cuartel: string;
-  variedad: string;
-  ha: number;
-  densidad: number;
-  haProd: number;
-  plantasTotal: number;
-  plantasProd: number;
-  fechaCianamida: Date;
-  campana: string;
-};
+export const LoteDataSchema = z.object({
+  id: z.string(),
+  lote: z.string(),
+  cuartel: z.string(),
+  variedad: z.string(),
+  ha: z.number(),
+  densidad: z.number(),
+  haProd: z.number(),
+  plantasTotal: z.number(),
+  plantasProd: z.number(),
+  fechaCianamida: z.date(),
+  campana: z.string(),
+});
+export type LoteData = z.infer<typeof LoteDataSchema>;
+
 
 export type AttendanceRecord = {
   id: string;

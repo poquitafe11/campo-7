@@ -81,7 +81,7 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from 'fire
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
@@ -108,17 +108,24 @@ function normalizeKey(key: string): string {
   return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '').replace(/\./g, '');
 }
 
-function parseExcelDate(excelDate: number | string): Date {
+function parseExcelDate(excelDate: number | string): Date | null {
   if (typeof excelDate === 'string') {
     const date = new Date(excelDate);
-    if (!isNaN(date.getTime())) {
+    if (isValid(date)) {
       return date;
     }
   }
   if (typeof excelDate === 'number') {
-    return new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+    // Excel's epoch starts on 1900-01-01, but has a bug where it thinks 1900 was a leap year.
+    // The convention is to treat dates as if they are based on 1899-12-30.
+    const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+    if (isValid(date)) return date;
   }
-  return new Date('invalid');
+  // Try parsing common string formats as a fallback
+  const parsed = parseISO(String(excelDate));
+  if(isValid(parsed)) return parsed;
+  
+  return null;
 }
 
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
@@ -166,7 +173,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
                 if (fieldSchema instanceof z.ZodDate) {
                   const parsedDate = parseExcelDate(value);
-                  if (!isNaN(parsedDate.getTime())) {
+                  if (parsedDate && isValid(parsedDate)) {
                     loteData[field] = parsedDate;
                   }
                 } else if (fieldSchema._def.typeName === 'ZodNumber') {
@@ -198,12 +205,12 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
               return null;
             }
           })
-          .filter(item => item && item.lote && item.cuartel);
+          .filter(item => item && item.lote && item.cuartel && item.fechaCianamida);
 
         if (normalizedData.length === 0) {
           return reject(
             new Error(
-              'No se encontraron datos válidos en el archivo. Verifique que todas las filas tengan Lote y Cuartel.'
+              'No se encontraron datos válidos. Verifique que todas las filas tengan Lote, Cuartel y una fecha de cianamida válida.'
             )
           );
         }
@@ -247,11 +254,13 @@ export default function MaestroLotesPage() {
     const unsubscribe = onSnapshot(collection(db, 'maestro-lotes'), snapshot => {
       const lotesData = snapshot.docs.map(doc => {
         const docData = doc.data();
-        const fechaCianamida = docData.fechaCianamida?.toDate
-          ? docData.fechaCianamida.toDate()
-          : docData.fechaCianamida
-          ? parseISO(docData.fechaCianamida)
-          : new Date();
+        let fechaCianamida = new Date();
+        if (docData.fechaCianamida?.toDate) {
+            fechaCianamida = docData.fechaCianamida.toDate();
+        } else if (docData.fechaCianamida) {
+            const parsed = parseISO(docData.fechaCianamida);
+            if(isValid(parsed)) fechaCianamida = parsed;
+        }
         return { id: doc.id, ...docData, fechaCianamida } as Lote;
       });
       const sortedData = lotesData.sort((a, b) => {
@@ -318,7 +327,7 @@ export default function MaestroLotesPage() {
       'Plantas Total': lote.plantasTotal,
       'Plantas Prod.': lote.plantasProd,
       'Fecha Cianamida':
-        lote.fechaCianamida instanceof Date ? format(lote.fechaCianamida, 'dd/MM/yyyy') : '',
+        lote.fechaCianamida instanceof Date && isValid(lote.fechaCianamida) ? format(lote.fechaCianamida, 'dd/MM/yyyy') : '',
       Campaña: lote.campana,
     }));
     const worksheet = xlsx.utils.json_to_sheet(formattedData);
@@ -382,7 +391,7 @@ export default function MaestroLotesPage() {
     setEditingLote(lote);
     form.reset({
       ...lote,
-      fechaCianamida: lote.fechaCianamida instanceof Date ? lote.fechaCianamida : new Date(),
+      fechaCianamida: lote.fechaCianamida instanceof Date && isValid(lote.fechaCianamida) ? lote.fechaCianamida : new Date(),
     });
   };
 
@@ -440,7 +449,7 @@ export default function MaestroLotesPage() {
         header: 'Fecha Cianamida',
         cell: ({ row }) => {
           const date = row.getValue('fechaCianamida');
-          return date instanceof Date && !isNaN(date.getTime())
+          return date instanceof Date && isValid(date)
             ? format(date, 'dd/MM/yyyy')
             : 'N/A';
         },
@@ -759,7 +768,7 @@ export default function MaestroLotesPage() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>¿Estás absolutely seguro?</AlertDialogTitle>
+                    <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Esta acción eliminará permanentemente los {data.length} registros.
                     </AlertDialogDescription>

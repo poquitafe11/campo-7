@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -39,12 +40,12 @@ const formatNumber = (num: number, digits = 2) => {
   });
 };
 
-const getInitialFilters = () => ({
+const initialFilters = {
   date: undefined as Date | undefined,
   lote: '',
   labor: '',
   pass: '',
-});
+};
 
 
 export default function AnalysisPage() {
@@ -53,7 +54,7 @@ export default function AnalysisPage() {
   const { lotes: allLotes, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
   const [isLoading, setIsLoading] = useState(true);
   
-  const [filters, setFilters] = useState(getInitialFilters());
+  const [filters, setFilters] = useState(initialFilters);
   const [drilldownLote, setDrilldownLote] = useState<string | null>(null);
   const [drilldownLabor, setDrilldownLabor] = useState<string | null>(null);
 
@@ -322,7 +323,7 @@ export default function AnalysisPage() {
 
 
   const handleClearFilters = () => {
-    setFilters(getInitialFilters());
+    setFilters(initialFilters);
     setDrilldownLote(null);
     setDrilldownLabor(null);
   };
@@ -393,7 +394,7 @@ export default function AnalysisPage() {
                                             {isClient && filters.date ? format(filters.date, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={filters.date} onSelect={(date) => setFilters(prev => ({...getInitialFilters(), date: date || undefined, lote: prev.lote}))} initialFocus locale={es}/></PopoverContent>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={filters.date} onSelect={(date) => setFilters(prev => ({...initialFilters, date: date || undefined, lote: prev.lote}))} initialFocus locale={es}/></PopoverContent>
                                 </Popover>
                             </div>
                             <div className="grid grid-cols-1 items-center gap-2">

@@ -41,6 +41,7 @@ interface Filters {
     campaign: string;
     lote: string;
     labor: string;
+    stage: string;
     pasada: string;
     dateRange: DateRange;
 }
@@ -49,6 +50,7 @@ const getInitialFilters = (): Filters => ({
     campaign: '',
     lote: '',
     labor: '',
+    stage: '',
     pasada: '',
     dateRange: { from: undefined, to: undefined },
 });
@@ -239,8 +241,9 @@ export default function ActivityDatabasePage() {
       const campaigns = [...new Set(data.map(item => item.campaign))].sort();
       const lotesOptions = [...new Set(data.map(item => item.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
       const labors = [...new Set(data.map(item => item.labor).filter(Boolean) as string[])].sort();
+      const stages = [...new Set(data.map(item => item.stage))].sort();
       const pasadas = [...new Set(data.map(item => String(item.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-      return { campaigns, lotes: lotesOptions, labors, pasadas };
+      return { campaigns, lotes: lotesOptions, labors, pasadas, stages };
   }, [data]);
 
   const handleApplyFilters = useCallback(() => {
@@ -265,18 +268,21 @@ export default function ActivityDatabasePage() {
             : true;
 
         const matchesCampaign = activeFilters.campaign ? item.campaign === activeFilters.campaign : true;
+        const matchesStage = activeFilters.stage ? item.stage === activeFilters.stage : true;
         const matchesLote = activeFilters.lote ? item.lote === activeFilters.lote : true;
         const matchesLabor = activeFilters.labor ? item.labor === activeFilters.labor : true;
         const matchesPasada = activeFilters.pasada ? String(item.pass) === activeFilters.pasada : true;
         
         const itemDate = item.registerDate;
+        if (!isValid(itemDate)) return false; // Skip records with invalid dates
+        
         const fromDate = activeFilters.dateRange?.from;
         const toDate = activeFilters.dateRange?.to;
         const matchesDate = 
             (!fromDate || itemDate >= fromDate) && 
             (!toDate || itemDate <= toDate);
             
-        return matchesGlobal && matchesCampaign && matchesLote && matchesLabor && matchesPasada && matchesDate;
+        return matchesGlobal && matchesCampaign && matchesLote && matchesLabor && matchesPasada && matchesDate && matchesStage;
     });
   }, [data, globalFilter, activeFilters]);
   
@@ -548,6 +554,10 @@ export default function ActivityDatabasePage() {
                               <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
                           </div>
                           <div className="grid grid-cols-3 items-center gap-4">
+                              <Label>Etapa</Label>
+                              <Select onValueChange={(v) => setPopoverFilters(p => ({...p, stage: v === 'all' ? '' : v}))} value={popoverFilters.stage}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                          </div>
+                          <div className="grid grid-cols-3 items-center gap-4">
                               <Label>Lote</Label>
                               <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
                           </div>
@@ -678,6 +688,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 
