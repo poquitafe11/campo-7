@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -142,7 +143,7 @@ export default function AnalysisPage() {
     });
   }, [filters, allActivities]);
   
-    const cumplimientoChartData = useMemo(() => {
+  const cumplimientoChartData = useMemo(() => {
     const lotesInScope = filters.lote
       ? allLotes.filter(l => l.lote === filters.lote)
       : allLotes;
@@ -343,7 +344,7 @@ export default function AnalysisPage() {
     costoHa: { label: "Costo/Ha (S/)", color: "#10b981" },
     promJhu: { label: "Prom./JHU", color: "#f97316" },
     ejecutadas: { label: "Jr/Ha Ejecutadas", color: "hsl(var(--primary))" },
-  };
+  }
 
   const loading = isLoading || masterLoading;
 
@@ -537,7 +538,7 @@ export default function AnalysisPage() {
                         <div>
                             <CardTitle>
                                 Evolución de {drilldownLabor ? `Labor: ${drilldownLabor}` : 'Labores'}
-                            </CardTitle>
+                            </Title>
                              <CardDescription>
                                 {drilldownLabor ? 'Vista diaria de la labor seleccionada.' : 'Haz clic en una labor para ver el detalle diario.'}
                             </CardDescription>
