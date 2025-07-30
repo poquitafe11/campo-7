@@ -70,6 +70,9 @@ const pageTitles: { [key: string]: string } = {
     '/production/daily-report': 'Parte Diario',
     '/production/daily-report/create': 'Crear Parte Diario',
     '/users': 'Gestión de Usuarios',
+    '/health': 'Sanidad',
+    '/health/register': 'Registro de Sanidad',
+    '/health/summary': 'Resumen de Sanidad',
   };
 
 
