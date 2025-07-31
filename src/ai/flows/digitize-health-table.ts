@@ -37,12 +37,15 @@ const prompt = ai.definePrompt({
 
 Analyze the image and transcribe the entire content of the table into a structured JSON array format.
 Each object in the array should represent a row from the table. Use the table headers as the keys for the JSON objects.
+
+IMPORTANT: Standardize the column headers. For example, if you see "L O T", "LOT", or "Lote", you must use "Lote" as the key in the JSON. Similarly, unify other headers like "Fecha Plan de Aplicaci" into "Fecha Plan de Aplicación".
+
 The final output must be a single string containing a valid JSON array.
 
 Example output format:
 [
-  { "Header 1": "Row 1 Col 1", "Header 2": "Row 1 Col 2" },
-  { "Header 1": "Row 2 Col 1", "Header 2": "Row 2 Col 2" }
+  { "Fecha Plan de Aplicación": "23/jul/2025", "Lote": "078", "Cuartel": "25" },
+  { "Fecha Plan de Aplicación": "24/jul/2025", "Lote": "072", "Cuartel": "9" }
 ]
 
 Image with the table:
