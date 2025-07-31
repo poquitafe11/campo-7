@@ -433,7 +433,7 @@ export default function RegisterHealthPage() {
             {!isDigitizing && parsedData.length > 0 && (
                 <div className="space-y-4">
                     <Label>Resultado (Vista Previa)</Label>
-                    <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
+                    <div className="overflow-x-auto rounded-md border bg-muted/50 p-4">
                         <Table className="bg-background">
                             <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader>
                             <TableBody>
@@ -476,7 +476,7 @@ export default function RegisterHealthPage() {
         </CardHeader>
         <CardContent>
             {savedRecords.length > 0 ? (
-                <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
+                <div className="overflow-x-auto rounded-md border bg-muted/50 p-4">
                     <Table className="bg-background">
                         <TableHeader>
                             <TableRow>
