@@ -315,12 +315,8 @@ export default function RegisterHealthPage() {
     const headersArray = Array.from(headers);
     
     const normalize = (s: string) => {
-        return s
-            .toLowerCase()
-            .replace(/[áéíóú]/g, (match) => ({'á':'a','é':'e','í':'i','ó':'o','ú':'u'}[match]!))
-            .replace(/[\s_.-]+/g, '')
-            .replace(/s$/, '') // remove plural s
-            .substring(0, 5); // compare a prefix
+      if (typeof s !== 'string') return '';
+      return s.toLowerCase().replace(/[^a-z0-9]/g, '');
     };
 
     const normalizedOrder = PREFERRED_ORDER.map(normalize);
@@ -328,8 +324,8 @@ export default function RegisterHealthPage() {
     headersArray.sort((a, b) => {
         const normA = normalize(a);
         const normB = normalize(b);
-        const indexA = normalizedOrder.indexOf(normA);
-        const indexB = normalizedOrder.indexOf(normB);
+        const indexA = normalizedOrder.findIndex(orderKey => orderKey.startsWith(normA) || normA.startsWith(orderKey));
+        const indexB = normalizedOrder.findIndex(orderKey => orderKey.startsWith(normB) || normB.startsWith(orderKey));
 
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
         if (indexA !== -1) return -1;
