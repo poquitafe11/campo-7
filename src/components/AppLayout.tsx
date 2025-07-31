@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -34,22 +34,23 @@ import ConnectionStatus from './ConnectionStatus';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-const mainNavItems = [
-  { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
+const allMainNavItems = [
+  { href: '/dashboard', icon: LayoutGrid, label: 'Áreas', permission: '/dashboard' },
   { 
     id: 'maestros', 
     icon: Layers, 
     label: 'Maestros',
+    permission: '/maestros',
     subItems: [
-      { href: '/maestro-lotes', icon: Box, label: 'Lotes' },
-      { href: '/maestro-labores', icon: Layers, label: 'Labores' },
-      { href: '/maestro-trabajadores', icon: Users, label: 'Trabajadores' },
-      { href: '/asistentes', icon: Users, label: 'Asistentes' },
-      { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
-      { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
+      { href: '/maestro-lotes', icon: Box, label: 'Lotes', permission: '/maestro-lotes' },
+      { href: '/maestro-labores', icon: Layers, label: 'Labores', permission: '/maestro-labores' },
+      { href: '/maestro-trabajadores', icon: Users, label: 'Trabajadores', permission: '/maestro-trabajadores' },
+      { href: '/asistentes', icon: Users, label: 'Asistentes', permission: '/asistentes' },
+      { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos', permission: '/min-max' },
+      { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto', permission: '/presupuesto' },
     ]
   },
-  { href: '/users', icon: Shield, label: 'Usuarios' },
+  { href: '/users', icon: Shield, label: 'Usuarios', permission: '/users' },
 ];
 
 const pageTitles: { [key: string]: string } = {
@@ -112,10 +113,12 @@ const NavItem = ({ href, icon: Icon, label, closeSheet }: { href: string; icon: 
     );
   };
 
-const CollapsibleNavItem = ({ item, closeSheet }: { item: typeof mainNavItems[1], closeSheet: () => void }) => {
+const CollapsibleNavItem = ({ item, closeSheet, visibleSubItems }: { item: typeof allMainNavItems[1], closeSheet: () => void, visibleSubItems: any[] }) => {
   const pathname = usePathname();
   const isParentActive = item.subItems.some(sub => pathname.startsWith(sub.href)) || pathname.startsWith('/maestros');
   const Icon = item.icon;
+
+  if (visibleSubItems.length === 0) return null;
 
   return (
     <Accordion type="single" collapsible defaultValue={isParentActive ? item.id : undefined} className="w-full">
@@ -133,7 +136,7 @@ const CollapsibleNavItem = ({ item, closeSheet }: { item: typeof mainNavItems[1]
         </AccordionTrigger>
         <AccordionContent className="pt-1 pl-4">
           <div className="flex flex-col space-y-1">
-            {item.subItems.map(subItem => {
+            {visibleSubItems.map(subItem => {
                  const isSubItemActive = pathname === subItem.href;
                  return (
                     <SheetClose asChild key={subItem.href}>
@@ -163,6 +166,23 @@ const CollapsibleNavItem = ({ item, closeSheet }: { item: typeof mainNavItems[1]
 const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
     const { profile, logout } = useAuth();
     
+    const visibleNavItems = useMemo(() => {
+      if (!profile) return [];
+      if (profile.rol === 'Admin') return allMainNavItems;
+      
+      return allMainNavItems.map(item => {
+        if ('subItems' in item) {
+          const visibleSubItems = item.subItems.filter(sub => profile.permissions?.[sub.permission] === true);
+          return { ...item, subItems: visibleSubItems };
+        }
+        return item;
+      }).filter(item => {
+        if (profile.permissions?.[item.permission] === true) return true;
+        if ('subItems' in item) return item.subItems.length > 0;
+        return false;
+      });
+    }, [profile]);
+    
     return (
       <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
          <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20 text-left">
@@ -182,8 +202,8 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
          </SheetHeader>
 
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          {mainNavItems.map(item => 'subItems' in item ? (
-              <CollapsibleNavItem item={item} key={item.id} closeSheet={closeSheet} />
+          {visibleNavItems.map(item => 'subItems' in item ? (
+              <CollapsibleNavItem item={item} key={item.id} closeSheet={closeSheet} visibleSubItems={item.subItems} />
           ) : (
             <NavItem {...item} key={item.href} closeSheet={closeSheet} />
           ))}
