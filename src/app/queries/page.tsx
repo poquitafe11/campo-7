@@ -55,22 +55,22 @@ export default function QueriesPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="AI Query Assistant" />
+      <PageHeader title="Asistente de Consultas IA" />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BotMessageSquare className="h-6 w-6" />
-            Ask a Question
+            Haz una Pregunta
           </CardTitle>
           <CardDescription>
-            Use your collected field data to get insights. The more data you enter, the better the answers.
+            Usa los datos recolectados del campo para obtener información. Mientras más datos ingreses, mejores serán las respuestas.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!hasData && (
             <div className="mb-6 p-4 text-center bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
               <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                You haven't recorded any data yet. Please add some data in other sections for the AI assistant to work.
+                Aún no has registrado datos. Por favor, añade información en otras secciones para que el asistente de IA funcione.
               </p>
             </div>
           )}
@@ -81,10 +81,10 @@ export default function QueriesPage() {
                 name="query"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Your Question</FormLabel>
+                    <FormLabel>Tu Pregunta</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="e.g., 'What was the average yield for strawberries last month?' or 'Were there any disease outbreaks in the last two weeks?'"
+                        placeholder="Ej: '¿Cuál fue el rendimiento promedio de las fresas el mes pasado?' o '¿Hubo algún brote de enfermedad en las últimas dos semanas?'"
                         rows={4}
                         {...field}
                       />
@@ -97,12 +97,12 @@ export default function QueriesPage() {
                 {isLoading ? (
                   <>
                     <Sparkles className="mr-2 h-4 w-4 animate-spin" />
-                    Thinking...
+                    Pensando...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Ask AI
+                    Preguntar a la IA
                   </>
                 )}
               </Button>
@@ -111,7 +111,7 @@ export default function QueriesPage() {
 
           {(isLoading || answer || error) && (
             <div className="mt-8 pt-6 border-t">
-              <h3 className="text-lg font-semibold mb-4">Answer</h3>
+              <h3 className="text-lg font-semibold mb-4">Respuesta</h3>
               {isLoading && (
                 <div className="space-y-2">
                   <div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div>

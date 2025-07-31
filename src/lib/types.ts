@@ -7,7 +7,7 @@ export const ProductionSchema = z.object({
   harvestDate: z.date(),
   yieldAmount: z.number().positive(),
   plantingDate: z.date(),
-  cropType: z.string().min(1, "Crop type is required"),
+  cropType: z.string().min(1, "El tipo de cultivo es requerido"),
 });
 export type ProductionData = z.infer<typeof ProductionSchema>;
 
@@ -15,8 +15,8 @@ export type ProductionData = z.infer<typeof ProductionSchema>;
 export const HealthSchema = z.object({
   id: z.string().default(() => crypto.randomUUID()),
   observationDate: z.date(),
-  disease: z.string().min(1, "Disease/pest name is required"),
-  treatment: z.string().min(1, "Treatment is required"),
+  disease: z.string().min(1, "El nombre de la plaga/enfermedad es requerido"),
+  treatment: z.string().min(1, "El tratamiento es requerido"),
   notes: z.string().optional(),
 });
 export type HealthData = z.infer<typeof HealthSchema>;
@@ -36,7 +36,7 @@ export const QualityControlSchema = z.object({
   sampleDate: z.date(),
   brix: z.number().min(0),
   firmness: z.number().min(0),
-  color: z.string().min(1, "Color is required"),
+  color: z.string().min(1, "El color es requerido"),
 });
 export type QualityControlData = z.infer<typeof QualityControlSchema>;
 
@@ -44,15 +44,15 @@ export type QualityControlData = z.infer<typeof QualityControlSchema>;
 export const BiologicalControlSchema = z.object({
   id: z.string().default(() => crypto.randomUUID()),
   releaseDate: z.date(),
-  agent: z.string().min(1, "Agent name is required"),
+  agent: z.string().min(1, "El nombre del agente es requerido"),
   quantity: z.number().positive(),
-  targetPest: z.string().min(1, "Target pest is required"),
+  targetPest: z.string().min(1, "La plaga objetivo es requerida"),
 });
 export type BiologicalControlData = z.infer<typeof BiologicalControlSchema>;
 
 // AI Query
 export const QuerySchema = z.object({
-  query: z.string().min(10, "Please enter a more detailed query."),
+  query: z.string().min(10, "Por favor, introduce una consulta más detallada."),
 });
 export type QueryData = z.infer<typeof QuerySchema>;
 

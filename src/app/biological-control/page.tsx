@@ -35,20 +35,20 @@ export default function BiologicalControlPage() {
   function onSubmit(values: z.infer<typeof BiologicalControlSchema>) {
     dispatch({ type: "ADD_BIOLOGICAL_CONTROL", payload: values });
     toast({
-      title: "Success!",
-      description: "Biological control data has been saved.",
+      title: "¡Éxito!",
+      description: "Datos de control biológico guardados.",
     });
     form.reset();
   }
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Biological Control" />
+      <PageHeader title="Control Biológico" />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bug className="h-6 w-6" />
-            New Biological Control Log
+            Nuevo Registro de Control Biológico
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -60,7 +60,7 @@ export default function BiologicalControlPage() {
                   name="releaseDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Release Date</FormLabel>
+                      <FormLabel>Fecha de Liberación</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -68,7 +68,7 @@ export default function BiologicalControlPage() {
                               variant={"outline"}
                               className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                             >
-                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                              {field.value ? format(field.value, "PPP") : <span>Elige una fecha</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -86,9 +86,9 @@ export default function BiologicalControlPage() {
                   name="agent"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Biological Agent</FormLabel>
+                      <FormLabel>Agente Biológico</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Ladybugs" {...field} />
+                        <Input placeholder="Ej: Mariquitas" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -99,7 +99,7 @@ export default function BiologicalControlPage() {
                   name="quantity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Quantity</FormLabel>
+                      <FormLabel>Cantidad</FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="500" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
                       </FormControl>
@@ -112,16 +112,16 @@ export default function BiologicalControlPage() {
                   name="targetPest"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Target Pest</FormLabel>
+                      <FormLabel>Plaga Objetivo</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Aphids" {...field} />
+                        <Input placeholder="Ej: Pulgones" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-              <Button type="submit" size="lg">Save Biological Data</Button>
+              <Button type="submit" size="lg">Guardar Datos Biológicos</Button>
             </form>
           </Form>
         </CardContent>

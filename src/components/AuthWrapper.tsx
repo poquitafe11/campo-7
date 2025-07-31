@@ -50,18 +50,21 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     }
     
     // Permission check for logged in users
-    if (user && profile && isProtectedRoute && profile.rol !== 'Admin') {
+    if (user && profile && isProtectedRoute) {
+      if(profile.rol !== 'Admin') {
         const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
         if (isAdminRoute) {
-             router.replace('/dashboard');
-             return;
-        }
-
-        const requiredPermission = protectedRoutes.find(route => pathname.startsWith(route) && route !== '/dashboard');
-        if (requiredPermission && !profile.permissions?.[requiredPermission]) {
             router.replace('/dashboard');
             return;
         }
+
+        const requiredPermission = protectedRoutes.find(route => pathname.startsWith(route) && route !== '/dashboard' && route !== '/maestros');
+        
+        if (requiredPermission && (!profile.permissions || profile.permissions[requiredPermission] !== true)) {
+            router.replace('/dashboard');
+            return;
+        }
+      }
     }
 
   }, [user, profile, loading, pathname, router]);

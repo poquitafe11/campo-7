@@ -63,6 +63,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
       email: "",
       rol: "Invitado",
       active: true,
+      permissions: {},
     },
   });
   
@@ -78,6 +79,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
                 email: "",
                 rol: "Invitado",
                 active: true,
+                permissions: {},
             });
         }
     }

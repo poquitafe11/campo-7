@@ -81,17 +81,22 @@ export async function updateUserStatus(email: string, active: boolean) {
     }
 }
 
-export async function updateUserPermissions(email: string, permissions: Record<string, boolean>) {
+export async function updateUserPermissions(email: string, feature: string, hasAccess: boolean) {
     try {
-        const docRef = doc(db, "usuarios", email);
-        await updateDoc(docRef, { permissions });
-        revalidatePath("/users");
-        return { success: true, message: "Permisos actualizados correctamente." };
+        const userRef = doc(db, 'usuarios', email);
+        const permissionsField = `permissions.${feature}`;
+        
+        await updateDoc(userRef, {
+            [permissionsField]: hasAccess
+        });
+        
+        return { success: true, message: "Permiso actualizado." };
     } catch (error) {
         console.error("Error updating user permissions:", error);
         return { success: false, message: "No se pudieron actualizar los permisos." };
     }
 }
+
 
 export async function deleteUser(email: string) {
     try {

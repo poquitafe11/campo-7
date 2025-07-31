@@ -28,65 +28,65 @@ export default function SummaryPage() {
 
   const renderList = <T extends { id: string }>(items: T[], renderItem: (item: T) => React.ReactNode) => {
     if (items.length === 0) {
-      return <CardDescription>No data recorded yet.</CardDescription>;
+      return <CardDescription>Aún no se han registrado datos.</CardDescription>;
     }
     return <div className="space-y-4">{items.map(item => <div key={item.id} className="p-3 border rounded-md bg-background/50">{renderItem(item)}</div>)}</div>;
   };
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Data Summary" />
+      <PageHeader title="Resumen de Datos" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DataCard title="Production" icon={<Sprout className="h-5 w-5" />}>
+        <DataCard title="Producción" icon={<Sprout className="h-5 w-5" />}>
           {renderList(state.production, (item: ProductionData) => (
             <>
-              <DataItem label="Crop" value={item.cropType} />
-              <DataItem label="Yield (kg)" value={item.yieldAmount} />
-              <DataItem label="Planted" value={format(item.plantingDate, 'PPP')} />
-              <DataItem label="Harvested" value={format(item.harvestDate, 'PPP')} />
+              <DataItem label="Cultivo" value={item.cropType} />
+              <DataItem label="Rendimiento (kg)" value={item.yieldAmount} />
+              <DataItem label="Plantado" value={format(item.plantingDate, 'PPP')} />
+              <DataItem label="Cosechado" value={format(item.harvestDate, 'PPP')} />
             </>
           ))}
         </DataCard>
 
-        <DataCard title="Health" icon={<HeartPulse className="h-5 w-5" />}>
+        <DataCard title="Sanidad" icon={<HeartPulse className="h-5 w-5" />}>
           {renderList(state.health, (item: HealthData) => (
             <>
-              <DataItem label="Date" value={format(item.observationDate, 'PPP')} />
-              <DataItem label="Issue" value={item.disease} />
-              <DataItem label="Treatment" value={item.treatment} />
-              {item.notes && <DataItem label="Notes" value={item.notes} />}
+              <DataItem label="Fecha" value={format(item.observationDate, 'PPP')} />
+              <DataItem label="Problema" value={item.disease} />
+              <DataItem label="Tratamiento" value={item.treatment} />
+              {item.notes && <DataItem label="Notas" value={item.notes} />}
             </>
           ))}
         </DataCard>
 
-        <DataCard title="Irrigation" icon={<Droplets className="h-5 w-5" />}>
+        <DataCard title="Riego" icon={<Droplets className="h-5 w-5" />}>
           {renderList(state.irrigation, (item: IrrigationData) => (
             <>
-              <DataItem label="Date" value={format(item.irrigationDate, 'PPP')} />
-              <DataItem label="Water (L)" value={item.waterAmount} />
-              <DataItem label="Duration (min)" value={item.durationMinutes} />
+              <DataItem label="Fecha" value={format(item.irrigationDate, 'PPP')} />
+              <DataItem label="Agua (L)" value={item.waterAmount} />
+              <DataItem label="Duración (min)" value={item.durationMinutes} />
             </>
           ))}
         </DataCard>
 
-        <DataCard title="Quality Control" icon={<BadgeCheck className="h-5 w-5" />}>
+        <DataCard title="Control de Calidad" icon={<BadgeCheck className="h-5 w-5" />}>
           {renderList(state.qualityControl, (item: QualityControlData) => (
             <>
-              <DataItem label="Date" value={format(item.sampleDate, 'PPP')} />
+              <DataItem label="Fecha" value={format(item.sampleDate, 'PPP')} />
               <DataItem label="Color" value={item.color} />
               <DataItem label="Brix" value={item.brix} />
-              <DataItem label="Firmness" value={`${item.firmness}%`} />
+              <DataItem label="Firmeza" value={`${item.firmness}%`} />
             </>
           ))}
         </DataCard>
 
-        <DataCard title="Biological Control" icon={<Bug className="h-5 w-5" />}>
+        <DataCard title="Control Biológico" icon={<Bug className="h-5 w-5" />}>
           {renderList(state.biologicalControl, (item: BiologicalControlData) => (
             <>
-              <DataItem label="Date" value={format(item.releaseDate, 'PPP')} />
-              <DataItem label="Agent" value={item.agent} />
-              <DataItem label="Quantity" value={item.quantity} />
-              <DataItem label="Target" value={item.targetPest} />
+              <DataItem label="Fecha" value={format(item.releaseDate, 'PPP')} />
+              <DataItem label="Agente" value={item.agent} />
+              <DataItem label="Cantidad" value={item.quantity} />
+              <DataItem label="Objetivo" value={item.targetPest} />
             </>
           ))}
         </DataCard>

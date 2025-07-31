@@ -36,20 +36,20 @@ export default function QualityControlPage() {
   function onSubmit(values: z.infer<typeof QualityControlSchema>) {
     dispatch({ type: "ADD_QUALITY_CONTROL", payload: values });
     toast({
-      title: "Success!",
-      description: "Quality control data has been saved.",
+      title: "¡Éxito!",
+      description: "Datos de control de calidad guardados.",
     });
     form.reset();
   }
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Quality Control" />
+      <PageHeader title="Control de Calidad" />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BadgeCheck className="h-6 w-6" />
-            New Quality Log
+            Nuevo Registro de Calidad
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -60,7 +60,7 @@ export default function QualityControlPage() {
                 name="sampleDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Sample Date</FormLabel>
+                    <FormLabel>Fecha de Muestra</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -68,7 +68,7 @@ export default function QualityControlPage() {
                             variant={"outline"}
                             className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                           >
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            {field.value ? format(field.value, "PPP") : <span>Elige una fecha</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
@@ -88,7 +88,7 @@ export default function QualityControlPage() {
                   <FormItem>
                     <FormLabel>Color</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Bright Red" {...field} />
+                      <Input placeholder="Ej: Rojo brillante" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -99,7 +99,7 @@ export default function QualityControlPage() {
                 name="brix"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Brix (Sweetness)</FormLabel>
+                    <FormLabel>Brix (Dulzura)</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
                     </FormControl>
@@ -112,7 +112,7 @@ export default function QualityControlPage() {
                 name="firmness"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Firmness (%)</FormLabel>
+                    <FormLabel>Firmeza (%)</FormLabel>
                     <FormControl>
                        <div className="flex items-center gap-4">
                         <Slider
@@ -128,7 +128,7 @@ export default function QualityControlPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" size="lg">Save Quality Data</Button>
+              <Button type="submit" size="lg">Guardar Datos de Calidad</Button>
             </form>
           </Form>
         </CardContent>
