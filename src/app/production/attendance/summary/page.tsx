@@ -212,7 +212,7 @@ function AsistentesComparisonTable({ allRecords, allLotes }: { allRecords: Atten
     );
 }
 
-function AttendanceSummaryContent() {
+function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
   const [lotesMaestro, setLotesMaestro] = useState<LoteData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -480,5 +480,3 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
-
-    
