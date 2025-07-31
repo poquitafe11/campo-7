@@ -91,7 +91,7 @@ function AsistentesComparisonTable({ allRecords, allLotes }: { allRecords: Atten
         allAssistants.forEach(assistantName => {
             const row: { [dateLabel: string]: number } = {};
             comparisonDays.forEach(day => {
-                const dateStr = format(day.date, 'yyyy-MM-dd');
+                const dateStr = format(day.date, 'yyyy-MM-dd', { locale: es });
                 const totalPersonnel = filteredRecords
                     .filter(r => r.date === dateStr && r.assistants.some(a => a.assistantName === assistantName))
                     .reduce((sum, record) => {
@@ -271,7 +271,7 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
 
-    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd', { locale: es });
     const recordsForDay = allRecords.filter(r => r.date === formattedDate);
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))]
@@ -360,7 +360,7 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
                        </th>
                    </tr>
                    <tr>
-                   <th className="border border-black bg-[#d9e2f3] p-1" colSpan={2}>Fecha: {format(selectedDate, 'dd/MM/yyyy')}</th>
+                   <th className="border border-black bg-[#d9e2f3] p-1" colSpan={2}>Fecha: {format(selectedDate, 'dd/MM/yyyy', { locale: es })}</th>
                        <th className="border border-black bg-[#fff2cc] p-1">DDC</th>
                        {pivotData.loteHeaders.map(h => (
                            <th key={`ddc-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.ddc}</th>
@@ -480,3 +480,5 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
+
+    
