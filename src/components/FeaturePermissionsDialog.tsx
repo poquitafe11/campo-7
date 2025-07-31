@@ -70,7 +70,8 @@ export default function FeaturePermissionsDialog({ isOpen, onOpenChange, feature
   }, [isOpen, fetchUsers]);
 
   const handlePermissionChange = async (email: string, hasAccess: boolean) => {
-    const result = await updateUserPermissions(email, feature.href, hasAccess);
+    const permissionsToUpdate = { [feature.href]: hasAccess };
+    const result = await updateUserPermissions(email, permissionsToUpdate);
     if (!result.success) {
       toast({ variant: "destructive", title: "Error", description: result.message });
       // Revert UI change on failure

@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { collection, doc, setDoc, getDocs, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDocs, deleteDoc, updateDoc, getDoc } from "firebase/firestore";
 import { User, UserSchema, UserRole } from "@/lib/types";
 import { revalidatePath } from 'next/cache';
 import { getFirebaseAdmin } from "@/lib/firebase-admin";
@@ -81,16 +81,26 @@ export async function updateUserStatus(email: string, active: boolean) {
     }
 }
 
-export async function updateUserPermissions(email: string, feature: string, hasAccess: boolean) {
+export async function updateUserPermissions(email: string, permissions: Record<string, boolean>) {
     try {
         const userRef = doc(db, 'usuarios', email);
-        const permissionsField = `permissions.${feature}`;
         
+        // Firestore's updateDoc can't handle dot notation for creating nested objects if the parent doesn't exist.
+        // It's safer to get the user, update the permissions object, and set it.
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) {
+            return { success: false, message: "Usuario no encontrado." };
+        }
+        
+        const userData = userDoc.data();
+        const updatedPermissions = { ...userData.permissions, ...permissions };
+
         await updateDoc(userRef, {
-            [permissionsField]: hasAccess
+            permissions: updatedPermissions
         });
         
-        return { success: true, message: "Permiso actualizado." };
+        revalidatePath('/dashboard');
+        return { success: true, message: "Permisos actualizados." };
     } catch (error) {
         console.error("Error updating user permissions:", error);
         return { success: false, message: "No se pudieron actualizar los permisos." };
