@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   ChevronRight,
   Shield,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,20 +32,24 @@ import {
 } from '@/components/ui/sheet';
 import ConnectionStatus from './ConnectionStatus';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const mainNavItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
-  { href: '/maestros', icon: Layers, label: 'Maestros' },
+  { 
+    id: 'maestros', 
+    icon: Layers, 
+    label: 'Maestros',
+    subItems: [
+      { href: '/maestro-lotes', icon: Box, label: 'Lotes' },
+      { href: '/maestro-labores', icon: Layers, label: 'Labores' },
+      { href: '/maestro-trabajadores', icon: Users, label: 'Trabajadores' },
+      { href: '/asistentes', icon: Users, label: 'Asistentes' },
+      { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
+      { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
+    ]
+  },
   { href: '/users', icon: Shield, label: 'Usuarios' },
-];
-
-const allMaestrosItems = [
-  { href: '/maestro-lotes', icon: Box, label: 'Lotes' },
-  { href: '/maestro-labores', icon: Layers, label: 'Labores' },
-  { href: '/maestro-trabajadores', icon: Users, label: 'Trabajadores' },
-  { href: '/asistentes', icon: Users, label: 'Asistentes' },
-  { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
-  { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
 ];
 
 const pageTitles: { [key: string]: string } = {
@@ -83,7 +88,7 @@ const pageTitles: { [key: string]: string } = {
 
 const NavItem = ({ href, icon: Icon, label, closeSheet }: { href: string; icon: React.ElementType; label: string; closeSheet: () => void; }) => {
     const pathname = usePathname();
-    const isActive = pathname === href || (href === '/maestros' && allMaestrosItems.some(item => pathname.startsWith(item.href)));
+    const isActive = pathname === href;
 
     return (
       <SheetClose asChild>
@@ -107,6 +112,54 @@ const NavItem = ({ href, icon: Icon, label, closeSheet }: { href: string; icon: 
     );
   };
 
+const CollapsibleNavItem = ({ item, closeSheet }: { item: typeof mainNavItems[1], closeSheet: () => void }) => {
+  const pathname = usePathname();
+  const isParentActive = item.subItems.some(sub => pathname.startsWith(sub.href)) || pathname.startsWith('/maestros');
+  const Icon = item.icon;
+
+  return (
+    <Accordion type="single" collapsible defaultValue={isParentActive ? item.id : undefined} className="w-full">
+      <AccordionItem value={item.id} className="border-b-0">
+        <AccordionTrigger className={cn(
+            'flex items-center justify-between rounded-lg px-4 py-3 text-base font-medium transition-colors hover:no-underline',
+             isParentActive 
+                ? 'bg-sidebar-accent text-sidebar-foreground' 
+                : 'text-sidebar-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+        )}>
+           <div className="flex items-center gap-4">
+              <Icon className="h-5 w-5" />
+              <span>{item.label}</span>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="pt-1 pl-4">
+          <div className="flex flex-col space-y-1">
+            {item.subItems.map(subItem => {
+                 const isSubItemActive = pathname === subItem.href;
+                 return (
+                    <SheetClose asChild key={subItem.href}>
+                        <Link
+                        href={subItem.href}
+                        onClick={closeSheet}
+                        className={cn(
+                            'flex items-center gap-3 rounded-md p-3 text-sm font-medium transition-colors',
+                            isSubItemActive
+                            ? 'bg-sidebar-accent/50 text-sidebar-foreground'
+                            : 'text-sidebar-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                        )}
+                        >
+                          <subItem.icon className="h-4 w-4" />
+                          {subItem.label}
+                        </Link>
+                    </SheetClose>
+                 )
+            })}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  )
+}
+
 const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
     const { profile, logout } = useAuth();
     
@@ -129,7 +182,9 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
          </SheetHeader>
 
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          {mainNavItems.map(item => (
+          {mainNavItems.map(item => 'subItems' in item ? (
+              <CollapsibleNavItem item={item} key={item.id} closeSheet={closeSheet} />
+          ) : (
             <NavItem {...item} key={item.href} closeSheet={closeSheet} />
           ))}
         </nav>
