@@ -11,8 +11,10 @@ import {
   Lightbulb,
   PieChart,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useMemo } from "react";
 
-const mainFeatures = [
+const allFeatures = [
   {
     title: "Producción",
     href: "/production",
@@ -51,11 +53,23 @@ const mainFeatures = [
 ];
 
 export default function DashboardPage() {
+    const { profile } = useAuth();
+    
+    const visibleFeatures = useMemo(() => {
+        if (profile?.rol === 'Admin') {
+            return allFeatures;
+        }
+        if (!profile?.permissions) {
+            return [];
+        }
+        return allFeatures.filter(feature => profile.permissions[feature.href]);
+    }, [profile]);
+
     return (
         <div className="flex flex-col h-full">
             <main className="flex-grow">
                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {mainFeatures.map((link) => (
+                    {visibleFeatures.map((link) => (
                         <Link href={link.href} key={link.title} className="block group">
                             <Card className="h-32 sm:h-36 transition-all duration-200 ease-in-out hover:shadow-lg hover:-translate-y-1 hover:border-primary/30">
                                 <CardContent className="flex flex-col items-center justify-center h-full gap-2 p-4">

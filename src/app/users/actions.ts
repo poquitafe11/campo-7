@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { collection, doc, setDoc, getDocs, deleteDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDocs, deleteDoc, updateDoc } from "firebase/firestore";
 import { User, UserSchema, UserRole } from "@/lib/types";
 import { revalidatePath } from 'next/cache';
 import { getFirebaseAdmin } from "@/lib/firebase-admin";
@@ -78,6 +78,18 @@ export async function updateUserStatus(email: string, active: boolean) {
     } catch (error) {
         console.error("Error updating user status:", error);
         return { success: false, message: "No se pudo actualizar el estado." };
+    }
+}
+
+export async function updateUserPermissions(email: string, permissions: Record<string, boolean>) {
+    try {
+        const docRef = doc(db, "usuarios", email);
+        await updateDoc(docRef, { permissions });
+        revalidatePath("/users");
+        return { success: true, message: "Permisos actualizados correctamente." };
+    } catch (error) {
+        console.error("Error updating user permissions:", error);
+        return { success: false, message: "No se pudieron actualizar los permisos." };
     }
 }
 

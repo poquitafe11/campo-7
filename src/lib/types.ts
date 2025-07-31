@@ -141,6 +141,7 @@ export const UserSchema = z.object({
   rol: UserRole,
   active: z.boolean().default(true),
   fotoURL: z.string().url().optional(),
+  permissions: z.record(z.boolean()).optional(),
 });
 
 export const NewUserSchema = UserSchema.extend({

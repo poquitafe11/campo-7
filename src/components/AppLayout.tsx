@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
@@ -20,6 +20,13 @@ import {
   RefreshCcw,
   Calendar as CalendarIcon,
   Shield,
+  Tractor,
+  ShieldCheck,
+  Droplets,
+  ClipboardCheck,
+  Bug,
+  Lightbulb,
+  PieChart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,16 +45,31 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 
-const navItems = [
+const mainNavItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Áreas' },
+  { href: '/maestros', icon: Layers, label: 'Maestros' },
+  { href: '/users', icon: Shield, label: 'Usuarios' },
+];
+
+const allMaestrosItems = [
   { href: '/maestro-lotes', icon: Box, label: 'Lotes' },
   { href: '/maestro-labores', icon: Layers, label: 'Labores' },
   { href: '/maestro-trabajadores', icon: Users, label: 'Trabajadores' },
   { href: '/asistentes', icon: Users, label: 'Asistentes' },
   { href: '/min-max', icon: Thermometer, label: 'Mínimos y Máximos' },
   { href: '/presupuesto', icon: ScrollText, label: 'Presupuesto' },
-  { href: '/users', icon: Shield, label: 'Usuarios' },
 ];
+
+const allFeatures = [
+    { title: "Producción", href: "/production", icon: Tractor },
+    { title: "Sanidad", href: "/health", icon: ShieldCheck },
+    { title: "Riego", href: "/irrigation", icon: Droplets },
+    { title: "C. Calidad", href: "/quality-control", icon: ClipboardCheck },
+    { title: "C. Biologico", href: "/biological-control", icon: Bug },
+    { title: "Consultas", href: "/queries", icon: Lightbulb },
+    { title: "Resumen", href: "/summary", icon: PieChart },
+];
+
 
 const pageTitles: { [key: string]: string } = {
     '/dashboard': 'Áreas de Gestión',
@@ -78,7 +100,7 @@ const pageTitles: { [key: string]: string } = {
 
 const NavItem = ({ href, icon: Icon, label, closeSheet }: { href: string; icon: React.ElementType; label: string; closeSheet: () => void; }) => {
     const pathname = usePathname();
-    const isActive = pathname === href;
+    const isActive = pathname === href || (href === '/maestros' && allMaestrosItems.some(item => pathname.startsWith(item.href)));
 
     return (
       <SheetClose asChild>
@@ -104,6 +126,13 @@ const NavItem = ({ href, icon: Icon, label, closeSheet }: { href: string; icon: 
 
 const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
     const { profile, logout } = useAuth();
+    
+    const visibleFeatures = useMemo(() => {
+        if (profile?.rol === 'Admin') return allFeatures;
+        if (!profile?.permissions) return [];
+        return allFeatures.filter(feature => profile.permissions[feature.href]);
+    }, [profile]);
+
     return (
       <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
          <SheetHeader className="p-4 border-b border-sidebar-muted-foreground/20 text-left">
@@ -123,8 +152,12 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
          </SheetHeader>
 
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          {navItems.map(item => (
+          {mainNavItems.map(item => (
             <NavItem {...item} key={item.href} closeSheet={closeSheet} />
+          ))}
+          <p className="px-4 pt-4 pb-2 text-xs font-semibold uppercase text-sidebar-muted-foreground">Áreas</p>
+          {visibleFeatures.map(item => (
+              <NavItem {...item} icon={item.icon} label={item.title} key={item.href} closeSheet={closeSheet} />
           ))}
         </nav>
 

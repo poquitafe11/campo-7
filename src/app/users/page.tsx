@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Pencil, Trash2, Loader2, UserX } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Loader2, UserX, KeySquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -34,6 +34,7 @@ import { type User, type UserRole } from "@/lib/types";
 import { getUsers, updateUserStatus, deleteUser } from "./actions";
 import UserFormDialog from "@/components/UserFormDialog";
 import { useAuth } from '@/hooks/useAuth';
+import PermissionsDialog from '@/components/PermissionsDialog';
 
 
 export default function UsersPage() {
@@ -43,6 +44,7 @@ export default function UsersPage() {
   const [data, setData] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setFormOpen] = useState(false);
+  const [isPermissionsOpen, setPermissionsOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
   const currentUserRole = profile?.rol ?? null;
@@ -73,6 +75,11 @@ export default function UsersPage() {
   const handleEdit = (user: User) => {
     setEditingUser(user);
     setFormOpen(true);
+  };
+  
+  const handlePermissions = (user: User) => {
+    setEditingUser(user);
+    setPermissionsOpen(true);
   };
 
   const handleDelete = async (email: string) => {
@@ -111,12 +118,15 @@ export default function UsersPage() {
         id: "actions",
         header: "Acciones",
         cell: ({ row }) => (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Switch
               checked={row.original.active}
               onCheckedChange={(checked) => handleStatusChange(row.original.email, checked)}
               aria-label="Activar/Desactivar usuario"
             />
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handlePermissions(row.original)}>
+              <KeySquare className="h-4 w-4" />
+            </Button>
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEdit(row.original)}>
               <Pencil className="h-4 w-4" />
             </Button>
@@ -225,6 +235,19 @@ export default function UsersPage() {
         }}
         currentUserRole={currentUserRole}
       />
+      
+      {editingUser && (
+        <PermissionsDialog
+          isOpen={isPermissionsOpen}
+          onOpenChange={setPermissionsOpen}
+          user={editingUser}
+          onSuccess={() => {
+            setPermissionsOpen(false);
+            setEditingUser(null);
+            fetchUsers();
+          }}
+        />
+      )}
     </>
   );
 }

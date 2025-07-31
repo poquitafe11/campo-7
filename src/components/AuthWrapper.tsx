@@ -9,15 +9,28 @@ import { Loader2 } from 'lucide-react';
 const protectedRoutes = [
     '/dashboard',
     '/users',
+    '/maestros',
     '/maestro-lotes',
     '/maestro-labores',
+    '/maestro-trabajadores',
     '/asistentes',
+    '/min-max',
+    '/presupuesto',
     '/production',
-    '/min-max'
+    '/health',
+    '/irrigation',
+    '/quality-control',
+    '/biological-control',
+    '/queries',
+    '/summary',
+];
+
+const adminRoutes = [
+    '/users'
 ];
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -28,12 +41,30 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     
     if (!user && isProtectedRoute) {
       router.replace('/login');
+      return;
     }
     
     if (user && pathname === '/login') {
       router.replace('/dashboard');
+      return;
     }
-  }, [user, loading, pathname, router]);
+    
+    // Permission check for logged in users
+    if (user && profile && isProtectedRoute && profile.rol !== 'Admin') {
+        const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+        if (isAdminRoute) {
+             router.replace('/dashboard');
+             return;
+        }
+
+        const requiredPermission = protectedRoutes.find(route => pathname.startsWith(route) && route !== '/dashboard');
+        if (requiredPermission && !profile.permissions?.[requiredPermission]) {
+            router.replace('/dashboard');
+            return;
+        }
+    }
+
+  }, [user, profile, loading, pathname, router]);
 
 
   if (loading) {
