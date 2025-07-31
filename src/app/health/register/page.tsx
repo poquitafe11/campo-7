@@ -8,6 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { isValid, parse } from 'date-fns';
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -59,6 +61,31 @@ function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string>
   });
 }
 
+const parseCustomDate = (dateString: string): Date | null => {
+    if (!dateString || typeof dateString !== 'string') return null;
+
+    const months: { [key: string]: string } = {
+        'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 'may': '05', 'jun': '06',
+        'jul': '07', 'ago': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+    };
+    
+    const parts = dateString.toLowerCase().split(/[\/-]/);
+    if (parts.length !== 3) return null;
+
+    const day = parts[0];
+    const monthAbbr = parts[1].substring(0, 3);
+    const year = parts[2];
+    
+    const month = months[monthAbbr];
+    if (!month) return null;
+
+    const formattedDateString = `${year}-${month}-${day}T00:00:00`;
+    const date = new Date(formattedDateString);
+
+    return isValid(date) ? date : null;
+};
+
+
 export default function RegisterHealthPage() {
   const { toast } = useToast();
 
@@ -108,6 +135,19 @@ export default function RegisterHealthPage() {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "registros-sanidad"), (snapshot) => {
       const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      records.sort((a, b) => {
+          const dateA = parseCustomDate(a['Fecha Plan de Aplicación']);
+          const dateB = parseCustomDate(b['Fecha Plan de Aplicación']);
+
+          if (dateA && dateB) {
+              return dateB.getTime() - dateA.getTime();
+          }
+          if (dateA) return -1;
+          if (dateB) return 1;
+          return 0;
+      });
+
       setSavedRecords(records);
     });
     return () => unsubscribe();
@@ -308,31 +348,32 @@ export default function RegisterHealthPage() {
     });
   };
 
-  const savedRecordsHeaders = useMemo(() => {
-    const PREFERRED_ORDER = ['Campaña', 'Etapa', 'Variedad', 'Turno', 'Fecha Plan de Aplicación', 'Lote', 'Cuartel', 'Tipo de App', 'Producto', 'Objetivo', 'Ingrediente Activo', 'Categoria', 'P.R. Horas', 'Banda'];
-    const headers = new Set<string>();
-    savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
-    const headersArray = Array.from(headers);
-    
     const normalize = (s: string) => {
       if (typeof s !== 'string') return '';
       return s.toLowerCase().replace(/[^a-z0-9]/g, '');
     };
 
-    const normalizedOrder = PREFERRED_ORDER.map(normalize);
+    const savedRecordsHeaders = useMemo(() => {
+        const PREFERRED_ORDER = ['Campaña', 'Etapa', 'Variedad', 'Turno', 'Fecha Plan de Aplicación', 'Lote', 'Cuartel', 'Tipo de App', 'Producto', 'Objetivo', 'Ingrediente Activo', 'Categoria', 'P.R. Horas', 'Banda'];
+        const headers = new Set<string>();
+        savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
+        
+        const headersArray = Array.from(headers);
+        const normalizedOrder = PREFERRED_ORDER.map(normalize);
 
-    headersArray.sort((a, b) => {
-        const normA = normalize(a);
-        const normB = normalize(b);
-        const indexA = normalizedOrder.findIndex(orderKey => orderKey.startsWith(normA) || normA.startsWith(orderKey));
-        const indexB = normalizedOrder.findIndex(orderKey => orderKey.startsWith(normB) || normB.startsWith(orderKey));
-
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
-    });
-    return headersArray;
+        headersArray.sort((a, b) => {
+            const normA = normalize(a);
+            const normB = normalize(b);
+            const indexA = normalizedOrder.findIndex(orderKey => normA.startsWith(orderKey.substring(0, Math.max(5, orderKey.length-2))) || orderKey.startsWith(normA.substring(0, Math.max(5, normA.length-2))) );
+            const indexB = normalizedOrder.findIndex(orderKey => normB.startsWith(orderKey.substring(0, Math.max(5, orderKey.length-2))) || orderKey.startsWith(normB.substring(0, Math.max(5, normB.length-2))) );
+            
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.localeCompare(b);
+        });
+        
+        return headersArray;
   }, [savedRecords]);
 
 
