@@ -91,7 +91,7 @@ function AsistentesComparisonTable({ allRecords, allLotes }: { allRecords: Atten
         allAssistants.forEach(assistantName => {
             const row: { [dateLabel: string]: number } = {};
             comparisonDays.forEach(day => {
-                const dateStr = format(day.date, 'yyyy-MM-dd', { locale: es });
+                const dateStr = format(day.date, 'yyyy-MM-dd');
                 const totalPersonnel = filteredRecords
                     .filter(r => r.date === dateStr && r.assistants.some(a => a.assistantName === assistantName))
                     .reduce((sum, record) => {
@@ -271,7 +271,7 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
 
-    const formattedDate = format(selectedDate, 'yyyy-MM-dd', { locale: es });
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const recordsForDay = allRecords.filter(r => r.date === formattedDate);
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))]
@@ -349,8 +349,7 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardContent className="p-2">
-        <div className="min-w-full overflow-x-auto">
+        <CardContent className="p-2 min-w-full overflow-x-auto">
         {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
            <table className="w-full border-collapse text-xs">
                <thead className="text-center font-bold text-black">
@@ -454,7 +453,6 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
             </p>
           </div>
          )}
-        </div>
         </CardContent>
       </Card>
       {isClientSide && <AsistentesComparisonTable allRecords={allRecords} allLotes={lotesMaestro} />}
@@ -462,7 +460,6 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
   );
 }
 
-// Add a new state to ensure the new table only renders on the client
 function AttendanceSummaryWithClientCheck() {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => {
@@ -480,5 +477,3 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
-
-    
