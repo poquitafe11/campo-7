@@ -21,6 +21,10 @@ const nextConfig = {
         hostname: 'placehold.co',
         port: '',
       },
+       {
+        protocol: 'https',
+        hostname: 'unpkg.com',
+      }
     ],
   },
 };
