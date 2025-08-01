@@ -67,6 +67,31 @@ export default function MapsPage() {
         };
     });
   }, [lotes]);
+  
+  const map = useMemo(() => (
+    <MapContainer
+        center={[-14.07, -75.72]}
+        zoom={14}
+        style={{ height: '100%', width: '100%' }}
+        scrollWheelZoom={true}
+    >
+        <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {lotePolygons.map(lote => (
+            <Polygon key={lote.id} positions={lote.position as L.LatLngExpression[]} pathOptions={{ color: lote.color, fillColor: lote.color, fillOpacity: 0.5 }}>
+                <Tooltip sticky>
+                    <strong>Lote:</strong> {lote.lote}<br />
+                    <strong>Variedad:</strong> {lote.variedad}<br />
+                    <strong>Ha:</strong> {lote.ha.toFixed(2)}
+                </Tooltip>
+            </Polygon>
+        ))}
+    </MapContainer>
+  ), [lotePolygons]);
+
 
   if (loading) {
     return (
@@ -81,27 +106,7 @@ export default function MapsPage() {
     <div className="flex flex-col h-full">
         <PageHeader title="Mapa del Campo" />
         <div className="flex-grow h-[calc(100vh-12rem)] rounded-lg border overflow-hidden">
-            <MapContainer
-                center={[-14.07, -75.72]}
-                zoom={14}
-                style={{ height: '100%', width: '100%' }}
-                scrollWheelZoom={true}
-            >
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-
-                {lotePolygons.map(lote => (
-                    <Polygon key={lote.id} positions={lote.position} pathOptions={{ color: lote.color, fillColor: lote.color, fillOpacity: 0.5 }}>
-                        <Tooltip sticky>
-                            <strong>Lote:</strong> {lote.lote}<br />
-                            <strong>Variedad:</strong> {lote.variedad}<br />
-                            <strong>Ha:</strong> {lote.ha.toFixed(2)}
-                        </Tooltip>
-                    </Polygon>
-                ))}
-            </MapContainer>
+            {map}
         </div>
     </div>
   );
