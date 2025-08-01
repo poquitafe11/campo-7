@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -87,6 +88,10 @@ const pageTitles: { [key: string]: string } = {
     '/irrigation/register': 'Registro de Riego',
     '/irrigation/summary': 'Resumen de Riego',
     '/quality-control': 'Control de Calidad',
+    '/quality-control/phenology': 'Fenología',
+    '/quality-control/phenology/create': 'Crear Registro Fenológico',
+    '/quality-control/phenology/database': 'Base de Datos Fenológica',
+    '/quality-control/phenology/summary': 'Resumen Fenológico',
     '/biological-control': 'Control Biológico',
     '/queries': 'Asistente de Consultas IA',
     '/summary': 'Resumen de Datos',

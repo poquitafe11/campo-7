@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +20,7 @@ const protectedRoutes = [
     '/health',
     '/irrigation',
     '/quality-control',
+    '/quality-control/phenology',
     '/biological-control',
     '/queries',
     '/summary',

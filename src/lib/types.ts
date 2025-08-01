@@ -191,3 +191,30 @@ export const WorkerMasterSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type WorkerMasterItem = z.infer<typeof WorkerMasterSchema>;
+
+
+// Fenologia
+export const chargerBudsSchema = z.object({
+  totalChargers: z.coerce.number().min(0, "Debe ser positivo."),
+  weakChargers: z.coerce.number().min(0, "Debe ser positivo."),
+  vigorousChargers: z.coerce.number().min(0, "Debe ser positivo."),
+  totalBuds: z.coerce.number().min(0, "Debe ser positivo."),
+  budsOnWeak: z.coerce.number().min(0, "Debe ser positivo."),
+  budsOnVigorous: z.coerce.number().min(0, "Debe ser positivo."),
+}).refine(data => data.totalChargers >= (data.weakChargers + data.vigorousChargers), {
+  message: "La suma de cargadores débiles y vigorosos no puede superar el total.",
+  path: ["totalChargers"],
+});
+
+export const PhenologySchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  date: z.date({ required_error: 'La fecha es obligatoria.' }),
+  lote: z.string().min(1, 'El lote es requerido.'),
+  cuartel: z.string().min(1, 'El cuartel es requerido.'),
+  evaluationType: z.string().min(1, 'Debe seleccionar un tipo de evaluación.'),
+  pass: z.coerce.number().int().min(1, 'La pasada debe ser al menos 1.'),
+  chargerBuds: chargerBudsSchema.optional(),
+  createdBy: z.string().email(),
+  createdAt: z.date(),
+});
+export type PhenologyData = z.infer<typeof PhenologySchema>;
