@@ -71,6 +71,14 @@ export default function PhenologyPage() {
       cuartel: '',
       evaluationType: '',
       pass: 1,
+      chargerBuds: {
+        totalChargers: 0,
+        weakChargers: 0,
+        vigorousChargers: 0,
+        totalBuds: 0,
+        budsOnWeak: 0,
+        budsOnVigorous: 0,
+      }
     },
   });
 
@@ -145,7 +153,7 @@ export default function PhenologyPage() {
       form.reset({
         ...form.getValues(),
         pass: form.getValues('pass') + 1,
-        chargerBuds: undefined,
+        chargerBuds: { totalChargers: 0, weakChargers: 0, vigorousChargers: 0, totalBuds: 0, budsOnWeak: 0, budsOnVigorous: 0 },
       });
 
     } catch (error) {
