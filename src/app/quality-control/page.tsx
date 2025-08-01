@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BadgeCheck, Ruler } from "lucide-react";
+import { BadgeCheck, Ruler, Leaf } from "lucide-react";
 
 const features = [
   {
@@ -18,6 +18,12 @@ const features = [
     description: "Mide el calibre de bayas utilizando la cámara.",
     href: "/quality-control/evaluations",
   },
+  {
+    icon: <Leaf className="h-8 w-8 text-primary" />,
+    title: "Fenología",
+    description: "Registra y monitorea las etapas fenológicas del cultivo.",
+    href: "/quality-control/phenology",
+  }
 ];
 
 export default function QualityControlPage() {
