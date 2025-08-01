@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { AsistentesComparisonTable } from '@/components/AsistentesComparisonTable';
 import { cn } from '@/lib/utils';
-import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 interface LoteHeaderInfo {
@@ -60,8 +59,6 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
     return new Date();
   }, [selectedDateParam]);
 
-  const { setActions } = useHeaderActions();
-
   const loadData = useCallback(async () => {
     setIsLoading(true);
     if (!db) {
@@ -101,39 +98,11 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
     loadData();
   }, [loadData]); 
   
-  useEffect(() => {
-    const handleDateChange = (date: Date | undefined) => {
-        if (date) {
-            router.push(`?date=${format(date, 'yyyy-MM-dd')}`);
-        }
-    };
-    
-    setActions(
-        <div className="flex items-center gap-1">
-             <Button variant="ghost" size="icon" onClick={() => loadData()} className="h-9 w-9">
-                <RefreshCcw className="h-5 w-5" />
-            </Button>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="ghost" className={cn("w-[240px] justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Elige una fecha</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={handleDateChange}
-                        initialFocus
-                        locale={es}
-                    />
-                </PopoverContent>
-            </Popover>
-        </div>
-    );
-     return () => setActions(null);
-  }, [setActions, selectedDate, loadData, router]);
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+        router.push(`?date=${format(date, 'yyyy-MM-dd')}`);
+    }
+  };
 
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
@@ -215,115 +184,130 @@ function AttendanceSummaryContent({ isClientSide }: { isClientSide: boolean }) {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardContent className="p-0">
-          <div className="min-w-full overflow-x-auto">
-            {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
-              <table className="w-full border-collapse text-xs">
-                  <thead className="text-center font-bold text-black">
-                      <tr>
-                          <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-base">
-                          ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
-                          </th>
-                      </tr>
-                      <tr>
-                      <th className="border border-black bg-[#d9e2f3] p-1 whitespace-nowrap" colSpan={2}>Fecha: {format(selectedDate, 'dd/MM/yyyy', { locale: es })}</th>
-                          <th className="border border-black bg-[#fff2cc] p-1">DDC</th>
-                          {pivotData.loteHeaders.map(h => (
-                              <th key={`ddc-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle w-12">{h.ddc}</th>
-                          ))}
-                          <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={3}>TOTAL</th>
-                      </tr>
-                      <tr>
-                          <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>COD</th>
-                          <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>DESCRIPCION DE LABOR</th>
-                          <th className="border border-black bg-[#fff2cc] p-1">Lote</th>
-                            {pivotData.loteHeaders.map(h => (
-                              <th key={`lote-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle w-12">{h.lote}</th>
-                          ))}
-                      </tr>
-                        <tr>
-                          <th className="border border-black bg-[#fff2cc] p-1">Var.</th>
-                          {pivotData.loteHeaders.map(h => (
-                              <th key={`var-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle w-12">{h.variedadAbreviada}</th>
-                          ))}
-                      </tr>
-                  </thead>
-                  <tbody className="text-center bg-white">
-                      {Object.keys(pivotData.labors).length > 0 ? (
-                          Object.entries(pivotData.labors)
-                              .sort(([, valA], [, valB]) => {
-                                  const codeA = valA.code;
-                                  const codeB = valB.code;
-                                  
-                                  const isSpecialA = codeA === '902' || codeA === '903';
-                                  const isSpecialB = codeB === '902' || codeB === '903';
+      <div className="flex justify-center my-4">
+        <div className="flex items-center gap-2 p-2 border rounded-full shadow-sm bg-background">
+          <Button variant="ghost" size="icon" onClick={() => loadData()} className="h-9 w-9">
+            <RefreshCcw className="h-5 w-5" />
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className={cn("w-[240px] justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Elige una fecha</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar mode="single" selected={selectedDate} onSelect={handleDateChange} initialFocus locale={es} />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+      
+      <div className="min-w-full overflow-x-auto">
+        {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
+          <table className="w-full border-collapse text-xs">
+              <thead className="text-center font-bold text-black">
+                  <tr>
+                      <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-base">
+                      ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
+                      </th>
+                  </tr>
+                  <tr>
+                  <th className="border border-black bg-[#d9e2f3] p-1 whitespace-nowrap" colSpan={2}>Fecha: {format(selectedDate, 'dd/MM/yyyy', { locale: es })}</th>
+                      <th className="border border-black bg-[#fff2cc] p-1">DDC</th>
+                      {pivotData.loteHeaders.map(h => (
+                          <th key={`ddc-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle w-12">{h.ddc}</th>
+                      ))}
+                      <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={3}>TOTAL</th>
+                  </tr>
+                  <tr>
+                      <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>COD</th>
+                      <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>DESCRIPCION DE LABOR</th>
+                      <th className="border border-black bg-[#fff2cc] p-1">Lote</th>
+                        {pivotData.loteHeaders.map(h => (
+                          <th key={`lote-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle w-12">{h.lote}</th>
+                      ))}
+                  </tr>
+                    <tr>
+                      <th className="border border-black bg-[#fff2cc] p-1">Var.</th>
+                      {pivotData.loteHeaders.map(h => (
+                          <th key={`var-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle w-12">{h.variedadAbreviada}</th>
+                      ))}
+                  </tr>
+              </thead>
+              <tbody className="text-center bg-white">
+                  {Object.keys(pivotData.labors).length > 0 ? (
+                      Object.entries(pivotData.labors)
+                          .sort(([, valA], [, valB]) => {
+                              const codeA = valA.code;
+                              const codeB = valB.code;
+                              
+                              const isSpecialA = codeA === '902' || codeA === '903';
+                              const isSpecialB = codeB === '902' || codeB === '903';
 
-                                  if (isSpecialA && !isSpecialB) return -1;
-                                  if (!isSpecialA && isSpecialB) return 1;
-                                  
-                                  if (isSpecialA && isSpecialB) {
-                                    return (Number(codeA) || 0) - (Number(codeB) || 0);
-                                  }
+                              if (isSpecialA && !isSpecialB) return -1;
+                              if (!isSpecialA && isSpecialB) return 1;
+                              
+                              if (isSpecialA && isSpecialB) {
+                                return (Number(codeA) || 0) - (Number(codeB) || 0);
+                              }
 
-                                  return (Number(codeA) || 9999) - (Number(codeB) || 9999);
-                              })
-                              .map(([labor, data]) => (
-                              <tr key={labor}>
-                                  <td className="border border-black p-1 w-12">{data.code}</td>
-                                  <td colSpan={2} className="w-64 border border-black p-1 text-left whitespace-nowrap">{labor}</td>
-                                  {pivotData.loteHeaders.map(h => (
-                                      <td key={`${labor}-${h.lote}`} className="border border-black p-1 w-12">
-                                          {data.lotes[h.lote] > 0 ? data.lotes[h.lote] : ''}
-                                      </td>
-                                  ))}
-                                  <td className="border border-black p-1 font-bold w-14">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
-                              </tr>
-                          ))
-                      ) : (
-                          <tr>
-                              <td colSpan={4 + pivotData.loteHeaders.length} className="h-24 text-center text-muted-foreground">No hay datos de labores para este día.</td>
+                              return (Number(codeA) || 9999) - (Number(codeB) || 9999);
+                          })
+                          .map(([labor, data]) => (
+                          <tr key={labor}>
+                              <td className="border border-black p-1 w-12">{data.code}</td>
+                              <td colSpan={2} className="w-64 border border-black p-1 text-left whitespace-nowrap">{labor}</td>
+                              {pivotData.loteHeaders.map(h => (
+                                  <td key={`${labor}-${h.lote}`} className="border border-black p-1 w-12">
+                                      {data.lotes[h.lote] > 0 ? data.lotes[h.lote] : ''}
+                                  </td>
+                              ))}
+                              <td className="border border-black p-1 font-bold w-14">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
                           </tr>
-                      )}
-                  </tbody>
-                  <tfoot className="font-bold text-black text-center bg-[#fce5cd]">
+                      ))
+                  ) : (
                       <tr>
-                          <td colSpan={3} className="border border-black p-2 text-center">TOTAL</td>
-                          {pivotData.loteHeaders.map(h => (
-                              <td key={`total-${h.lote}`} className="border border-black p-2 text-center w-12">
-                                  {pivotData.columnTotals[h.lote] > 0 ? pivotData.columnTotals[h.lote] : ''}
-                              </td>
-                          ))}
-                          <td className="border border-black p-2 text-center w-14">
-                            {pivotData.grandTotalPersonnel > 0 ? pivotData.grandTotalPersonnel : ''}
-                          </td>
+                          <td colSpan={4 + pivotData.loteHeaders.length} className="h-24 text-center text-muted-foreground">No hay datos de labores para este día.</td>
                       </tr>
-                      <tr>
-                          <td colSpan={3} className="border border-black p-2 text-center">FALTOS</td>
-                          {pivotData.loteHeaders.map(h => (
-                              <td key={`faltos-${h.lote}`} className="border border-black p-2 text-center w-12">
-                                  {pivotData.absentTotalsByLote[h.lote] > 0 ? pivotData.absentTotalsByLote[h.lote] : ''}
-                              </td>
-                          ))}
-                          <td className="border border-black p-2 text-center w-14">
-                            {pivotData.grandTotalAbsent > 0 ? pivotData.grandTotalAbsent : ''}
+                  )}
+              </tbody>
+              <tfoot className="font-bold text-black text-center">
+                  <tr className="bg-[#fce5cd]">
+                      <td colSpan={3} className="border border-black p-2 text-center">TOTAL</td>
+                      {pivotData.loteHeaders.map(h => (
+                          <td key={`total-${h.lote}`} className="border border-black p-2 text-center w-12">
+                              {pivotData.columnTotals[h.lote] > 0 ? pivotData.columnTotals[h.lote] : ''}
                           </td>
-                      </tr>
-                  </tfoot>
-              </table>
-            ) : (
-              <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed text-center">
-                <h3 className="text-lg font-semibold">
-                  No se encontraron registros
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  { selectedDate ? "No hay datos de asistencia para el día seleccionado." : "Por favor, seleccione una fecha."}
-                </p>
-              </div>
-            )}
+                      ))}
+                      <td className="border border-black p-2 text-center w-14">
+                        {pivotData.grandTotalPersonnel > 0 ? pivotData.grandTotalPersonnel : ''}
+                      </td>
+                  </tr>
+                  <tr className="bg-[#fce5cd]">
+                      <td colSpan={3} className="border border-black p-2 text-center">FALTOS</td>
+                      {pivotData.loteHeaders.map(h => (
+                          <td key={`faltos-${h.lote}`} className="border border-black p-2 text-center w-12">
+                              {pivotData.absentTotalsByLote[h.lote] > 0 ? pivotData.absentTotalsByLote[h.lote] : ''}
+                          </td>
+                      ))}
+                      <td className="border border-black p-2 text-center w-14">
+                        {pivotData.grandTotalAbsent > 0 ? pivotData.grandTotalAbsent : ''}
+                      </td>
+                  </tr>
+              </tfoot>
+          </table>
+        ) : (
+          <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed text-center">
+            <h3 className="text-lg font-semibold">
+              No se encontraron registros
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              { selectedDate ? "No hay datos de asistencia para el día seleccionado." : "Por favor, seleccione una fecha."}
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
       {isClientSide && <AsistentesComparisonTable allRecords={allRecords} allLotes={lotesMaestro} />}
     </div>
   );

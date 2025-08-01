@@ -260,8 +260,8 @@ const Header = () => {
                     {title}
                 </h1>
             </div>
-
-            <div className="flex items-center gap-1">
+            
+            <div className="flex items-center gap-2">
              {actions}
              <Button variant="ghost" size="icon" asChild className="h-9 w-9">
                 <Link href="/dashboard">
@@ -283,7 +283,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-muted/40">
+    <div className="flex min-h-screen w-full bg-background">
       <div className="flex flex-col flex-1">
         <Header />
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
