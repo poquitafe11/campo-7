@@ -278,7 +278,8 @@ const Header = () => {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === '/login') {
+  // Hide the global header on the login page and the custom summary page
+  if (pathname === '/login' || pathname === '/production/attendance/summary') {
     return <>{children}</>;
   }
 

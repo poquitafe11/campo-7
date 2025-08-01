@@ -80,7 +80,7 @@ export default function ResumenAsistenciaPage() {
         
         const lotes = lotesSnapshot.docs.map(doc => {
             const data = doc.data();
-            const fechaCianamida = data.fechaCianamida?.toDate ? data.fechaCianamida.toDate().toISOString() : data.fechaCianamida;
+            const fechaCianamida = data.fechaCianamida?.toDate ? data.fechaCianamida.toDate() : (data.fechaCianamida ? parseISO(data.fechaCianamida) : new Date());
             return { id: doc.id, ...data, fechaCianamida } as LoteData;
         });
         setLotesMaestro(lotes);
@@ -147,7 +147,7 @@ export default function ResumenAsistenciaPage() {
       const fechaCianamidaStr = loteDataFromMaestro?.fechaCianamida;
       const campana = loteDataFromMaestro?.campana || '';
 
-      const fechaCianamida = fechaCianamidaStr ? parseISO(fechaCianamidaStr as string) : null;
+      const fechaCianamida = fechaCianamidaStr instanceof Date && isValid(fechaCianamidaStr) ? fechaCianamidaStr : (typeof fechaCianamidaStr === 'string' ? parseISO(fechaCianamidaStr) : null);
       let ddc: number | string = '';
       if (fechaCianamida && isValid(fechaCianamida)) {
           ddc = differenceInDays(selectedDate, fechaCianamida);
@@ -204,76 +204,63 @@ export default function ResumenAsistenciaPage() {
   if (isLoading && !isClient) {
       return (
           <div className="flex min-h-screen w-full flex-col bg-background">
-               <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-                <div className="flex items-center gap-2 sm:gap-4">
-                    <Button variant="ghost" size="icon" asChild>
-                        <Link href="/production/attendance">
-                        <ArrowLeft />
-                        <span className="sr-only">Volver a Gestión de Asistencia</span>
-                        </Link>
-                    </Button>
-                    <h1 className="flex-1 text-lg font-semibold font-headline sm:text-xl">Resumen de Asistencia</h1>
-                </div>
-               </header>
                <main className="flex-1 p-4 sm:p-6">
                     <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                </main>
           </div>
-      )
+      );
   }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/production/attendance">
-              <ArrowLeft />
-              <span className="sr-only">Volver a Gestión de Asistencia</span>
-            </Link>
-          </Button>
-           <div>
-              <h1 className="text-lg font-semibold font-headline sm:text-xl">Resumen de Asistencia</h1>
-           </div>
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="flex items-center justify-between rounded-lg border bg-card text-card-foreground shadow-sm p-3">
+            <div className="flex items-center gap-2">
+                 <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                    <Link href="/production/attendance">
+                    <ArrowLeft className="h-5 w-5" />
+                    <span className="sr-only">Volver a Gestión de Asistencia</span>
+                    </Link>
+                </Button>
+                <h1 className="font-semibold text-lg">Resumen de Asistencia</h1>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading} className="h-9 w-9">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                    <span className="sr-only">Actualizar</span>
+                </Button>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            id="date"
+                            variant={'outline'}
+                            className={cn(
+                            'w-[180px] sm:w-[240px] h-9 justify-start text-left font-normal',
+                            !selectedDate && 'text-muted-foreground'
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {isClient && selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        {isClient && (
+                            <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            initialFocus
+                            locale={es}
+                            />
+                        )}
+                    </PopoverContent>
+                </Popover>
+            </div>
         </div>
-        <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => loadData(true)} disabled={isLoading} className="h-9 w-9">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-              <span className="sr-only">Actualizar</span>
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                  <Button
-                      id="date"
-                      variant={'outline'}
-                      className={cn(
-                      'w-[240px] justify-start text-left font-normal',
-                      !selectedDate && 'text-muted-foreground'
-                      )}
-                  >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {isClient && selectedDate ? format(selectedDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                  </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                  {isClient && (
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      initialFocus
-                      locale={es}
-                    />
-                  )}
-              </PopoverContent>
-            </Popover>
-        </div>
-      </header>
-      <main className="flex-1 p-4 sm:p-6">
-        <Card>
-          <CardContent className="p-2">
+
+        <div className="p-2">
           {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
              <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse text-xs">
@@ -310,19 +297,14 @@ export default function ResumenAsistenciaPage() {
                         {Object.keys(pivotData.labors).length > 0 ? (
                             Object.entries(pivotData.labors)
                                 .sort(([, valA], [, valB]) => {
-                                    const codeA = valA.code;
-                                    const codeB = valB.code;
-                                    
                                     const getSortValue = (code?: string) => {
                                         if (code === '902') return 1;
                                         if (code === '903') return 2;
                                         const numCode = Number(code);
-                                        return isNaN(numCode) ? 9999 : numCode + 2; // Keep numeric order after specials
+                                        return isNaN(numCode) ? 9999 : numCode + 2;
                                     };
-
-                                    const sortA = getSortValue(codeA);
-                                    const sortB = getSortValue(codeB);
-
+                                    const sortA = getSortValue(valA.code);
+                                    const sortB = getSortValue(valB.code);
                                     return sortA - sortB;
                                 })
                                 .map(([labor, data]) => (
@@ -379,9 +361,8 @@ export default function ResumenAsistenciaPage() {
               </p>
             </div>
            )}
-          </CardContent>
-        </Card>
-      </main>
+        </div>
+      </div>
     </div>
   );
 }
