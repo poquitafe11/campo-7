@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Camera, Ruler, Save, Loader2, RefreshCw, AlertTriangle, Coins, BrainCircuit, ScanLine } from "lucide-react";
+import { Camera, Save, Loader2, RefreshCw, AlertTriangle, ScanLine } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,6 @@ export default function EvaluationsPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [sourceImg, setSourceImg] = useState<string | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
@@ -62,7 +61,7 @@ export default function EvaluationsPage() {
   };
 
   const processImage = () => {
-    if (!imgRef.current || !canvasRef.current || !window.cv) {
+    if (!imgRef.current || !window.cv) {
       toast({ title: "Error", description: "La imagen o la librería de visión no están listas.", variant: "destructive" });
       return;
     }
@@ -72,68 +71,104 @@ export default function EvaluationsPage() {
     setProgress(10);
 
     setTimeout(() => {
+        let src;
+        let gray;
+        let blurred;
+        let circles;
+        let contours;
+        let hierarchy;
         try {
-            const src = window.cv.imread(imgRef.current);
-            const gray = new window.cv.Mat();
+            src = window.cv.imread(imgRef.current);
+            gray = new window.cv.Mat();
             window.cv.cvtColor(src, gray, window.cv.COLOR_RGBA2GRAY);
+            setProgress(20);
+
+            blurred = new window.cv.Mat();
+            window.cv.GaussianBlur(gray, blurred, new window.cv.Size(7, 7), 1.5, 1.5);
             setProgress(30);
 
-            const blurred = new window.cv.Mat();
-            window.cv.GaussianBlur(gray, blurred, new window.cv.Size(9, 9), 2, 2);
-            setProgress(50);
-
-            const circles = new window.cv.Mat();
-            window.cv.HoughCircles(blurred, circles, window.cv.HOUGH_GRADIENT, 1, 40, 70, 40, 15, 60);
-
+            // --- Reference Coin Detection ---
+            circles = new window.cv.Mat();
+            window.cv.HoughCircles(blurred, circles, window.cv.HOUGH_GRADIENT, 1, 80, 80, 50, 20, 100);
+            
             let pixelsPerMm = -1;
-
+            let coinRadius = 0;
             if (circles.cols > 0) {
-                const referenceCircle = { x: 0, y: 0, radius: 0, distance: Infinity };
+                // Assume largest circle is the coin
+                let maxRadius = 0;
                 for (let i = 0; i < circles.cols; ++i) {
-                    const r = circles.data32F[i * 3 + 2];
-                    if (r > referenceCircle.radius) {
-                        referenceCircle.radius = r;
-                    }
+                   if (circles.data32F[i * 3 + 2] > maxRadius) {
+                       maxRadius = circles.data32F[i * 3 + 2];
+                   }
                 }
-                
-                if (referenceCircle.radius > 0) {
-                    pixelsPerMm = referenceCircle.radius * 2 / REFERENCE_DIAMETER_MM;
+                if (maxRadius > 0) {
+                    coinRadius = maxRadius;
+                    pixelsPerMm = coinRadius * 2 / REFERENCE_DIAMETER_MM;
                 }
             }
 
             if (pixelsPerMm === -1) {
                 throw new Error("No se pudo encontrar la moneda de referencia. Asegúrate de que sea el objeto circular más grande y esté claramente visible.");
             }
+            setProgress(50);
+            setLoadingMessage("Detectando bayas...");
+
+            // --- Berry Contour Detection ---
+            const thresh = new window.cv.Mat();
+            window.cv.threshold(blurred, thresh, 0, 255, window.cv.THRESH_BINARY_INV + window.cv.THRESH_OTSU);
             
-            setProgress(70);
-
+            contours = new window.cv.MatVector();
+            hierarchy = new window.cv.Mat();
+            window.cv.findContours(thresh, contours, hierarchy, window.cv.RETR_EXTERNAL, window.cv.CHAIN_APPROX_SIMPLE);
+            
             const newMeasurements: Measurement[] = [];
-            for (let i = 0; i < circles.cols; ++i) {
-                const r = circles.data32F[i * 3 + 2];
-                const diameter = (r * 2) / pixelsPerMm;
+            const minBerryArea = (coinRadius * coinRadius * Math.PI) * 0.1; // Min area relative to coin
+            const maxBerryArea = (coinRadius * coinRadius * Math.PI) * 0.9; // Max area relative to coin
 
-                if (diameter !== REFERENCE_DIAMETER_MM) {
-                    newMeasurements.push({
-                        id: i,
-                        diameter: parseFloat(diameter.toFixed(2)),
-                    });
+            for (let i = 0; i < contours.size(); ++i) {
+                const cnt = contours.get(i);
+                const area = window.cv.contourArea(cnt);
+                
+                if (area > minBerryArea && area < maxBerryArea) {
+                     // For cylindrical/oval berries, we measure the minor axis of the fitted ellipse.
+                    if (cnt.rows >= 5) { // minEnclosingCircle needs at least 5 points
+                        const circle = window.cv.minEnclosingCircle(cnt);
+                        const diameter = (circle.radius * 2) / pixelsPerMm;
+
+                        newMeasurements.push({
+                            id: newMeasurements.length,
+                            diameter: parseFloat(diameter.toFixed(2)),
+                        });
+                    }
                 }
+                cnt.delete();
             }
             
-            setMeasurements(newMeasurements);
-            toast({ title: "Análisis Completo", description: `Se encontraron ${newMeasurements.length} bayas.` });
-            
-            src.delete(); gray.delete(); blurred.delete(); circles.delete();
-            setProgress(100);
+            thresh.delete();
+            setProgress(90);
+
+            if (newMeasurements.length === 0) {
+              toast({ title: "No se encontraron bayas", description: "No se detectaron objetos que parezcan bayas. Intenta con otra foto.", variant: "destructive" });
+            } else {
+              setMeasurements(newMeasurements);
+              toast({ title: "Análisis Completo", description: `Se encontraron ${newMeasurements.length} bayas.` });
+            }
 
         } catch (error: any) {
             console.error("OpenCV Error: ", error);
             toast({ title: "Error de Análisis", description: error.message || "No se pudo procesar la imagen.", variant: "destructive" });
         } finally {
+            // Clean up memory
+            src?.delete();
+            gray?.delete();
+            blurred?.delete();
+            circles?.delete();
+            contours?.delete();
+            hierarchy?.delete();
             setIsProcessing(false);
             setProgress(0);
         }
-    }, 500); // Small delay to allow UI to update
+    }, 500);
   };
 
   const resetState = (keepImage = false) => {
@@ -146,20 +181,20 @@ export default function EvaluationsPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Evaluación de Calibre (Beta)" />
+      <PageHeader title="Evaluación de Calibre" />
 
       <Alert variant="destructive" className="mb-6">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>¡Requisito Importante!</AlertTitle>
         <AlertDescription>
-          Para calibrar, la foto DEBE incluir una <strong>moneda de 1 Sol</strong> como referencia. Colócala en la misma superficie que las bayas.
+          Para calibrar, la foto DEBE incluir una <strong>moneda de 1 Sol</strong> como referencia. Colócala en la misma superficie que las bayas y asegúrate de que esté bien iluminada y visible.
         </AlertDescription>
       </Alert>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>1. Cargar Imagen de Bayas</CardTitle>
+            <CardTitle>1. Cargar Imagen</CardTitle>
             <CardDescription>Usa la cámara o sube una foto que incluya las bayas y una moneda de 1 Sol.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -173,7 +208,6 @@ export default function EvaluationsPage() {
               <div className="space-y-4">
                 <div className="relative border rounded-md overflow-hidden">
                   <img ref={imgRef} alt="Referencia" src={sourceImg} className="w-full h-auto" />
-                  <canvas ref={canvasRef} className="hidden" />
                 </div>
                 <Button onClick={processImage} className="w-full" disabled={isProcessing}>
                   {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanLine className="mr-2 h-4 w-4" />}
@@ -217,7 +251,6 @@ export default function EvaluationsPage() {
                   </Table>
                 </div>
                 <Alert>
-                  <Ruler className="h-4 w-4" />
                   <AlertTitle>Promedio de {measurements.length} bayas</AlertTitle>
                   <AlertDescription>
                     {(measurements.reduce((sum, m) => sum + m.diameter, 0) / measurements.length).toFixed(2)} mm
