@@ -2,12 +2,20 @@
 "use client";
 
 import { useMemo } from 'react';
-import { MapContainer, TileLayer, Polygon, Tooltip } from 'react-leaflet';
+import { TileLayer, Polygon, Tooltip } from 'react-leaflet';
+import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+
+// Dynamically import MapContainer to ensure it's client-side only
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), {
+    ssr: false,
+    loading: () => <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+});
+
 
 // Fix for Leaflet's default icon issue with Webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
