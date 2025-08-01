@@ -1,5 +1,7 @@
 
 import type { Metadata, Viewport } from 'next';
+import Head from 'next/head';
+import Script from 'next/script';
 import './globals.css';
 import { AppDataProvider } from '@/context/AppDataContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -65,6 +67,7 @@ export default function RootLayout({
             </MasterDataProvider>
           </AuthWrapper>
         </AuthProvider>
+        <Script src="https://docs.opencv.org/4.9.0/opencv.js" strategy="lazyOnload" />
       </body>
     </html>
   );
