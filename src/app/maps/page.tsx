@@ -2,29 +2,11 @@
 "use client";
 
 import { useMemo } from 'react';
-import { TileLayer, Polygon, Tooltip } from 'react-leaflet';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
-
-// Dynamically import MapContainer to ensure it's client-side only
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), {
-    ssr: false,
-    loading: () => <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-});
-
-
-// Fix for Leaflet's default icon issue with Webpack
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-});
-
 
 // Basic color hashing for consistent polygon colors
 const getColorForLote = (loteName: string) => {
@@ -68,30 +50,11 @@ export default function MapsPage() {
     });
   }, [lotes]);
   
-  const map = useMemo(() => (
-    <MapContainer
-        center={[-14.07, -75.72]}
-        zoom={14}
-        style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={true}
-    >
-        <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-
-        {lotePolygons.map(lote => (
-            <Polygon key={lote.id} positions={lote.position as L.LatLngExpression[]} pathOptions={{ color: lote.color, fillColor: lote.color, fillOpacity: 0.5 }}>
-                <Tooltip sticky>
-                    <strong>Lote:</strong> {lote.lote}<br />
-                    <strong>Variedad:</strong> {lote.variedad}<br />
-                    <strong>Ha:</strong> {lote.ha.toFixed(2)}
-                </Tooltip>
-            </Polygon>
-        ))}
-    </MapContainer>
-  ), [lotePolygons]);
-
+  // Dynamically import the entire map display component
+  const Map = useMemo(() => dynamic(() => import('@/components/MapDisplay'), { 
+    loading: () => <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>,
+    ssr: false 
+  }), []);
 
   if (loading) {
     return (
@@ -106,7 +69,7 @@ export default function MapsPage() {
     <div className="flex flex-col h-full">
         <PageHeader title="Mapa del Campo" />
         <div className="flex-grow h-[calc(100vh-12rem)] rounded-lg border overflow-hidden">
-            {map}
+            <Map lotePolygons={lotePolygons} />
         </div>
     </div>
   );
