@@ -87,7 +87,7 @@ export const LoteDataSchema = z.object({
   haProd: z.number(),
   plantasTotal: z.number(),
   plantasProd: z.number(),
-  fechaCianamida: z.date(),
+  fechaCianamida: z.union([z.date(), z.string()]),
   campana: z.string(),
 });
 export type LoteData = z.infer<typeof LoteDataSchema>;
@@ -96,7 +96,8 @@ export type LoteData = z.infer<typeof LoteDataSchema>;
 export type AttendanceRecord = {
   id: string;
   date: string;
-  lotName: string;
+  lote: string; // Changed from lotName to lote to match usage
+  lotName: string; // Kept for compatibility, but lote should be primary
   variedad: string;
   fechaCianamida: Date;
   campana: string;
