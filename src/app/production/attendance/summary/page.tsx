@@ -309,7 +309,22 @@ export default function ResumenAsistenciaPage() {
                     <tbody className="text-center bg-white">
                         {Object.keys(pivotData.labors).length > 0 ? (
                             Object.entries(pivotData.labors)
-                                .sort(([, valA], [, valB]) => (Number(valA.code) || 9999) - (Number(valB.code) || 9999))
+                                .sort(([, valA], [, valB]) => {
+                                    const codeA = valA.code;
+                                    const codeB = valB.code;
+                                    
+                                    const getSortValue = (code?: string) => {
+                                        if (code === '902') return 1;
+                                        if (code === '903') return 2;
+                                        const numCode = Number(code);
+                                        return isNaN(numCode) ? 9999 : numCode + 2; // Keep numeric order after specials
+                                    };
+
+                                    const sortA = getSortValue(codeA);
+                                    const sortB = getSortValue(codeB);
+
+                                    return sortA - sortB;
+                                })
                                 .map(([labor, data]) => (
                                 <tr key={labor}>
                                     <td className="border border-black p-1">{data.code}</td>
