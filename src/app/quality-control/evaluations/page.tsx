@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { evaluateGrapeCaliber } from "@/ai/flows/evaluate-grape-caliber";
 
 interface Measurement {
   id: number;
@@ -95,17 +96,27 @@ export default function EvaluationsPage() {
       return;
     }
     setIsProcessing(true);
-    // Placeholder for CV logic.
-    // In a real scenario, this would call a WASM module or a more complex client-side CV library.
-    setTimeout(() => {
-      const randomMeasurements = Array.from({ length: 5 }, (_, i) => ({
-        id: i + 1,
-        diameter: Math.random() * (25 - 15) + 15, // Random diameter between 15mm and 25mm
+    try {
+      const result = await evaluateGrapeCaliber({ photoDataUri: croppedImgUrl });
+      const aiMeasurements = result.measurements.map((diameter, index) => ({
+        id: index + 1,
+        diameter,
       }));
-      setMeasurements(randomMeasurements);
+      setMeasurements(aiMeasurements);
+      toast({
+        title: "Procesamiento Completo",
+        description: `Se han medido ${aiMeasurements.length} bayas.`,
+      });
+    } catch (error) {
+      console.error("Error evaluating grape caliber:", error);
+      toast({
+        variant: "destructive",
+        title: "Error de Análisis",
+        description: "No se pudo procesar la imagen. Inténtalo de nuevo.",
+      });
+    } finally {
       setIsProcessing(false);
-      toast({ title: "Procesamiento Completo", description: "Se han medido 5 bayas (simulado)." });
-    }, 1500);
+    }
   };
 
   const handleSaveMeasurements = async () => {
