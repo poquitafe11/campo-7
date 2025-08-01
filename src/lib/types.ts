@@ -206,6 +206,16 @@ export const chargerBudsSchema = z.object({
   path: ["totalChargers"],
 });
 
+export const BudbreakSchema = z.object({
+  evaluationMethod: z.enum(['random', 'tracking']),
+  plantNumber: z.coerce.number().int().positive().optional(),
+  totalBuds: z.coerce.number().min(0, "Debe ser positivo."),
+  swollenBuds: z.coerce.number().min(0, "Debe ser positivo."),
+  cottonBuds: z.coerce.number().min(0, "Debe ser positivo."),
+  greenTipBuds: z.coerce.number().min(0, "Debe ser positivo."),
+  unfoldedLeaves: z.coerce.number().min(0, "Debe ser positivo."),
+});
+
 export const PhenologySchema = z.object({
   id: z.string().default(() => crypto.randomUUID()),
   date: z.date({ required_error: 'La fecha es obligatoria.' }),
@@ -214,6 +224,7 @@ export const PhenologySchema = z.object({
   evaluationType: z.string().min(1, 'Debe seleccionar un tipo de evaluación.'),
   pass: z.coerce.number().int().min(1, 'La pasada debe ser al menos 1.'),
   chargerBuds: chargerBudsSchema.optional(),
+  budbreak: BudbreakSchema.optional(),
   createdBy: z.string().email(),
   createdAt: z.date(),
 });

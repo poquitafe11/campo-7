@@ -19,36 +19,19 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useMasterData } from '@/context/MasterDataContext';
 import { cn } from '@/lib/utils';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { BudbreakSchema, PhenologySchema } from '@/lib/types';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Badge } from '@/components/ui/badge';
 
-const chargerBudsSchema = z.object({
-  totalChargers: z.coerce.number().min(0, "Debe ser positivo."),
-  weakChargers: z.coerce.number().min(0, "Debe ser positivo."),
-  vigorousChargers: z.coerce.number().min(0, "Debe ser positivo."),
-  totalBuds: z.coerce.number().min(0, "Debe ser positivo."),
-  budsOnWeak: z.coerce.number().min(0, "Debe ser positivo."),
-  budsOnVigorous: z.coerce.number().min(0, "Debe ser positivo."),
-}).refine(data => data.totalChargers >= (data.weakChargers + data.vigorousChargers), {
-  message: "La suma de cargadores débiles y vigorosos no puede superar el total.",
-  path: ["totalChargers"],
-});
 
-const basePhenologySchema = z.object({
-  date: z.date({ required_error: 'La fecha es obligatoria.' }),
-  lote: z.string().min(1, 'El lote es requerido.'),
-  cuartel: z.string().min(1, 'El cuartel es requerido.'),
-  evaluationType: z.string().min(1, 'Debe seleccionar un tipo de evaluación.'),
-  pass: z.coerce.number().int().min(1, 'La pasada debe ser al menos 1.'),
-  chargerBuds: chargerBudsSchema.optional(),
-});
-
-type PhenologyFormValues = z.infer<typeof basePhenologySchema>;
+type PhenologyFormValues = z.infer<typeof PhenologySchema>;
 
 const evaluationOptions = [
   { value: 'chargerBuds', label: 'Conteo de cargadores y yemas post poda' },
-  { value: 'budbreak', label: 'Brotación (Próximamente)', disabled: true },
+  { value: 'budbreak', label: 'Brotación', disabled: false },
   { value: 'shootGrowth', label: 'Crecimiento de brote (Próximamente)', disabled: true },
   { value: 'clusterCount', label: 'Conteo de racimos (Próximamente)', disabled: true },
   { value: 'clusterElongation', label: 'Elongación de racimos (Próximamente)', disabled: true },
@@ -61,9 +44,10 @@ export default function CreatePhenologyPage() {
   const { user } = useAuth();
   const { lotes, loading: masterLoading } = useMasterData();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastTotalBuds, setLastTotalBuds] = useState<number | null>(null);
 
   const form = useForm<PhenologyFormValues>({
-    resolver: zodResolver(basePhenologySchema),
+    resolver: zodResolver(PhenologySchema),
     defaultValues: {
       date: new Date(),
       lote: '',
@@ -77,6 +61,14 @@ export default function CreatePhenologyPage() {
         totalBuds: 0,
         budsOnWeak: 0,
         budsOnVigorous: 0,
+      },
+      budbreak: {
+        evaluationMethod: 'random',
+        totalBuds: 0,
+        swollenBuds: 0,
+        cottonBuds: 0,
+        greenTipBuds: 0,
+        unfoldedLeaves: 0,
       }
     },
   });
@@ -85,6 +77,7 @@ export default function CreatePhenologyPage() {
   const selectedEvaluation = useWatch({ control: form.control, name: 'evaluationType' });
   
   const chargerBudsValues = useWatch({ control: form.control, name: 'chargerBuds' });
+  const budbreakValues = useWatch({ control: form.control, name: 'budbreak' });
 
   const cuartelesOptions = useMemo(() => {
     if (!selectedLote) return [];
@@ -108,6 +101,8 @@ export default function CreatePhenologyPage() {
   }, [chargerBudsValues]);
   
   const selectedCuartelId = useWatch({ control: form.control, name: "cuartel" });
+  const plantNumber = useWatch({ control: form.control, name: "budbreak.plantNumber" });
+  const pass = useWatch({ control: form.control, name: "pass" });
 
   useEffect(() => {
     const fetchLastPass = async () => {
@@ -115,15 +110,46 @@ export default function CreatePhenologyPage() {
             const q = query(
                 collection(db, "evaluaciones-fenologia"),
                 where("cuartel", "==", selectedCuartelId),
-                where("evaluationType", "==", selectedEvaluation)
+                where("evaluationType", "==", selectedEvaluation),
+                orderBy("pass", "desc"),
+                limit(1)
             );
             const querySnapshot = await getDocs(q);
-            const maxPass = querySnapshot.docs.reduce((max, doc) => Math.max(max, doc.data().pass || 0), 0);
+            const maxPass = querySnapshot.empty ? 0 : querySnapshot.docs[0].data().pass;
             form.setValue('pass', maxPass + 1);
         }
     };
     fetchLastPass();
   }, [selectedCuartelId, selectedEvaluation, form]);
+
+  useEffect(() => {
+    const fetchLastPlantData = async () => {
+        if (selectedEvaluation === 'budbreak' && budbreakValues?.evaluationMethod === 'tracking' && plantNumber && pass > 1) {
+            const q = query(
+                collection(db, "evaluaciones-fenologia"),
+                where("cuartel", "==", selectedCuartelId),
+                where("evaluationType", "==", "budbreak"),
+                where("budbreak.evaluationMethod", "==", "tracking"),
+                where("budbreak.plantNumber", "==", plantNumber),
+                where("pass", "==", pass - 1),
+                limit(1)
+            );
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const lastData = querySnapshot.docs[0].data() as PhenologyFormValues;
+                if(lastData.budbreak?.totalBuds) {
+                    form.setValue('budbreak.totalBuds', lastData.budbreak.totalBuds);
+                    setLastTotalBuds(lastData.budbreak.totalBuds);
+                }
+            } else {
+                setLastTotalBuds(null);
+            }
+        } else {
+            setLastTotalBuds(null);
+        }
+    }
+    fetchLastPlantData();
+  }, [selectedCuartelId, selectedEvaluation, pass, plantNumber, budbreakValues?.evaluationMethod, form]);
 
 
   const onSubmit = async (data: PhenologyFormValues) => {
@@ -153,6 +179,7 @@ export default function CreatePhenologyPage() {
         ...form.getValues(),
         pass: form.getValues('pass') + 1,
         chargerBuds: { totalChargers: 0, weakChargers: 0, vigorousChargers: 0, totalBuds: 0, budsOnWeak: 0, budsOnVigorous: 0 },
+        budbreak: { evaluationMethod: 'random', totalBuds: 0, swollenBuds: 0, cottonBuds: 0, greenTipBuds: 0, unfoldedLeaves: 0, plantNumber: undefined },
       });
 
     } catch (error) {
@@ -226,6 +253,60 @@ export default function CreatePhenologyPage() {
       </div>
     </div>
   );
+  
+  const budbreakPercentage = useMemo(() => {
+    if (!budbreakValues || !budbreakValues.totalBuds || budbreakValues.totalBuds === 0) return 0;
+    const { totalBuds, greenTipBuds = 0, unfoldedLeaves = 0 } = budbreakValues;
+    return ((greenTipBuds + unfoldedLeaves) / totalBuds) * 100;
+  }, [budbreakValues]);
+
+  const renderBudbreakForm = () => (
+     <div className="space-y-4 rounded-md border p-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center">
+            <h4 className="font-semibold text-md">Evaluación de Brotación</h4>
+             <Badge variant="secondary" className="text-base px-3 py-1">
+                % Brotación: {budbreakPercentage.toFixed(2)}%
+            </Badge>
+        </div>
+      
+        <FormField control={form.control} name="budbreak.evaluationMethod" render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Método de Evaluación</FormLabel>
+              <FormControl>
+                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+                  <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="random" /></FormControl><FormLabel className="font-normal">Al Azar</FormLabel></FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="tracking" /></FormControl><FormLabel className="font-normal">Seguimiento</FormLabel></FormItem>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+        )}/>
+      
+        {budbreakValues?.evaluationMethod === 'tracking' && (
+            <FormField control={form.control} name="budbreak.plantNumber" render={({ field }) => (
+                <FormItem><FormLabel>Número de Planta</FormLabel><FormControl><Input type="number" placeholder="Ingrese el número de la planta marcada" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <FormField control={form.control} name="budbreak.totalBuds" render={({ field }) => (
+                <FormItem><FormLabel>Yemas Totales</FormLabel><FormControl><Input type="number" {...field} disabled={lastTotalBuds !== null} /></FormControl><FormMessage /></FormItem>
+            )}/>
+             <FormField control={form.control} name="budbreak.swollenBuds" render={({ field }) => (
+                <FormItem><FormLabel>Y. Hinchadas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+             <FormField control={form.control} name="budbreak.cottonBuds" render={({ field }) => (
+                <FormItem><FormLabel>Algodón</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+             <FormField control={form.control} name="budbreak.greenTipBuds" render={({ field }) => (
+                <FormItem><FormLabel>Punta Verde</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+             <FormField control={form.control} name="budbreak.unfoldedLeaves" render={({ field }) => (
+                <FormItem><FormLabel>Hojas Desplegadas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+        </div>
+     </div>
+  );
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -280,6 +361,7 @@ export default function CreatePhenologyPage() {
               </div>
 
               {selectedEvaluation === 'chargerBuds' && renderChargerBudsForm()}
+              {selectedEvaluation === 'budbreak' && renderBudbreakForm()}
               
               <div className="flex justify-end pt-4">
                  <Button type="submit" size="lg" disabled={isSubmitting || !selectedEvaluation}>
