@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +22,7 @@ const protectedRoutes = [
     '/biological-control',
     '/queries',
     '/summary',
+    '/maps',
 ];
 
 const adminRoutes = [

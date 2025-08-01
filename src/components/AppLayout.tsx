@@ -19,6 +19,7 @@ import {
   RefreshCcw,
   Calendar as CalendarIcon,
   Shield,
+  Map,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,6 +56,7 @@ const allMainNavItems = [
     ]
   },
   { href: '/users', icon: Shield, label: 'Usuarios', permission: '/users' },
+  { href: '/maps', icon: Map, label: 'Mapas', permission: '/maps' },
 ];
 
 const pageTitles: { [key: string]: string } = {
@@ -88,6 +90,7 @@ const pageTitles: { [key: string]: string } = {
     '/biological-control': 'Control Biológico',
     '/queries': 'Asistente de Consultas IA',
     '/summary': 'Resumen de Datos',
+    '/maps': 'Mapas',
   };
 
 
