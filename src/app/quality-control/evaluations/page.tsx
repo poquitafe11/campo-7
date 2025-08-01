@@ -130,10 +130,9 @@ export default function EvaluationsPage() {
                 const area = window.cv.contourArea(cnt);
                 
                 if (area > minBerryArea && area < maxBerryArea) {
-                     // For cylindrical/oval berries, we measure the minor axis of the fitted ellipse.
-                    if (cnt.rows >= 5) { // minEnclosingCircle needs at least 5 points
-                        const circle = window.cv.minEnclosingCircle(cnt);
-                        const diameter = (circle.radius * 2) / pixelsPerMm;
+                    if (cnt.rows >= 5) {
+                        const rotatedRect = window.cv.minAreaRect(cnt);
+                        const diameter = Math.min(rotatedRect.size.width, rotatedRect.size.height) / pixelsPerMm;
 
                         newMeasurements.push({
                             id: newMeasurements.length,
@@ -187,7 +186,7 @@ export default function EvaluationsPage() {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>¡Requisito Importante!</AlertTitle>
         <AlertDescription>
-          Para calibrar, la foto DEBE incluir una <strong>moneda de 1 Sol</strong> como referencia. Colócala en la misma superficie que las bayas y asegúrate de que esté bien iluminada y visible.
+         Para calibrar, la foto DEBE incluir una <strong>moneda de 1 Sol</strong>. Colócala plana sobre la misma superficie y asegúrate de que **no esté cubierta por tus dedos**.
         </AlertDescription>
       </Alert>
       
@@ -195,7 +194,7 @@ export default function EvaluationsPage() {
         <Card>
           <CardHeader>
             <CardTitle>1. Cargar Imagen</CardTitle>
-            <CardDescription>Usa la cámara o sube una foto que incluya las bayas y una moneda de 1 Sol.</CardDescription>
+            <CardDescription>Usa la cámara o sube una foto que incluya las bayas y la moneda de 1 Sol bien visible.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
