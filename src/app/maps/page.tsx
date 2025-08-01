@@ -51,7 +51,7 @@ export default function MapsPage() {
   }, [lotes]);
   
   // Dynamically import the entire map display component
-  const Map = useMemo(() => dynamic(() => import('@/components/MapDisplay'), { 
+  const MapDisplay = useMemo(() => dynamic(() => import('@/components/MapDisplay'), { 
     loading: () => <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>,
     ssr: false 
   }), []);
@@ -69,7 +69,7 @@ export default function MapsPage() {
     <div className="flex flex-col h-full">
         <PageHeader title="Mapa del Campo" />
         <div className="flex-grow h-[calc(100vh-12rem)] rounded-lg border overflow-hidden">
-            <Map lotePolygons={lotePolygons} />
+            <MapDisplay lotePolygons={lotePolygons} />
         </div>
     </div>
   );
