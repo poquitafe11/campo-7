@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useMemo } from "react";
-import { Camera, Upload, Ruler, Save, Loader2, RefreshCw } from "lucide-react";
+import { Camera, Ruler, Save, Loader2, RefreshCw, PlusCircle, BrainCircuit } from "lucide-react";
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
@@ -13,13 +13,25 @@ import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { evaluateGrapeCaliber } from "@/ai/flows/evaluate-grape-caliber";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 
 interface Measurement {
   id: number;
   diameter: number;
+  method: 'IA' | 'Manual';
 }
 
-// Function to convert the cropped canvas area to a data URL
 async function getCroppedImg(
   image: HTMLImageElement,
   crop: Crop
@@ -63,6 +75,8 @@ export default function EvaluationsPage() {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isManualAddOpen, setManualAddOpen] = useState(false);
+  const [manualDiameter, setManualDiameter] = useState('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -99,12 +113,13 @@ export default function EvaluationsPage() {
     try {
       const result = await evaluateGrapeCaliber({ photoDataUri: croppedImgUrl });
       const aiMeasurements = result.measurements.map((diameter, index) => ({
-        id: index + 1,
+        id: (measurements.length) + index + 1,
         diameter,
+        method: 'IA' as const,
       }));
-      setMeasurements(aiMeasurements);
+      setMeasurements(prev => [...prev, ...aiMeasurements]);
       toast({
-        title: "Procesamiento Completo",
+        title: "Análisis IA Completo",
         description: `Se han medido ${aiMeasurements.length} bayas.`,
       });
     } catch (error) {
@@ -116,6 +131,24 @@ export default function EvaluationsPage() {
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleAddManualMeasurement = () => {
+    const diameter = parseFloat(manualDiameter);
+    if (!isNaN(diameter) && diameter > 0) {
+        setMeasurements(prev => [
+            ...prev,
+            { id: prev.length + 1, diameter, method: 'Manual' as const }
+        ]);
+        setManualDiameter('');
+        setManualAddOpen(false);
+    } else {
+        toast({
+            title: "Valor Inválido",
+            description: "Por favor, introduce un número de diámetro válido.",
+            variant: "destructive"
+        });
     }
   };
 
@@ -157,7 +190,7 @@ export default function EvaluationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>1. Capturar y Recortar Imagen</CardTitle>
+            <CardTitle>1. Imagen de Referencia</CardTitle>
             <CardDescription>Usa la cámara o sube una foto. Luego, recorta el área de interés.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -192,16 +225,38 @@ export default function EvaluationsPage() {
         <Card>
           <CardHeader>
             <CardTitle>2. Procesar y Guardar</CardTitle>
-            <CardDescription>La app analizará la imagen recortada para medir el calibre de las bayas.</CardDescription>
+            <CardDescription>Usa la IA para analizar la imagen o añade mediciones manualmente.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {croppedImgUrl ? (
                 <div className="space-y-4">
                     <img alt="Cropped" src={croppedImgUrl} className="rounded-md w-full" />
-                    <Button onClick={handleProcessImage} disabled={isProcessing} className="w-full">
-                      {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Ruler className="mr-2 h-4 w-4" />}
-                      {isProcessing ? 'Analizando...' : 'Analizar Calibre'}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Button onClick={handleProcessImage} disabled={isProcessing} className="flex-1">
+                          {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
+                          {isProcessing ? 'Analizando...' : 'Análisis IA'}
+                        </Button>
+                        <Dialog open={isManualAddOpen} onOpenChange={setManualAddOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="flex-1">
+                              <PlusCircle className="mr-2 h-4 w-4" /> Añadir Manual
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader><DialogTitle>Añadir Medición Manual</DialogTitle></DialogHeader>
+                            <div className="grid gap-4 py-4">
+                               <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="diameter" className="text-right">Diámetro (mm)</Label>
+                                <Input id="diameter" type="number" value={manualDiameter} onChange={(e) => setManualDiameter(e.target.value)} className="col-span-3"/>
+                               </div>
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+                                <Button onClick={handleAddManualMeasurement}>Añadir</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                    </div>
                 </div>
             ) : (
                 <div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg">
@@ -216,35 +271,41 @@ export default function EvaluationsPage() {
                     <CardTitle>Resultados de Medición</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Baya #</TableHead>
-                          <TableHead className="text-right">Diámetro (mm)</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {measurements.map(m => (
-                          <TableRow key={m.id}>
-                            <TableCell>Baya {m.id}</TableCell>
-                            <TableCell className="text-right">{m.diameter.toFixed(2)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <div className="max-h-60 overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>#</TableHead>
+                              <TableHead>Método</TableHead>
+                              <TableHead className="text-right">Diámetro (mm)</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {measurements.map(m => (
+                              <TableRow key={m.id}>
+                                <TableCell>{m.id}</TableCell>
+                                <TableCell>{m.method}</TableCell>
+                                <TableCell className="text-right">{m.diameter.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                    </div>
                     <Alert className="mt-4">
-                      <AlertTitle>Promedio</AlertTitle>
+                      <AlertTitle>Promedio de {measurements.length} bayas</AlertTitle>
                       <AlertDescription>{averageDiameter.toFixed(2)} mm</AlertDescription>
                     </Alert>
                   </CardContent>
                 </Card>
-                <Button onClick={handleSaveMeasurements} disabled={isSaving} className="w-full">
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                   Guardar Mediciones
-                </Button>
-                 <Button onClick={() => resetState()} variant="outline" className="w-full">
-                  <RefreshCw className="mr-2 h-4 w-4" /> Nueva Evaluación
-                </Button>
+                <div className="flex flex-col gap-2">
+                    <Button onClick={handleSaveMeasurements} disabled={isSaving} className="w-full">
+                      {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                       Guardar {measurements.length} Mediciones
+                    </Button>
+                     <Button onClick={() => resetState()} variant="outline" className="w-full">
+                      <RefreshCw className="mr-2 h-4 w-4" /> Nueva Evaluación
+                    </Button>
+                </div>
               </div>
             )}
           </CardContent>
