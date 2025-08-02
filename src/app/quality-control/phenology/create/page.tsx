@@ -257,7 +257,11 @@ export default function CreatePhenologyPage() {
   const budbreakPercentage = useMemo(() => {
     if (!budbreakValues || !budbreakValues.totalBuds || budbreakValues.totalBuds === 0) return 0;
     const { totalBuds, greenTipBuds = 0, unfoldedLeaves = 0 } = budbreakValues;
-    return ((greenTipBuds + unfoldedLeaves) / totalBuds) * 100;
+    const total = parseFloat(String(totalBuds));
+    const green = parseFloat(String(greenTipBuds));
+    const unfolded = parseFloat(String(unfoldedLeaves));
+    if (isNaN(total) || total === 0) return 0;
+    return ((green + unfolded) / total) * 100;
   }, [budbreakValues]);
 
   const renderBudbreakForm = () => (
