@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -103,24 +103,39 @@ export default function CreatePhenologyPage() {
   const selectedCuartelId = useWatch({ control: form.control, name: "cuartel" });
   const plantNumber = useWatch({ control: form.control, name: "budbreak.plantNumber" });
   const pass = useWatch({ control: form.control, name: "pass" });
+  
+  const fetchLastPass = useCallback(async () => {
+    if (selectedCuartelId && selectedEvaluation) {
+      try {
+        const q = query(
+          collection(db, "evaluaciones-fenologia"),
+          where("cuartel", "==", selectedCuartelId),
+          where("evaluationType", "==", selectedEvaluation)
+        );
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+          form.setValue('pass', 1);
+        } else {
+          let maxPass = 0;
+          querySnapshot.forEach(doc => {
+            const docPass = doc.data().pass;
+            if (docPass > maxPass) {
+              maxPass = docPass;
+            }
+          });
+          form.setValue('pass', maxPass + 1);
+        }
+      } catch (error) {
+        console.error("Error fetching last pass: ", error);
+        // Set to 1 as a fallback if query fails
+        form.setValue('pass', 1);
+      }
+    }
+  }, [selectedCuartelId, selectedEvaluation, form]);
 
   useEffect(() => {
-    const fetchLastPass = async () => {
-        if (selectedCuartelId && selectedEvaluation) {
-            const q = query(
-                collection(db, "evaluaciones-fenologia"),
-                where("cuartel", "==", selectedCuartelId),
-                where("evaluationType", "==", selectedEvaluation),
-                orderBy("pass", "desc"),
-                limit(1)
-            );
-            const querySnapshot = await getDocs(q);
-            const maxPass = querySnapshot.empty ? 0 : querySnapshot.docs[0].data().pass;
-            form.setValue('pass', maxPass + 1);
-        }
-    };
     fetchLastPass();
-  }, [selectedCuartelId, selectedEvaluation, form]);
+  }, [fetchLastPass]);
 
   useEffect(() => {
     const fetchLastPlantData = async () => {
@@ -255,13 +270,14 @@ export default function CreatePhenologyPage() {
   );
   
   const budbreakPercentage = useMemo(() => {
-    if (!budbreakValues || !budbreakValues.totalBuds || budbreakValues.totalBuds === 0) return 0;
-    const { totalBuds, greenTipBuds = 0, unfoldedLeaves = 0 } = budbreakValues;
-    const total = parseFloat(String(totalBuds));
-    const green = parseFloat(String(greenTipBuds));
-    const unfolded = parseFloat(String(unfoldedLeaves));
+    if (!budbreakValues) return 0;
+    const total = parseFloat(String(budbreakValues.totalBuds || 0));
+    const greenTip = parseFloat(String(budbreakValues.greenTipBuds || 0));
+    const unfolded = parseFloat(String(budbreakValues.unfoldedLeaves || 0));
+  
     if (isNaN(total) || total === 0) return 0;
-    return ((green + unfolded) / total) * 100;
+    
+    return ((greenTip + unfolded) / total) * 100;
   }, [budbreakValues]);
 
   const renderBudbreakForm = () => (
