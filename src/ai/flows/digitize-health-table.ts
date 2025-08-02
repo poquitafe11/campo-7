@@ -36,16 +36,19 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert data entry specialist. Your task is to accurately extract information from a table in the provided image.
 
 Analyze the image and transcribe the entire content of the table into a structured JSON array format.
-Each object in the array should represent a row from the table. Use the table headers as the keys for the JSON objects.
+Each object in the array should represent a row from the table.
 
-IMPORTANT: Unify the column headers. Columns that are visually separated but belong together, like "L O" and "T", must be combined into a single "Lote" key in the JSON. Similarly, unify other headers like "Fecha Plan de Aplicaci" into "Fecha Plan de Aplicación".
+IMPORTANT: Use the exact table headers as keys for the JSON objects, paying close attention to accents and special characters.
+- Unify columns that are visually separated but belong together. For example, "L O" and "T" must be combined into a single "Lote" key.
+- Unify partial headers like "Fecha Plan de Aplicaci" into "Fecha Plan de Aplicación".
+- Ensure headers like "Tipo de App", "P.R. Horas", and "Categoria" are written exactly like that ("Categoría" with an accent).
 
 The final output must be a single string containing a valid JSON array.
 
 Example output format:
 [
-  { "Fecha Plan de Aplicación": "23/jul/2025", "Lote": "078", "Cuartel": "25" },
-  { "Fecha Plan de Aplicación": "24/jul/2025", "Lote": "072", "Cuartel": "9" }
+  { "Fecha Plan de Aplicación": "23/jul/2025", "Lote": "078", "Cuartel": "25", "Tipo de App": "Foliar", "Categoria": "Insecticida" },
+  { "Fecha Plan de Aplicación": "24/jul/2025", "Lote": "072", "Cuartel": "9", "Tipo de App": "Foliar", "Categoria": "Fungicida" }
 ]
 
 Image with the table:

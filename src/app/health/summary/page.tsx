@@ -108,7 +108,7 @@ export default function HealthSummaryPage() {
         const campaigns = [...new Set(healthRecords.map(r => r['Campaña']))].filter(Boolean).sort();
         const lotesOptions = [...new Set(healthRecords.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         const objetivos = [...new Set(healthRecords.map(r => r['Objetivo']))].filter(Boolean).sort();
-        const categorias = [...new Set(healthRecords.map(r => r['Categoria']))].filter(Boolean).sort();
+        const categorias = [...new Set(healthRecords.flatMap(r => [r['Categoria'], r['Categoría']]))].filter(Boolean).sort();
         return { campaigns, lotes: lotesOptions, objetivos, categorias };
     }, [healthRecords]);
 
@@ -131,7 +131,7 @@ export default function HealthSummaryPage() {
             r['Lote'] === activeFilters.lote &&
             r['Objetivo'] === activeFilters.objetivo &&
             (!activeFilters.campana || r['Campaña'] === activeFilters.campana) &&
-            (!activeFilters.categoria || r['Categoria'] === activeFilters.categoria)
+            (!activeFilters.categoria || r['Categoria'] === activeFilters.categoria || r['Categoría'] === activeFilters.categoria)
         );
 
         const groupedByApplication: { [key: string]: HealthRecord & { cuarteles: string[] } } = {};
