@@ -107,8 +107,11 @@ export default function HealthSummaryPage() {
     const filterOptions = useMemo(() => {
         const campaigns = [...new Set(healthRecords.map(r => r['Campaña']))].filter(Boolean).sort();
         const lotesOptions = [...new Set(healthRecords.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        const objetivos = [...new Set(healthRecords.map(r => r['Objetivo']))].filter(Boolean).sort();
-        const categorias = [...new Set(healthRecords.flatMap(r => [r['Categoria'], r['Categoría']]))].filter(Boolean).sort();
+        
+        // Robust way to get unique values for 'objetivo' and 'categoria'
+        const objetivos = [...new Set(healthRecords.flatMap(r => [r['Objetivo'], r['objetivo']]).filter(Boolean))].sort();
+        const categorias = [...new Set(healthRecords.flatMap(r => [r['Categoria'], r['Categoría']]).filter(Boolean))].sort();
+        
         return { campaigns, lotes: lotesOptions, objetivos, categorias };
     }, [healthRecords]);
 
@@ -127,12 +130,16 @@ export default function HealthSummaryPage() {
     const processedData = useMemo(() => {
         if (!activeFilters.lote || !activeFilters.objetivo) return [];
 
-        let filtered = healthRecords.filter(r =>
-            r['Lote'] === activeFilters.lote &&
-            r['Objetivo'] === activeFilters.objetivo &&
-            (!activeFilters.campana || r['Campaña'] === activeFilters.campana) &&
-            (!activeFilters.categoria || r['Categoria'] === activeFilters.categoria || r['Categoría'] === activeFilters.categoria)
-        );
+        let filtered = healthRecords.filter(r => {
+            const campanaMatch = !activeFilters.campana || r['Campaña'] === activeFilters.campana;
+            const loteMatch = r['Lote'] === activeFilters.lote;
+            
+            // Robust matching for objetivo and categoria
+            const objetivoMatch = (r['Objetivo'] === activeFilters.objetivo) || (r['objetivo'] === activeFilters.objetivo);
+            const categoriaMatch = !activeFilters.categoria || (r['Categoria'] === activeFilters.categoria) || (r['Categoría'] === activeFilters.categoria);
+
+            return campanaMatch && loteMatch && objetivoMatch && categoriaMatch;
+        });
 
         const groupedByApplication: { [key: string]: HealthRecord & { cuarteles: string[] } } = {};
         filtered.forEach(record => {
