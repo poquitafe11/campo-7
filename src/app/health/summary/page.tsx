@@ -9,7 +9,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { format, differenceInDays, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Filter, FileDown } from 'lucide-react';
+import { Loader2, Filter, FileDown, Check, ChevronsUpDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import * as xlsx from 'xlsx';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 type HealthRecord = {
     id: string;
@@ -107,8 +109,6 @@ export default function HealthSummaryPage() {
     const filterOptions = useMemo(() => {
         const campaigns = [...new Set(healthRecords.map(r => r['Campaña']))].filter(Boolean).sort();
         const lotesOptions = [...new Set(healthRecords.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        
-        // Robust way to get unique values for 'objetivo' and 'categoria'
         const objetivos = [...new Set(healthRecords.flatMap(r => [r['Objetivo'], r['objetivo']]).filter(Boolean))].sort();
         const categorias = [...new Set(healthRecords.flatMap(r => [r['Categoria'], r['Categoría']]).filter(Boolean))].sort();
         
@@ -128,14 +128,12 @@ export default function HealthSummaryPage() {
     }, []);
 
     const processedData = useMemo(() => {
-        if (!activeFilters.lote || !activeFilters.objetivo) return [];
+        if (!activeFilters.lote) return [];
 
         let filtered = healthRecords.filter(r => {
             const campanaMatch = !activeFilters.campana || r['Campaña'] === activeFilters.campana;
             const loteMatch = r['Lote'] === activeFilters.lote;
-            
-            // Robust matching for objetivo and categoria
-            const objetivoMatch = (r['Objetivo'] === activeFilters.objetivo) || (r['objetivo'] === activeFilters.objetivo);
+            const objetivoMatch = !activeFilters.objetivo || (r['Objetivo'] === activeFilters.objetivo) || (r['objetivo'] === activeFilters.objetivo);
             const categoriaMatch = !activeFilters.categoria || (r['Categoria'] === activeFilters.categoria) || (r['Categoría'] === activeFilters.categoria);
 
             return campanaMatch && loteMatch && objetivoMatch && categoriaMatch;
@@ -226,9 +224,31 @@ export default function HealthSummaryPage() {
                     <Label>Lote</Label>
                     <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
                   </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label>Objetivo</Label>
-                    <Select onValueChange={(v) => setPopoverFilters(p => ({...p, objetivo: v === 'all' ? '' : v}))} value={popoverFilters.objetivo}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.objetivos.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                   <div className="grid grid-cols-3 items-center gap-4">
+                     <Label>Objetivo</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="col-span-2 h-8 justify-between font-normal">
+                                {popoverFilters.objetivo || "Selecciona..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0">
+                            <Command>
+                                <CommandInput placeholder="Buscar objetivo..." />
+                                <CommandEmpty>No se encontró.</CommandEmpty>
+                                <CommandGroup>
+                                    <CommandItem onSelect={() => setPopoverFilters(p => ({ ...p, objetivo: '' }))}>Todos</CommandItem>
+                                    {filterOptions.objetivos.map(o => (
+                                        <CommandItem key={o} value={o} onSelect={(currentValue) => { setPopoverFilters(p => ({...p, objetivo: currentValue === popoverFilters.objetivo ? "" : currentValue }))}}>
+                                            <Check className={cn("mr-2 h-4 w-4", popoverFilters.objetivo === o ? "opacity-100" : "opacity-0")} />
+                                            {o}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </Command>
+                        </PopoverContent>
+                      </Popover>
                   </div>
                   <div className="grid grid-cols-3 items-center gap-4">
                     <Label>Categoría</Label>
@@ -254,9 +274,9 @@ export default function HealthSummaryPage() {
                 <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-            ) : !activeFilters.lote || !activeFilters.objetivo ? (
+            ) : !activeFilters.lote ? (
                 <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
-                    <p className="text-muted-foreground text-center mb-4">Seleccione al menos un Lote y un Objetivo para ver el resumen.</p>
+                    <p className="text-muted-foreground text-center mb-4">Seleccione al menos un Lote para ver el resumen.</p>
                 </div>
             ) : (
                 <div className="space-y-6">
@@ -271,10 +291,18 @@ export default function HealthSummaryPage() {
                                         <TableHead>Lote</TableHead>
                                         <TableCell>{activeFilters.lote}</TableCell>
                                     </TableRow>
-                                    <TableRow>
-                                        <TableHead>Objetivo</TableHead>
-                                        <TableCell>{activeFilters.objetivo}</TableCell>
-                                    </TableRow>
+                                    {activeFilters.objetivo && (
+                                      <TableRow>
+                                          <TableHead>Objetivo</TableHead>
+                                          <TableCell>{activeFilters.objetivo}</TableCell>
+                                      </TableRow>
+                                    )}
+                                    {activeFilters.categoria && (
+                                       <TableRow>
+                                          <TableHead>Categoría</TableHead>
+                                          <TableCell>{activeFilters.categoria}</TableCell>
+                                      </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
