@@ -6,7 +6,7 @@ import { useMasterData } from '@/context/MasterDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { format, differenceInDays, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Filter, FileDown } from 'lucide-react';
@@ -37,6 +37,36 @@ const getInitialFilters = (): Filters => ({
     objetivo: '',
     categoria: '',
 });
+
+const parseCustomDate = (dateString: string): Date | null => {
+    if (!dateString || typeof dateString !== 'string') return null;
+
+    const months: { [key: string]: string } = {
+        'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 'may': '05', 'jun': '06',
+        'jul': '07', 'ago': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+    };
+    
+    const parts = dateString.toLowerCase().split(/[\/-]/);
+    if (parts.length !== 3) return null;
+
+    const day = parts[0];
+    const monthAbbr = parts[1].substring(0, 3);
+    const year = parts[2];
+    
+    const month = months[monthAbbr];
+    if (!month) return null;
+
+    // Try parsing as YYYY-MM-DD first for robustness
+    let date = parse(`${year}-${month}-${day}`, 'yyyy-MM-dd', new Date());
+    if (isValid(date)) return date;
+
+    // Fallback to less strict parsing
+    const formattedDateString = `${year}-${month}-${day}T00:00:00`;
+    date = new Date(formattedDateString);
+
+    return isValid(date) ? date : null;
+};
+
 
 export default function HealthSummaryPage() {
     const { toast } = useToast();
@@ -122,14 +152,17 @@ export default function HealthSummaryPage() {
         const uniqueApplications = Object.values(groupedByApplication).map(record => ({
             ...record,
             cuarteles: [...new Set(record.cuarteles)].join(', '),
-            parsedDate: parseISO(record['Fecha Plan de Aplicación'])
-        })).sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
+            parsedDate: parseCustomDate(record['Fecha Plan de Aplicación'])
+        })).filter(r => r.parsedDate && isValid(r.parsedDate))
+           .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
         
         return uniqueApplications.map((record, index) => {
             let daysSinceLast = 'N/A';
             if (index > 0) {
                 const prevDate = uniqueApplications[index - 1].parsedDate;
-                daysSinceLast = differenceInDays(record.parsedDate, prevDate).toString();
+                if(prevDate && record.parsedDate) {
+                  daysSinceLast = differenceInDays(record.parsedDate, prevDate).toString();
+                }
             }
             return { ...record, daysSinceLast };
         }).reverse();
@@ -139,9 +172,12 @@ export default function HealthSummaryPage() {
     const handleDownload = () => {
         const dataToExport = processedData.map(record => {
             const loteMaster = lotesMap.get(record['Lote']);
-            const ddc = loteMaster?.fechaCianamida ? differenceInDays(record.parsedDate, loteMaster.fechaCianamida) : 'N/A';
+            let ddc = 'N/A';
+            if(loteMaster?.fechaCianamida && record.parsedDate && isValid(loteMaster.fechaCianamida) && isValid(record.parsedDate)) {
+              ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
+            }
             return {
-                'Fecha': format(record.parsedDate, 'dd/MM/yyyy', { locale: es }),
+                'Fecha': record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida',
                 'DDC': ddc,
                 'Lote': record['Lote'],
                 'Cuartel(es)': record.cuarteles,
@@ -262,11 +298,14 @@ export default function HealthSummaryPage() {
                                         {processedData.length > 0 ? (
                                             processedData.map((record) => {
                                                 const loteMaster = lotesMap.get(record['Lote']);
-                                                const ddc = loteMaster?.fechaCianamida ? differenceInDays(record.parsedDate, loteMaster.fechaCianamida) : 'N/A';
+                                                let ddc = 'N/A';
+                                                if(loteMaster?.fechaCianamida && record.parsedDate && isValid(loteMaster.fechaCianamida) && isValid(record.parsedDate)) {
+                                                  ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
+                                                }
                                                 
                                                 return (
                                                     <TableRow key={record.id}>
-                                                        <TableCell>{format(record.parsedDate, 'dd/MM/yyyy', { locale: es })}</TableCell>
+                                                        <TableCell>{record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha Inválida'}</TableCell>
                                                         <TableCell>{ddc}</TableCell>
                                                         <TableCell>{record['Lote']}</TableCell>
                                                         <TableCell>{record.cuarteles}</TableCell>
