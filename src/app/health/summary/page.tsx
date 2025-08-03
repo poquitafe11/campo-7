@@ -82,7 +82,7 @@ export default function HealthSummaryPage() {
     }, [toast]);
 
     const processedData = useMemo(() => {
-        let normalized = healthRecords.map(r => ({
+        const normalized = healthRecords.map(r => ({
             ...r,
             fechaAplicacion: r['fechaAplicacion'] || '',
             lote: r['lote'] || r['Lote'] || '',
@@ -107,24 +107,13 @@ export default function HealthSummaryPage() {
             }
         });
         
-        const uniqueApplications = Object.values(groupedByApplication).map(record => ({
+        return Object.values(groupedByApplication).map(record => ({
             ...record,
             cuarteles: [...new Set(record.cuarteles)].join(', '),
             parsedDate: parseCustomDate(record.fechaAplicacion)
         })).filter(r => r.parsedDate && isValid(r.parsedDate))
-           .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
-        
-        return uniqueApplications.map((record, index, array) => {
-            let daysSinceLast = 'N/A';
-            if (index > 0) {
-                const prevDate = array[index - 1].parsedDate;
-                if(prevDate && record.parsedDate) {
-                  daysSinceLast = differenceInDays(record.parsedDate, prevDate).toString();
-                }
-            }
-            return { ...record, daysSinceLast };
-        }).reverse();
-
+           .sort((a, b) => b.parsedDate!.getTime() - a.parsedDate!.getTime());
+           
     }, [healthRecords]);
 
     const handleDownload = useCallback(() => {
@@ -141,7 +130,7 @@ export default function HealthSummaryPage() {
                 'Cuartel(es)': record.cuarteles,
                 'Producto': record['producto'],
                 'Ingrediente Activo': record['ingredienteActivo'],
-                'Días Transcurridos': record.daysSinceLast,
+                'Días Transcurridos': 'N/A', // Omit calculation
             };
         });
 
@@ -211,7 +200,7 @@ export default function HealthSummaryPage() {
                                                         <TableCell>{record.cuarteles}</TableCell>
                                                         <TableCell>{record['producto']}</TableCell>
                                                         <TableCell>{record['ingredienteActivo']}</TableCell>
-                                                        <TableCell>{record.daysSinceLast}</TableCell>
+                                                        <TableCell>N/A</TableCell>
                                                     </TableRow>
                                                 );
                                             })
