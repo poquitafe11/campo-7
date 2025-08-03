@@ -107,10 +107,25 @@ export default function HealthSummaryPage() {
     const filterOptions = useMemo(() => {
         const campaigns = [...new Set(healthRecords.map(r => r['campaña']))].filter(Boolean).sort();
         const lotesOptions = [...new Set(healthRecords.map(r => r['lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        const objetivos = [...new Set(healthRecords.map(r => r['objetivo']).filter(Boolean))].sort();
-        const categorias = [...new Set(healthRecords.map(r => r['categoria']).filter(Boolean))].sort();
         
-        return { campaigns, lotes: lotesOptions, objetivos, categorias };
+        const objetivosSet = new Set<string>();
+        healthRecords.forEach(r => {
+            if (r['objetivo'] && typeof r['objetivo'] === 'string') objetivosSet.add(r['objetivo']);
+            if (r['Objetivo'] && typeof r['Objetivo'] === 'string') objetivosSet.add(r['Objetivo']);
+        });
+        
+        const categoriasSet = new Set<string>();
+        healthRecords.forEach(r => {
+            if (r['categoria'] && typeof r['categoria'] === 'string') categoriasSet.add(r['categoria']);
+            if (r['Categoria'] && typeof r['Categoria'] === 'string') categoriasSet.add(r['Categoria']);
+        });
+        
+        return { 
+            campaigns, 
+            lotes: lotesOptions, 
+            objetivos: Array.from(objetivosSet).sort(), 
+            categorias: Array.from(categoriasSet).sort() 
+        };
     }, [healthRecords]);
 
     const handleApplyFilters = useCallback(() => {
@@ -131,8 +146,8 @@ export default function HealthSummaryPage() {
         let filtered = healthRecords.filter(r => {
             const campanaMatch = !activeFilters.campana || r['campaña'] === activeFilters.campana;
             const loteMatch = r['lote'] === activeFilters.lote;
-            const objetivoMatch = !activeFilters.objetivo || r['objetivo'] === activeFilters.objetivo;
-            const categoriaMatch = !activeFilters.categoria || r['categoria'] === activeFilters.categoria;
+            const objetivoMatch = !activeFilters.objetivo || r['objetivo'] === activeFilters.objetivo || r['Objetivo'] === activeFilters.objetivo;
+            const categoriaMatch = !activeFilters.categoria || r['categoria'] === activeFilters.categoria || r['Categoria'] === activeFilters.categoria;
 
             return campanaMatch && loteMatch && objetivoMatch && categoriaMatch;
         });
@@ -363,3 +378,5 @@ export default function HealthSummaryPage() {
         </div>
     );
 }
+
+    
