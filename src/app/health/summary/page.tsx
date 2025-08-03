@@ -21,18 +21,6 @@ type HealthRecord = {
     [key: string]: any;
 };
 
-// Define a standardized record type that we will normalize our data into.
-type NormalizedHealthRecord = {
-    id: string;
-    campana: string;
-    lote: string;
-    objetivo: string;
-    categoria: string;
-    fechaAplicacion: string;
-    [key: string]: any; // Keep other fields
-};
-
-
 const parseCustomDate = (dateString: string): Date | null => {
     if (!dateString || typeof dateString !== 'string') return null;
 
@@ -93,38 +81,29 @@ export default function HealthSummaryPage() {
         return () => unsubscribe();
     }, [toast]);
 
-    const normalizedHealthRecords = useMemo(() => {
-        return healthRecords.map(r => {
-            const get = (key: string, alternateKey?: string, alternateKey2?: string) => {
-                return r[key] || (alternateKey && r[alternateKey]) || (alternateKey2 && r[alternateKey2]) || '';
-            }
-            return {
-                ...r, // Keep original data
-                id: r.id,
-                campana: get('campana', 'campaña'),
-                lote: get('lote', 'Lote'),
-                objetivo: get('objetivo', 'Objetivo'),
-                categoria: get('categoria', 'Categoria', 'Categoría'),
-                fechaAplicacion: get('fechaAplicacion'),
-            } as NormalizedHealthRecord
-        })
-    }, [healthRecords]);
-
     const processedData = useMemo(() => {
-        let filtered = normalizedHealthRecords;
+        let normalized = healthRecords.map(r => ({
+            ...r,
+            fechaAplicacion: r['fechaAplicacion'] || '',
+            lote: r['lote'] || r['Lote'] || '',
+            cuarteles: r['cuartel'] || '',
+            producto: r['producto'] || r['Producto'] || '',
+            ingredienteActivo: r['ingredienteActivo'] || r['Ingrediente Activo'] || '',
+        }));
 
-        const groupedByApplication: { [key: string]: NormalizedHealthRecord & { cuarteles: string[] } } = {};
-        filtered.forEach(record => {
+        const groupedByApplication: { [key: string]: HealthRecord & { cuarteles: string[] } } = {};
+        
+        normalized.forEach(record => {
             const date = record.fechaAplicacion;
-            const product = record['producto'];
-            const ingredient = record['ingredienteActivo'];
+            const product = record.producto;
+            const ingredient = record.ingredienteActivo;
             const key = `${date}-${product}-${ingredient}`;
 
             if (!groupedByApplication[key]) {
                 groupedByApplication[key] = { ...record, cuarteles: [] };
             }
-            if (record['cuartel']) {
-                groupedByApplication[key].cuarteles.push(record['cuartel']);
+            if (record.cuarteles) {
+                groupedByApplication[key].cuarteles.push(String(record.cuarteles));
             }
         });
         
@@ -135,10 +114,10 @@ export default function HealthSummaryPage() {
         })).filter(r => r.parsedDate && isValid(r.parsedDate))
            .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
         
-        return uniqueApplications.map((record, index) => {
+        return uniqueApplications.map((record, index, array) => {
             let daysSinceLast = 'N/A';
             if (index > 0) {
-                const prevDate = uniqueApplications[index - 1].parsedDate;
+                const prevDate = array[index - 1].parsedDate;
                 if(prevDate && record.parsedDate) {
                   daysSinceLast = differenceInDays(record.parsedDate, prevDate).toString();
                 }
@@ -146,7 +125,7 @@ export default function HealthSummaryPage() {
             return { ...record, daysSinceLast };
         }).reverse();
 
-    }, [normalizedHealthRecords]);
+    }, [healthRecords]);
 
     const handleDownload = useCallback(() => {
         const dataToExport = processedData.map(record => {
@@ -185,7 +164,7 @@ export default function HealthSummaryPage() {
           </Button>
         );
         return () => setActions(null);
-    }, [setActions, processedData, handleDownload]);
+    }, [setActions, handleDownload, processedData]);
 
     const isContentReady = !loading && !masterLoading;
 
