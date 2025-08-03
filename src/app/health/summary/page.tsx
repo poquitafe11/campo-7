@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 
 type HealthRecord = {
     id: string;
-    'Fecha Plan de Aplicación': string;
+    fechaAplicacion: string;
     [key: string]: any;
 };
 
@@ -58,11 +58,9 @@ const parseCustomDate = (dateString: string): Date | null => {
     const month = months[monthAbbr];
     if (!month) return null;
 
-    // Try parsing as YYYY-MM-DD first for robustness
     let date = parse(`${year}-${month}-${day}`, 'yyyy-MM-dd', new Date());
     if (isValid(date)) return date;
 
-    // Fallback to less strict parsing
     const formattedDateString = `${year}-${month}-${day}T00:00:00`;
     date = new Date(formattedDateString);
 
@@ -107,10 +105,10 @@ export default function HealthSummaryPage() {
     }, [toast]);
 
     const filterOptions = useMemo(() => {
-        const campaigns = [...new Set(healthRecords.map(r => r['Campaña']))].filter(Boolean).sort();
-        const lotesOptions = [...new Set(healthRecords.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        const objetivos = [...new Set(healthRecords.flatMap(r => [r['Objetivo'], r['objetivo']]).filter(Boolean))].sort();
-        const categorias = [...new Set(healthRecords.flatMap(r => [r['Categoria'], r['Categoría']]).filter(Boolean))].sort();
+        const campaigns = [...new Set(healthRecords.map(r => r['campaña']))].filter(Boolean).sort();
+        const lotesOptions = [...new Set(healthRecords.map(r => r['lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+        const objetivos = [...new Set(healthRecords.map(r => r['objetivo']).filter(Boolean))].sort();
+        const categorias = [...new Set(healthRecords.map(r => r['categoria']).filter(Boolean))].sort();
         
         return { campaigns, lotes: lotesOptions, objetivos, categorias };
     }, [healthRecords]);
@@ -131,33 +129,33 @@ export default function HealthSummaryPage() {
         if (!activeFilters.lote) return [];
 
         let filtered = healthRecords.filter(r => {
-            const campanaMatch = !activeFilters.campana || r['Campaña'] === activeFilters.campana;
-            const loteMatch = r['Lote'] === activeFilters.lote;
-            const objetivoMatch = !activeFilters.objetivo || (r['Objetivo'] === activeFilters.objetivo) || (r['objetivo'] === activeFilters.objetivo);
-            const categoriaMatch = !activeFilters.categoria || (r['Categoria'] === activeFilters.categoria) || (r['Categoría'] === activeFilters.categoria);
+            const campanaMatch = !activeFilters.campana || r['campaña'] === activeFilters.campana;
+            const loteMatch = r['lote'] === activeFilters.lote;
+            const objetivoMatch = !activeFilters.objetivo || r['objetivo'] === activeFilters.objetivo;
+            const categoriaMatch = !activeFilters.categoria || r['categoria'] === activeFilters.categoria;
 
             return campanaMatch && loteMatch && objetivoMatch && categoriaMatch;
         });
 
         const groupedByApplication: { [key: string]: HealthRecord & { cuarteles: string[] } } = {};
         filtered.forEach(record => {
-            const date = record['Fecha Plan de Aplicación'];
-            const product = record['Producto'];
-            const ingredient = record['Ingrediente Activo'];
+            const date = record['fechaAplicacion'];
+            const product = record['producto'];
+            const ingredient = record['ingredienteActivo'];
             const key = `${date}-${product}-${ingredient}`;
 
             if (!groupedByApplication[key]) {
                 groupedByApplication[key] = { ...record, cuarteles: [] };
             }
-            if (record['Cuartel']) {
-                groupedByApplication[key].cuarteles.push(record['Cuartel']);
+            if (record['cuartel']) {
+                groupedByApplication[key].cuarteles.push(record['cuartel']);
             }
         });
         
         const uniqueApplications = Object.values(groupedByApplication).map(record => ({
             ...record,
             cuarteles: [...new Set(record.cuarteles)].join(', '),
-            parsedDate: parseCustomDate(record['Fecha Plan de Aplicación'])
+            parsedDate: parseCustomDate(record['fechaAplicacion'])
         })).filter(r => r.parsedDate && isValid(r.parsedDate))
            .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
         
@@ -176,7 +174,7 @@ export default function HealthSummaryPage() {
 
     const handleDownload = () => {
         const dataToExport = processedData.map(record => {
-            const loteMaster = lotesMap.get(record['Lote']);
+            const loteMaster = lotesMap.get(record['lote']);
             let ddc = 'N/A';
             if(loteMaster?.fechaCianamida && record.parsedDate && isValid(loteMaster.fechaCianamida) && isValid(record.parsedDate)) {
               ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
@@ -184,10 +182,10 @@ export default function HealthSummaryPage() {
             return {
                 'Fecha': record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida',
                 'DDC': ddc,
-                'Lote': record['Lote'],
+                'Lote': record['lote'],
                 'Cuartel(es)': record.cuarteles,
-                'Producto': record['Producto'],
-                'Ingrediente Activo': record['Ingrediente Activo'],
+                'Producto': record['producto'],
+                'Ingrediente Activo': record['ingredienteActivo'],
                 'Días Transcurridos': record.daysSinceLast,
             };
         });
@@ -332,7 +330,7 @@ export default function HealthSummaryPage() {
                                     <TableBody>
                                         {processedData.length > 0 ? (
                                             processedData.map((record) => {
-                                                const loteMaster = lotesMap.get(record['Lote']);
+                                                const loteMaster = lotesMap.get(record['lote']);
                                                 let ddc = 'N/A';
                                                 if(loteMaster?.fechaCianamida && record.parsedDate && isValid(loteMaster.fechaCianamida) && isValid(record.parsedDate)) {
                                                   ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
@@ -342,10 +340,10 @@ export default function HealthSummaryPage() {
                                                     <TableRow key={record.id}>
                                                         <TableCell>{record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha Inválida'}</TableCell>
                                                         <TableCell>{ddc}</TableCell>
-                                                        <TableCell>{record['Lote']}</TableCell>
+                                                        <TableCell>{record['lote']}</TableCell>
                                                         <TableCell>{record.cuarteles}</TableCell>
-                                                        <TableCell>{record['Producto']}</TableCell>
-                                                        <TableCell>{record['Ingrediente Activo']}</TableCell>
+                                                        <TableCell>{record['producto']}</TableCell>
+                                                        <TableCell>{record['ingredienteActivo']}</TableCell>
                                                         <TableCell>{record.daysSinceLast}</TableCell>
                                                     </TableRow>
                                                 );

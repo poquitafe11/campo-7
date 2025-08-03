@@ -137,8 +137,8 @@ export default function RegisterHealthPage() {
       const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       records.sort((a, b) => {
-          const dateA = parseCustomDate(a['Fecha Plan de Aplicación']);
-          const dateB = parseCustomDate(b['Fecha Plan de Aplicación']);
+          const dateA = parseCustomDate(a['fechaAplicacion']);
+          const dateB = parseCustomDate(b['fechaAplicacion']);
 
           if (dateA && dateB) {
               return dateB.getTime() - dateA.getTime();
@@ -210,13 +210,13 @@ export default function RegisterHealthPage() {
           const firstRow = data[0];
           const currentHeaders = Object.keys(firstRow);
           
-          const finalHeaders = ['Campaña', 'Etapa', ...currentHeaders, 'Acciones'];
+          const finalHeaders = ['campaña', 'etapa', ...currentHeaders, 'acciones'];
           setTableHeaders([...new Set(finalHeaders)]);
 
           const enrichedData = data.map((row, index) => ({
             internalId: `preview-${index}`,
-            'Campaña': campaign,
-            'Etapa': stage,
+            campaña: campaign,
+            etapa: stage,
             ...row
           }));
           setParsedData(enrichedData);
@@ -338,7 +338,7 @@ export default function RegisterHealthPage() {
                 name={key as any}
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>{key}</FormLabel>
+                        <FormLabel>{key.charAt(0).toUpperCase() + key.slice(1)}</FormLabel>
                         <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
@@ -354,7 +354,7 @@ export default function RegisterHealthPage() {
     };
 
     const savedRecordsHeaders = useMemo(() => {
-        const PREFERRED_ORDER = ['Campaña', 'Etapa', 'Variedad', 'Turno', 'Fecha Plan de Aplicación', 'Lote', 'Cuartel', 'Tipo de App', 'Producto', 'Objetivo', 'Ingrediente Activo', 'Categoria', 'P.R. Horas', 'Banda'];
+        const PREFERRED_ORDER = ['campaña', 'etapa', 'variedad', 'turno', 'fechaAplicacion', 'lote', 'cuartel', 'tipoApp', 'producto', 'objetivo', 'ingredienteActivo', 'categoria', 'prHoras', 'banda'];
         const headers = new Set<string>();
         savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
         
@@ -435,13 +435,13 @@ export default function RegisterHealthPage() {
                     <Label>Resultado (Vista Previa)</Label>
                     <div className="overflow-x-auto rounded-md border bg-muted/50 p-4">
                         <Table className="bg-background">
-                            <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader>
+                            <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header}>{header.charAt(0).toUpperCase() + header.slice(1)}</TableHead>)}</TableRow></TableHeader>
                             <TableBody>
                                 {parsedData.map((row) => (
                                     <TableRow key={row.internalId}>
                                         {tableHeaders.map(header => (
                                             <TableCell key={`${row.internalId}-${header}`} className={cn('whitespace-nowrap', header.toLowerCase() === 'banda' && getBandColorClass(row[header]))}>
-                                                {header === 'Acciones' ? (
+                                                {header === 'acciones' ? (
                                                   <div className="flex gap-2">
                                                     <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord({...row, id: row.internalId })}><Pencil className="h-4 w-4"/></Button>
                                                     <AlertDialog>
@@ -480,7 +480,7 @@ export default function RegisterHealthPage() {
                     <Table className="bg-background">
                         <TableHeader>
                             <TableRow>
-                                {savedRecordsHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}
+                                {savedRecordsHeaders.map(header => <TableHead key={header}>{header.charAt(0).toUpperCase() + header.slice(1)}</TableHead>)}
                                 <TableHead>Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
