@@ -26,6 +26,18 @@ type HealthRecord = {
     [key: string]: any;
 };
 
+// Define a standardized record type that we will normalize our data into.
+type NormalizedHealthRecord = {
+    id: string;
+    campana: string;
+    lote: string;
+    objetivo: string;
+    categoria: string;
+    fechaAplicacion: string;
+    [key: string]: any; // Keep other fields
+};
+
+
 interface Filters {
     campana: string;
     lote: string;
@@ -104,25 +116,34 @@ export default function HealthSummaryPage() {
         return () => unsubscribe();
     }, [toast]);
 
+    const normalizedHealthRecords = useMemo(() => {
+        return healthRecords.map(r => {
+            const get = (key: string, alternateKey?: string, alternateKey2?: string) => {
+                return r[key] || (alternateKey && r[alternateKey]) || (alternateKey2 && r[alternateKey2]) || '';
+            }
+            return {
+                ...r, // Keep original data
+                id: r.id,
+                campana: get('campana', 'campaña'),
+                lote: get('lote', 'Lote'),
+                objetivo: get('objetivo', 'Objetivo'),
+                categoria: get('categoria', 'Categoria', 'Categoría'),
+                fechaAplicacion: get('fechaAplicacion'),
+            } as NormalizedHealthRecord
+        })
+    }, [healthRecords]);
+
     const filterOptions = useMemo(() => {
         const campaigns = new Set<string>();
         const lotesOptions = new Set<string>();
         const objetivos = new Set<string>();
         const categorias = new Set<string>();
 
-        healthRecords.forEach(r => {
-            if (r['campaña'] && typeof r['campaña'] === 'string') campaigns.add(r['campaña']);
-            if (r['campana'] && typeof r['campana'] === 'string') campaigns.add(r['campana']);
-            
-            if (r['lote'] && typeof r['lote'] === 'string') lotesOptions.add(r['lote']);
-            if (r['Lote'] && typeof r['Lote'] === 'string') lotesOptions.add(r['Lote']);
-            
-            if (r['objetivo'] && typeof r['objetivo'] === 'string') objetivos.add(r['objetivo']);
-            if (r['Objetivo'] && typeof r['Objetivo'] === 'string') objetivos.add(r['Objetivo']);
-            
-            if (r['categoria'] && typeof r['categoria'] === 'string') categorias.add(r['categoria']);
-            if (r['Categoria'] && typeof r['Categoria'] === 'string') categorias.add(r['Categoria']);
-            if (r['Categoría'] && typeof r['Categoría'] === 'string') categorias.add(r['Categoría']);
+        normalizedHealthRecords.forEach(r => {
+            if (r.campana) campaigns.add(r.campana);
+            if (r.lote) lotesOptions.add(r.lote);
+            if (r.objetivo) objetivos.add(r.objetivo);
+            if (r.categoria) categorias.add(r.categoria);
         });
 
         return { 
@@ -131,7 +152,7 @@ export default function HealthSummaryPage() {
             objetivos: Array.from(objetivos).sort(), 
             categorias: Array.from(categorias).sort() 
         };
-    }, [healthRecords]);
+    }, [normalizedHealthRecords]);
 
     const handleApplyFilters = useCallback(() => {
         setActiveFilters(popoverFilters);
@@ -148,18 +169,18 @@ export default function HealthSummaryPage() {
     const processedData = useMemo(() => {
         if (!activeFilters.lote) return [];
 
-        let filtered = healthRecords.filter(r => {
-            const campanaMatch = !activeFilters.campana || r['campaña'] === activeFilters.campana || r['campana'] === activeFilters.campana;
-            const loteMatch = r['lote'] === activeFilters.lote || r['Lote'] === activeFilters.lote;
-            const objetivoMatch = !activeFilters.objetivo || r['objetivo'] === activeFilters.objetivo || r['Objetivo'] === activeFilters.objetivo;
-            const categoriaMatch = !activeFilters.categoria || r['categoria'] === activeFilters.categoria || r['Categoria'] === activeFilters.categoria || r['Categoría'] === activeFilters.categoria;
+        let filtered = normalizedHealthRecords.filter(r => {
+            const campanaMatch = !activeFilters.campana || r.campana === activeFilters.campana;
+            const loteMatch = r.lote === activeFilters.lote;
+            const objetivoMatch = !activeFilters.objetivo || r.objetivo === activeFilters.objetivo;
+            const categoriaMatch = !activeFilters.categoria || r.categoria === activeFilters.categoria;
 
             return campanaMatch && loteMatch && objetivoMatch && categoriaMatch;
         });
 
-        const groupedByApplication: { [key: string]: HealthRecord & { cuarteles: string[] } } = {};
+        const groupedByApplication: { [key: string]: NormalizedHealthRecord & { cuarteles: string[] } } = {};
         filtered.forEach(record => {
-            const date = record['fechaAplicacion'];
+            const date = record.fechaAplicacion;
             const product = record['producto'];
             const ingredient = record['ingredienteActivo'];
             const key = `${date}-${product}-${ingredient}`;
@@ -175,7 +196,7 @@ export default function HealthSummaryPage() {
         const uniqueApplications = Object.values(groupedByApplication).map(record => ({
             ...record,
             cuarteles: [...new Set(record.cuarteles)].join(', '),
-            parsedDate: parseCustomDate(record['fechaAplicacion'])
+            parsedDate: parseCustomDate(record.fechaAplicacion)
         })).filter(r => r.parsedDate && isValid(r.parsedDate))
            .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
         
@@ -190,11 +211,11 @@ export default function HealthSummaryPage() {
             return { ...record, daysSinceLast };
         }).reverse();
 
-    }, [healthRecords, activeFilters]);
+    }, [normalizedHealthRecords, activeFilters]);
 
     const handleDownload = () => {
         const dataToExport = processedData.map(record => {
-            const loteMaster = lotesMap.get(record['lote']);
+            const loteMaster = lotesMap.get(record.lote);
             let ddc = 'N/A';
             if(loteMaster?.fechaCianamida && record.parsedDate && isValid(loteMaster.fechaCianamida) && isValid(record.parsedDate)) {
               ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
@@ -202,7 +223,7 @@ export default function HealthSummaryPage() {
             return {
                 'Fecha': record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida',
                 'DDC': ddc,
-                'Lote': record['lote'],
+                'Lote': record.lote,
                 'Cuartel(es)': record.cuarteles,
                 'Producto': record['producto'],
                 'Ingrediente Activo': record['ingredienteActivo'],
@@ -350,7 +371,7 @@ export default function HealthSummaryPage() {
                                     <TableBody>
                                         {processedData.length > 0 ? (
                                             processedData.map((record) => {
-                                                const loteMaster = lotesMap.get(record['lote']);
+                                                const loteMaster = lotesMap.get(record.lote);
                                                 let ddc = 'N/A';
                                                 if(loteMaster?.fechaCianamida && record.parsedDate && isValid(loteMaster.fechaCianamida) && isValid(record.parsedDate)) {
                                                   ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
@@ -360,7 +381,7 @@ export default function HealthSummaryPage() {
                                                     <TableRow key={record.id}>
                                                         <TableCell>{record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha Inválida'}</TableCell>
                                                         <TableCell>{ddc}</TableCell>
-                                                        <TableCell>{record['lote']}</TableCell>
+                                                        <TableCell>{record.lote}</TableCell>
                                                         <TableCell>{record.cuarteles}</TableCell>
                                                         <TableCell>{record['producto']}</TableCell>
                                                         <TableCell>{record['ingredienteActivo']}</TableCell>
@@ -383,3 +404,4 @@ export default function HealthSummaryPage() {
         </div>
     );
 }
+
