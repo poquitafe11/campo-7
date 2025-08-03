@@ -349,19 +349,29 @@ export default function RegisterHealthPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    const PREFERRED_ORDER = ['campaña', 'etapa', 'variedad', 'turno', 'fechaAplicacion', 'lote', 'cuartel', 'tipoApp', 'producto', 'objetivo', 'ingredienteActivo', 'categoria', 'prHoras', 'banda'];
+    // This is the correct order based on user's repeated requests and image reference.
+    const PREFERRED_ORDER = [
+        'campaña', 'etapa', 'variedad', 'turno', 'fechaAplicacion', 
+        'lote', 'cuartel', 'tipoApp', 'producto', 'objetivo', 
+        'ingredienteActivo', 'categoria', 'prHoras', 'banda'
+    ];
+    
     const headers = new Set<string>();
-    savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
+    savedRecords.forEach(record => { 
+        Object.keys(record).forEach(key => { 
+            if (key !== 'id') headers.add(key); 
+        }); 
+    });
     
     const headersArray = Array.from(headers);
 
     headersArray.sort((a, b) => {
         const indexA = PREFERRED_ORDER.indexOf(a);
         const indexB = PREFERRED_ORDER.indexOf(b);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both are in preferred order
+        if (indexA !== -1) return -1; // Only A is in preferred order
+        if (indexB !== -1) return 1; // Only B is in preferred order
+        return a.localeCompare(b); // Fallback for columns not in the preferred list
     });
     
     return headersArray;
