@@ -148,7 +148,7 @@ export default function HealthSummaryPage() {
 
     }, [normalizedHealthRecords]);
 
-    const handleDownload = () => {
+    const handleDownload = useCallback(() => {
         const dataToExport = processedData.map(record => {
             const loteMaster = lotesMap.get(record.lote);
             let ddc = 'N/A';
@@ -176,7 +176,7 @@ export default function HealthSummaryPage() {
         xlsx.utils.book_append_sheet(workbook, worksheet, "ResumenSanidad");
         xlsx.writeFile(workbook, "ResumenSanidad.xlsx");
         toast({ title: "Descarga Iniciada", description: "El archivo se está descargando." });
-    };
+    }, [processedData, lotesMap, toast]);
     
     useEffect(() => {
         setActions(
