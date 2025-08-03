@@ -348,32 +348,23 @@ export default function RegisterHealthPage() {
     });
   };
 
-    const normalize = (s: string) => {
-      if (typeof s !== 'string') return '';
-      return s.toLowerCase().replace(/[^a-z0-9]/g, '');
-    };
+  const savedRecordsHeaders = useMemo(() => {
+    const PREFERRED_ORDER = ['campaña', 'etapa', 'variedad', 'turno', 'fechaAplicacion', 'lote', 'cuartel', 'tipoApp', 'producto', 'objetivo', 'ingredienteActivo', 'categoria', 'prHoras', 'banda'];
+    const headers = new Set<string>();
+    savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
+    
+    const headersArray = Array.from(headers);
 
-    const savedRecordsHeaders = useMemo(() => {
-        const PREFERRED_ORDER = ['campaña', 'etapa', 'variedad', 'turno', 'fechaAplicacion', 'lote', 'cuartel', 'tipoApp', 'producto', 'objetivo', 'ingredienteActivo', 'categoria', 'prHoras', 'banda'];
-        const headers = new Set<string>();
-        savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
-        
-        const headersArray = Array.from(headers);
-        const normalizedOrder = PREFERRED_ORDER.map(normalize);
-
-        headersArray.sort((a, b) => {
-            const normA = normalize(a);
-            const normB = normalize(b);
-            const indexA = normalizedOrder.findIndex(orderKey => normA.startsWith(orderKey.substring(0, Math.max(5, orderKey.length-2))) || orderKey.startsWith(normA.substring(0, Math.max(5, normA.length-2))) );
-            const indexB = normalizedOrder.findIndex(orderKey => normB.startsWith(orderKey.substring(0, Math.max(5, orderKey.length-2))) || orderKey.startsWith(normB.substring(0, Math.max(5, normB.length-2))) );
-            
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-            return a.localeCompare(b);
-        });
-        
-        return headersArray;
+    headersArray.sort((a, b) => {
+        const indexA = PREFERRED_ORDER.indexOf(a);
+        const indexB = PREFERRED_ORDER.indexOf(b);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+    });
+    
+    return headersArray;
   }, [savedRecords]);
 
 
