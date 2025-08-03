@@ -9,16 +9,11 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { format, differenceInDays, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Filter, FileDown, Check, ChevronsUpDown } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Loader2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import * as xlsx from 'xlsx';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
 
 type HealthRecord = {
     id: string;
@@ -37,20 +32,6 @@ type NormalizedHealthRecord = {
     [key: string]: any; // Keep other fields
 };
 
-
-interface Filters {
-    campana: string;
-    lote: string;
-    objetivo: string;
-    categoria: string;
-}
-
-const getInitialFilters = (): Filters => ({
-    campana: '',
-    lote: '',
-    objetivo: '',
-    categoria: '',
-});
 
 const parseCustomDate = (dateString: string): Date | null => {
     if (!dateString || typeof dateString !== 'string') return null;
@@ -86,10 +67,6 @@ export default function HealthSummaryPage() {
     const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const { setActions } = useHeaderActions();
-
-    const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
-    const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
     
     const lotesMap = useMemo(() => {
         const map = new Map<string, any>();
@@ -133,50 +110,8 @@ export default function HealthSummaryPage() {
         })
     }, [healthRecords]);
 
-    const filterOptions = useMemo(() => {
-        const campaigns = new Set<string>();
-        const lotesOptions = new Set<string>();
-        const objetivos = new Set<string>();
-        const categorias = new Set<string>();
-
-        normalizedHealthRecords.forEach(r => {
-            if (r.campana) campaigns.add(r.campana);
-            if (r.lote) lotesOptions.add(r.lote);
-            if (r.objetivo) objetivos.add(r.objetivo);
-            if (r.categoria) categorias.add(r.categoria);
-        });
-
-        return { 
-            campaigns: Array.from(campaigns).sort(),
-            lotes: Array.from(lotesOptions).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})), 
-            objetivos: Array.from(objetivos).sort(), 
-            categorias: Array.from(categorias).sort() 
-        };
-    }, [normalizedHealthRecords]);
-
-    const handleApplyFilters = useCallback(() => {
-        setActiveFilters(popoverFilters);
-        setIsFilterOpen(false);
-    }, [popoverFilters]);
-
-    const handleClearFilters = useCallback(() => {
-        const cleared = getInitialFilters();
-        setPopoverFilters(cleared);
-        setActiveFilters(cleared);
-        setIsFilterOpen(false);
-    }, []);
-
     const processedData = useMemo(() => {
-        if (!activeFilters.lote) return [];
-
-        let filtered = normalizedHealthRecords.filter(r => {
-            const campanaMatch = !activeFilters.campana || r.campana === activeFilters.campana;
-            const loteMatch = r.lote === activeFilters.lote;
-            const objetivoMatch = !activeFilters.objetivo || r.objetivo === activeFilters.objetivo;
-            const categoriaMatch = !activeFilters.categoria || r.categoria === activeFilters.categoria;
-
-            return campanaMatch && loteMatch && objetivoMatch && categoriaMatch;
-        });
+        let filtered = normalizedHealthRecords;
 
         const groupedByApplication: { [key: string]: NormalizedHealthRecord & { cuarteles: string[] } } = {};
         filtered.forEach(record => {
@@ -211,7 +146,7 @@ export default function HealthSummaryPage() {
             return { ...record, daysSinceLast };
         }).reverse();
 
-    }, [normalizedHealthRecords, activeFilters]);
+    }, [normalizedHealthRecords]);
 
     const handleDownload = () => {
         const dataToExport = processedData.map(record => {
@@ -232,7 +167,7 @@ export default function HealthSummaryPage() {
         });
 
         if (dataToExport.length === 0) {
-            toast({ variant: "destructive", title: "Sin Datos", description: "No hay datos para exportar con los filtros actuales." });
+            toast({ variant: "destructive", title: "Sin Datos", description: "No hay datos para exportar." });
             return;
         }
 
@@ -242,68 +177,15 @@ export default function HealthSummaryPage() {
         xlsx.writeFile(workbook, "ResumenSanidad.xlsx");
         toast({ title: "Descarga Iniciada", description: "El archivo se está descargando." });
     };
-
+    
     useEffect(() => {
         setActions(
-          <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Filter className="h-5 w-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <div className="grid gap-4">
-                <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
-                <div className="grid gap-2">
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label>Campaña</Label>
-                    <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campana: v === 'all' ? '' : v}))} value={popoverFilters.campana}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label>Lote</Label>
-                    <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                  </div>
-                   <div className="grid grid-cols-3 items-center gap-4">
-                     <Label>Objetivo</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="col-span-2 h-8 justify-between font-normal">
-                                {popoverFilters.objetivo || "Selecciona..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                            <Command>
-                                <CommandInput placeholder="Buscar objetivo..." />
-                                <CommandEmpty>No se encontró.</CommandEmpty>
-                                <CommandGroup>
-                                    <CommandItem onSelect={() => setPopoverFilters(p => ({ ...p, objetivo: '' }))}>Todos</CommandItem>
-                                    {filterOptions.objetivos.map(o => (
-                                        <CommandItem key={o} value={o} onSelect={(currentValue) => { setPopoverFilters(p => ({...p, objetivo: currentValue === p.objetivo ? "" : o }))}}>
-                                            <Check className={cn("mr-2 h-4 w-4", popoverFilters.objetivo === o ? "opacity-100" : "opacity-0")} />
-                                            {o}
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </Command>
-                        </PopoverContent>
-                      </Popover>
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label>Categoría</Label>
-                    <Select onValueChange={(v) => setPopoverFilters(p => ({...p, categoria: v === 'all' ? '' : v}))} value={popoverFilters.categoria}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                  <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <Button variant="ghost" size="icon" onClick={handleDownload} disabled={processedData.length === 0} className="h-9 w-9">
+            <FileDown className="h-5 w-5" />
+          </Button>
         );
         return () => setActions(null);
-    }, [setActions, isFilterOpen, popoverFilters, filterOptions, handleApplyFilters, handleClearFilters]);
+    }, [setActions, processedData, handleDownload]);
 
     const isContentReady = !loading && !masterLoading;
 
@@ -313,46 +195,11 @@ export default function HealthSummaryPage() {
                 <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-            ) : !activeFilters.lote ? (
-                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
-                    <p className="text-muted-foreground text-center mb-4">Seleccione al menos un Lote para ver el resumen.</p>
-                </div>
             ) : (
                 <div className="space-y-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Información del Filtro</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableHead>Lote</TableHead>
-                                        <TableCell>{activeFilters.lote}</TableCell>
-                                    </TableRow>
-                                    {activeFilters.objetivo && (
-                                      <TableRow>
-                                          <TableHead>Objetivo</TableHead>
-                                          <TableCell>{activeFilters.objetivo}</TableCell>
-                                      </TableRow>
-                                    )}
-                                    {activeFilters.categoria && (
-                                       <TableRow>
-                                          <TableHead>Categoría</TableHead>
-                                          <TableCell>{activeFilters.categoria}</TableCell>
-                                      </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Detalle de Aplicaciones</CardTitle>
-                            <Button variant="outline" size="sm" onClick={handleDownload} disabled={processedData.length === 0}>
-                                <FileDown className="mr-2 h-4 w-4"/>Descargar Excel
-                            </Button>
                         </CardHeader>
                         <CardContent>
                              <div className="overflow-x-auto">
@@ -391,7 +238,7 @@ export default function HealthSummaryPage() {
                                             })
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={7} className="h-24 text-center">No hay datos para los filtros seleccionados.</TableCell>
+                                                <TableCell colSpan={7} className="h-24 text-center">No hay datos de sanidad registrados.</TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
@@ -404,4 +251,3 @@ export default function HealthSummaryPage() {
         </div>
     );
 }
-
