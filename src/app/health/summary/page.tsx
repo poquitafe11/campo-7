@@ -105,26 +105,31 @@ export default function HealthSummaryPage() {
     }, [toast]);
 
     const filterOptions = useMemo(() => {
-        const campaigns = [...new Set(healthRecords.map(r => r['campaña']))].filter(Boolean).sort();
-        const lotesOptions = [...new Set(healthRecords.map(r => r['lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        
-        const objetivosSet = new Set<string>();
+        const campaigns = new Set<string>();
+        const lotesOptions = new Set<string>();
+        const objetivos = new Set<string>();
+        const categorias = new Set<string>();
+
         healthRecords.forEach(r => {
-            if (r['objetivo'] && typeof r['objetivo'] === 'string') objetivosSet.add(r['objetivo']);
-            if (r['Objetivo'] && typeof r['Objetivo'] === 'string') objetivosSet.add(r['Objetivo']);
+            if (r['campaña'] && typeof r['campaña'] === 'string') campaigns.add(r['campaña']);
+            if (r['campana'] && typeof r['campana'] === 'string') campaigns.add(r['campana']);
+            
+            if (r['lote'] && typeof r['lote'] === 'string') lotesOptions.add(r['lote']);
+            if (r['Lote'] && typeof r['Lote'] === 'string') lotesOptions.add(r['Lote']);
+            
+            if (r['objetivo'] && typeof r['objetivo'] === 'string') objetivos.add(r['objetivo']);
+            if (r['Objetivo'] && typeof r['Objetivo'] === 'string') objetivos.add(r['Objetivo']);
+            
+            if (r['categoria'] && typeof r['categoria'] === 'string') categorias.add(r['categoria']);
+            if (r['Categoria'] && typeof r['Categoria'] === 'string') categorias.add(r['Categoria']);
+            if (r['Categoría'] && typeof r['Categoría'] === 'string') categorias.add(r['Categoría']);
         });
-        
-        const categoriasSet = new Set<string>();
-        healthRecords.forEach(r => {
-            if (r['categoria'] && typeof r['categoria'] === 'string') categoriasSet.add(r['categoria']);
-            if (r['Categoria'] && typeof r['Categoria'] === 'string') categoriasSet.add(r['Categoria']);
-        });
-        
+
         return { 
-            campaigns, 
-            lotes: lotesOptions, 
-            objetivos: Array.from(objetivosSet).sort(), 
-            categorias: Array.from(categoriasSet).sort() 
+            campaigns: Array.from(campaigns).sort(),
+            lotes: Array.from(lotesOptions).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})), 
+            objetivos: Array.from(objetivos).sort(), 
+            categorias: Array.from(categorias).sort() 
         };
     }, [healthRecords]);
 
@@ -144,10 +149,10 @@ export default function HealthSummaryPage() {
         if (!activeFilters.lote) return [];
 
         let filtered = healthRecords.filter(r => {
-            const campanaMatch = !activeFilters.campana || r['campaña'] === activeFilters.campana;
-            const loteMatch = r['lote'] === activeFilters.lote;
+            const campanaMatch = !activeFilters.campana || r['campaña'] === activeFilters.campana || r['campana'] === activeFilters.campana;
+            const loteMatch = r['lote'] === activeFilters.lote || r['Lote'] === activeFilters.lote;
             const objetivoMatch = !activeFilters.objetivo || r['objetivo'] === activeFilters.objetivo || r['Objetivo'] === activeFilters.objetivo;
-            const categoriaMatch = !activeFilters.categoria || r['categoria'] === activeFilters.categoria || r['Categoria'] === activeFilters.categoria;
+            const categoriaMatch = !activeFilters.categoria || r['categoria'] === activeFilters.categoria || r['Categoria'] === activeFilters.categoria || r['Categoría'] === activeFilters.categoria;
 
             return campanaMatch && loteMatch && objetivoMatch && categoriaMatch;
         });
@@ -378,5 +383,3 @@ export default function HealthSummaryPage() {
         </div>
     );
 }
-
-    
