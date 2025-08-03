@@ -240,7 +240,7 @@ export default function HealthSummaryPage() {
                                 <CommandGroup>
                                     <CommandItem onSelect={() => setPopoverFilters(p => ({ ...p, objetivo: '' }))}>Todos</CommandItem>
                                     {filterOptions.objetivos.map(o => (
-                                        <CommandItem key={o} value={o} onSelect={(currentValue) => { setPopoverFilters(p => ({...p, objetivo: currentValue === popoverFilters.objetivo ? "" : currentValue }))}}>
+                                        <CommandItem key={o} value={o} onSelect={(currentValue) => { setPopoverFilters(p => ({...p, objetivo: currentValue === p.objetivo ? "" : o }))}}>
                                             <Check className={cn("mr-2 h-4 w-4", popoverFilters.objetivo === o ? "opacity-100" : "opacity-0")} />
                                             {o}
                                         </CommandItem>
