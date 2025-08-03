@@ -82,39 +82,48 @@ export default function HealthSummaryPage() {
     }, [toast]);
 
     const processedData = useMemo(() => {
+        // Step 1: Normalize records
         const normalized = healthRecords.map(r => ({
             ...r,
             fechaAplicacion: r['fechaAplicacion'] || '',
-            lote: r['lote'] || r['Lote'] || '',
-            cuarteles: r['cuartel'] || '',
-            producto: r['producto'] || r['Producto'] || '',
-            ingredienteActivo: r['ingredienteActivo'] || r['Ingrediente Activo'] || '',
+            lote: String(r['lote'] || r['Lote'] || ''),
+            cuarteles: String(r['cuartel'] || r['Cuartel'] || ''),
+            producto: String(r['producto'] || r['Producto'] || ''),
+            ingredienteActivo: String(r['ingredienteActivo'] || r['Ingrediente Activo'] || ''),
         }));
 
-        const groupedByApplication: { [key: string]: HealthRecord & { cuarteles: string[] } } = {};
+        // Step 2: Group applications by a reliable key
+        const groupedByApplication: { [key: string]: HealthRecord & { cuarteles: Set<string> } } = {};
         
         normalized.forEach(record => {
             const date = record.fechaAplicacion;
             const product = record.producto;
             const ingredient = record.ingredienteActivo;
-            const key = `${date}-${product}-${ingredient}`;
+            
+            // Only group if product and ingredient are defined, otherwise treat as unique
+            const key = (date && product && ingredient) 
+                      ? `${date}-${product}-${ingredient}` 
+                      : record.id; // Use record ID as a fallback key for unique entries
 
             if (!groupedByApplication[key]) {
-                groupedByApplication[key] = { ...record, cuarteles: [] };
+                groupedByApplication[key] = { ...record, cuarteles: new Set() };
             }
             if (record.cuarteles) {
-                groupedByApplication[key].cuarteles.push(String(record.cuarteles));
+                groupedByApplication[key].cuarteles.add(record.cuarteles);
             }
         });
         
+        // Step 3: Map to final format for display
         return Object.values(groupedByApplication).map(record => ({
             ...record,
-            cuarteles: [...new Set(record.cuarteles)].join(', '),
+            cuarteles: Array.from(record.cuarteles).join(', '),
             parsedDate: parseCustomDate(record.fechaAplicacion)
         })).sort((a, b) => {
-           if (a.parsedDate && b.parsedDate && isValid(a.parsedDate) && isValid(b.parsedDate)) {
+           if (a.parsedDate && b.parsedDate) {
                return b.parsedDate.getTime() - a.parsedDate.getTime();
            }
+           if (a.parsedDate) return -1;
+           if (b.parsedDate) return 1;
            return 0; // Keep original order if dates are invalid
         });
            
