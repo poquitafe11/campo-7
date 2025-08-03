@@ -111,8 +111,12 @@ export default function HealthSummaryPage() {
             ...record,
             cuarteles: [...new Set(record.cuarteles)].join(', '),
             parsedDate: parseCustomDate(record.fechaAplicacion)
-        })).filter(r => r.parsedDate && isValid(r.parsedDate))
-           .sort((a, b) => b.parsedDate!.getTime() - a.parsedDate!.getTime());
+        })).sort((a, b) => {
+           if (a.parsedDate && b.parsedDate && isValid(a.parsedDate) && isValid(b.parsedDate)) {
+               return b.parsedDate.getTime() - a.parsedDate.getTime();
+           }
+           return 0; // Keep original order if dates are invalid
+        });
            
     }, [healthRecords]);
 
@@ -194,7 +198,7 @@ export default function HealthSummaryPage() {
                                                 
                                                 return (
                                                     <TableRow key={record.id}>
-                                                        <TableCell>{record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha Inválida'}</TableCell>
+                                                        <TableCell>{record.parsedDate && isValid(record.parsedDate) ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha Inválida'}</TableCell>
                                                         <TableCell>{ddc}</TableCell>
                                                         <TableCell>{record.lote}</TableCell>
                                                         <TableCell>{record.cuarteles}</TableCell>
