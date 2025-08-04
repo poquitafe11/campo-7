@@ -10,8 +10,8 @@ import { Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 
 const MapEditor = dynamic(() => import('@/components/MapEditor'), { 
+    ssr: false,
     loading: () => <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>,
-    ssr: false 
 });
 
 export default function MapsPage() {
