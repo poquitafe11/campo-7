@@ -222,9 +222,6 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
         </nav>
 
         <div className="mt-auto p-4 space-y-4 border-t border-sidebar-muted-foreground/20">
-          <div className="h-24 bg-gray-700/50 rounded-lg flex items-center justify-center text-xs text-sidebar-muted-foreground">
-            Ad Banner
-          </div>
           <ConnectionStatus />
           <Button
             onClick={() => {
@@ -360,13 +357,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
           {children}
         </main>
-        <footer className="p-4 border-t bg-background">
-            <div className="container mx-auto">
-                <div className="h-24 bg-gray-200 dark:bg-gray-700/50 rounded-lg flex items-center justify-center text-sm text-muted-foreground">
-                    Ad Banner (Footer)
-                </div>
-            </div>
-        </footer>
       </div>
     </div>
   );

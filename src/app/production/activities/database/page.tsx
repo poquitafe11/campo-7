@@ -630,19 +630,8 @@ export default function ActivityDatabasePage() {
               {(loading || masterLoading) ? (
                   <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
               ) : table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row, index) => (
-                    <React.Fragment key={row.id}>
-                      <TableRow>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="whitespace-nowrap px-3 py-2 text-xs">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>
-                      {(index + 1) % 20 === 0 && (
-                          <TableRow>
-                              <TableCell colSpan={columns.length} className="p-0">
-                                  <div className="h-16 bg-muted/30 flex items-center justify-center text-sm text-muted-foreground">
-                                      Espacio para Publicidad
-                                  </div>
-                              </TableCell>
-                          </TableRow>
-                      )}
-                    </React.Fragment>
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="whitespace-nowrap px-3 py-2 text-xs">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>
                   ))
               ) : (
                   <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No se encontraron registros.</TableCell></TableRow>
@@ -701,6 +690,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 

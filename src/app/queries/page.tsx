@@ -109,15 +109,6 @@ export default function QueriesPage() {
                     </>
                   )}
                 </Button>
-                 <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="lg"
-                  onClick={() => toast({ title: 'Próximamente', description: 'Aquí se mostraría un anuncio de video para obtener una consulta gratuita.'})}
-                 >
-                  <Gift className="mr-2 h-4 w-4" />
-                   Obtener consulta extra con un anuncio
-                </Button>
               </div>
 
             </form>
