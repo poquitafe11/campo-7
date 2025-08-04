@@ -350,23 +350,26 @@ export default function RegisterHealthPage() {
 
   const savedRecordsHeaders = useMemo(() => {
     const PREFERRED_ORDER = [
-        'banda',
         'campaña',
-        'categoria',
-        'cuartel',
         'etapa',
+        'variedad',
+        'turno',
         'fechaAplicacion',
-        'ingredienteActivo',
         'lote',
-        'objetivo',
-        'prHoras',
+        'cuartel',
+        'tipoApp',
         'producto',
+        'objetivo',
+        'ingredienteActivo',
+        'categoria',
+        'prHoras',
+        'banda',
     ];
     
     const headers = new Set<string>();
     savedRecords.forEach(record => { 
         Object.keys(record).forEach(key => { 
-            if (key !== 'id' && key !== 'variedad' && key !== 'turno') headers.add(key); 
+            if (key !== 'id') headers.add(key); 
         }); 
     });
     
@@ -489,12 +492,14 @@ export default function RegisterHealthPage() {
                         <TableHeader>
                             <TableRow>
                                 {savedRecordsHeaders.map(header => {
-                                    let headerText = header.charAt(0).toUpperCase() + header.slice(1);
-                                    if (header === 'fechaAplicacion') headerText = 'Fecha Plan de Aplicación';
-                                    if (header === 'prHoras') headerText = 'P.R. HORAS';
-                                    if (header === 'tipoApp') headerText = 'Tipo de App';
-                                    if (header === 'ingredienteActivo') headerText = 'Ingrediente Activo';
-
+                                    let headerText;
+                                    switch (header) {
+                                        case 'fechaAplicacion': headerText = 'Fecha'; break;
+                                        case 'prHoras': headerText = 'P.R. HORAS'; break;
+                                        case 'tipoApp': headerText = 'Tipo de App'; break;
+                                        case 'ingredienteActivo': headerText = 'Ingrediente Activo'; break;
+                                        default: headerText = header.charAt(0).toUpperCase() + header.slice(1);
+                                    }
                                     return <TableHead key={header}>{headerText}</TableHead>
                                 })}
                                 <TableHead>Acciones</TableHead>
