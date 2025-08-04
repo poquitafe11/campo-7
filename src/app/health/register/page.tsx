@@ -350,9 +350,20 @@ export default function RegisterHealthPage() {
 
   const savedRecordsHeaders = useMemo(() => {
     const PREFERRED_ORDER = [
-        'campaña', 'etapa', 'variedad', 'turno', 'fechaAplicacion', 
-        'lote', 'cuartel', 'tipoApp', 'producto', 'objetivo', 
-        'ingredienteActivo', 'categoria', 'prHoras', 'banda'
+        'campaña', 
+        'etapa',
+        'variedad',
+        'turno',
+        'fechaAplicacion',
+        'lote',
+        'cuartel',
+        'tipoApp',
+        'producto',
+        'objetivo',
+        'ingredienteActivo',
+        'categoria',
+        'prHoras',
+        'banda'
     ];
     
     const headers = new Set<string>();
@@ -481,7 +492,8 @@ export default function RegisterHealthPage() {
                         <TableHeader>
                             <TableRow>
                                 {savedRecordsHeaders.map(header => {
-                                    const headerText = header === 'fechaAplicacion' ? 'Fecha' : header.charAt(0).toUpperCase() + header.slice(1);
+                                    let headerText = header.charAt(0).toUpperCase() + header.slice(1);
+                                    if (header === 'fechaAplicacion') headerText = 'Fecha';
                                     return <TableHead key={header}>{headerText}</TableHead>
                                 })}
                                 <TableHead>Acciones</TableHead>
