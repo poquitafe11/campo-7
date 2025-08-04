@@ -7,7 +7,6 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Loader2 } from 'lucide-react';
-import { PageHeader } from '@/components/PageHeader';
 
 const MapEditor = dynamic(() => import('@/components/MapEditor'), { 
     ssr: false,
@@ -52,8 +51,7 @@ export default function MapsPage() {
 
   return (
     <div className="flex flex-col h-full">
-        <PageHeader title="Mapa del Campo" />
-        <div className="flex-grow h-[calc(100vh-12rem)] rounded-lg border overflow-hidden">
+        <div className="flex-grow h-[calc(100vh-8rem)] rounded-lg border overflow-hidden">
             <MapEditor initialPolygons={polygons as any[]} />
         </div>
     </div>

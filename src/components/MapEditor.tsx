@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { LoteData } from '@/lib/types';
+import { ArrowLeft, LayoutGrid } from 'lucide-react';
+import Link from 'next/link';
 
 // Fix icon issue with webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -172,57 +174,70 @@ export default function MapEditor({ initialPolygons }: MapEditorProps) {
     }, [polygons]);
 
     return (
-        <MapContainer center={[-14.07, -75.72]} zoom={14} style={{ height: '100%', width: '100%' }}>
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <FeatureGroup ref={featureGroupRef}>
-                <EditControl
-                    position="topright"
-                    onCreated={handleCreated}
-                    onEdited={handleEdited}
-                    onDeleted={handleDeleted}
-                    draw={{
-                        rectangle: false,
-                        circle: false,
-                        circlemarker: false,
-                        marker: false,
-                        polyline: false,
-                    }}
-                />
-                 {polygonsToRender.map(lote => (
-                    lote && (
-                        <Polygon key={lote.id} positions={lote.position as L.LatLngExpression[]} pathOptions={{ color: lote.color, fillColor: lote.color, fillOpacity: 0.5 }} eventHandlers={{ add: (e) => { (e.target as any).options.id = lote.id; } }}>
-                            <Tooltip sticky>
-                                <strong>Lote:</strong> {lote.lote} | <strong>Cuartel:</strong> {lote.cuartel}<br />
-                                <strong>Variedad:</strong> {lote.variedad}<br />
-                                <strong>Ha:</strong> {lote.ha.toFixed(2)}
-                            </Tooltip>
-                        </Polygon>
-                    )
-                ))}
-            </FeatureGroup>
-            
-            <div className="leaflet-top leaflet-left">
-                <div className="leaflet-control leaflet-bar mt-20 ml-2 bg-white p-2 rounded-md shadow-lg">
-                    <label htmlFor="lote-select" className="block text-sm font-medium text-gray-700 mb-1">
-                        Asignar polígono a:
-                    </label>
-                    <Select onValueChange={setSelectedLote} value={selectedLote || ''}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Selecciona un lote" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {lotesWithoutPolygon.map(lote => (
-                                <SelectItem key={lote.id} value={lote.id}>
-                                    {lote.lote} - {lote.cuartel}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+        <div className="relative h-full w-full">
+            <header className="absolute top-0 left-0 right-0 z-[1000] flex h-16 items-center justify-between bg-background/80 backdrop-blur-sm px-4">
+                 <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" asChild>
+                        <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+                    </Button>
+                    <h1 className="text-lg font-bold">Editor de Mapas</h1>
                 </div>
-            </div>
-        </MapContainer>
+                 <Button variant="ghost" size="icon" asChild>
+                    <Link href="/dashboard"><LayoutGrid className="h-5 w-5" /></Link>
+                </Button>
+            </header>
+            <MapContainer center={[-14.07, -75.72]} zoom={14} style={{ height: '100%', width: '100%' }}>
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <FeatureGroup ref={featureGroupRef}>
+                    <EditControl
+                        position="topright"
+                        onCreated={handleCreated}
+                        onEdited={handleEdited}
+                        onDeleted={handleDeleted}
+                        draw={{
+                            rectangle: false,
+                            circle: false,
+                            circlemarker: false,
+                            marker: false,
+                            polyline: false,
+                        }}
+                    />
+                    {polygonsToRender.map(lote => (
+                        lote && (
+                            <Polygon key={lote.id} positions={lote.position as L.LatLngExpression[]} pathOptions={{ color: lote.color, fillColor: lote.color, fillOpacity: 0.5 }} eventHandlers={{ add: (e) => { (e.target as any).options.id = lote.id; } }}>
+                                <Tooltip sticky>
+                                    <strong>Lote:</strong> {lote.lote} | <strong>Cuartel:</strong> {lote.cuartel}<br />
+                                    <strong>Variedad:</strong> {lote.variedad}<br />
+                                    <strong>Ha:</strong> {lote.ha.toFixed(2)}
+                                </Tooltip>
+                            </Polygon>
+                        )
+                    ))}
+                </FeatureGroup>
+                
+                <div className="leaflet-top leaflet-left">
+                    <div className="leaflet-control leaflet-bar mt-20 ml-2 bg-white p-2 rounded-md shadow-lg">
+                        <label htmlFor="lote-select" className="block text-sm font-medium text-gray-700 mb-1">
+                            Asignar polígono a:
+                        </label>
+                        <Select onValueChange={setSelectedLote} value={selectedLote || ''}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Selecciona un lote" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {lotesWithoutPolygon.map(lote => (
+                                    <SelectItem key={lote.id} value={lote.id}>
+                                        {lote.lote} - {lote.cuartel}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </MapContainer>
+        </div>
     );
 }

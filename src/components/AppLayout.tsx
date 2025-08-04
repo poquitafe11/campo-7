@@ -246,6 +246,7 @@ const Header = () => {
     
     const title = pageTitles[pathname] || 'Campo 7';
     const isAttendanceSummary = pathname === '/production/attendance/summary';
+    const isMapPage = pathname === '/maps';
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const { actions } = useHeaderActions();
 
@@ -339,6 +340,10 @@ const Header = () => {
             </div>
         </header>
     );
+
+    if (isMapPage) {
+        return null;
+    }
 
     return isAttendanceSummary ? renderAttendanceSummaryHeader() : renderDefaultHeader();
 };
