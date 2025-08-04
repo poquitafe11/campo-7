@@ -354,12 +354,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-screen w-full flex-col bg-background">
       <div className="flex flex-col flex-1">
         <Header />
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
           {children}
         </main>
+        <footer className="p-4 border-t bg-background">
+            <div className="container mx-auto">
+                <div className="h-24 bg-gray-200 dark:bg-gray-700/50 rounded-lg flex items-center justify-center text-sm text-muted-foreground">
+                    Ad Banner (Footer)
+                </div>
+            </div>
+        </footer>
       </div>
     </div>
   );
