@@ -5,7 +5,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { BotMessageSquare, Sparkles } from "lucide-react";
+import { BotMessageSquare, Sparkles, Gift } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,12 +15,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { QuerySchema } from "@/lib/types";
 import { useAppData } from "@/context/AppDataContext";
 import { askQuery } from "./actions";
+import { useToast } from "@/hooks/use-toast";
 
 export default function QueriesPage() {
   const { state: appData } = useAppData();
   const [isLoading, setIsLoading] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof QuerySchema>>({
     resolver: zodResolver(QuerySchema),
@@ -93,19 +95,31 @@ export default function QueriesPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" size="lg" disabled={isLoading || !hasData}>
-                {isLoading ? (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4 animate-spin" />
-                    Pensando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Preguntar a la IA
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-wrap gap-4 items-center">
+                <Button type="submit" size="lg" disabled={isLoading || !hasData}>
+                  {isLoading ? (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4 animate-spin" />
+                      Pensando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Preguntar a la IA
+                    </>
+                  )}
+                </Button>
+                 <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => toast({ title: 'Próximamente', description: 'Aquí se mostraría un anuncio de video para obtener una consulta gratuita.'})}
+                 >
+                  <Gift className="mr-2 h-4 w-4" />
+                   Obtener consulta extra con un anuncio
+                </Button>
+              </div>
+
             </form>
           </Form>
 
