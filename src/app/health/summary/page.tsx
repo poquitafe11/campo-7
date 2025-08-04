@@ -29,7 +29,7 @@ const parseCustomDate = (dateString: string): Date | null => {
         'jul': '07', 'ago': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
     };
     
-    const parts = dateString.toLowerCase().split(/[\/-]/);
+    const parts = dateString.toLowerCase().replace(/\./g, '').split(/[\/-]/);
     if (parts.length !== 3) return null;
 
     const day = parts[0];
@@ -39,11 +39,8 @@ const parseCustomDate = (dateString: string): Date | null => {
     const month = months[monthAbbr];
     if (!month) return null;
 
-    let date = parse(`${year}-${month}-${day}`, 'yyyy-MM-dd', new Date());
-    if (isValid(date)) return date;
-
     const formattedDateString = `${year}-${month}-${day}T00:00:00`;
-    date = new Date(formattedDateString);
+    const date = new Date(formattedDateString);
 
     return isValid(date) ? date : null;
 };

@@ -69,7 +69,7 @@ const parseCustomDate = (dateString: string): Date | null => {
         'jul': '07', 'ago': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
     };
     
-    const parts = dateString.toLowerCase().split(/[\/-]/);
+    const parts = dateString.toLowerCase().replace(/\./g, '').split(/[\/-]/);
     if (parts.length !== 3) return null;
 
     const day = parts[0];
@@ -349,7 +349,6 @@ export default function RegisterHealthPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    // Exact order as requested
     const PREFERRED_ORDER = [
         'campaña',
         'etapa',
