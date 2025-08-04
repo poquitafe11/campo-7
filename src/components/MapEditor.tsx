@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, FeatureGroup, Polygon, Tooltip } from 'react-leaflet';
 import { EditControl } from 'react-leaflet-draw';
 import L from 'leaflet';
@@ -226,4 +226,3 @@ export default function MapEditor({ initialPolygons }: MapEditorProps) {
         </MapContainer>
     );
 }
-
