@@ -222,6 +222,9 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
         </nav>
 
         <div className="mt-auto p-4 space-y-4 border-t border-sidebar-muted-foreground/20">
+          <div className="h-24 bg-gray-700/50 rounded-lg flex items-center justify-center text-xs text-sidebar-muted-foreground">
+            Ad Banner
+          </div>
           <ConnectionStatus />
           <Button
             onClick={() => {
