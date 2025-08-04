@@ -18,22 +18,22 @@ const firebaseConfig = {
 // This pattern prevents re-initialization in Next.js environments
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-const db = getFirestore(app);
+let db;
 
-// Enable offline persistence.
-// This should be done once per app instance.
 try {
-  enableIndexedDbPersistence(db, { forceOwnership: true });
-} catch (err: any) {
-  if (err.code === 'failed-precondition') {
-    // Multiple tabs open, persistence can only be enabled in one.
-    console.warn("Firestore persistence failed: Multiple tabs open.");
-  } else if (err.code === 'unimplemented') {
-    // The current browser does not support all of the
-    // features required to enable persistence.
-    console.warn("Firestore persistence failed: Browser does not support it.");
-  }
+  db = getFirestore(app);
+  enableIndexedDbPersistence(db, { forceOwnership: true })
+    .catch((err) => {
+        if (err.code === 'failed-precondition') {
+            console.warn("Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a a time.");
+        } else if (err.code === 'unimplemented') {
+            console.warn("Firestore persistence failed: The current browser does not support all of the features required to enable persistence.");
+        }
+    });
+} catch(e) {
+  console.error("Firebase Firestore initialization error", e);
 }
+
 
 export { db, app };
 export const auth = getAuth(app);
