@@ -349,7 +349,6 @@ export default function RegisterHealthPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    // This is the correct order based on user's repeated requests and image reference.
     const PREFERRED_ORDER = [
         'campaña', 'etapa', 'variedad', 'turno', 'fechaAplicacion', 
         'lote', 'cuartel', 'tipoApp', 'producto', 'objetivo', 
@@ -368,10 +367,10 @@ export default function RegisterHealthPage() {
     headersArray.sort((a, b) => {
         const indexA = PREFERRED_ORDER.indexOf(a);
         const indexB = PREFERRED_ORDER.indexOf(b);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both are in preferred order
-        if (indexA !== -1) return -1; // Only A is in preferred order
-        if (indexB !== -1) return 1; // Only B is in preferred order
-        return a.localeCompare(b); // Fallback for columns not in the preferred list
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
     });
     
     return headersArray;
