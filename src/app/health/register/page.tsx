@@ -349,21 +349,22 @@ export default function RegisterHealthPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
+    // Exact order as requested
     const PREFERRED_ORDER = [
-      'campaña',
-      'etapa',
-      'variedad',
-      'turno',
-      'fechaAplicacion',
-      'lote',
-      'cuartel',
-      'tipoApp',
-      'producto',
-      'objetivo',
-      'ingredienteActivo',
-      'categoria',
-      'prHoras',
-      'banda',
+        'campaña',
+        'etapa',
+        'variedad',
+        'turno',
+        'fechaAplicacion',
+        'lote',
+        'cuartel',
+        'tipoApp',
+        'producto',
+        'objetivo',
+        'ingredienteActivo',
+        'categoria',
+        'prHoras',
+        'banda',
     ];
     
     const headers = new Set<string>();
