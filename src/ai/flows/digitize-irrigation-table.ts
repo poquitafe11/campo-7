@@ -45,6 +45,7 @@ Next, analyze all the tables in the image. The rows are related horizontally acr
 
 - Use the headers provided in the image as keys for the JSON objects.
 - For columns under 'Unidades/Ha', use the specific header (e.g., 'N', 'P2O5', 'K', 'Mn').
+- **IMPORTANT**: Pay close attention to chemical symbols. The symbol "Mπ", "Mpi", or similar-looking text MUST be interpreted and keyed as "Mn" (Manganeso).
 - Include the extracted 'Fundo', 'Dia', 'Fecha', and 'eT' in every single row object of the final JSON array.
 - Ensure all values, including numbers, text, and empty cells (represented as empty strings), are extracted precisely.
 - The final output must be a single, valid JSON array string.
