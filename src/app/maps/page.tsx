@@ -7,10 +7,15 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Loader2 } from 'lucide-react';
+import MapEditor from '@/components/MapEditor';
 
-const MapEditor = dynamic(() => import('@/components/MapEditor'), { 
+const MapDisplay = dynamic(() => import('@/components/MapDisplay'), {
     ssr: false,
-    loading: () => <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>,
+    loading: () => (
+        <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    ),
 });
 
 
@@ -53,7 +58,9 @@ export default function MapsPage() {
   return (
     <div className="flex flex-col h-full">
         <div className="flex-grow h-[calc(100vh-8rem)] rounded-lg border overflow-hidden">
-            <MapEditor initialPolygons={polygons as any[]} />
+            <MapDisplay>
+              <MapEditor initialPolygons={polygons as any[]} />
+            </MapDisplay>
         </div>
     </div>
   );
