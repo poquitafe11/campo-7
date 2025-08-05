@@ -494,7 +494,7 @@ export default function RegisterHealthPage() {
                                 {savedRecordsHeaders.map(header => {
                                     let headerText;
                                     switch (header) {
-                                        case 'fechaAplicacion': headerText = 'Fecha'; break;
+                                        case 'fechaAplicacion': headerText = 'Fecha Plan de Aplicación'; break;
                                         case 'prHoras': headerText = 'P.R. Horas'; break;
                                         case 'tipoApp': headerText = 'Tipo de App'; break;
                                         case 'ingredienteActivo': headerText = 'Ingrediente Activo'; break;
