@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from 'react';
@@ -7,17 +6,16 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Loader2 } from 'lucide-react';
-import MapEditor from '@/components/MapEditor';
+import { MapContainer, TileLayer } from 'react-leaflet';
 
-const MapDisplay = dynamic(() => import('@/components/MapDisplay'), {
+const MapEditor = dynamic(() => import('@/components/MapEditor'), {
     ssr: false,
     loading: () => (
-        <div className="flex h-full items-center justify-center">
+        <div className="flex h-full items-center justify-center bg-gray-200">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     ),
 });
-
 
 export default function MapsPage() {
   const { lotes, loading } = useMasterData();
@@ -58,9 +56,18 @@ export default function MapsPage() {
   return (
     <div className="flex flex-col h-full">
         <div className="flex-grow h-[calc(100vh-8rem)] rounded-lg border overflow-hidden">
-            <MapDisplay>
-              <MapEditor initialPolygons={polygons as any[]} />
-            </MapDisplay>
+             <MapContainer
+                center={[-14.07, -75.72]}
+                zoom={14}
+                style={{ height: '100%', width: '100%' }}
+                className="relative"
+            >
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapEditor initialPolygons={polygons as any[]} />
+            </MapContainer>
         </div>
     </div>
   );

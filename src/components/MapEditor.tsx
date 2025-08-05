@@ -1,22 +1,18 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { FeatureGroup, Polygon, Tooltip } from 'react-leaflet';
+import { FeatureGroup, Polygon, Tooltip, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { EditControl } from 'react-leaflet-draw';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { LoteData } from '@/lib/types';
 import { ArrowLeft, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
-import { useMap } from 'react-leaflet/hooks';
 
 // Fix icon issue with webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -48,6 +44,48 @@ const getColorForLote = (loteName: string) => {
     return "#" + "00000".substring(0, 6 - color.length) + color;
 };
 
+const MapToolbar = ({ onLoteSelect, lotes }: { onLoteSelect: (id: string | null) => void, lotes: any[] }) => {
+    const map = useMap();
+    
+    useEffect(() => {
+        const controlContainer = L.DomUtil.get('map-toolbar-container');
+        if (controlContainer) {
+            const selectContainer = L.DomUtil.create('div', 'leaflet-control leaflet-bar bg-white p-2 rounded-md shadow-lg');
+            
+            const label = L.DomUtil.create('label', 'block text-sm font-medium text-gray-700 mb-1', selectContainer);
+            label.htmlFor = 'lote-select';
+            label.innerText = 'Asignar polígono a:';
+
+            const select = L.DomUtil.create('select', 'w-full p-2 border rounded', selectContainer);
+            select.id = 'lote-select';
+
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.innerText = 'Selecciona un lote';
+            select.appendChild(defaultOption);
+
+            lotes.forEach(lote => {
+                const option = document.createElement('option');
+                option.value = lote.id;
+                option.innerText = `${lote.lote} - ${lote.cuartel}`;
+                select.appendChild(option);
+            });
+            
+            select.onchange = (e) => onLoteSelect((e.target as HTMLSelectElement).value || null);
+            
+            L.DomEvent.disableClickPropagation(selectContainer);
+            controlContainer.appendChild(selectContainer);
+            
+            return () => {
+                if (controlContainer.contains(selectContainer)) {
+                    controlContainer.removeChild(selectContainer);
+                }
+            }
+        }
+    }, [map, lotes, onLoteSelect]);
+
+    return null;
+}
 
 export default function MapEditor({ initialPolygons }: MapEditorProps) {
     const { lotes: masterLotes, refreshData } = useMasterData();
@@ -56,7 +94,7 @@ export default function MapEditor({ initialPolygons }: MapEditorProps) {
     const [polygons, setPolygons] = useState(initialPolygons);
     const featureGroupRef = React.useRef<L.FeatureGroup>(null);
 
-     useEffect(() => {
+    useEffect(() => {
         setPolygons(initialPolygons);
     }, [initialPolygons]);
 
@@ -72,7 +110,7 @@ export default function MapEditor({ initialPolygons }: MapEditorProps) {
                 title: 'Error',
                 description: 'Por favor, selecciona un lote antes de dibujar.',
             });
-            if(featureGroupRef.current) {
+            if (featureGroupRef.current) {
                 featureGroupRef.current.removeLayer(e.layer);
             }
             return;
@@ -90,7 +128,7 @@ export default function MapEditor({ initialPolygons }: MapEditorProps) {
                 description: `Polígono guardado para el lote seleccionado.`,
             });
             await refreshData();
-            setSelectedLote(null); // Reset selection
+            setSelectedLote(null);
         } catch (error) {
             console.error('Error saving polygon: ', error);
             toast({
@@ -102,133 +140,61 @@ export default function MapEditor({ initialPolygons }: MapEditorProps) {
     };
 
     const handleEdited = async (e: any) => {
-        e.layers.eachLayer(async (layer: any) => {
-            const geoJSON = layer.toGeoJSON();
-            const polygonId = layer.options.id; 
-            
-            if (!polygonId) return;
-
+        for (const layer of Object.values(e.layers._layers)) {
+            const geoJSON = (layer as L.Polygon).toGeoJSON();
+            const polygonId = (layer as any).options.id;
+            if (!polygonId) continue;
             const loteRef = doc(db, 'maestro-lotes', polygonId);
-
             try {
-                await updateDoc(loteRef, {
-                    geoJSON: JSON.stringify(geoJSON),
-                });
-                toast({
-                    title: 'Éxito',
-                    description: `Polígono actualizado.`,
-                });
-                await refreshData();
+                await updateDoc(loteRef, { geoJSON: JSON.stringify(geoJSON) });
             } catch (error) {
-                 console.error('Error updating polygon: ', error);
-                 toast({
-                    variant: 'destructive',
-                    title: 'Error al Actualizar',
-                    description: 'No se pudo actualizar el polígono.',
-                });
+                console.error('Error updating polygon: ', error);
+                toast({ variant: 'destructive', title: 'Error al Actualizar', description: 'No se pudo actualizar el polígono.' });
             }
-        });
-    }
+        }
+        toast({ title: 'Éxito', description: `Polígonos actualizados.` });
+        await refreshData();
+    };
 
     const handleDeleted = async (e: any) => {
-         e.layers.eachLayer(async (layer: any) => {
-            const polygonId = layer.options.id; 
-            if (!polygonId) return;
-
+        for (const layer of Object.values(e.layers._layers)) {
+            const polygonId = (layer as any).options.id;
+            if (!polygonId) continue;
             const loteRef = doc(db, 'maestro-lotes', polygonId);
             try {
-                await updateDoc(loteRef, {
-                    geoJSON: '', // or deleteField()
-                });
-                toast({
-                    title: 'Éxito',
-                    description: `Polígono eliminado.`,
-                });
-                await refreshData();
+                await updateDoc(loteRef, { geoJSON: '' });
             } catch (error) {
-                 console.error('Error deleting polygon: ', error);
-                 toast({
-                    variant: 'destructive',
-                    title: 'Error al Eliminar',
-                    description: 'No se pudo eliminar el polígono.',
-                });
+                console.error('Error deleting polygon: ', error);
+                toast({ variant: 'destructive', title: 'Error al Eliminar', description: 'No se pudo eliminar el polígono.' });
             }
-        });
-    }
-    
+        }
+        toast({ title: 'Éxito', description: `Polígonos eliminados.` });
+        await refreshData();
+    };
+
     const polygonsToRender = useMemo(() => {
         return polygons.map(lote => {
-        if (!lote.geoJSON) return null;
-        try {
-            const geojson = JSON.parse(lote.geoJSON);
-            const coordinates = geojson.geometry.coordinates[0].map((coord: [number, number]) => [coord[1], coord[0]]);
-            return {
-            ...lote,
-            position: coordinates,
-            color: getColorForLote(lote.lote),
-            };
-        } catch (e) {
-            console.error("Failed to parse GeoJSON", e);
-            return null;
-        }
+            if (!lote.geoJSON) return null;
+            try {
+                const geojson = JSON.parse(lote.geoJSON);
+                const coordinates = geojson.geometry.coordinates[0].map((coord: [number, number]) => [coord[1], coord[0]]);
+                return { ...lote, position: coordinates, color: getColorForLote(lote.lote) };
+            } catch (e) {
+                return null;
+            }
         }).filter(p => p !== null);
     }, [polygons]);
-    
-    const map = useMap();
-    
-    useEffect(() => {
-        const controlContainer = document.querySelector('.leaflet-top.leaflet-left');
-        if (controlContainer) {
-            const newControl = L.DomUtil.create('div', 'leaflet-control leaflet-bar mt-20 ml-2 bg-white p-2 rounded-md shadow-lg');
-            
-            const label = L.DomUtil.create('label', 'block text-sm font-medium text-gray-700 mb-1', newControl);
-            label.htmlFor = 'lote-select';
-            label.innerText = 'Asignar polígono a:';
-
-            // We cannot use React components here, so we build the select manually
-            const select = L.DomUtil.create('select', 'w-full p-2 border rounded', newControl);
-            select.id = 'lote-select';
-
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.innerText = 'Selecciona un lote';
-            select.appendChild(defaultOption);
-
-            lotesWithoutPolygon.forEach(lote => {
-                const option = document.createElement('option');
-                option.value = lote.id;
-                option.innerText = `${lote.lote} - ${lote.cuartel}`;
-                select.appendChild(option);
-            });
-            
-            select.onchange = (e) => setSelectedLote((e.target as HTMLSelectElement).value || null);
-            
-            L.DomEvent.disableClickPropagation(newControl);
-            controlContainer.appendChild(newControl);
-            
-            return () => {
-                if (controlContainer && controlContainer.contains(newControl)) {
-                    controlContainer.removeChild(newControl);
-                }
-            }
-        }
-    }, [map, lotesWithoutPolygon]);
-
 
     return (
         <>
             <header className="absolute top-0 left-0 right-0 z-[1000] flex h-16 items-center justify-between bg-background/80 backdrop-blur-sm px-4">
-                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" asChild>
-                        <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
-                    </Button>
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" asChild><Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link></Button>
                     <h1 className="text-lg font-bold">Editor de Mapas</h1>
                 </div>
-                 <Button variant="ghost" size="icon" asChild>
-                    <Link href="/dashboard"><LayoutGrid className="h-5 w-5" /></Link>
-                </Button>
+                <Button variant="ghost" size="icon" asChild><Link href="/dashboard"><LayoutGrid className="h-5 w-5" /></Link></Button>
             </header>
-            
+             <div id="map-toolbar-container" className="leaflet-top leaflet-left mt-20 ml-2"></div>
             <FeatureGroup ref={featureGroupRef}>
                 <EditControl
                     position="topright"
@@ -255,6 +221,7 @@ export default function MapEditor({ initialPolygons }: MapEditorProps) {
                     )
                 ))}
             </FeatureGroup>
+            <MapToolbar onLoteSelect={setSelectedLote} lotes={lotesWithoutPolygon} />
         </>
     );
 }
