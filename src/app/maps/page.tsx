@@ -6,12 +6,11 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Loader2 } from 'lucide-react';
-import { MapContainer, TileLayer } from 'react-leaflet';
 
-const MapEditor = dynamic(() => import('@/components/MapEditor'), {
+const MapView = dynamic(() => import('@/components/MapView'), {
     ssr: false,
     loading: () => (
-        <div className="flex h-full items-center justify-center bg-gray-200">
+        <div className="flex h-[calc(100vh-8rem)] w-full items-center justify-center rounded-lg border bg-muted">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     ),
@@ -54,21 +53,8 @@ export default function MapsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-        <div className="flex-grow h-[calc(100vh-8rem)] rounded-lg border overflow-hidden">
-             <MapContainer
-                center={[-14.07, -75.72]}
-                zoom={14}
-                style={{ height: '100%', width: '100%' }}
-                className="relative"
-            >
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <MapEditor initialPolygons={polygons as any[]} />
-            </MapContainer>
-        </div>
+    <div className="h-[calc(100vh-8rem)] w-full">
+        <MapView initialPolygons={polygons as any[]} />
     </div>
   );
 }
