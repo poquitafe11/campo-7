@@ -596,4 +596,3 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
-
