@@ -232,10 +232,10 @@ export default function ActivitySummaryPage() {
         return { lotes, labors };
     }, [allActivities]);
     
-    const handleApplyFilters = () => {
+    const handleApplyFilters = useCallback(() => {
         setActiveFilters(popoverFilters);
         setIsFilterOpen(false);
-    };
+    }, [popoverFilters]);
 
     useEffect(() => {
         setActions(
@@ -254,7 +254,7 @@ export default function ActivitySummaryPage() {
                            <div className="space-y-2"><h4 className="font-medium leading-none">Filtros de Resumen</h4></div>
                            <div className="grid gap-2">
                                 <Label>Lote</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, lote: v === 'all' ? '' : v }))} value={popoverFilters.lote}>
                                     <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todos</SelectItem>
@@ -262,7 +262,7 @@ export default function ActivitySummaryPage() {
                                     </SelectContent>
                                 </Select>
                                 <Label>Labor</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, labor: v === 'all' ? '' : v }))} value={popoverFilters.labor}>
                                     <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todas</SelectItem>
@@ -279,7 +279,7 @@ export default function ActivitySummaryPage() {
             </>
         );
         return () => setActions(null);
-    }, [setActions, isFilterOpen, popoverFilters, filterOptions, loading, handleApplyFilters]);
+    }, [setActions, isFilterOpen, popoverFilters.lote, popoverFilters.labor, filterOptions.lotes, filterOptions.labors, loading, handleApplyFilters]);
 
 
     return (
