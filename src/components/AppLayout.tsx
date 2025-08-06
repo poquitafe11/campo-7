@@ -266,11 +266,11 @@ const Header = () => {
     };
 
     const renderDefaultHeader = () => (
-        <header className="sticky top-0 z-40 flex h-auto min-h-16 items-center justify-between gap-4 border-b bg-background px-4 py-2 flex-wrap">
-            <div className="flex items-center gap-2">
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-background px-4">
+            <div className="flex items-center gap-1">
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 md:hidden">
                     <Menu className="h-5 w-5" />
                     <span className="sr-only">Abrir menú</span>
                     </Button>
@@ -286,7 +286,7 @@ const Header = () => {
                     </Button>
                 )}
 
-                <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
+                <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
                     {title}
                 </h1>
             </div>
