@@ -358,9 +358,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
+      <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
         {children}
-      </main>
+      </div>
     </>
   );
 }

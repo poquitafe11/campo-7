@@ -325,30 +325,28 @@ export default function ActivitySummaryPage() {
                     <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="space-y-4">
-                        <div className="overflow-x-auto">
-                          <div className="max-w-md inline-block">
+                        <div className="inline-block">
                               <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs">
                                   <thead className="text-left font-bold text-black">
                                       <tr>
-                                          <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle">
+                                          <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle whitespace-nowrap">
                                               LABOR: {(activeFilters.labor || 'N/A').toUpperCase()}
                                           </th>
                                       </tr>
                                   </thead>
                                   <tbody className="bg-white">
                                       <tr>
-                                          <td className="border border-black px-2 py-1 font-bold">LOTE: {activeFilters.lote || 'N/A'}</td>
-                                          <td className="border border-black px-2 py-1 font-bold">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
+                                          <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">LOTE: {activeFilters.lote || 'N/A'}</td>
+                                          <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
                                       </tr>
                                       <tr>
-                                          <td className="border border-black px-2 py-1 font-bold">PASADA: {activeFilters.pasada || 'N/A'}</td>
-                                          <td className="border border-black px-2 py-1 font-bold">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
+                                          <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">PASADA: {activeFilters.pasada || 'N/A'}</td>
+                                          <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
                                       </tr>
                                   </tbody>
                               </table>
                           </div>
-                        </div>
-                        <div className="overflow-x-auto pb-4">
+                        <div className="pb-4">
                             <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs">
                                 <thead className="text-center font-bold text-black">
                                     <tr className="bg-gray-300">
