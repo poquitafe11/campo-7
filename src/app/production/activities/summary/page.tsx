@@ -68,8 +68,8 @@ export default function ActivitySummaryPage() {
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
     const { lotes: allLotes, labors: allLabors, minMax: allMinMax, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
-    const [activeFilters, setActiveFilters] = useState({ lote: '', labor: '' });
-    const [popoverFilters, setPopoverFilters] = useState({ lote: '', labor: '' });
+    const [activeFilters, setActiveFilters] = useState({ lote: '', labor: '', pasada: '' });
+    const [popoverFilters, setPopoverFilters] = useState({ lote: '', labor: '', pasada: '' });
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const { setActions } = useHeaderActions();
 
@@ -106,7 +106,9 @@ export default function ActivitySummaryPage() {
 
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
         const filteredActivities = allActivities.filter(a => 
-            a.lote === activeFilters.lote && a.labor === activeFilters.labor
+            a.lote === activeFilters.lote && 
+            a.labor === activeFilters.labor &&
+            String(a.pass) === activeFilters.pasada
         );
 
         if (filteredActivities.length === 0) return null;
@@ -147,7 +149,7 @@ export default function ActivitySummaryPage() {
                 hasDia,
                 summaryData: {
                     lote: activeFilters.lote,
-                    pasada: 0,
+                    pasada: parseInt(activeFilters.pasada, 10),
                     fecha: format(parseISO(dateStr), 'dd-MMM', { locale: es }),
                     personas,
                     plantas,
@@ -182,13 +184,14 @@ export default function ActivitySummaryPage() {
     }, [allActivities, allLotes, activeFilters]);
 
     const minMaxData = useMemo(() => {
-        if (!activeFilters.lote || !activeFilters.labor || masterLoading) {
+        if (!activeFilters.lote || !activeFilters.labor || !activeFilters.pasada || masterLoading) {
             return { min: 'N/A', max: 'N/A' };
         }
         
         const foundMinMax = allMinMax.find(item =>
             item.lote === activeFilters.lote &&
-            item.labor === activeFilters.labor
+            item.labor === activeFilters.labor &&
+            String(item.pasada) === activeFilters.pasada
         );
 
         if (foundMinMax) {
@@ -229,7 +232,8 @@ export default function ActivitySummaryPage() {
     const filterOptions = useMemo(() => {
         const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
-        return { lotes, labors };
+        const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+        return { lotes, labors, pasadas };
     }, [allActivities]);
     
     const handleApplyFilters = useCallback(() => {
@@ -269,6 +273,14 @@ export default function ActivitySummaryPage() {
                                         {filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
+                                <Label>Pasada</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, pasada: v === 'all' ? '' : v }))} value={popoverFilters.pasada}>
+                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todas</SelectItem>
+                                        {filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
                            </div>
                            <div className="flex justify-end pt-2">
                                 <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
@@ -279,7 +291,7 @@ export default function ActivitySummaryPage() {
             </>
         );
         return () => setActions(null);
-    }, [setActions, isFilterOpen, popoverFilters.lote, popoverFilters.labor, filterOptions.lotes, filterOptions.labors, loading, handleApplyFilters]);
+    }, [setActions, isFilterOpen, popoverFilters, filterOptions, loading, handleApplyFilters]);
 
 
     return (
@@ -309,7 +321,7 @@ export default function ActivitySummaryPage() {
                               </tbody>
                           </table>
                       </div>
-                    <div className="pb-4 overflow-x-auto">
+                    <div className="pb-4">
                         <table className="border-collapse border border-black text-xs">
                             <thead className="text-center font-bold text-black">
                                 <tr className="bg-gray-300">
@@ -366,7 +378,7 @@ export default function ActivitySummaryPage() {
                 </div>
             ) : (
                 <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                    <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir al menos un Lote y una Labor.</p>
+                    <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir Lote, Labor y Pasada.</p>
                 </div>
             )}
         </div>
