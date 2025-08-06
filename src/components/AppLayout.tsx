@@ -96,6 +96,7 @@ const pageTitles: { [key: string]: string } = {
     '/queries': 'Asistente de Consultas IA',
     '/summary': 'Resumen de Datos',
     '/maps': 'Mapas',
+    '/production/analysis': 'Análisis y Reportes',
   };
 
 
@@ -242,30 +243,12 @@ const MobileNavContent = ({ closeSheet }: { closeSheet: () => void }) => {
 const Header = () => {
     const pathname = usePathname();
     const router = useRouter();
-    const searchParams = useSearchParams();
     
     const title = pageTitles[pathname] || 'Campo 7';
-    const isAttendanceSummary = pathname === '/production/attendance/summary';
-    const isMapPage = pathname === '/maps';
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const { actions } = useHeaderActions();
 
-    const selectedDateParam = searchParams.get('date');
-    const selectedDate = selectedDateParam ? new Date(selectedDateParam) : new Date();
-
-    const handleDateSelect = (date: Date | undefined) => {
-        if (date) {
-            const newPath = `${pathname}?date=${format(date, 'yyyy-MM-dd')}`;
-            router.push(newPath);
-        }
-    };
-    
-    const handleRefresh = () => {
-       const currentDate = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd');
-       router.push(`${pathname}?date=${currentDate}&refresh=${new Date().getTime()}`);
-    };
-
-    const renderDefaultHeader = () => (
+    return (
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-background px-4">
             <div className="flex items-center gap-1">
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -301,51 +284,6 @@ const Header = () => {
             </div>
         </header>
     );
-
-    const renderAttendanceSummaryHeader = () => (
-        <header className="sticky top-0 z-40 flex items-center justify-between px-2 py-2 border-b bg-background">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-9 w-9">
-                <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex flex-col items-center">
-                <span className="text-sm font-medium">Resumen de</span>
-                <span className="text-lg font-bold -mt-1">Asistencia</span>
-            </div>
-            <div className="flex items-center gap-1">
-                 <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-9 w-9">
-                    <RefreshCcw className="h-5 w-5" />
-                </Button>
-                 <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" className="h-9 px-2 gap-1">
-                            <CalendarIcon className="h-5 w-5" />
-                            <span className="text-xs">{format(selectedDate, 'd MMM yyyy', { locale: es })}</span>
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={handleDateSelect}
-                            initialFocus
-                            locale={es}
-                        />
-                    </PopoverContent>
-                </Popover>
-                 <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-                    <Link href="/dashboard">
-                        <LayoutGrid className="h-5 w-5" />
-                    </Link>
-                </Button>
-            </div>
-        </header>
-    );
-
-    if (isMapPage) {
-        return null;
-    }
-
-    return isAttendanceSummary ? renderAttendanceSummaryHeader() : renderDefaultHeader();
 };
   
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -356,11 +294,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <Header />
-      <main className="flex-1 overflow-auto p-4 sm:p-6">
-          {children}
-      </main>
+     <div className="flex min-h-screen w-full flex-col">
+        <Header />
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            {children}
+        </main>
     </div>
   );
 }

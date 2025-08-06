@@ -14,7 +14,12 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, Legend, RadialBar, RadialBarChart, XAxis, YAxis, ComposedChart, Line, LabelList } from 'recharts';
+import { Bar, BarChart, ComposedChart, Line, LabelList, Legend, RadialBar, RadialBarChart, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SummaryValues {
     lote: string;
@@ -64,6 +69,9 @@ export default function ActivitySummaryPage() {
     const { lotes: allLotes, labors: allLabors, minMax: allMinMax, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
     const [activeFilters, setActiveFilters] = useState({ lote: '', labor: '' });
+    const [popoverFilters, setPopoverFilters] = useState({ lote: '', labor: '' });
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const { setActions } = useHeaderActions();
 
     const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
@@ -217,97 +225,150 @@ export default function ActivitySummaryPage() {
             }))
             .reverse(); 
     }, [multiDaySummary]);
+    
+    const filterOptions = useMemo(() => {
+        const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+        const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
+        return { lotes, labors };
+    }, [allActivities]);
+    
+    const handleApplyFilters = () => {
+        setActiveFilters(popoverFilters);
+        setIsFilterOpen(false);
+    };
+
+    useEffect(() => {
+        setActions(
+            <>
+                <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={loading} className="h-9 w-9">
+                    <RefreshCcw className="h-5 w-5" />
+                </Button>
+                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                    <PopoverTrigger asChild>
+                         <Button variant="ghost" size="icon" className="h-9 w-9">
+                            <Filter className="h-5 w-5" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                       <div className="grid gap-4">
+                           <div className="space-y-2"><h4 className="font-medium leading-none">Filtros de Resumen</h4></div>
+                           <div className="grid gap-2">
+                                <Label>Lote</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}>
+                                    <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todos</SelectItem>
+                                        {filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Label>Labor</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}>
+                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todas</SelectItem>
+                                        {filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                           </div>
+                           <div className="flex justify-end pt-2">
+                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                           </div>
+                       </div>
+                    </PopoverContent>
+                </Popover>
+            </>
+        );
+        return () => setActions(null);
+    }, [setActions, isFilterOpen, popoverFilters, filterOptions, loading, handleApplyFilters]);
 
 
     return (
-        <div className="container mx-auto p-0 sm:p-2 lg:p-4">
-            <div className="space-y-4">
-                {loading ? (
-                    <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-                ) : multiDaySummary && multiDaySummary.length > 0 ? (
-                    <div className="space-y-4">
-                        <div className="inline-block">
-                              <table className="border-collapse border border-black text-xs">
-                                  <thead className="text-left font-bold text-black">
-                                      <tr>
-                                          <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle whitespace-nowrap">
-                                              LABOR: {(activeFilters.labor || 'N/A').toUpperCase()}
-                                          </th>
-                                      </tr>
-                                  </thead>
-                                  <tbody className="bg-white">
-                                      <tr>
-                                          <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">LOTE: {activeFilters.lote || 'N/A'}</td>
-                                          <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
-                                      </tr>
-                                      <tr>
-                                          <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">PASADA: {activeFilters.pasada || 'N/A'}</td>
-                                          <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
-                                      </tr>
-                                  </tbody>
-                              </table>
-                          </div>
-                        <div className="pb-4">
-                            <table className="border-collapse border border-black text-xs">
-                                <thead className="text-center font-bold text-black">
-                                    <tr className="bg-gray-300">
-                                        <td className="border border-black px-4 py-2 font-bold w-36 whitespace-nowrap">FECHA</td>
-                                        {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold whitespace-nowrap">{day.summary.fecha}</td>)}
+        <div className="space-y-4">
+            {loading ? (
+                <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            ) : multiDaySummary && multiDaySummary.length > 0 ? (
+                <div className="space-y-4">
+                    <div className="inline-block">
+                          <table className="border-collapse border border-black text-xs">
+                              <thead className="text-left font-bold text-black">
+                                  <tr>
+                                      <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle whitespace-nowrap">
+                                          LABOR: {(activeFilters.labor || 'N/A').toUpperCase()}
+                                      </th>
+                                  </tr>
+                              </thead>
+                              <tbody className="bg-white">
+                                  <tr>
+                                      <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">LOTE: {activeFilters.lote || 'N/A'}</td>
+                                      <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
+                                  </tr>
+                                  <tr>
+                                      <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">PASADA: {activeFilters.pasada || 'N/A'}</td>
+                                      <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                      </div>
+                    <div className="pb-4 overflow-x-auto">
+                        <table className="border-collapse border border-black text-xs">
+                            <thead className="text-center font-bold text-black">
+                                <tr className="bg-gray-300">
+                                    <th className="border border-black px-4 py-2 font-bold w-36 whitespace-nowrap">FECHA</th>
+                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black px-4 py-2 text-center font-bold whitespace-nowrap">{day.summary.fecha}</th>)}
+                                </tr>
+                            </thead>
+                            <tbody className="bg-[#dbe5f1]">
+                                {summaryRows.map(row => (
+                                    <tr key={String(row.key)}>
+                                        <td className={`border border-black px-4 py-2 font-bold w-36 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
+                                        {multiDaySummary.map((day, index) => {
+                                            const value = day.summary[row.key];
+                                            return (
+                                                <td key={index} className={`border border-black px-4 py-2 text-center whitespace-nowrap ${row.bgClass || ''}`}>
+                                                    {row.format ? row.format(value) : value}
+                                                </td>
+                                            )
+                                        })}
                                     </tr>
-                                </thead>
-                                <tbody className="bg-[#dbe5f1]">
-                                    {summaryRows.map(row => (
-                                        <tr key={String(row.key)}>
-                                            <td className={`border border-black px-4 py-2 font-bold w-36 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
-                                            {multiDaySummary.map((day, index) => {
-                                                const value = day.summary[row.key];
-                                                return (
-                                                    <td key={index} className={`border border-black px-4 py-2 text-center whitespace-nowrap ${row.bgClass || ''}`}>
-                                                        {row.format ? row.format(value) : value}
-                                                    </td>
-                                                )
-                                            })}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Gráfico de Jornadas, Hectáreas y Promedio</CardTitle>
-                                <CardDescription>
-                                    Visualización de las jornadas (JHU), hectáreas (Has) y el promedio de rendimiento por día.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                                    <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-                                        <CartesianGrid vertical={false} />
-                                        <XAxis dataKey="fecha" tickLine={false} axisLine={false} tickMargin={8} />
-                                        <YAxis yAxisId="left" orientation="left" stroke={chartConfig.jhu.color} />
-                                        <YAxis yAxisId="right" orientation="right" stroke={chartConfig.has.color} />
-                                        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                        <Legend />
-                                        <Bar dataKey="jhu" yAxisId="left" fill="var(--color-jhu)" radius={4}>
-                                            <LabelList dataKey="jhu" position="top" offset={8} className="fill-foreground text-xs" formatter={(value: number) => value.toFixed(2)} />
-                                        </Bar>
-                                        <Line type="monotone" dataKey="has" yAxisId="right" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)", r: 4 }}>
-                                            <LabelList dataKey="has" position="top" offset={8} className="fill-foreground text-xs" />
-                                        </Line>
-                                        <Line type="monotone" dataKey="promedio" yAxisId="left" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)", r: 4 }}>
-                                             <LabelList dataKey="promedio" position="top" offset={8} className="fill-foreground text-xs" />
-                                        </Line>
-                                    </ComposedChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                ) : (
-                    <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                        <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir al menos un Lote y una Labor.</p>
-                    </div>
-                )}
-            </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gráfico de Jornadas, Hectáreas y Promedio</CardTitle>
+                            <CardDescription>
+                                Visualización de las jornadas (JHU), hectáreas (Has) y el promedio de rendimiento por día.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                                <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="fecha" tickLine={false} axisLine={false} tickMargin={8} />
+                                    <YAxis yAxisId="left" orientation="left" stroke={chartConfig.jhu.color} />
+                                    <YAxis yAxisId="right" orientation="right" stroke={chartConfig.has.color} />
+                                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                    <Legend />
+                                    <Bar dataKey="jhu" yAxisId="left" fill="var(--color-jhu)" radius={4}>
+                                        <LabelList dataKey="jhu" position="top" offset={8} className="fill-foreground text-xs" formatter={(value: number) => value.toFixed(2)} />
+                                    </Bar>
+                                    <Line type="monotone" dataKey="has" yAxisId="right" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)", r: 4 }}>
+                                        <LabelList dataKey="has" position="top" offset={8} className="fill-foreground text-xs" />
+                                    </Line>
+                                    <Line type="monotone" dataKey="promedio" yAxisId="left" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)", r: 4 }}>
+                                         <LabelList dataKey="promedio" position="top" offset={8} className="fill-foreground text-xs" />
+                                    </Line>
+                                </ComposedChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+                </div>
+            ) : (
+                <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                    <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir al menos un Lote y una Labor.</p>
+                </div>
+            )}
         </div>
     );
 }
