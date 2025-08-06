@@ -346,22 +346,22 @@ export default function ActivitySummaryPage() {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="overflow-x-auto pb-4">
+                        <div className="pb-4">
                             <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs">
                                 <thead className="text-center font-bold text-black">
                                     <tr className="bg-gray-300">
-                                        <td className="border border-black px-4 py-2 font-bold w-36">FECHA</td>
-                                        {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.fecha}</td>)}
+                                        <td className="border border-black px-4 py-2 font-bold w-36 whitespace-nowrap">FECHA</td>
+                                        {multiDaySummary.map((day, index) => <td key={index} className="border border-black px-4 py-2 text-center font-bold whitespace-nowrap">{day.summary.fecha}</td>)}
                                     </tr>
                                 </thead>
                                 <tbody className="bg-[#dbe5f1]">
                                     {summaryRows.map(row => (
                                         <tr key={String(row.key)}>
-                                            <td className={`border border-black px-4 py-2 font-bold w-36 ${row.bgClass || ''}`}>{row.label}</td>
+                                            <td className={`border border-black px-4 py-2 font-bold w-36 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
                                             {multiDaySummary.map((day, index) => {
                                                 const value = day.summary[row.key];
                                                 return (
-                                                    <td key={index} className={`border border-black px-4 py-2 text-center ${row.bgClass || ''}`}>
+                                                    <td key={index} className={`border border-black px-4 py-2 text-center whitespace-nowrap ${row.bgClass || ''}`}>
                                                         {row.format ? row.format(value) : value}
                                                     </td>
                                                 )
