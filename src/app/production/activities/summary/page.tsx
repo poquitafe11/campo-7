@@ -1,24 +1,20 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Loader2, Filter, RefreshCcw, Calendar as CalendarIcon } from 'lucide-react';
+import { format, parseISO, isValid, differenceInDays } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { type AttendanceRecord, type LoteData, type MinMax } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import type { ActivityRecordData, LoteData, MinMax } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Filter, RefreshCcw } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { useMasterData } from '@/context/MasterDataContext';
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ComposedChart, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useHeaderActions } from '@/contexts/HeaderActionsContext';
-
+import { Bar, BarChart, CartesianGrid, Legend, RadialBar, RadialBarChart, XAxis, YAxis, ComposedChart, Line, LabelList } from 'recharts';
 
 interface SummaryValues {
     lote: string;
@@ -36,14 +32,15 @@ interface SummaryValues {
     maximo: number;
 }
 
-interface Filters {
-    campaign: string;
-    lote: string;
-    labor: string;
-    pasada: string;
-}
-
-const getInitialFilters = (): Filters => ({ campaign: '', lote: '', labor: '', pasada: '' });
+const formatNumber = (num: number, digits = 2) => {
+  if (isNaN(num) || !isFinite(num)) {
+    return '0.00';
+  }
+  return num.toLocaleString('es-PE', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+};
 
 const chartConfig = {
   jhu: {
@@ -66,10 +63,7 @@ export default function ActivitySummaryPage() {
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
     const { lotes: allLotes, labors: allLabors, minMax: allMinMax, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
-    const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
-    const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const { setActions } = useHeaderActions();
+    const [activeFilters, setActiveFilters] = useState({ lote: '', labor: '' });
 
     const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
@@ -102,96 +96,10 @@ export default function ActivitySummaryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const filterOptions = useMemo(() => {
-        const campaigns = [...new Set(allActivities.map(a => a.campaign))].sort();
-        const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
-        const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        return { campaigns, lotes, labors, pasadas };
-    }, [allActivities]);
-
-
-    const handlePopoverFilterChange = (filterName: keyof Filters, value: string) => {
-        setPopoverFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
-    };
-
-    const handleApplyFilters = () => {
-        setActiveFilters(popoverFilters);
-        setIsFilterOpen(false);
-    };
-
-    const handleClearFilters = () => {
-        const cleared = getInitialFilters();
-        setPopoverFilters(cleared);
-        setActiveFilters(cleared);
-        setIsFilterOpen(false);
-    };
-    
-     useEffect(() => {
-        setActions(
-            <>
-                <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={isLoading} className="h-9 w-9 shrink-0">
-                  <RefreshCcw className="h-5 w-5" />
-                  <span className="sr-only">Actualizar</span>
-                </Button>
-                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
-                            <Filter className="h-5 w-5" />
-                             <span className="sr-only">Filtros</span>
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80" align="end">
-                        <div className="grid gap-4">
-                            <div className="space-y-2">
-                                <h4 className="font-medium leading-none">Aplicar Filtros</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    Selecciona los criterios para el resumen.
-                                </p>
-                            </div>
-                            <div className="grid gap-2">
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label>Campaña</Label>
-                                    <Select onValueChange={(v) => handlePopoverFilterChange('campaign', v)} value={popoverFilters.campaign}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label>Lote</Label>
-                                    <Select onValueChange={(v) => handlePopoverFilterChange('lote', v)} value={popoverFilters.lote}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Lote" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label>Labor</Label>
-                                    <Select onValueChange={(v) => handlePopoverFilterChange('labor', v)} value={popoverFilters.labor}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Labor" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label>Pasada</Label>
-                                    <Select onValueChange={(v) => handlePopoverFilterChange('pasada', v)} value={popoverFilters.pasada}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Pasada" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                            </div>
-                        </div>
-                    </PopoverContent>
-                </Popover>
-            </>
-        );
-         return () => setActions(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isFilterOpen, isLoading, popoverFilters, filterOptions]);
-
-
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
-        if (!activeFilters.lote || !activeFilters.labor) return null;
-
-        const filteredActivities = allActivities.filter(a => {
-            const campaignMatch = activeFilters.campaign ? a.campaign === activeFilters.campaign : true;
-            const pasadaMatch = activeFilters.pasada ? String(a.pass) === activeFilters.pasada : true;
-            return campaignMatch &&
-                   a.lote === activeFilters.lote &&
-                   a.labor === activeFilters.labor &&
-                   pasadaMatch;
-        });
+        const filteredActivities = allActivities.filter(a => 
+            a.lote === activeFilters.lote && a.labor === activeFilters.labor
+        );
 
         if (filteredActivities.length === 0) return null;
         
@@ -221,12 +129,7 @@ export default function ActivitySummaryPage() {
             
             const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
 
-            const relevantActivities = activitiesOnDate.filter(a =>
-                (!activeFilters.campaign || a.campaign === activeFilters.campaign) &&
-                a.lote === activeFilters.lote &&
-                a.labor === activeFilters.labor &&
-                (!activeFilters.pasada || String(a.pass) === activeFilters.pasada)
-            );
+            const relevantActivities = activitiesOnDate;
 
             const minRange = relevantActivities.length > 0 ? Math.min(...relevantActivities.map(a => a.minRange || 0)) : 0;
             const maxRange = relevantActivities.length > 0 ? Math.max(...relevantActivities.map(a => a.maxRange || 0)) : 0;
@@ -236,7 +139,7 @@ export default function ActivitySummaryPage() {
                 hasDia,
                 summaryData: {
                     lote: activeFilters.lote,
-                    pasada: Number(activeFilters.pasada) || 0,
+                    pasada: 0,
                     fecha: format(parseISO(dateStr), 'dd-MMM', { locale: es }),
                     personas,
                     plantas,
@@ -271,15 +174,13 @@ export default function ActivitySummaryPage() {
     }, [allActivities, allLotes, activeFilters]);
 
     const minMaxData = useMemo(() => {
-        if (!activeFilters.campaign || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada || masterLoading) {
+        if (!activeFilters.lote || !activeFilters.labor || masterLoading) {
             return { min: 'N/A', max: 'N/A' };
         }
         
         const foundMinMax = allMinMax.find(item =>
-            item.campana === activeFilters.campaign &&
             item.lote === activeFilters.lote &&
-            item.labor === activeFilters.labor &&
-            String(item.pasada) === activeFilters.pasada
+            item.labor === activeFilters.labor
         );
 
         if (foundMinMax) {
@@ -326,7 +227,7 @@ export default function ActivitySummaryPage() {
                 ) : multiDaySummary && multiDaySummary.length > 0 ? (
                     <div className="space-y-4">
                         <div className="inline-block">
-                              <table data-internal-id="cuadro-1" className="border-collapse border border-black text-xs">
+                              <table className="border-collapse border border-black text-xs">
                                   <thead className="text-left font-bold text-black">
                                       <tr>
                                           <th colSpan={2} className="border border-black bg-gray-200 p-2 text-base font-bold h-10 align-middle whitespace-nowrap">
@@ -336,18 +237,18 @@ export default function ActivitySummaryPage() {
                                   </thead>
                                   <tbody className="bg-white">
                                       <tr>
-                                          <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">LOTE: {activeFilters.lote || 'N/A'}</td>
-                                          <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
+                                          <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">LOTE: {activeFilters.lote || 'N/A'}</td>
+                                          <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
                                       </tr>
                                       <tr>
-                                          <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">PASADA: {activeFilters.pasada || 'N/A'}</td>
-                                          <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
+                                          <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">PASADA: {activeFilters.pasada || 'N/A'}</td>
+                                          <td className="border border-black px-4 py-2 font-bold whitespace-nowrap">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
                                       </tr>
                                   </tbody>
                               </table>
                           </div>
                         <div className="pb-4">
-                            <table data-internal-id="cuadro-2" className="border-collapse border border-black text-xs">
+                            <table className="border-collapse border border-black text-xs">
                                 <thead className="text-center font-bold text-black">
                                     <tr className="bg-gray-300">
                                         <td className="border border-black px-4 py-2 font-bold w-36 whitespace-nowrap">FECHA</td>
