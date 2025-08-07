@@ -316,7 +316,7 @@ export default function RegistroAsistenciaPage() {
   return (
     <div className="flex flex-1 flex-col bg-background">
       <main className="flex-1 justify-center p-4 sm:p-6">
-        <div className="w-full max-w-5xl mx-auto">
+        <div className="w-full mx-auto">
            <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -441,62 +441,64 @@ export default function RegistroAsistenciaPage() {
                     <CardTitle>Lista de Asistencia</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Asistente/Encargado</TableHead>
-                          <TableHead>Lote</TableHead>
-                          <TableHead>Labor</TableHead>
-                          <TableHead>Nº Personas</TableHead>
-                          <TableHead>Nº Faltos</TableHead>
-                          <TableHead className="text-right">Acciones</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {assistants.map((assistant) => (
-                          <TableRow key={assistant.id}>
-                            <TableCell className="font-medium whitespace-nowrap">
-                              {assistant.assistantName}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">{assistant.loteName}</TableCell>
-                            <TableCell className="whitespace-nowrap">{assistant.labor}</TableCell>
-                            <TableCell className="whitespace-nowrap">{assistant.personnelCount}</TableCell>
-                            <TableCell className="whitespace-nowrap">{assistant.absentCount}</TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() =>
-                                  handleDeleteAssistant(assistant.id)
-                                }
+                    <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="whitespace-nowrap">Asistente/Encargado</TableHead>
+                              <TableHead className="whitespace-nowrap">Lote</TableHead>
+                              <TableHead className="whitespace-nowrap">Labor</TableHead>
+                              <TableHead className="whitespace-nowrap">Nº Personas</TableHead>
+                              <TableHead className="whitespace-nowrap">Nº Faltos</TableHead>
+                              <TableHead className="text-right whitespace-nowrap">Acciones</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {assistants.map((assistant) => (
+                              <TableRow key={assistant.id}>
+                                <TableCell className="font-medium whitespace-nowrap">
+                                  {assistant.assistantName}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">{assistant.loteName}</TableCell>
+                                <TableCell className="whitespace-nowrap">{assistant.labor}</TableCell>
+                                <TableCell className="whitespace-nowrap">{assistant.personnelCount}</TableCell>
+                                <TableCell className="whitespace-nowrap">{assistant.absentCount}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() =>
+                                      handleDeleteAssistant(assistant.id)
+                                    }
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Eliminar</span>
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                          <TableFooter>
+                            <TableRow>
+                              <TableCell
+                                colSpan={3}
+                                className="text-right font-bold"
                               >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Eliminar</span>
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                      <TableFooter>
-                        <TableRow>
-                          <TableCell
-                            colSpan={3}
-                            className="text-right font-bold"
-                          >
-                            Total
-                          </TableCell>
-                          <TableCell className="font-bold">
-                            {totals.personnelCount}
-                          </TableCell>
-                          <TableCell className="font-bold">
-                            {totals.absentCount}
-                          </TableCell>
-                          <TableCell></TableCell>
-                        </TableRow>
-                      </TableFooter>
-                    </Table>
+                                Total
+                              </TableCell>
+                              <TableCell className="font-bold">
+                                {totals.personnelCount}
+                              </TableCell>
+                              <TableCell className="font-bold">
+                                {totals.absentCount}
+                              </TableCell>
+                              <TableCell></TableCell>
+                            </TableRow>
+                          </TableFooter>
+                        </Table>
+                    </div>
                   </CardContent>
                 </Card>
               )}
