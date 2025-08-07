@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -440,64 +441,62 @@ export default function RegistroAsistenciaPage() {
                     <CardTitle>Lista de Asistencia</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Asistente/Encargado</TableHead>
-                            <TableHead>Lote</TableHead>
-                            <TableHead>Labor</TableHead>
-                            <TableHead>Nº Personas</TableHead>
-                            <TableHead>Nº Faltos</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Asistente/Encargado</TableHead>
+                          <TableHead>Lote</TableHead>
+                          <TableHead>Labor</TableHead>
+                          <TableHead>Nº Personas</TableHead>
+                          <TableHead>Nº Faltos</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {assistants.map((assistant) => (
+                          <TableRow key={assistant.id}>
+                            <TableCell className="font-medium whitespace-nowrap">
+                              {assistant.assistantName}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">{assistant.loteName}</TableCell>
+                            <TableCell className="whitespace-nowrap">{assistant.labor}</TableCell>
+                            <TableCell className="whitespace-nowrap">{assistant.personnelCount}</TableCell>
+                            <TableCell className="whitespace-nowrap">{assistant.absentCount}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() =>
+                                  handleDeleteAssistant(assistant.id)
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Eliminar</span>
+                              </Button>
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {assistants.map((assistant) => (
-                            <TableRow key={assistant.id}>
-                              <TableCell className="font-medium">
-                                {assistant.assistantName}
-                              </TableCell>
-                              <TableCell>{assistant.loteName}</TableCell>
-                              <TableCell>{assistant.labor}</TableCell>
-                              <TableCell>{assistant.personnelCount}</TableCell>
-                              <TableCell>{assistant.absentCount}</TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() =>
-                                    handleDeleteAssistant(assistant.id)
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="sr-only">Eliminar</span>
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                        <TableFooter>
-                          <TableRow>
-                            <TableCell
-                              colSpan={3}
-                              className="text-right font-bold"
-                            >
-                              Total
-                            </TableCell>
-                            <TableCell className="font-bold">
-                              {totals.personnelCount}
-                            </TableCell>
-                            <TableCell className="font-bold">
-                              {totals.absentCount}
-                            </TableCell>
-                            <TableCell></TableCell>
-                          </TableRow>
-                        </TableFooter>
-                      </Table>
-                    </div>
+                        ))}
+                      </TableBody>
+                      <TableFooter>
+                        <TableRow>
+                          <TableCell
+                            colSpan={3}
+                            className="text-right font-bold"
+                          >
+                            Total
+                          </TableCell>
+                          <TableCell className="font-bold">
+                            {totals.personnelCount}
+                          </TableCell>
+                          <TableCell className="font-bold">
+                            {totals.absentCount}
+                          </TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      </TableFooter>
+                    </Table>
                   </CardContent>
                 </Card>
               )}

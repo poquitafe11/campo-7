@@ -89,7 +89,6 @@ export const LoteDataSchema = z.object({
   plantasProd: z.number(),
   fechaCianamida: z.union([z.date(), z.string()]),
   campana: z.string(),
-  geoJSON: z.string().optional(), // GeoJSON string for polygon coordinates
 });
 export type LoteData = z.infer<typeof LoteDataSchema>;
 

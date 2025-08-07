@@ -57,7 +57,6 @@ const allMainNavItems = [
     ]
   },
   { href: '/users', icon: Shield, label: 'Usuarios', permission: '/users' },
-  { href: '/maps', icon: Map, label: 'Mapas', permission: '/maps' },
 ];
 
 const pageTitles: { [key: string]: string } = {
