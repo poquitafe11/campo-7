@@ -286,14 +286,14 @@ const Header = () => {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === '/login' || pathname.startsWith('/production/attendance/daily-entry')) {
+  if (pathname === '/login') {
     return <>{children}</>;
   }
 
   return (
     <div className="w-full">
       <Header />
-      <main className="p-4 md:p-8">
+      <main>
           {children}
       </main>
     </div>

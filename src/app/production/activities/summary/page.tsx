@@ -66,7 +66,7 @@ export default function ActivitySummaryPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
-    const { lotes: allLotes, labors: allLabors, minMax: allMinMax, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+    const { lotes: allLotes, labors: allLabors, minMax: allMinMax, campaigns: allCampaigns, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
     const [activeFilters, setActiveFilters] = useState({ lote: '', labor: '', pasada: '' });
     const [popoverFilters, setPopoverFilters] = useState({ lote: '', labor: '', pasada: '' });
@@ -106,7 +106,8 @@ export default function ActivitySummaryPage() {
 
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
         const filteredActivities = allActivities.filter(a => 
-            a.lote === activeFilters.lote && 
+            (!activeFilters.campaign || a.campaign === activeFilters.campaign) &&
+            (!activeFilters.lote || a.lote === activeFilters.lote) && 
             a.labor === activeFilters.labor &&
             String(a.pass) === activeFilters.pasada
         );
@@ -229,7 +230,7 @@ export default function ActivitySummaryPage() {
             .reverse(); 
     }, [multiDaySummary]);
     
-    const filterOptions = useMemo(() => {
+    const filterOptions = useMemo(() => { // filterOptions.campaigns is already available from useMasterData
         const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
         const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
@@ -296,10 +297,10 @@ export default function ActivitySummaryPage() {
 
     return (
         <div className="space-y-4">
-            {loading ? (
+             {loading ? (
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : multiDaySummary && multiDaySummary.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-4 mr-4">
                     <div className="inline-block">
                           <table className="border-collapse border border-black text-xs">
                               <thead className="text-left font-bold text-black">
@@ -322,21 +323,21 @@ export default function ActivitySummaryPage() {
                           </table>
                       </div>
                     <div className="pb-4">
-                        <table className="border-collapse border border-black text-xs">
-                            <thead className="text-center font-bold text-black">
+                        <table className="border-collapse border border-black text-xs w-full">
+                            <thead className="text-center font-bold text-black min-w-full">
                                 <tr className="bg-gray-300">
-                                    <th className="border border-black px-4 py-2 font-bold w-36 whitespace-nowrap">FECHA</th>
-                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black px-4 py-2 text-center font-bold whitespace-nowrap">{day.summary.fecha}</th>)}
+                                    <th className="border border-black px-4 py-2 font-bold w-36">FECHA</th>
+                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black px-4 py-2 text-center font-bold">{day.summary.fecha}</th>)}
                                 </tr>
-                            </thead>
+                            </thead> 
                             <tbody className="bg-[#dbe5f1]">
                                 {summaryRows.map(row => (
                                     <tr key={String(row.key)}>
                                         <td className={`border border-black px-4 py-2 font-bold w-36 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
-                                        {multiDaySummary.map((day, index) => {
+                                        {multiDaySummary.map((day, index) => { // Removed whitespace-nowrap from this td
                                             const value = day.summary[row.key];
                                             return (
-                                                <td key={index} className={`border border-black px-4 py-2 text-center whitespace-nowrap ${row.bgClass || ''}`}>
+                                                <td key={index} className={`border border-black px-4 py-2 text-center ${row.bgClass || ''}`}>
                                                     {row.format ? row.format(value) : value}
                                                 </td>
                                             )

@@ -264,7 +264,11 @@ export default function RegistroAsistenciaPage() {
                 date: formattedDate,
                 lote: loteMasterData.lote,
                 variedad: loteMasterData.variedad,
-                fechaCianamida: loteMasterData.fechaCianamida,
+                fechaCianamida: loteMasterData.fechaCianamida
+ ? typeof loteMasterData.fechaCianamida === 'string'
+ ? new Date(loteMasterData.fechaCianamida) // Parsear si es string
+ : loteMasterData.fechaCianamida // Usar directamente si ya es Date
+ : undefined, // O undefined si no existe
                 campana: loteMasterData.campana,
                 code: laborMasterData?.codigo,
                 labor,
@@ -307,7 +311,7 @@ export default function RegistroAsistenciaPage() {
   return (
     <div className="flex flex-1 w-full flex-col bg-muted/20">
       <main className="flex-1 p-4 sm:p-6">
-        <div className="w-full mx-auto">
+        <div className="w-full mx-auto pt-16">
            <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

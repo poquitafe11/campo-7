@@ -317,8 +317,7 @@ export default function AttendanceDatabasePage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
-      <main className="flex-1 p-4 sm:p-6">
+    <div className="flex flex-1 flex-col bg-background p-4 sm:p-6">
         <Card>
           <CardHeader>
             <div className="flex flex-row items-start justify-between gap-4">
@@ -545,49 +544,51 @@ export default function AttendanceDatabasePage() {
                       {day.details.map((detail, index) => (
                         <div key={index} className="mt-2 rounded-md border p-4">
                           <h4 className="font-semibold">{detail.labor} - {detail.lotName}</h4>
-                           <Table>
-                             <TableHeader>
-                               <TableRow>
-                                 <TableHead>Asistente</TableHead>
-                                 <TableHead>Personal</TableHead>
-                                 <TableHead>Faltos</TableHead>
-                                 <TableHead className="text-right">Acciones</TableHead>
-                               </TableRow>
-                             </TableHeader>
-                             <TableBody>
-                               {detail.records.flatMap(r => r.assistants).map(assistant => (
-                                 <TableRow key={assistant.id}>
-                                   <TableCell>{assistant.assistantName}</TableCell>
-                                   <TableCell>{assistant.personnelCount}</TableCell>
-                                   <TableCell>{assistant.absentCount}</TableCell>
-                                   <TableCell className="text-right">
-                                    <div className="flex justify-end gap-1">
-                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingAssistant({ record: detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!, assistant })}>
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                                              <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
-                                            <AlertDialogDescription>Esta acción eliminará a este asistente de este registro de asistencia. No se puede deshacer.</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteAssistant(detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!.id, assistant)}>Eliminar</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                   </TableCell>
-                                 </TableRow>
-                               ))}
-                             </TableBody>
-                           </Table>
+                           <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Asistente</TableHead>
+                                  <TableHead>Personal</TableHead>
+                                  <TableHead>Faltos</TableHead>
+                                  <TableHead className="text-right">Acciones</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {detail.records.flatMap(r => r.assistants).map(assistant => (
+                                  <TableRow key={assistant.id}>
+                                    <TableCell>{assistant.assistantName}</TableCell>
+                                    <TableCell>{assistant.personnelCount}</TableCell>
+                                    <TableCell>{assistant.absentCount}</TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end gap-1">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingAssistant({ record: detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!, assistant })}>
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+                                              <AlertDialogDescription>Esta acción eliminará a este asistente de este registro de asistencia. No se puede deshacer.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => handleDeleteAssistant(detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!.id, assistant)}>Eliminar</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
                         </div>
                       ))}
                     </AccordionContent>
@@ -606,7 +607,6 @@ export default function AttendanceDatabasePage() {
             )}
           </CardContent>
         </Card>
-      </main>
       <EditAssistantDialog
         isOpen={!!editingAssistant}
         setIsOpen={() => setEditingAssistant(null)}
