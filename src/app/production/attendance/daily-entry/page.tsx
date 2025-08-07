@@ -316,213 +316,209 @@ export default function RegistroAsistenciaPage() {
   return (
     <div className="flex flex-1 flex-col bg-background">
       <main className="flex-1 justify-center p-4 sm:p-6">
-        <div className="w-full mx-auto">
-           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4" /> Fecha
-                      </FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full pl-3 text-left font-normal',
-                                !field.value && 'text-muted-foreground'
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, 'PPP', { locale: es })
-                              ) : (
-                                <span>Selecciona una fecha</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date('1900-01-01')
-                              }
-                              initialFocus
-                              locale={es}
-                            />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lote"
-                  render={({ field }) => (
-                  <FormItem>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
                     <FormLabel className="flex items-center gap-2">
-                      <Sprout className="h-4 w-4" /> Lote
+                      <CalendarIcon className="h-4 w-4" /> Fecha
                     </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={masterLoading ? "Cargando..." : "Selecciona un lote"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {uniqueLotes
-                           .sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}))
-                           .map((lote) => (
-                          <SelectItem key={lote.id} value={lote.id}>
-                            {lote.lote}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP', { locale: es })
+                            ) : (
+                              <span>Selecciona una fecha</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date('1900-01-01')
+                            }
+                            initialFocus
+                            locale={es}
+                          />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
-                  )}
-                />
-              </div>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lote"
+                render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Sprout className="h-4 w-4" /> Lote
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={masterLoading ? "Cargando..." : "Selecciona un lote"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {uniqueLotes
+                         .sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}))
+                         .map((lote) => (
+                        <SelectItem key={lote.id} value={lote.id}>
+                          {lote.lote}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+                )}
+              />
+            </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <FormField
-                  control={form.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem className="col-span-1">
-                      <FormLabel className="flex items-center gap-2">
-                        <Code className="h-4 w-4" /> Cód.
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ej: 1001" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem className="col-span-1">
+                    <FormLabel className="flex items-center gap-2">
+                      <Code className="h-4 w-4" /> Cód.
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej: 1001" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="labor"
-                  render={({ field }) => (
-                    <FormItem className="col-span-1 sm:col-span-2">
-                      <FormLabel className="flex items-center gap-2">
-                        <Wrench className="h-4 w-4" /> Labor
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Labor (auto-completado)"
-                          {...field}
-                          readOnly
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="labor"
+                render={({ field }) => (
+                  <FormItem className="col-span-1 sm:col-span-2">
+                    <FormLabel className="flex items-center gap-2">
+                      <Wrench className="h-4 w-4" /> Labor
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Labor (auto-completado)"
+                        {...field}
+                        readOnly
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-              {assistants.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Lista de Asistencia</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="whitespace-nowrap">Asistente/Encargado</TableHead>
-                              <TableHead className="whitespace-nowrap">Lote</TableHead>
-                              <TableHead className="whitespace-nowrap">Labor</TableHead>
-                              <TableHead className="whitespace-nowrap">Nº Personas</TableHead>
-                              <TableHead className="whitespace-nowrap">Nº Faltos</TableHead>
-                              <TableHead className="text-right whitespace-nowrap">Acciones</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {assistants.map((assistant) => (
-                              <TableRow key={assistant.id}>
-                                <TableCell className="font-medium whitespace-nowrap">
-                                  {assistant.assistantName}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap">{assistant.loteName}</TableCell>
-                                <TableCell className="whitespace-nowrap">{assistant.labor}</TableCell>
-                                <TableCell className="whitespace-nowrap">{assistant.personnelCount}</TableCell>
-                                <TableCell className="whitespace-nowrap">{assistant.absentCount}</TableCell>
-                                <TableCell className="text-right">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() =>
-                                      handleDeleteAssistant(assistant.id)
-                                    }
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Eliminar</span>
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                          <TableFooter>
-                            <TableRow>
-                              <TableCell
-                                colSpan={3}
-                                className="text-right font-bold"
-                              >
-                                Total
-                              </TableCell>
-                              <TableCell className="font-bold">
-                                {totals.personnelCount}
-                              </TableCell>
-                              <TableCell className="font-bold">
-                                {totals.absentCount}
-                              </TableCell>
-                              <TableCell></TableCell>
-                            </TableRow>
-                          </TableFooter>
-                        </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end sm:gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsAddAssistantDialogOpen(true)}
-                  disabled={!canAddAssistant || masterLoading}
-                  title={!canAddAssistant ? 'Debes seleccionar un lote y una labor primero' : ''}
-                  className="w-full sm:w-auto"
-                >
-                  {masterLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                  Agregar Asistente
-                </Button>
-                <Button type="submit" className="w-full sm:w-auto" disabled={assistants.length === 0}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
+            {assistants.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Lista de Asistencia</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">Asistente/Encargado</TableHead>
+                        <TableHead className="whitespace-nowrap">Lote</TableHead>
+                        <TableHead className="whitespace-nowrap">Labor</TableHead>
+                        <TableHead className="whitespace-nowrap">Nº Personas</TableHead>
+                        <TableHead className="whitespace-nowrap">Nº Faltos</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {assistants.map((assistant) => (
+                        <TableRow key={assistant.id}>
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {assistant.assistantName}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">{assistant.loteName}</TableCell>
+                          <TableCell className="whitespace-nowrap">{assistant.labor}</TableCell>
+                          <TableCell className="whitespace-nowrap">{assistant.personnelCount}</TableCell>
+                          <TableCell className="whitespace-nowrap">{assistant.absentCount}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() =>
+                                handleDeleteAssistant(assistant.id)
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Eliminar</span>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow>
+                        <TableCell
+                          colSpan={3}
+                          className="text-right font-bold"
+                        >
+                          Total
+                        </TableCell>
+                        <TableCell className="font-bold">
+                          {totals.personnelCount}
+                        </TableCell>
+                        <TableCell className="font-bold">
+                          {totals.absentCount}
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+            
+            <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end sm:gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddAssistantDialogOpen(true)}
+                disabled={!canAddAssistant || masterLoading}
+                title={!canAddAssistant ? 'Debes seleccionar un lote y una labor primero' : ''}
+                className="w-full sm:w-auto"
+              >
+                {masterLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                Agregar Asistente
+              </Button>
+              <Button type="submit" className="w-full sm:w-auto" disabled={assistants.length === 0}>
+                <Save className="mr-2 h-4 w-4" />
+                Guardar
+              </Button>
+            </div>
+          </form>
+        </Form>
       </main>
       <AddAssistantDialog
         isOpen={isAddAssistantDialogOpen}
