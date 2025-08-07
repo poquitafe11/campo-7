@@ -20,7 +20,6 @@ import {
   RefreshCcw,
   Calendar as CalendarIcon,
   Shield,
-  Map,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -94,7 +93,6 @@ const pageTitles: { [key: string]: string } = {
     '/biological-control': 'Control Biológico',
     '/queries': 'Asistente de Consultas IA',
     '/summary': 'Resumen de Datos',
-    '/maps': 'Mapas',
     '/production/analysis': 'Análisis y Reportes',
   };
 
@@ -288,7 +286,7 @@ const Header = () => {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname.startsWith('/production/attendance/daily-entry')) {
     return <>{children}</>;
   }
 

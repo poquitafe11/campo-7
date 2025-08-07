@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -306,30 +305,9 @@ export default function RegistroAsistenciaPage() {
   const canAddAssistant = !!loteIdValue && !!laborValue;
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/production/attendance">
-              <ArrowLeft />
-              <span className="sr-only">Volver a Gestión de Asistencia</span>
-            </Link>
-          </Button>
-          <h1 className="text-lg font-semibold font-headline sm:text-xl">
-            Registro de Asistencia
-          </h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/dashboard">
-              <LayoutGrid />
-              <span className="sr-only">Volver al Dashboard</span>
-            </Link>
-          </Button>
-        </div>
-      </header>
-      <main className="flex flex-1 justify-center p-4 sm:p-6">
-        <div className="w-full">
+    <div className="flex flex-1 w-full flex-col bg-muted/20">
+      <main className="flex-1 p-4 sm:p-6">
+        <div className="w-full mx-auto">
            <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -456,62 +434,62 @@ export default function RegistroAsistenciaPage() {
                     <CardTitle>Lista de Asistencia</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Asistente/Encargado</TableHead>
-                          <TableHead>Lote</TableHead>
-                          <TableHead>Labor</TableHead>
-                          <TableHead>Nº Personas</TableHead>
-                          <TableHead>Nº Faltos</TableHead>
-                          <TableHead className="text-right">Acciones</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {assistants.map((assistant) => (
-                          <TableRow key={assistant.id}>
-                            <TableCell className="font-medium">
-                              {assistant.assistantName}
-                            </TableCell>
-                            <TableCell>{assistant.loteName}</TableCell>
-                            <TableCell>{assistant.labor}</TableCell>
-                            <TableCell>{assistant.personnelCount}</TableCell>
-                            <TableCell>{assistant.absentCount}</TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() =>
-                                  handleDeleteAssistant(assistant.id)
-                                }
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Eliminar</span>
-                              </Button>
-                            </TableCell>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Asistente/Encargado</TableHead>
+                            <TableHead>Lote</TableHead>
+                            <TableHead>Labor</TableHead>
+                            <TableHead>Nº Personas</TableHead>
+                            <TableHead>Nº Faltos</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                      <TableFooter>
-                        <TableRow>
-                          <TableCell
-                            colSpan={3}
-                            className="text-right font-bold"
-                          >
-                            Total
-                          </TableCell>
-                          <TableCell className="font-bold">
-                            {totals.personnelCount}
-                          </TableCell>
-                          <TableCell className="font-bold">
-                            {totals.absentCount}
-                          </TableCell>
-                          <TableCell></TableCell>
-                        </TableRow>
-                      </TableFooter>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {assistants.map((assistant) => (
+                            <TableRow key={assistant.id}>
+                              <TableCell className="font-medium">
+                                {assistant.assistantName}
+                              </TableCell>
+                              <TableCell>{assistant.loteName}</TableCell>
+                              <TableCell>{assistant.labor}</TableCell>
+                              <TableCell>{assistant.personnelCount}</TableCell>
+                              <TableCell>{assistant.absentCount}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() =>
+                                    handleDeleteAssistant(assistant.id)
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Eliminar</span>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                        <TableFooter>
+                          <TableRow>
+                            <TableCell
+                              colSpan={3}
+                              className="text-right font-bold"
+                            >
+                              Total
+                            </TableCell>
+                            <TableCell className="font-bold">
+                              {totals.personnelCount}
+                            </TableCell>
+                            <TableCell className="font-bold">
+                              {totals.absentCount}
+                            </TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+                        </TableFooter>
+                      </Table>
                   </CardContent>
                 </Card>
               )}
