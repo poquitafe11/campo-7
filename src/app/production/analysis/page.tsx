@@ -357,7 +357,6 @@ export default function AnalysisPage() {
 
   return (
     <>
-       <PageHeader title="Análisis y Reportes" />
        <div className="flex items-center gap-2 mb-4">
             <Popover>
                 <PopoverTrigger asChild>

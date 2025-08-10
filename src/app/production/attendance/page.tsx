@@ -8,7 +8,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import FeaturePermissionsDialog from "@/components/FeaturePermissionsDialog";
-import { PageHeader } from "@/components/PageHeader";
 
 const allAttendanceFeatures = [
   {
@@ -58,7 +57,6 @@ export default function AttendancePage() {
 
   return (
     <>
-      <PageHeader title="Asistencia de Personal" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {visibleFeatures.map((feature) => (
           <Link href={feature.href} key={feature.title} className="block group relative">

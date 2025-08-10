@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, Filter, RefreshCcw, Calendar as CalendarIcon } from 'lucide-react';
 import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -297,7 +297,6 @@ export default function ActivitySummaryPage() {
 
     return (
         <div className="min-w-max">
-            <PageHeader title="Resumen de Actividades" />
              {loading ? (
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : multiDaySummary && multiDaySummary.length > 0 ? (

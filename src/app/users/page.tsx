@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
@@ -36,7 +37,6 @@ import { getUsers, updateUserStatus, deleteUser } from "./actions";
 import UserFormDialog from "@/components/UserFormDialog";
 import { useAuth } from '@/hooks/useAuth';
 import PermissionsDialog from '@/components/PermissionsDialog';
-import { PageHeader } from '@/components/PageHeader';
 
 
 export default function UsersPage() {
@@ -193,7 +193,6 @@ export default function UsersPage() {
 
   return (
     <>
-      <PageHeader title="Gestión de Usuarios" />
       <div className="flex justify-end mb-4">
         <Button onClick={() => { setEditingUser(null); setFormOpen(true); }}>
           <PlusCircle className="mr-2 h-4 w-4" />
