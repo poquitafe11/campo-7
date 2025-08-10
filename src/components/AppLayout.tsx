@@ -31,7 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col">
          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
             <div className='w-full flex-1'>
-              <ConnectionStatus />
+              {/* This space is intentionally left blank to push the user menu to the right */}
             </div>
             <div className="flex items-center gap-2">
                 {actions}
@@ -56,7 +56,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
         </header>
         <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 overflow-y-auto">
-             {children}
+             <div className="flex-1 overflow-x-auto">
+                {children}
+             </div>
         </main>
       </div>
     </div>
