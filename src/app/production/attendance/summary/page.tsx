@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-import { format, differenceInDays, parseISO, isValid } from 'date-fns';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Loader2, RefreshCcw, Calendar as CalendarIcon } from 'lucide-react';
+import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +11,10 @@ import { type AttendanceRecord, type LoteData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 
 interface LoteHeaderInfo {
   lote: string; 
@@ -40,6 +44,8 @@ function AttendanceSummaryContent() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { setActions } = useHeaderActions();
   
   const selectedDateParam = searchParams.get('date');
   const refreshParam = searchParams.get('refresh'); 
@@ -94,6 +100,33 @@ function AttendanceSummaryContent() {
   useEffect(() => {
     loadData();
   }, [loadData, refreshParam, selectedDate]); 
+
+  useEffect(() => {
+    setActions(
+      <>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="h-9">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => router.push(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-9 w-9">
+          <RefreshCcw className="h-5 w-5" />
+        </Button>
+      </>
+    );
+    return () => setActions(null);
+  }, [setActions, selectedDate, router]);
 
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
