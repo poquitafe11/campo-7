@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -104,6 +105,9 @@ function AttendanceSummaryContent() {
   useEffect(() => {
     setActions(
       <>
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-9 w-9">
+          <RefreshCcw className="h-5 w-5" />
+        </Button>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="h-9">
@@ -120,9 +124,6 @@ function AttendanceSummaryContent() {
             />
           </PopoverContent>
         </Popover>
-        <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-9 w-9">
-          <RefreshCcw className="h-5 w-5" />
-        </Button>
       </>
     );
     return () => setActions(null);
