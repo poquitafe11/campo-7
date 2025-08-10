@@ -16,6 +16,7 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { PageHeader } from '@/components/PageHeader';
 
 interface LoteHeaderInfo {
   lote: string; 
@@ -208,7 +209,8 @@ function AttendanceSummaryContent() {
   }
 
   return (
-    <div className="space-y-4">
+    <>
+      <PageHeader title="Resumen de Asistencia" />
       <Card>
         <CardContent className="p-2">
         {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
@@ -318,7 +320,7 @@ function AttendanceSummaryContent() {
          )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }
 

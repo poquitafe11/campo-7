@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -20,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PageHeader } from '@/components/PageHeader';
 
 interface SummaryValues {
     lote: string;
@@ -296,7 +296,8 @@ export default function ActivitySummaryPage() {
 
 
     return (
-        <div className="space-y-4 min-w-max">
+        <div className="min-w-max">
+            <PageHeader title="Resumen de Actividades" />
              {loading ? (
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : multiDaySummary && multiDaySummary.length > 0 ? (

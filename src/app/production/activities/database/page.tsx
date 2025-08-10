@@ -33,6 +33,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
+import { PageHeader } from '@/components/PageHeader';
 
 
 type ActivityRecordWithId = ActivityRecordData & { id: string };
@@ -606,6 +607,7 @@ export default function ActivityDatabasePage() {
   
     return (
       <div className="flex flex-col h-full space-y-4">
+        <PageHeader title="Base de Datos de Actividades" />
         <Input
             placeholder="Buscar por labor, lote, campaña..."
             value={globalFilter}
@@ -690,6 +692,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 

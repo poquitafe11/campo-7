@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { ChartConfig, ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Bar, BarChart, CartesianGrid, Legend, RadialBar, RadialBarChart, XAxis, YAxis } from 'recharts';
+import { PageHeader } from '@/components/PageHeader';
 
 
 const formatNumber = (num: number, digits = 2) => {
@@ -355,20 +356,9 @@ export default function AnalysisPage() {
   const loading = isLoading || masterLoading;
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/production">
-              <ArrowLeft />
-              <span className="sr-only">Volver a Producción</span>
-            </Link>
-          </Button>
-          <h1 className="text-lg font-semibold font-headline sm:text-xl">
-            Análisis y Reportes
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
+    <>
+       <PageHeader title="Análisis y Reportes" />
+       <div className="flex items-center gap-2 mb-4">
             <Popover>
                 <PopoverTrigger asChild>
                     <Button variant="outline" size="icon" className="shrink-0">
@@ -459,16 +449,9 @@ export default function AnalysisPage() {
               <RefreshCcw className="h-4 w-4" />
               <span className="sr-only">Actualizar datos</span>
            </Button>
-           <Button variant="ghost" size="icon" asChild>
-             <Link href="/dashboard">
-               <LayoutGrid />
-               <span className="sr-only">Volver al dashboard</span>
-             </Link>
-           </Button>
         </div>
-      </header>
-
-      <main className="flex-1 p-4 sm:p-6 space-y-6">
+      
+      <main className="space-y-6">
          {loading ? (
             <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
          ) : filteredRecords.length === 0 ? (
@@ -572,6 +555,6 @@ export default function AnalysisPage() {
           </div>
          )}
       </main>
-    </div>
+    </>
   );
 }

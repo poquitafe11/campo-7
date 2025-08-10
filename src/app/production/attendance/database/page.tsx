@@ -67,6 +67,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
+import { PageHeader } from '@/components/PageHeader';
 
 
 interface GroupedByLaborLot {
@@ -317,302 +318,303 @@ export default function AttendanceDatabasePage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col bg-background p-4 sm:p-6">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-row items-start justify-between gap-4">
-              <div>
-                <CardTitle>Registros por Fecha</CardTitle>
-                <CardDescription>
-                  Consulta, filtra y gestiona los registros de asistencia diarios.
-                </CardDescription>
-              </div>
-              <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span className="sr-only">Filtrar</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[90vw] max-w-sm p-4 sm:w-auto" align="end">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <h4 className="font-medium leading-none">Filtros</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Ajusta los filtros para ver registros específicos.
-                      </p>
-                    </div>
-                    <div className="grid gap-3">
-                      <div className="grid gap-2">
-                        <Label>Rango de Fechas</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              id="date"
-                              variant={'outline'}
-                              className={cn(
-                                'w-full justify-start text-left font-normal',
-                                !popoverFilters.dateRange?.from &&
-                                  'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {popoverFilters.dateRange?.from ? (
-                                popoverFilters.dateRange.to ? (
-                                  <>
-                                    {format(
-                                      popoverFilters.dateRange.from,
-                                      'LLL dd, y',
-                                      { locale: es }
-                                    )}{' '}
-                                    -{' '}
-                                    {format(
-                                      popoverFilters.dateRange.to,
-                                      'LLL dd, y',
-                                      { locale: es }
-                                    )}
-                                  </>
-                                ) : (
-                                  format(
+    <>
+      <PageHeader title="Base de Datos de Asistencia" />
+      <Card>
+        <CardHeader>
+          <div className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>Registros por Fecha</CardTitle>
+              <CardDescription>
+                Consulta, filtra y gestiona los registros de asistencia diarios.
+              </CardDescription>
+            </div>
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="sr-only">Filtrar</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[90vw] max-w-sm p-4 sm:w-auto" align="end">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">Filtros</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Ajusta los filtros para ver registros específicos.
+                    </p>
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="grid gap-2">
+                      <Label>Rango de Fechas</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="date"
+                            variant={'outline'}
+                            className={cn(
+                              'w-full justify-start text-left font-normal',
+                              !popoverFilters.dateRange?.from &&
+                                'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {popoverFilters.dateRange?.from ? (
+                              popoverFilters.dateRange.to ? (
+                                <>
+                                  {format(
                                     popoverFilters.dateRange.from,
                                     'LLL dd, y',
                                     { locale: es }
-                                  )
-                                )
+                                  )}{' '}
+                                  -{' '}
+                                  {format(
+                                    popoverFilters.dateRange.to,
+                                    'LLL dd, y',
+                                    { locale: es }
+                                  )}
+                                </>
                               ) : (
-                                <span>Seleccione un rango</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              initialFocus
-                              mode="range"
-                              defaultMonth={popoverFilters.dateRange?.from}
-                              selected={popoverFilters.dateRange}
-                              onSelect={(range) => {
-                                setPopoverFilters((prev) => ({
-                                  ...prev,
-                                  dateRange:
-                                    range || { from: undefined, to: undefined },
-                                }));
-                              }}
-                              numberOfMonths={1}
-                              locale={es}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="grid grid-cols-1 items-center gap-2">
-                        <Label htmlFor="lotName">Lote</Label>
-                        <Select
-                          value={popoverFilters.lotName}
-                          onValueChange={(value) =>
-                            setPopoverFilters((prev) => ({
-                              ...prev,
-                              lotName: value === 'all' ? '' : value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Todos" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            {dynamicOptions.lots.map((lot) => (
-                              <SelectItem key={lot} value={lot}>
-                                {lot}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid grid-cols-1 items-center gap-2">
-                        <Label htmlFor="labor">Labor</Label>
-                        <Select
-                          value={popoverFilters.labor}
-                          onValueChange={(value) =>
-                            setPopoverFilters((prev) => ({
-                              ...prev,
-                              labor: value === 'all' ? '' : value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Todas" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todas</SelectItem>
-                            {dynamicOptions.labors.map((labor) => (
-                              <SelectItem key={labor} value={labor}>
-                                {labor}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid grid-cols-1 items-center gap-2">
-                        <Label htmlFor="assistantName">Asistente</Label>
-                        <Select
-                          value={popoverFilters.assistantName}
-                          onValueChange={(value) =>
-                            setPopoverFilters((prev) => ({
-                              ...prev,
-                              assistantName: value === 'all' ? '' : value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Todos" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            {dynamicOptions.assistants.map((assistant) => (
-                              <SelectItem key={assistant} value={assistant}>
-                                {assistant}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                                format(
+                                  popoverFilters.dateRange.from,
+                                  'LLL dd, y',
+                                  { locale: es }
+                                )
+                              )
+                            ) : (
+                              <span>Seleccione un rango</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={popoverFilters.dateRange?.from}
+                            selected={popoverFilters.dateRange}
+                            onSelect={(range) => {
+                              setPopoverFilters((prev) => ({
+                                ...prev,
+                                dateRange:
+                                  range || { from: undefined, to: undefined },
+                              }));
+                            }}
+                            numberOfMonths={1}
+                            locale={es}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                    <div className="flex justify-end gap-2 pt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearFilters}
+                    <div className="grid grid-cols-1 items-center gap-2">
+                      <Label htmlFor="lotName">Lote</Label>
+                      <Select
+                        value={popoverFilters.lotName}
+                        onValueChange={(value) =>
+                          setPopoverFilters((prev) => ({
+                            ...prev,
+                            lotName: value === 'all' ? '' : value,
+                          }))
+                        }
                       >
-                        Limpiar
-                      </Button>
-                      <Button size="sm" onClick={handleApplyFilters}>
-                        Aplicar
-                      </Button>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          {dynamicOptions.lots.map((lot) => (
+                            <SelectItem key={lot} value={lot}>
+                              {lot}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-1 items-center gap-2">
+                      <Label htmlFor="labor">Labor</Label>
+                      <Select
+                        value={popoverFilters.labor}
+                        onValueChange={(value) =>
+                          setPopoverFilters((prev) => ({
+                            ...prev,
+                            labor: value === 'all' ? '' : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas</SelectItem>
+                          {dynamicOptions.labors.map((labor) => (
+                            <SelectItem key={labor} value={labor}>
+                              {labor}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-1 items-center gap-2">
+                      <Label htmlFor="assistantName">Asistente</Label>
+                      <Select
+                        value={popoverFilters.assistantName}
+                        onValueChange={(value) =>
+                          setPopoverFilters((prev) => ({
+                            ...prev,
+                            assistantName: value === 'all' ? '' : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          {dynamicOptions.assistants.map((assistant) => (
+                            <SelectItem key={assistant} value={assistant}>
+                              {assistant}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                </PopoverContent>
-              </Popover>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearFilters}
+                    >
+                      Limpiar
+                    </Button>
+                    <Button size="sm" onClick={handleApplyFilters}>
+                      Aplicar
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex h-24 items-center justify-center rounded-lg border border-dashed">
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex h-24 items-center justify-center rounded-lg border border-dashed">
-                <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : dailyRecords.length > 0 ? (
-              <Accordion type="multiple" className="w-full space-y-2">
-                {dailyRecords.map((day) => (
-                  <AccordionItem
-                    value={day.date}
-                    key={day.date}
-                    className="rounded-lg border bg-card/50"
-                  >
-                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                      <div className="flex w-full flex-col items-start gap-1 text-left sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-2">
-                          <CalendarIcon className="h-5 w-5 text-primary" />
-                          <p className="text-lg font-semibold">
-                            {format(parseISO(day.date), 'PPP', { locale: es })}
-                          </p>
+          ) : dailyRecords.length > 0 ? (
+            <Accordion type="multiple" className="w-full space-y-2">
+              {dailyRecords.map((day) => (
+                <AccordionItem
+                  value={day.date}
+                  key={day.date}
+                  className="rounded-lg border bg-card/50"
+                >
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex w-full flex-col items-start gap-1 text-left sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-5 w-5 text-primary" />
+                        <p className="text-lg font-semibold">
+                          {format(parseISO(day.date), 'PPP', { locale: es })}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 pr-2 text-sm sm:items-center">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          <span>
+                            Total Personas:{' '}
+                            <span className="font-bold text-foreground">
+                              {day.totalPersonnel}
+                            </span>
+                          </span>
                         </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 pr-2 text-sm sm:items-center">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                            <span>
-                              Total Personas:{' '}
-                              <span className="font-bold text-foreground">
-                                {day.totalPersonnel}
-                              </span>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <UserX className="h-4 w-4" />
+                          <span>
+                            Total Faltos:{' '}
+                            <span className="font-bold text-foreground">
+                              {day.totalAbsent}
                             </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <UserX className="h-4 w-4" />
-                            <span>
-                              Total Faltos:{' '}
-                              <span className="font-bold text-foreground">
-                                {day.totalAbsent}
-                              </span>
-                            </span>
-                          </div>
+                          </span>
                         </div>
                       </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
-                      {day.details.map((detail, index) => (
-                        <div key={index} className="mt-2 rounded-md border p-4">
-                          <h4 className="font-semibold">{detail.labor} - {detail.lotName}</h4>
-                           <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Asistente</TableHead>
-                                  <TableHead>Personal</TableHead>
-                                  <TableHead>Faltos</TableHead>
-                                  <TableHead className="text-right">Acciones</TableHead>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    {day.details.map((detail, index) => (
+                      <div key={index} className="mt-2 rounded-md border p-4">
+                        <h4 className="font-semibold">{detail.labor} - {detail.lotName}</h4>
+                         <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Asistente</TableHead>
+                                <TableHead>Personal</TableHead>
+                                <TableHead>Faltos</TableHead>
+                                <TableHead className="text-right">Acciones</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {detail.records.flatMap(r => r.assistants).map(assistant => (
+                                <TableRow key={assistant.id}>
+                                  <TableCell>{assistant.assistantName}</TableCell>
+                                  <TableCell>{assistant.personnelCount}</TableCell>
+                                  <TableCell>{assistant.absentCount}</TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingAssistant({ record: detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!, assistant })}>
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                              <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+                                            <AlertDialogDescription>Esta acción eliminará a este asistente de este registro de asistencia. No se puede deshacer.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteAssistant(detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!.id, assistant)}>Eliminar</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </TableCell>
                                 </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {detail.records.flatMap(r => r.assistants).map(assistant => (
-                                  <TableRow key={assistant.id}>
-                                    <TableCell>{assistant.assistantName}</TableCell>
-                                    <TableCell>{assistant.personnelCount}</TableCell>
-                                    <TableCell>{assistant.absentCount}</TableCell>
-                                    <TableCell className="text-right">
-                                      <div className="flex justify-end gap-1">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingAssistant({ record: detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!, assistant })}>
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
-                                              <AlertDialogDescription>Esta acción eliminará a este asistente de este registro de asistencia. No se puede deshacer.</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                              <AlertDialogAction onClick={() => handleDeleteAssistant(detail.records.find(r => r.assistants.some(a => a.id === assistant.id))!.id, assistant)}>Eliminar</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
-                      ))}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            ) : (
-              <div className="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-center">
-                <h3 className="text-lg font-semibold">
-                  No se encontraron registros
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Intenta ajustar los filtros o registra nueva asistencia.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      </div>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          ) : (
+            <div className="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-center">
+              <h3 className="text-lg font-semibold">
+                No se encontraron registros
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Intenta ajustar los filtros o registra nueva asistencia.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       <EditAssistantDialog
         isOpen={!!editingAssistant}
         setIsOpen={() => setEditingAssistant(null)}
         editingData={editingAssistant}
         onSave={handleSaveAssistant}
       />
-    </div>
+    </>
   );
 }
