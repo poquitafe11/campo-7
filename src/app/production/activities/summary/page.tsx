@@ -296,11 +296,11 @@ export default function ActivitySummaryPage() {
 
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-max">
              {loading ? (
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : multiDaySummary && multiDaySummary.length > 0 ? (
-                <div className="space-y-4 mr-4">
+                <div className="space-y-4">
                     <div className="inline-block">
                           <table className="border-collapse border border-black text-xs">
                               <thead className="text-left font-bold text-black">
