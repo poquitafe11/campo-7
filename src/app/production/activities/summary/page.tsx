@@ -8,13 +8,11 @@ import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { type AttendanceRecord, type LoteData, type MinMax } from '@/lib/types';
+import { type ActivityRecordData, type LoteData, type MinMax } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
-import { Bar, BarChart, ComposedChart, Line, LabelList, Legend, RadialBar, RadialBarChart, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -47,21 +45,6 @@ const formatNumber = (num: number, digits = 2) => {
     maximumFractionDigits: digits,
   });
 };
-
-const chartConfig = {
-  jhu: {
-    label: "JHU",
-    color: "#38bdf8", // Celeste
-  },
-  has: {
-    label: "Hectáreas",
-    color: "#10b981", // Verde Esmeralda
-  },
-  promedio: {
-    label: "Promedio",
-    color: "#f59e0b", // Ámbar
-  },
-} satisfies ChartConfig
 
 export default function ActivitySummaryPage() {
     const { toast } = useToast();
@@ -218,18 +201,6 @@ export default function ActivitySummaryPage() {
     ];
     
     const loading = isLoading || masterLoading;
-
-    const chartData = useMemo(() => {
-        if (!multiDaySummary) return [];
-        return multiDaySummary
-            .map(d => ({
-                fecha: d.summary.fecha,
-                jhu: d.summary.jhu,
-                promedio: Math.round(d.summary.promedio),
-                has: d.summary.has,
-            }))
-            .reverse(); 
-    }, [multiDaySummary]);
     
     const filterOptions = useMemo(() => { // filterOptions.campaigns is already available from useMasterData
         const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
@@ -348,35 +319,6 @@ export default function ActivitySummaryPage() {
                             </tbody>
                         </table>
                     </div>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Gráfico de Jornadas, Hectáreas y Promedio</CardTitle>
-                            <CardDescription>
-                                Visualización de las jornadas (JHU), hectáreas (Has) y el promedio de rendimiento por día.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                                <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-                                    <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="fecha" tickLine={false} axisLine={false} tickMargin={8} />
-                                    <YAxis yAxisId="left" orientation="left" stroke={chartConfig.jhu.color} />
-                                    <YAxis yAxisId="right" orientation="right" stroke={chartConfig.has.color} />
-                                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                    <Legend />
-                                    <Bar dataKey="jhu" yAxisId="left" fill="var(--color-jhu)" radius={4}>
-                                        <LabelList dataKey="jhu" position="top" offset={8} className="fill-foreground text-xs" formatter={(value: number) => value.toFixed(2)} />
-                                    </Bar>
-                                    <Line type="monotone" dataKey="has" yAxisId="right" stroke="var(--color-has)" strokeWidth={2} dot={{ fill: "var(--color-has)", r: 4 }}>
-                                        <LabelList dataKey="has" position="top" offset={8} className="fill-foreground text-xs" />
-                                    </Line>
-                                    <Line type="monotone" dataKey="promedio" yAxisId="left" stroke="var(--color-promedio)" strokeWidth={2} dot={{ fill: "var(--color-promedio)", r: 4 }}>
-                                         <LabelList dataKey="promedio" position="top" offset={8} className="fill-foreground text-xs" />
-                                    </Line>
-                                </ComposedChart>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
                 </div>
             ) : (
                 <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
@@ -386,4 +328,3 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
-
