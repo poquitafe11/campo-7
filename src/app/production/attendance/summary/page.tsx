@@ -17,6 +17,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
 import Link from 'next/link';
+import { Calendar } from '@/components/ui/calendar';
 
 interface LoteHeaderInfo {
   lote: string; 
