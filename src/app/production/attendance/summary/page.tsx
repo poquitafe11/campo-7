@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, RefreshCcw, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, RefreshCcw, Calendar as CalendarIcon, ArrowLeft, LayoutGrid } from 'lucide-react';
 import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -15,8 +15,8 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { PageHeader } from '@/components/PageHeader';
+import Link from 'next/link';
 
 interface LoteHeaderInfo {
   lote: string; 
@@ -106,25 +106,38 @@ function AttendanceSummaryContent() {
   useEffect(() => {
     setActions(
       <>
-        <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-9 w-9">
-          <RefreshCcw className="h-5 w-5" />
-        </Button>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="h-9">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {selectedDate ? format(selectedDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => router.push(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <div className="flex-1 flex items-center justify-between">
+           <Button variant="ghost" size="icon" className="text-white hover:text-white/80" onClick={() => router.back()}>
+                <ArrowLeft className="h-5 w-5" />
+           </Button>
+           <h1 className="text-lg font-semibold text-white">Resumen de Asistencia</h1>
+           <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="text-white hover:text-white/80">
+                    <RefreshCcw className="h-5 w-5" />
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="text-white hover:text-white/80 gap-1 px-2">
+                      <CalendarIcon className="h-5 w-5" />
+                      <span className="text-sm">{format(selectedDate, "d MMM yyyy", { locale: es })}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => router.push(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button variant="ghost" size="icon" asChild className="text-white hover:text-white/80">
+                   <Link href="/dashboard">
+                    <LayoutGrid className="h-5 w-5" />
+                   </Link>
+                </Button>
+           </div>
+        </div>
       </>
     );
     return () => setActions(null);
@@ -210,7 +223,6 @@ function AttendanceSummaryContent() {
 
   return (
     <>
-      <PageHeader title="Resumen de Asistencia" />
       <Card>
         <CardContent className="p-2">
         {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
