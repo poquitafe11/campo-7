@@ -303,42 +303,42 @@ export default function ActivitySummaryPage() {
             ) : multiDaySummary && multiDaySummary.length > 0 ? (
                 <div className="space-y-4">
                     <div className="inline-block">
-                          <table className="border-collapse border border-black text-xs">
+                          <table className="border-collapse border border-black text-[10px]">
                               <thead className="text-left font-bold text-black">
                                   <tr>
-                                      <th colSpan={2} className="border border-black bg-gray-200 p-1 text-base font-bold h-8 align-middle whitespace-nowrap">
+                                      <th colSpan={2} className="border border-black bg-gray-200 p-0.5 text-xs font-bold h-6 align-middle whitespace-nowrap">
                                           LABOR: {(activeFilters.labor || 'N/A').toUpperCase()}
                                       </th>
                                   </tr>
                               </thead>
                               <tbody className="bg-white">
                                   <tr>
-                                      <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">LOTE: {activeFilters.lote || 'N/A'}</td>
-                                      <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
+                                      <td className="border border-black px-1 py-0.5 font-bold whitespace-nowrap">LOTE: {activeFilters.lote || 'N/A'}</td>
+                                      <td className="border border-black px-1 py-0.5 font-bold whitespace-nowrap">MIN. ESTAB.: {minMaxData?.min ?? 'N/A'}</td>
                                   </tr>
                                   <tr>
-                                      <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">PASADA: {activeFilters.pasada || 'N/A'}</td>
-                                      <td className="border border-black px-2 py-1 font-bold whitespace-nowrap">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
+                                      <td className="border border-black px-1 py-0.5 font-bold whitespace-nowrap">PASADA: {activeFilters.pasada || 'N/A'}</td>
+                                      <td className="border border-black px-1 py-0.5 font-bold whitespace-nowrap">MAX. ESTAB.: {minMaxData?.max ?? 'N/A'}</td>
                                   </tr>
                               </tbody>
                           </table>
                       </div>
                     <div className="overflow-x-auto pb-4">
-                        <table className="border-collapse border border-black text-xs w-full">
+                        <table className="border-collapse border border-black text-[10px] w-full">
                             <thead className="text-center font-bold text-black min-w-full">
                                 <tr className="bg-gray-300">
-                                    <th className="border border-black px-1.5 py-1 font-bold w-24">FECHA</th>
-                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black px-1.5 py-1 text-center font-bold">{day.summary.fecha}</th>)}
+                                    <th className="border border-black px-1 py-0.5 font-bold w-20">FECHA</th>
+                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black px-1 py-0.5 text-center font-bold">{day.summary.fecha}</th>)}
                                 </tr>
                             </thead> 
                             <tbody className="bg-[#dbe5f1]">
                                 {summaryRows.map(row => (
                                     <tr key={String(row.key)}>
-                                        <td className={`border border-black px-1.5 py-1 font-bold w-24 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
+                                        <td className={`border border-black px-1 py-0.5 font-bold w-20 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
                                         {multiDaySummary.map((day, index) => {
                                             const value = day.summary[row.key];
                                             return (
-                                                <td key={index} className={`border border-black px-1.5 py-1 text-center ${row.bgClass || ''}`}>
+                                                <td key={index} className={`border border-black px-1 py-0.5 text-center ${row.bgClass || ''}`}>
                                                     {row.format ? row.format(value) : value}
                                                 </td>
                                             )
@@ -386,3 +386,4 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
+
