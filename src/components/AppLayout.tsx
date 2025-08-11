@@ -15,10 +15,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Settings, LogOut, Search, Bell } from 'lucide-react';
+import { Settings, LogOut, Search, Bell, Menu } from 'lucide-react';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import ConnectionStatus from './ConnectionStatus';
 import { PageHeader } from './PageHeader';
+import { SheetTrigger, Sheet } from './ui/sheet';
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -30,11 +31,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className="flex flex-col">
          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-            <div className='w-full flex-1'>
-              {/* This space is intentionally left blank to push the user menu to the right */}
+            <div className='w-full flex-1 flex items-center gap-2'>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden h-9 w-9">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle Menu</span>
+                  </Button>
+                </SheetTrigger>
+                {/* The SheetContent is rendered inside the Sidebar component */}
+              </Sheet>
+              {actions}
             </div>
             <div className="flex items-center gap-2">
-                {actions}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                     <Button variant="secondary" size="icon" className="rounded-full">

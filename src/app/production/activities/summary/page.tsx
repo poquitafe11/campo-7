@@ -277,7 +277,7 @@ export default function ActivitySummaryPage() {
                           <table className="border-collapse border border-black text-[10px]">
                               <thead className="text-left font-bold text-black">
                                   <tr>
-                                      <th colSpan={2} className="border border-black bg-gray-200 p-0.5 text-xs font-bold h-6 align-middle whitespace-nowrap">
+                                      <th colSpan={2} className="border border-black bg-gray-200 px-1 py-0.5 text-xs font-bold h-6 align-middle whitespace-nowrap">
                                           LABOR: {(activeFilters.labor || 'N/A').toUpperCase()}
                                       </th>
                                   </tr>
