@@ -69,8 +69,8 @@ export default function ActivitySummaryPage() {
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
     const { lotes: allLotes, labors: allLabors, minMax: allMinMax, campaigns: allCampaigns, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
-    const [activeFilters, setActiveFilters] = useState({ lote: '', labor: '', pasada: '' });
-    const [popoverFilters, setPopoverFilters] = useState({ lote: '', labor: '', pasada: '' });
+    const [activeFilters, setActiveFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
+    const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const { setActions } = useHeaderActions();
 
@@ -297,7 +297,7 @@ export default function ActivitySummaryPage() {
 
 
     return (
-        <div className="min-w-max">
+        <div className="w-full">
              {loading ? (
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : multiDaySummary && multiDaySummary.length > 0 ? (
@@ -323,22 +323,22 @@ export default function ActivitySummaryPage() {
                               </tbody>
                           </table>
                       </div>
-                    <div className="pb-4">
+                    <div className="overflow-x-auto pb-4">
                         <table className="border-collapse border border-black text-xs w-full">
                             <thead className="text-center font-bold text-black min-w-full">
                                 <tr className="bg-gray-300">
-                                    <th className="border border-black px-2 py-1 font-bold w-28">FECHA</th>
-                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black px-2 py-1 text-center font-bold">{day.summary.fecha}</th>)}
+                                    <th className="border border-black px-1.5 py-1 font-bold w-24">FECHA</th>
+                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black px-1.5 py-1 text-center font-bold">{day.summary.fecha}</th>)}
                                 </tr>
                             </thead> 
                             <tbody className="bg-[#dbe5f1]">
                                 {summaryRows.map(row => (
                                     <tr key={String(row.key)}>
-                                        <td className={`border border-black px-2 py-1 font-bold w-28 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
-                                        {multiDaySummary.map((day, index) => { // Removed whitespace-nowrap from this td
+                                        <td className={`border border-black px-1.5 py-1 font-bold w-24 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
+                                        {multiDaySummary.map((day, index) => {
                                             const value = day.summary[row.key];
                                             return (
-                                                <td key={index} className={`border border-black px-2 py-1 text-center ${row.bgClass || ''}`}>
+                                                <td key={index} className={`border border-black px-1.5 py-1 text-center ${row.bgClass || ''}`}>
                                                     {row.format ? row.format(value) : value}
                                                 </td>
                                             )
