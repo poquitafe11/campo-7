@@ -29,11 +29,11 @@ export function Sidebar() {
 
   return (
       <header className={cn(
-        "sticky top-0 flex h-14 items-center gap-2 border-b px-2 sm:px-4 z-30",
-        isSummaryPage ? 'bg-primary' : 'bg-background'
+        "sticky top-0 flex h-16 items-center gap-2 border-b px-2 sm:px-4 z-30",
+        "bg-background text-foreground"
       )}>
-        {!isSummaryPage && (
-          <Sheet>
+        <div className="flex items-center gap-2">
+            <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
                   <Menu className="h-4 w-4" />
@@ -56,10 +56,15 @@ export function Sidebar() {
                   </div>
               </SheetContent>
           </Sheet>
-        )}
+          {isSummaryPage && actions && (actions as any).left}
+        </div>
         
-        <div className="flex w-full items-center justify-end gap-2">
-            {actions}
+        <div className="flex-1 flex justify-center">
+            {isSummaryPage && actions && (actions as any).center}
+        </div>
+        
+        <div className="flex items-center justify-end gap-2">
+            {isSummaryPage && actions && (actions as any).right}
             {!isSummaryPage && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

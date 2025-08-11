@@ -15,9 +15,8 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/PageHeader';
-import Link from 'next/link';
 import { Calendar } from '@/components/ui/calendar';
+import Link from 'next/link';
 
 interface LoteHeaderInfo {
   lote: string; 
@@ -105,44 +104,51 @@ function AttendanceSummaryContent() {
   }, [loadData, refreshParam, selectedDate]); 
 
   useEffect(() => {
-    setActions(
-      <>
-        <div className="flex-1 flex items-center justify-between">
-           <Button variant="ghost" size="icon" className="text-white hover:text-white/80" onClick={() => router.back()}>
-                <ArrowLeft className="h-5 w-5" />
-           </Button>
-           <h1 className="text-lg font-semibold text-white">Resumen de Asistencia</h1>
-           <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="text-white hover:text-white/80">
-                    <RefreshCcw className="h-5 w-5" />
-                </Button>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" className="text-white hover:text-white/80 gap-1 px-2">
-                      <CalendarIcon className="h-5 w-5" />
-                      <span className="text-sm">{format(selectedDate, "d MMM yyyy", { locale: es })}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => router.push(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Button variant="ghost" size="icon" asChild className="text-white hover:text-white/80">
-                   <Link href="/dashboard">
-                    <LayoutGrid className="h-5 w-5" />
-                   </Link>
-                </Button>
-           </div>
+    const headerTitle = (
+        <div className="text-center leading-tight">
+            <span className="text-sm font-normal">Resumen de</span>
+            <h1 className="text-lg font-bold">Asistencia</h1>
         </div>
-      </>
     );
-    return () => setActions(null);
+
+    const rightActions = (
+        <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-8 w-8">
+                <RefreshCcw className="h-5 w-5" />
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="gap-1 px-2 h-8">
+                  <CalendarIcon className="h-5 w-5" />
+                  <span className="text-sm">{format(selectedDate, "d MMM yyyy", { locale: es })}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => router.push(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+               <Link href="/dashboard">
+                <LayoutGrid className="h-5 w-5" />
+               </Link>
+            </Button>
+        </div>
+    );
+    
+    setActions({
+      left: <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}><ArrowLeft className="h-5 w-5" /></Button>,
+      center: headerTitle,
+      right: rightActions,
+    });
+
+    return () => setActions({});
   }, [setActions, selectedDate, router]);
+
 
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
