@@ -16,32 +16,19 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { Settings, LogOut, Search, Bell, Menu } from 'lucide-react';
-import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import ConnectionStatus from './ConnectionStatus';
-import { PageHeader } from './PageHeader';
-import { SheetTrigger, Sheet } from './ui/sheet';
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const { profile, user, logout } = useAuth();
-    const { actions } = useHeaderActions();
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <Sidebar />
       <div className="flex flex-col">
          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-            <div className='w-full flex-1 flex items-center gap-2'>
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden h-9 w-9">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Toggle Menu</span>
-                  </Button>
-                </SheetTrigger>
-                {/* The SheetContent is rendered inside the Sidebar component */}
-              </Sheet>
-              {actions}
+            <div className="w-full flex-1">
+              {/* The mobile sidebar trigger is now handled within the Sidebar component itself */}
             </div>
             <div className="flex items-center gap-2">
                 <DropdownMenu>
@@ -64,8 +51,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </DropdownMenu>
             </div>
         </header>
-        <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 overflow-y-auto">
-             <div className="flex-1 overflow-x-auto">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+             <div className="flex-1">
                 {children}
              </div>
         </main>
