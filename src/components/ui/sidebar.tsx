@@ -27,13 +27,14 @@ export function Sidebar() {
       <header className="sticky top-0 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6 z-30">
         <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 md:hidden">
                 <Menu className="h-4 w-4" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col p-0">
                <SheetHeader className="h-14 flex flex-row items-center border-b px-4">
+                 <SheetTitle className="sr-only">Menu Principal</SheetTitle>
                   <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src="/icon-7.svg" alt="Campo 7" />
