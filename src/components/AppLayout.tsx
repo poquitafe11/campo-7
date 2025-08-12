@@ -3,17 +3,22 @@
 
 import React from 'react';
 import { Sidebar } from '@/components/ui/sidebar';
+import { usePathname } from 'next/navigation';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  // Special layout for the daily attendance entry page to match the reference image
+  if (pathname === '/production/attendance/daily-entry') {
+    return <div className="min-h-screen bg-background">{children}</div>;
+  }
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="min-h-screen w-full bg-background">
       <Sidebar />
-      <div className="flex flex-1 flex-col sm:gap-4 sm:py-4 sm:pl-14">
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-          {children}
-        </main>
-      </div>
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 sm:pl-14">
+        {children}
+      </main>
     </div>
   );
 }
