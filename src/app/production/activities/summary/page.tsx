@@ -49,7 +49,7 @@ export default function ActivitySummaryPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
-    const { lotes: allLotes, labors: allLabors, minMax: allMinMax, campaigns: allCampaigns, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+    const { lotes: allLotes, labors: allLabors, minMax: allMinMax, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
     const [activeFilters, setActiveFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
     const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
@@ -88,14 +88,17 @@ export default function ActivitySummaryPage() {
     }, []);
 
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
-        const filteredActivities = allActivities.filter(a => 
-            (!activeFilters.campaign || a.campaign === activeFilters.campaign) &&
-            (!activeFilters.lote || a.lote === activeFilters.lote) && 
-            a.labor === activeFilters.labor &&
-            String(a.pass) === activeFilters.pasada
-        );
+        const filteredActivities = allActivities.filter(a => {
+            const loteInfo = allLotes.find(l => l.lote === a.lote);
+            return (
+                (!activeFilters.campaign || (loteInfo && loteInfo.campana === activeFilters.campaign)) &&
+                (!activeFilters.lote || a.lote === activeFilters.lote) && 
+                (!activeFilters.labor || a.labor === activeFilters.labor) &&
+                (!activeFilters.pasada || String(a.pass) === activeFilters.pasada)
+            )
+        });
 
-        if (filteredActivities.length === 0) return null;
+        if (filteredActivities.length === 0 || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada) return null;
         
         const cuartelesDelLote = allLotes.filter(l => l.lote === activeFilters.lote);
         if (cuartelesDelLote.length === 0) return null;
@@ -201,12 +204,13 @@ export default function ActivitySummaryPage() {
     
     const loading = isLoading || masterLoading;
     
-    const filterOptions = useMemo(() => { // filterOptions.campaigns is already available from useMasterData
+    const filterOptions = useMemo(() => {
+        const campaigns = [...new Set(allLotes.map(l => l.campana).filter(Boolean))].sort();
         const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
         const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        return { lotes, labors, pasadas };
-    }, [allActivities]);
+        return { campaigns, lotes, labors, pasadas };
+    }, [allActivities, allLotes]);
     
     const handleApplyFilters = useCallback(() => {
         setActiveFilters(popoverFilters);
@@ -214,7 +218,8 @@ export default function ActivitySummaryPage() {
     }, [popoverFilters]);
 
     useEffect(() => {
-        setActions(
+        setActions({
+            right:
             <>
                 <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={loading} className="h-9 w-9">
                     <RefreshCcw className="h-5 w-5" />
@@ -229,6 +234,14 @@ export default function ActivitySummaryPage() {
                        <div className="grid gap-4">
                            <div className="space-y-2"><h4 className="font-medium leading-none">Filtros de Resumen</h4></div>
                            <div className="grid gap-2">
+                                <Label>Campaña</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v }))} value={popoverFilters.campaign}>
+                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todas</SelectItem>
+                                        {filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
                                 <Label>Lote</Label>
                                 <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, lote: v === 'all' ? '' : v }))} value={popoverFilters.lote}>
                                     <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
@@ -261,8 +274,8 @@ export default function ActivitySummaryPage() {
                     </PopoverContent>
                 </Popover>
             </>
-        );
-        return () => setActions(null);
+        });
+        return () => setActions({});
     }, [setActions, isFilterOpen, popoverFilters, filterOptions, loading, handleApplyFilters]);
 
 
