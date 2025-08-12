@@ -141,6 +141,15 @@ export default function IrrigationSummaryPage() {
     };
 
     const isContentReady = !loading && !masterLoading;
+    
+    const toggleLoteSelection = (lote: string) => {
+        setPopoverFilters(prev => {
+            const newLotes = prev.lotes.includes(lote)
+                ? prev.lotes.filter(s => s !== lote)
+                : [...prev.lotes, lote];
+            return { ...prev, lotes: newLotes.sort((a,b) => a.localeCompare(b, undefined, {numeric: true})) };
+        });
+    };
 
     return (
         <div className="space-y-6">
@@ -173,17 +182,9 @@ export default function IrrigationSummaryPage() {
                                                     {filterOptions.lotes.map(lote => (
                                                         <CommandItem 
                                                             key={lote} 
-                                                            value={lote} 
-                                                            onMouseDown={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                setPopoverFilters(prev => {
-                                                                    const newLotes = prev.lotes.includes(lote)
-                                                                        ? prev.lotes.filter(s => s !== lote)
-                                                                        : [...prev.lotes, lote];
-                                                                    return { ...prev, lotes: newLotes.sort((a,b) => a.localeCompare(b, undefined, {numeric: true})) };
-                                                                });
-                                                            }}
+                                                            value={lote}
+                                                            onSelect={() => toggleLoteSelection(lote)}
+                                                            className="cursor-pointer"
                                                         >
                                                             <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", popoverFilters.lotes.includes(lote) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}><Check className={cn("h-4 w-4")}/></div>
                                                             {lote}
@@ -254,5 +255,6 @@ export default function IrrigationSummaryPage() {
     );
 }
     
+
 
 
