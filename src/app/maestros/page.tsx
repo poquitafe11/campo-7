@@ -3,6 +3,7 @@
 
 import { FeatureCard } from "@/components/FeatureCard";
 import { Layers, Box, Users, Thermometer, ScrollText } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 const masterFeatures = [
   {
@@ -46,6 +47,7 @@ const masterFeatures = [
 export default function MaestrosPage() {
   return (
     <>
+      <PageHeader title="Maestros" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {masterFeatures.map((feature) => (
           <FeatureCard key={feature.title} {...feature} />

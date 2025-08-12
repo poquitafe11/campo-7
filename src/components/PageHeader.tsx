@@ -1,9 +1,7 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, LayoutGrid } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function PageHeader({ title }: { title: string }) {

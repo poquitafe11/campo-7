@@ -2,7 +2,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut, UserCircle, LayoutGrid } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import Link from "next/link";
+import { PageHeader } from "../PageHeader";
 
 export function Sidebar() {
   const { profile, user, logout } = useAuth();
@@ -57,7 +58,7 @@ export function Sidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="sm:max-w-xs p-0">
-            <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+            <h1 className="sr-only">Menú de Navegación</h1>
             {sidebarContent}
           </SheetContent>
         </Sheet>

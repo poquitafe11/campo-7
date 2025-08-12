@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import FeaturePermissionsDialog from "@/components/FeaturePermissionsDialog";
-import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+import { PageHeader } from "@/components/PageHeader";
 
 const allHealthFeatures = [
   {
@@ -31,12 +31,6 @@ export default function HealthPage() {
   const { profile } = useAuth();
   const [isPermissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
-  const { setActions } = useHeaderActions();
-
-  useEffect(() => {
-    setActions(<>Sanidad</>);
-    return () => setActions(null);
-  }, [setActions]);
 
   const handlePermissionSettings = (e: React.MouseEvent, feature: Feature) => {
     e.preventDefault();
@@ -58,6 +52,7 @@ export default function HealthPage() {
 
   return (
     <>
+      <PageHeader title="Sanidad" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {visibleFeatures.map((feature) => (
           <Link href={feature.href} key={feature.title} className="block group relative">
