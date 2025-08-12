@@ -211,11 +211,12 @@ export default function ActivitySummaryPage() {
             .map(lote => lote.lote)
         )].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         
-        const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
+        const labors = [...new Set(allLabors.map(l => l.descripcion))].sort();
+        
         const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         
         return { campaigns, lotes, labors, pasadas };
-    }, [allActivities, allLotes, popoverFilters.campaign]);
+    }, [allLotes, allLabors, allActivities, popoverFilters.campaign]);
     
     const handleApplyFilters = useCallback(() => {
         setActiveFilters(popoverFilters);
@@ -241,7 +242,7 @@ export default function ActivitySummaryPage() {
                            <div className="grid gap-2">
                                 <Label>Campaña</Label>
                                 <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v, lote: '' }))} value={popoverFilters.campaign}>
-                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todas</SelectItem>
                                         {filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -249,7 +250,7 @@ export default function ActivitySummaryPage() {
                                 </Select>
                                 <Label>Lote</Label>
                                 <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, lote: v === 'all' ? '' : v }))} value={popoverFilters.lote}>
-                                    <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todos"} /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todos</SelectItem>
                                         {filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
@@ -257,7 +258,7 @@ export default function ActivitySummaryPage() {
                                 </Select>
                                 <Label>Labor</Label>
                                 <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, labor: v === 'all' ? '' : v }))} value={popoverFilters.labor}>
-                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todas</SelectItem>
                                         {filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
@@ -265,7 +266,7 @@ export default function ActivitySummaryPage() {
                                 </Select>
                                 <Label>Pasada</Label>
                                 <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, pasada: v === 'all' ? '' : v }))} value={popoverFilters.pasada}>
-                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todas</SelectItem>
                                         {filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
