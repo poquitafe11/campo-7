@@ -76,9 +76,9 @@ export default function IrrigationSummaryPage() {
     const filterOptions = useMemo(() => {
         const campaigns = [...new Set(irrigationRecords.map(r => r['Campaña']))].filter(Boolean);
         const stages = [...new Set(irrigationRecords.map(r => r['Etapa']))].filter(Boolean);
-        const lotes = [...new Set(irrigationRecords.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+        const lotes = [...new Set(masterLotes.map(l => l.lote))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         return { campaigns, stages, lotes };
-    }, [irrigationRecords]);
+    }, [irrigationRecords, masterLotes]);
 
 
     const summaryData = useMemo(() => {
