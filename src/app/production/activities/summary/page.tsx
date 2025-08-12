@@ -90,12 +90,11 @@ export default function ActivitySummaryPage() {
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
         const filteredActivities = allActivities.filter(a => {
             const loteInfo = allLotes.find(l => l.lote === a.lote);
-            return (
-                (!activeFilters.campaign || (loteInfo && loteInfo.campana === activeFilters.campaign)) &&
-                (!activeFilters.lote || a.lote === activeFilters.lote) && 
-                (!activeFilters.labor || a.labor === activeFilters.labor) &&
-                (!activeFilters.pasada || String(a.pass) === activeFilters.pasada)
-            )
+            const campaignMatch = !activeFilters.campaign || (loteInfo && loteInfo.campana === activeFilters.campaign);
+            const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
+            const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
+            const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
+            return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
 
         if (filteredActivities.length === 0 || !activeFilters.lote || !activeFilters.labor || !activeFilters.pasada) return null;
@@ -205,11 +204,16 @@ export default function ActivitySummaryPage() {
     const loading = isLoading || masterLoading;
     
     const filterOptions = useMemo(() => {
+        const lotesConCampana = allLotes.reduce((acc, lote) => {
+            acc.set(lote.lote, lote.campana);
+            return acc;
+        }, new Map<string, string>());
+
         const campaigns = [...new Set(allLotes.map(l => l.campana).filter(Boolean))].sort();
         const lotes = [...new Set(allActivities.map(a => a.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
         const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        return { campaigns, lotes, labors, pasadas };
+        return { campaigns, lotes, labors, pasadas, lotesConCampana };
     }, [allActivities, allLotes]);
     
     const handleApplyFilters = useCallback(() => {
@@ -247,7 +251,9 @@ export default function ActivitySummaryPage() {
                                     <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todos</SelectItem>
-                                        {filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                        {filterOptions.lotes
+                                            .filter(lote => !popoverFilters.campaign || filterOptions.lotesConCampana.get(lote) === popoverFilters.campaign)
+                                            .map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <Label>Labor</Label>
