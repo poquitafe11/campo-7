@@ -59,7 +59,7 @@ export function Sidebar() {
           </SheetContent>
         </Sheet>
         <div className="flex-1 text-center font-semibold text-lg">
-          {profile?.nombre}
+          Áreas de Gestión
         </div>
       </div>
 
