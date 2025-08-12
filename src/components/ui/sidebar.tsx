@@ -30,7 +30,7 @@ export function Sidebar() {
   const isSummaryPage = pathname.includes('/production/attendance/summary');
   const isDatabasePage = pathname === '/production/attendance/database';
 
-  const { title } = (actions as { title?: string }) || {};
+  const { left: leftActions, center: centerActions, right: rightActions } = (actions as { left?: React.ReactNode, center?: React.ReactNode, right?: React.ReactNode }) || {};
 
   const handleBack = () => {
       router.back();
@@ -51,41 +51,38 @@ export function Sidebar() {
               </SheetTrigger>
               <SheetContent side="left" className="flex flex-col p-0">
                  <SheetHeader className="h-14 flex flex-row items-center border-b px-4">
-                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src="/icon-7.svg" alt="Campo 7" />
-                        <AvatarFallback>C7</AvatarFallback>
-                      </Avatar>
-                      <span>Campo 7</span>
-                    </Link>
+                    <SheetTitle asChild>
+                      <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src="/icon-7.svg" alt="Campo 7" />
+                          <AvatarFallback>C7</AvatarFallback>
+                        </Avatar>
+                        <span>Campo 7</span>
+                      </Link>
+                    </SheetTitle>
                   </SheetHeader>
                   <div className="flex-1 overflow-y-auto">
                       <SidebarNav />
                   </div>
               </SheetContent>
-          </Sheet>
-          {(isDatabasePage || isSummaryPage) && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
-                  <ArrowLeft className="h-5 w-5" />
-              </Button>
-          )}
+            </Sheet>
+            {leftActions ? leftActions : (
+                 (isDatabasePage || isSummaryPage) && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
+                      <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                )
+            )}
         </div>
         
         <div className="flex-1 flex justify-center">
-             <h1 className="text-xl font-semibold tracking-tight text-foreground text-center">
-                {title}
-            </h1>
+             <div className="text-xl font-semibold tracking-tight text-foreground text-center">
+                {centerActions}
+            </div>
         </div>
         
         <div className="flex items-center justify-end gap-2">
-            {(isDatabasePage || isSummaryPage) && (
-                <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-                   <Link href="/dashboard">
-                    <LayoutGrid className="h-5 w-5" />
-                   </Link>
-                </Button>
-            )}
-            {(!isSummaryPage && !isDatabasePage) && (
+            {rightActions ? rightActions : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="icon" className="rounded-full h-8 w-8">
