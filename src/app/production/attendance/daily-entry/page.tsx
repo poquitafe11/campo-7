@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -66,6 +67,7 @@ import { db, auth } from '@/lib/firebase';
 import { collection, doc, writeBatch, getDocs, getDoc } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { PageHeader } from '@/components/PageHeader';
+import { useRouter } from 'next/navigation';
 
 
 const assistantInFormSchema = z.object({
@@ -100,6 +102,7 @@ export default function RegistroAsistenciaPage() {
   const { labors, lotes, loading: masterLoading } = useMasterData();
   const [isClient, setIsClient] = useState(false);
   const [userProfile, setUserProfile] = useState<{ nombre: string } | null>(null);
+  const router = useRouter();
   
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceFormSchema),
@@ -311,7 +314,19 @@ export default function RegistroAsistenciaPage() {
 
   return (
     <>
-      <PageHeader title="Registro de Asistencia" />
+      <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 mb-4">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Atrás</span>
+        </Button>
+        <h2 className="flex-1 text-center text-lg font-semibold">Registro de Asistencia</h2>
+        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+            <Link href="/dashboard">
+                <LayoutGrid className="h-4 w-4" />
+                <span className="sr-only">Menú Principal</span>
+            </Link>
+        </Button>
+      </header>
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
