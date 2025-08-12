@@ -67,7 +67,7 @@ import { db, auth } from '@/lib/firebase';
 import { collection, doc, writeBatch, getDocs, getDoc } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useRouter } from 'next/navigation';
-import { PageHeader } from '@/components/PageHeader';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 const assistantInFormSchema = z.object({
@@ -97,6 +97,7 @@ type StagedAssistant = Assistant & {
 
 export default function RegistroAsistenciaPage() {
   const { toast } = useToast();
+  const { setActions } = useHeaderActions();
   const [isAddAssistantDialogOpen, setIsAddAssistantDialogOpen] = useState(false);
   const [assistants, setAssistants] = useState<StagedAssistant[]>([]);
   const { labors, lotes, loading: masterLoading } = useMasterData();
@@ -125,6 +126,13 @@ export default function RegistroAsistenciaPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  useEffect(() => {
+    setActions({
+      title: "Registro de Asistencia"
+    })
+    return () => setActions({});
+  }, [setActions]);
 
   const codeValue = form.watch('code');
   const loteIdValue = form.watch('lote');
@@ -314,7 +322,6 @@ export default function RegistroAsistenciaPage() {
 
   return (
     <>
-      <PageHeader title="Registro de Asistencia" />
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

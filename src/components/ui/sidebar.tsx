@@ -4,7 +4,7 @@
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Settings, LogOut } from "lucide-react";
+import { Menu, Settings, LogOut, ArrowLeft, LayoutGrid } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
@@ -18,14 +18,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export function Sidebar() {
   const { profile, user, logout } = useAuth();
   const { actions } = useHeaderActions();
   const pathname = usePathname();
+  const router = useRouter();
 
+  const isAttendanceEntryPage = pathname === '/production/attendance/daily-entry';
   const isSummaryPage = pathname.includes('/production/attendance/summary');
+
+  const title = (actions as {title: string})?.title ?? ""
 
   return (
       <header className={cn(
@@ -56,15 +60,32 @@ export function Sidebar() {
               </SheetContent>
           </Sheet>
           {isSummaryPage && actions && (actions as any).left}
+          {isAttendanceEntryPage && (
+             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
+                <ArrowLeft className="h-5 w-5" />
+             </Button>
+          )}
         </div>
         
         <div className="flex-1 flex justify-center">
             {isSummaryPage && actions && (actions as any).center}
+            {isAttendanceEntryPage && title && (
+                 <h1 className="text-lg font-semibold tracking-tight text-foreground text-center">
+                    {title}
+                </h1>
+            )}
         </div>
         
         <div className="flex items-center justify-end gap-2">
             {isSummaryPage && actions && (actions as any).right}
-            {!isSummaryPage && (
+            {isAttendanceEntryPage && (
+                <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                   <Link href="/dashboard">
+                    <LayoutGrid className="h-5 w-5" />
+                   </Link>
+                </Button>
+            )}
+            {(!isSummaryPage && !isAttendanceEntryPage) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="icon" className="rounded-full h-8 w-8">
