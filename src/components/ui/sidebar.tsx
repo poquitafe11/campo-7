@@ -2,7 +2,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut, ChevronRight, UserCircle } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
@@ -54,6 +54,7 @@ export function Sidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="sm:max-w-xs p-0">
+            <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
             {sidebarContent}
           </SheetContent>
         </Sheet>
