@@ -10,7 +10,6 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   ArrowLeft,
-  LayoutGrid,
   Calendar as CalendarIcon,
   Code,
   Wrench,
@@ -319,12 +318,7 @@ export default function RegistroAsistenciaPage() {
             <span className="sr-only">Atrás</span>
         </Button>
         <h2 className="flex-1 text-center text-lg font-semibold">Registro de Asistencia</h2>
-        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
-            <Link href="/dashboard">
-                <LayoutGrid className="h-4 w-4" />
-                <span className="sr-only">Menú Principal</span>
-            </Link>
-        </Button>
+        <div className="w-8"></div>
       </header>
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
