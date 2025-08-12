@@ -2,107 +2,70 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Settings, LogOut, ArrowLeft, LayoutGrid } from "lucide-react";
+import { Menu, LogOut, ChevronRight, UserCircle } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
-import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useHeaderActions } from "@/contexts/HeaderActionsContext";
-import { usePathname, useRouter } from "next/navigation";
+import ConnectionStatus from "../ConnectionStatus";
 
 export function Sidebar() {
   const { profile, user, logout } = useAuth();
-  const { actions } = useHeaderActions();
-  const pathname = usePathname();
-  const router = useRouter();
 
-  const isAttendanceEntryPage = pathname === '/production/attendance/daily-entry';
-  const isSummaryPage = pathname.includes('/production/attendance/summary');
-  const isDatabasePage = pathname === '/production/attendance/database';
-
-  const { left: leftActions, center: centerActions, right: rightActions } = (actions as { left?: React.ReactNode, center?: React.ReactNode, right?: React.ReactNode }) || {};
-
-  const handleBack = () => {
-      router.back();
-  }
+  const sidebarContent = (
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+      <div className="p-4 border-b border-sidebar-accent/20">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 border-2 border-sidebar-accent">
+            <AvatarImage src={user?.photoURL || ""} />
+            <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground font-bold">
+              {profile?.nombre.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-semibold text-sm">{profile?.nombre}</p>
+            <p className="text-xs text-sidebar-muted-foreground">Rol: {profile?.rol}</p>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <SidebarNav />
+      </div>
+      <div className="mt-auto p-4 border-t border-sidebar-accent/20 space-y-4">
+        <ConnectionStatus />
+        <Button onClick={logout} variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20">
+          <LogOut className="mr-2 h-4 w-4" />
+          Cerrar Sesión
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
-      <header className={cn(
-        "sticky top-0 flex h-16 items-center gap-2 border-b px-2 sm:px-4 z-30",
-        "bg-background text-foreground"
-      )}>
-        <div className="flex items-center gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
-                  <Menu className="h-4 w-4" />
-                  <span className="sr-only">Toggle navigation menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="flex flex-col p-0">
-                 <SheetHeader className="h-14 flex flex-row items-center border-b px-4">
-                    <SheetTitle asChild>
-                      <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src="/icon-7.svg" alt="Campo 7" />
-                          <AvatarFallback>C7</AvatarFallback>
-                        </Avatar>
-                        <span>Campo 7</span>
-                      </Link>
-                    </SheetTitle>
-                  </SheetHeader>
-                  <div className="flex-1 overflow-y-auto">
-                      <SidebarNav />
-                  </div>
-              </SheetContent>
-            </Sheet>
-            {leftActions ? leftActions : (
-                 (isDatabasePage || isSummaryPage) && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
-                      <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                )
-            )}
+    <>
+      {/* Mobile Sidebar */}
+      <div className="sm:hidden sticky top-0 flex h-14 items-center gap-4 border-b bg-background px-4 z-40">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button size="icon" variant="outline" className="sm:hidden">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="sm:max-w-xs p-0">
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
+        <div className="flex-1 text-center font-semibold text-lg">
+          {profile?.nombre}
         </div>
-        
-        <div className="flex-1 flex justify-center">
-             <div className="text-xl font-semibold tracking-tight text-foreground text-center">
-                {centerActions}
-            </div>
-        </div>
-        
-        <div className="flex items-center justify-end gap-2">
-            {rightActions ? rightActions : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="icon" className="rounded-full h-8 w-8">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.photoURL || ""} />
-                        <AvatarFallback>{profile?.nombre.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <span className="sr-only">Toggle user menu</span>
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{profile?.nombre}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Configuración</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>Cerrar Sesión</DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-            )}
-        </div>
-      </header>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:w-64 sm:flex sm:flex-col">
+          {sidebarContent}
+      </aside>
+    </>
   );
 }

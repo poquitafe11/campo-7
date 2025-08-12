@@ -6,68 +6,94 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutGrid,
-  ClipboardList,
-  HeartPulse,
-  Droplets,
-  BadgeCheck,
-  Bug,
-  Lightbulb,
-  PieChart,
+  Layers,
+  Box,
   Users,
-  Settings,
+  Thermometer,
+  ScrollText,
+  Shield,
+  Map,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-const allLinks = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { href: '/maestros', label: 'Maestros', icon: Settings },
-  { href: '/production', label: 'Producción', icon: ClipboardList },
-  { href: '/health', label: 'Sanidad', icon: HeartPulse },
-  { href: '/irrigation', label: 'Riego', icon: Droplets },
-  { href: '/quality-control', label: 'C. Calidad', icon: BadgeCheck },
-  { href: '/biological-control', label: 'C. Biológico', icon: Bug },
-  { href: '/queries', label: 'Consultas IA', icon: Lightbulb },
-  { href: '/summary', label: 'Resumen', icon: PieChart },
-  { href: '/users', label: 'Usuarios', icon: Users },
+const mainLinks = [
+  { href: '/dashboard', label: 'Áreas', icon: LayoutGrid },
+  { href: '/users', label: 'Usuarios', icon: Shield },
+  { href: '/maps', label: 'Mapas', icon: Map, disabled: true },
+];
+
+const masterLinks = [
+  { href: '/maestro-lotes', label: 'Lotes', icon: Box },
+  { href: '/maestro-labores', label: 'Labores', icon: Layers },
+  { href: '/maestro-trabajadores', label: 'Trabajadores', icon: Users },
+  { href: '/asistentes', label: 'Asistentes', icon: Users },
+  { href: '/min-max', label: 'Mínimos y Máximos', icon: Thermometer },
+  { href: '/presupuesto', label: 'Presupuesto', icon: ScrollText },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { profile } = useAuth();
+  
+  const isMastersActive = masterLinks.some(link => pathname.startsWith(link.href));
+  const [activeAccordion, setActiveAccordion] = useState(isMastersActive ? 'maestros' : '');
 
   const visibleLinks = useMemo(() => {
-    if (!profile) return [];
+    if (!profile) return { main: [], masters: [] };
+    // For now, let's assume Admin sees all.
+    // Logic for other roles can be added here later based on `profile.permissions`.
     if (profile.rol === 'Admin') {
-      return allLinks;
+      return { main: mainLinks, masters: masterLinks };
     }
-    const userPermissions = profile.permissions || {};
-    return allLinks.filter(link => {
-      if (link.href === '/dashboard' || link.href === '/maestros') return true; // Always show dashboard and maestros
-      // For other sections, check permissions
-      return userPermissions[link.href];
-    });
+    // Filter logic for non-admins would go here
+    return { main: mainLinks, masters: masterLinks };
   }, [profile]);
   
   const isActive = (href: string) => {
-    return pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+    return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
+  
+  const NavLink = ({ href, label, icon: Icon, disabled = false }: { href: string; label: string; icon: React.ElementType; disabled?: boolean }) => (
+    <Link
+      href={!disabled ? href : '#'}
+      className={cn(
+        'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
+        isActive(href) && 'bg-sidebar-accent text-sidebar-foreground',
+        disabled && 'cursor-not-allowed opacity-50'
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </Link>
+  );
 
   return (
-    <nav className="grid items-start gap-2 px-2 text-sm font-medium lg:px-4">
-      {visibleLinks.map(({ href, label, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
-            isActive(href) && 'bg-muted text-primary'
-          )}
-        >
-          <Icon className="h-4 w-4" />
-          {label}
-        </Link>
-      ))}
+    <nav className="grid items-start gap-1 p-2 text-sm font-medium">
+        {visibleLinks.main.map((link) => (
+            <NavLink key={link.href} {...link} />
+        ))}
+        
+        <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
+          <AccordionItem value="maestros" className="border-none">
+            <AccordionTrigger className={cn(
+                'flex items-center w-full gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline',
+                 isMastersActive && 'bg-sidebar-accent text-sidebar-foreground'
+            )}>
+              <div className="flex items-center gap-3">
+                <Layers className="h-4 w-4" />
+                Maestros
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pl-7 pt-1 space-y-1">
+              {visibleLinks.masters.map((link) => (
+                 <NavLink key={link.href} {...link} />
+              ))}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
     </nav>
   );
 }
