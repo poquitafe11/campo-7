@@ -172,8 +172,12 @@ export default function IrrigationSummaryPage() {
                                                 <CommandGroup>
                                                     {filterOptions.lotes.map(lote => (
                                                         <CommandItem key={lote} value={lote} onSelect={() => {
-                                                            const newLotes = popoverFilters.lotes.includes(lote) ? popoverFilters.lotes.filter(s => s !== lote) : [...popoverFilters.lotes, lote];
-                                                            setPopoverFilters(p => ({...p, lotes: newLotes.sort((a,b) => a.localeCompare(b, undefined, {numeric: true}))}));
+                                                            setPopoverFilters(prev => {
+                                                                const newLotes = prev.lotes.includes(lote)
+                                                                    ? prev.lotes.filter(s => s !== lote)
+                                                                    : [...prev.lotes, lote];
+                                                                return { ...prev, lotes: newLotes.sort((a,b) => a.localeCompare(b, undefined, {numeric: true})) };
+                                                            });
                                                         }}>
                                                             <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", popoverFilters.lotes.includes(lote) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}><Check className={cn("h-4 w-4")}/></div>
                                                             {lote}
@@ -244,3 +248,4 @@ export default function IrrigationSummaryPage() {
     );
 }
     
+
