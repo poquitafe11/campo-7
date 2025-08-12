@@ -129,7 +129,12 @@ export default function RegistroAsistenciaPage() {
   
   useEffect(() => {
     setActions({
-      title: "Registro de Asistencia"
+      title: (
+          <div className="text-center leading-tight">
+              <span className="text-sm font-normal">Registro de</span>
+              <h1 className="text-lg font-bold">Asistencia</h1>
+          </div>
+      )
     })
     return () => setActions({});
   }, [setActions]);
@@ -321,8 +326,8 @@ export default function RegistroAsistenciaPage() {
   const canAddAssistant = !!loteIdValue && !!laborValue;
 
   return (
-    <>
-       <Form {...form}>
+    <div className="flex flex-col h-full">
+      <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <FormField
@@ -538,6 +543,6 @@ export default function RegistroAsistenciaPage() {
         isSpecialLabor={codeValue === '902'}
         currentUserName={userProfile?.nombre || auth.currentUser?.email || ''}
       />
-    </>
+    </div>
   );
 }
