@@ -90,7 +90,7 @@ export default function ActivitySummaryPage() {
     const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
         const filteredActivities = allActivities.filter(a => {
             const loteInfo = allLotes.find(l => l.lote === a.lote);
-            const campaignMatch = !activeFilters.campaign || (loteInfo && loteInfo.campana === activeFilters.campaign);
+            const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
             const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
             const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
             const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
