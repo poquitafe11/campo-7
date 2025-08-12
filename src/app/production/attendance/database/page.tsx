@@ -10,6 +10,8 @@ import {
   UserX,
   Filter,
   Loader2,
+  LayoutGrid,
+  ArrowLeft,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -67,7 +69,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
-import { PageHeader } from '@/components/PageHeader';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 
 interface GroupedByLaborLot {
@@ -108,6 +112,8 @@ export default function AttendanceDatabasePage() {
   ] = useState<{ record: AttendanceRecord; assistant: Assistant } | null>(null);
 
   const { toast } = useToast();
+  const { setActions } = useHeaderActions();
+  const router = useRouter();
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState(getInitialFilters());
@@ -316,10 +322,14 @@ export default function AttendanceDatabasePage() {
     setActiveFilters(clearedFilters);
     setIsFilterOpen(false);
   };
+  
+  useEffect(() => {
+    setActions({ title: "Historial de Asistencia" });
+    return () => setActions({});
+  }, [setActions]);
 
   return (
     <>
-      <PageHeader title="Base de Datos de Asistencia" />
       <Card>
         <CardHeader>
           <div className="flex flex-row items-start justify-between gap-4">

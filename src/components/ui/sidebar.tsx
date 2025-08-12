@@ -28,8 +28,13 @@ export function Sidebar() {
 
   const isAttendanceEntryPage = pathname === '/production/attendance/daily-entry';
   const isSummaryPage = pathname.includes('/production/attendance/summary');
+  const isDatabasePage = pathname === '/production/attendance/database';
 
-  const title = (actions as {title: string})?.title ?? ""
+  const { title } = (actions as { title?: string }) || {};
+
+  const handleBack = () => {
+      router.back();
+  }
 
   return (
       <header className={cn(
@@ -59,33 +64,28 @@ export function Sidebar() {
                   </div>
               </SheetContent>
           </Sheet>
-          {isSummaryPage && actions && (actions as any).left}
-          {isAttendanceEntryPage && (
-             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
-                <ArrowLeft className="h-5 w-5" />
-             </Button>
+          {(isDatabasePage || isSummaryPage) && (
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
+                  <ArrowLeft className="h-5 w-5" />
+              </Button>
           )}
         </div>
         
         <div className="flex-1 flex justify-center">
-            {isSummaryPage && actions && (actions as any).center}
-            {isAttendanceEntryPage && title && (
-                 <h1 className="text-lg font-semibold tracking-tight text-foreground text-center">
-                    {title}
-                </h1>
-            )}
+             <h1 className="text-xl font-semibold tracking-tight text-foreground text-center">
+                {title}
+            </h1>
         </div>
         
         <div className="flex items-center justify-end gap-2">
-            {isSummaryPage && actions && (actions as any).right}
-            {isAttendanceEntryPage && (
+            {(isDatabasePage || isSummaryPage) && (
                 <Button variant="ghost" size="icon" asChild className="h-8 w-8">
                    <Link href="/dashboard">
                     <LayoutGrid className="h-5 w-5" />
                    </Link>
                 </Button>
             )}
-            {(!isSummaryPage && !isAttendanceEntryPage) && (
+            {(!isSummaryPage && !isDatabasePage) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="icon" className="rounded-full h-8 w-8">
