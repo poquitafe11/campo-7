@@ -204,19 +204,13 @@ export default function ActivitySummaryPage() {
     const loading = isLoading || masterLoading;
     
     const filterOptions = useMemo(() => {
-        const campaigns = [...new Set(allLotes.map(l => l.campana).filter(Boolean))].sort();
-        
-        const lotes = [...new Set(allLotes
-            .filter(lote => !popoverFilters.campaign || lote.campana === popoverFilters.campaign)
-            .map(lote => lote.lote)
-        )].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        
-        const labors = [...new Set(allLabors.map(l => l.descripcion))].sort();
-        
-        const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-        
-        return { campaigns, lotes, labors, pasadas };
-    }, [allLotes, allLabors, allActivities, popoverFilters.campaign]);
+      const campaigns = [...new Set(allActivities.map(r => r.campaign).filter(Boolean))].sort();
+      const lotes = [...new Set(allActivities.map(r => r.lote).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
+      const labors = [...new Set(allActivities.map(r => r.labor).filter(Boolean))].sort();
+      const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+
+      return { campaigns, lotes, labors, pasadas };
+    }, [allActivities]);
     
     const handleApplyFilters = useCallback(() => {
         setActiveFilters(popoverFilters);
