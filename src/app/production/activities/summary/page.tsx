@@ -206,11 +206,10 @@ export default function ActivitySummaryPage() {
     const filterOptions = useMemo(() => {
         const campaigns = [...new Set(allLotes.map(l => l.campana).filter(Boolean))].sort();
         
-        const availableLotes = allLotes
+        const lotes = [...new Set(allLotes
             .filter(lote => !popoverFilters.campaign || lote.campana === popoverFilters.campaign)
-            .map(lote => lote.lote);
-            
-        const lotes = [...new Set(availableLotes)].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+            .map(lote => lote.lote)
+        )].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         
         const labors = [...new Set(allActivities.map(a => a.labor).filter(Boolean) as string[])].sort();
         const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
