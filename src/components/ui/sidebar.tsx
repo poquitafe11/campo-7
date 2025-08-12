@@ -4,18 +4,22 @@
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, UserCircle, LayoutGrid } from "lucide-react";
+import { Menu, LogOut, UserCircle, LayoutGrid, ArrowLeft } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
 import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import Link from "next/link";
-import { PageHeader } from "../PageHeader";
+import { usePathname, useRouter } from "next/navigation";
 
 export function Sidebar() {
   const { profile, user, logout } = useAuth();
   const { actions } = useHeaderActions();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const isDashboard = pathname === '/dashboard';
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
@@ -49,32 +53,44 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile Sidebar */}
-      <div className="sm:hidden sticky top-0 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 z-40">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button size="icon" variant="outline" className="sm:hidden shrink-0">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle Menu</span>
+      <header className="sm:hidden sticky top-0 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 z-40">
+        <div className="flex items-center gap-1">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button size="icon" variant="outline" className="sm:hidden shrink-0 h-9 w-9">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="sm:max-w-xs p-0">
+              <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+              {sidebarContent}
+            </SheetContent>
+          </Sheet>
+          {!isDashboard && (
+            <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9" onClick={() => router.back()}>
+                <ArrowLeft className="h-5 w-5" />
+                <span className="sr-only">Volver</span>
             </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="sm:max-w-xs p-0">
-            <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
-            {sidebarContent}
-          </SheetContent>
-        </Sheet>
-        <div className="flex-1 text-center font-semibold text-lg truncate px-2">
-          {actions}
+          )}
         </div>
-        <Link href="/dashboard" passHref>
-           <Button size="icon" variant="outline" className="sm:hidden shrink-0">
-              <LayoutGrid className="h-5 w-5" />
-              <span className="sr-only">Dashboard</span>
-            </Button>
-        </Link>
-      </div>
+        <div className="flex-1 text-center font-semibold text-lg truncate px-2">
+          {actions.title}
+        </div>
+        <div className="flex items-center">
+            {actions.right ||
+             <Link href="/dashboard" passHref>
+                <Button size="icon" variant="outline" className="sm:hidden shrink-0 h-9 w-9">
+                    <LayoutGrid className="h-5 w-5" />
+                    <span className="sr-only">Dashboard</span>
+                </Button>
+            </Link>
+            }
+        </div>
+      </header>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:w-64 sm:flex sm:flex-col">
+      <aside className="hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:w-14 sm:flex sm:flex-col">
           {sidebarContent}
       </aside>
     </>

@@ -4,7 +4,8 @@
 import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BadgeCheck, Ruler, Leaf } from "lucide-react";
-import { PageHeader } from "@/components/PageHeader";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+import { useEffect } from "react";
 
 const features = [
   {
@@ -28,9 +29,15 @@ const features = [
 ];
 
 export default function QualityControlPage() {
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions({ title: "Control de Calidad" });
+    return () => setActions({});
+  }, [setActions]);
+
   return (
     <>
-      <PageHeader title="Control de Calidad" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {features.map((feature) => (
           <Link href={feature.href} key={feature.title} className="block group">

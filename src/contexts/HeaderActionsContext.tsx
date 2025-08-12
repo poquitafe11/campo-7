@@ -3,15 +3,21 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+interface HeaderActions {
+  title?: React.ReactNode;
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+}
+
 interface HeaderActionsContextType {
-  actions: React.ReactNode;
-  setActions: (actions: React.ReactNode) => void;
+  actions: HeaderActions;
+  setActions: (actions: HeaderActions) => void;
 }
 
 const HeaderActionsContext = createContext<HeaderActionsContextType | undefined>(undefined);
 
 export function HeaderActionsProvider({ children }: { children: ReactNode }) {
-  const [actions, setActions] = useState<React.ReactNode>(null);
+  const [actions, setActions] = useState<HeaderActions>({});
 
   const value = { actions, setActions };
 

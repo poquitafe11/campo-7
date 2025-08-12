@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { PageHeader } from "@/components/PageHeader";
 import { QuerySchema } from "@/lib/types";
 import { useAppData } from "@/context/AppDataContext";
 import { askQuery } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 export default function QueriesPage() {
   const { state: appData } = useAppData();
@@ -23,6 +23,12 @@ export default function QueriesPage() {
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions({ title: "Consultas IA" });
+    return () => setActions({});
+  }, [setActions]);
 
   const form = useForm<z.infer<typeof QuerySchema>>({
     resolver: zodResolver(QuerySchema),
@@ -57,7 +63,6 @@ export default function QueriesPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Asistente de Consultas IA" />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

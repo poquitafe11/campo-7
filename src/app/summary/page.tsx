@@ -2,11 +2,12 @@
 "use client";
 
 import { useAppData } from "@/context/AppDataContext";
-import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ProductionData, HealthData, IrrigationData, QualityControlData, BiologicalControlData } from "@/lib/types";
 import { format } from "date-fns";
 import { Sprout, HeartPulse, Droplets, BadgeCheck, Bug } from "lucide-react";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+import { useEffect } from "react";
 
 const DataCard = ({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) => (
   <Card>
@@ -25,6 +26,12 @@ const DataItem = ({ label, value }: { label: string, value: string | number | un
 
 export default function SummaryPage() {
   const { state } = useAppData();
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions({ title: "Resumen" });
+    return () => setActions({});
+  }, [setActions]);
 
   const renderList = <T extends { id: string }>(items: T[], renderItem: (item: T) => React.ReactNode) => {
     if (items.length === 0) {
@@ -35,7 +42,6 @@ export default function SummaryPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Resumen de Datos" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DataCard title="Producción" icon={<Sprout className="h-5 w-5" />}>
           {renderList(state.production, (item: ProductionData) => (

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { CalendarIcon, Bug } from "lucide-react";
 import { format } from "date-fns";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -15,13 +16,19 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/PageHeader";
 import { BiologicalControlSchema } from "@/lib/types";
 import { useAppData } from "@/context/AppDataContext";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 export default function BiologicalControlPage() {
   const { dispatch } = useAppData();
   const { toast } = useToast();
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions({ title: "Control Biológico" });
+    return () => setActions({});
+  }, [setActions]);
 
   const form = useForm<z.infer<typeof BiologicalControlSchema>>({
     resolver: zodResolver(BiologicalControlSchema),
@@ -43,7 +50,6 @@ export default function BiologicalControlPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Control Biológico" />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
