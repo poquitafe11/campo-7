@@ -49,7 +49,6 @@ export function Sidebar() {
                       </Avatar>
                       <span>Campo 7</span>
                     </Link>
-                  <SheetTitle className="sr-only">Menu Principal</SheetTitle>
                   </SheetHeader>
                   <div className="flex-1 overflow-y-auto">
                       <SidebarNav />

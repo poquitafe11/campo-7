@@ -11,19 +11,13 @@ export function PageHeader({ title }: { title: string }) {
 
   return (
     <div className="flex items-center justify-between mb-6">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">
+       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
+          <ArrowLeft className="h-5 w-5" />
+       </Button>
+      <h1 className="text-xl font-semibold tracking-tight text-foreground text-center flex-1">
         {title}
       </h1>
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <Button variant="outline" size="icon" asChild>
-           <Link href="/dashboard">
-            <LayoutGrid className="h-5 w-5" />
-           </Link>
-        </Button>
-      </div>
+      <div className="w-8"></div>
     </div>
   );
 }
