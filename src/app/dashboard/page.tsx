@@ -14,9 +14,10 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import FeaturePermissionsDialog from "@/components/FeaturePermissionsDialog";
 import { Button } from "@/components/ui/button";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const allFeatures = [
   {
@@ -62,6 +63,12 @@ export default function DashboardPage() {
     const { profile } = useAuth();
     const [isPermissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
     const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+    const { setActions } = useHeaderActions();
+
+    useEffect(() => {
+        setActions(<>Áreas de Gestión</>);
+        return () => setActions(null);
+    }, [setActions]);
 
     const handlePermissionSettings = (e: React.MouseEvent, feature: Feature) => {
         e.preventDefault();

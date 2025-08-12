@@ -11,7 +11,7 @@ interface HeaderActionsContextType {
 const HeaderActionsContext = createContext<HeaderActionsContextType | undefined>(undefined);
 
 export function HeaderActionsProvider({ children }: { children: ReactNode }) {
-  const [actions, setActions] = useState<React.ReactNode>({});
+  const [actions, setActions] = useState<React.ReactNode>(null);
 
   const value = { actions, setActions };
 

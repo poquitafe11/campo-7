@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Database, BarChart3, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import FeaturePermissionsDialog from "@/components/FeaturePermissionsDialog";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const allIrrigationFeatures = [
   {
@@ -30,6 +31,12 @@ export default function IrrigationPage() {
   const { profile } = useAuth();
   const [isPermissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions(<>Riego</>);
+    return () => setActions(null);
+  }, [setActions]);
 
   const handlePermissionSettings = (e: React.MouseEvent, feature: Feature) => {
     e.preventDefault();

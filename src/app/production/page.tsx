@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ClipboardList, Users, PenSquare, LineChart, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import FeaturePermissionsDialog from "@/components/FeaturePermissionsDialog";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const allProductionFeatures = [
   {
@@ -42,6 +43,12 @@ export default function ProductionPage() {
   const { profile } = useAuth();
   const [isPermissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions(<>Producción</>);
+    return () => setActions(null);
+  }, [setActions]);
 
   const handlePermissionSettings = (e: React.MouseEvent, feature: Feature) => {
     e.preventDefault();

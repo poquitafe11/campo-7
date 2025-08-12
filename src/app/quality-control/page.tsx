@@ -4,6 +4,8 @@
 import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BadgeCheck, Ruler, Leaf } from "lucide-react";
+import { useEffect } from "react";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const features = [
   {
@@ -27,6 +29,13 @@ const features = [
 ];
 
 export default function QualityControlPage() {
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions(<>Control de Calidad</>);
+    return () => setActions(null);
+  }, [setActions]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {features.map((feature) => (

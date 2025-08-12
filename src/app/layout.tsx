@@ -8,7 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import AuthWrapper from '@/components/AuthWrapper';
 import { MasterDataProvider } from '@/context/MasterDataContext';
-import AppLayout from '@/components/AppLayout';
+import AppLayout from './AppLayout';
 import { HeaderActionsProvider } from '@/contexts/HeaderActionsContext';
 
 const APP_NAME = "Campo 7";

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { CalendarIcon, Bug } from "lucide-react";
 import { format } from "date-fns";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -18,10 +19,17 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { BiologicalControlSchema } from "@/lib/types";
 import { useAppData } from "@/context/AppDataContext";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 export default function BiologicalControlPage() {
   const { dispatch } = useAppData();
   const { toast } = useToast();
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions(<>Control Biológico</>);
+    return () => setActions(null);
+  }, [setActions]);
 
   const form = useForm<z.infer<typeof BiologicalControlSchema>>({
     resolver: zodResolver(BiologicalControlSchema),
