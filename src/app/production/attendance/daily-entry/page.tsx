@@ -17,6 +17,7 @@ import {
   Sprout,
   PlusCircle,
   Trash2,
+  LayoutGrid,
 } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -318,7 +319,14 @@ export default function RegistroAsistenciaPage() {
             <span className="sr-only">Atrás</span>
         </Button>
         <h2 className="flex-1 text-center text-lg font-semibold">Registro de Asistencia</h2>
-        <div className="w-8"></div>
+        <div className="w-8">
+            <Button asChild variant="outline" size="icon" className="h-8 w-8">
+              <Link href="/dashboard">
+                <LayoutGrid className="h-4 w-4" />
+                <span className="sr-only">Menú Principal</span>
+              </Link>
+            </Button>
+        </div>
       </header>
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
