@@ -105,47 +105,51 @@ function AttendanceSummaryContent() {
 
   useEffect(() => {
     const headerTitle = (
-        <div className="text-center leading-tight">
-            <span className="text-sm font-normal">Resumen de</span>
-            <h1 className="text-lg font-bold">Asistencia</h1>
-        </div>
+      <div className="text-center leading-tight">
+        <p className="text-sm font-normal text-muted-foreground">Resumen de</p>
+        <h1 className="text-lg font-bold text-foreground">Asistencia</h1>
+      </div>
     );
-
+  
     const rightActions = (
-        <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-8 w-8">
-                <RefreshCcw className="h-5 w-5" />
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-8 w-8">
+          <RefreshCcw className="h-5 w-5" />
+        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" className="gap-1 px-2 h-8">
+              <CalendarIcon className="h-5 w-5" />
+              <span className="text-sm">{format(selectedDate, "d MMM yyyy", { locale: es })}</span>
             </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" className="gap-1 px-2 h-8">
-                  <CalendarIcon className="h-5 w-5" />
-                  <span className="text-sm">{format(selectedDate, "d MMM yyyy", { locale: es })}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => router.push(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-               <Link href="/dashboard">
-                <LayoutGrid className="h-5 w-5" />
-               </Link>
-            </Button>
-        </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => router.push(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+        <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+          <Link href="/dashboard">
+            <LayoutGrid className="h-5 w-5" />
+          </Link>
+        </Button>
+      </div>
     );
     
     setActions({
-      left: <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}><ArrowLeft className="h-5 w-5" /></Button>,
+      left: (
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      ),
       center: headerTitle,
       right: rightActions,
     });
-
+  
     return () => setActions({});
   }, [setActions, selectedDate, router]);
 
