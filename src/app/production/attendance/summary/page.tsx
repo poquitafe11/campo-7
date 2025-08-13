@@ -231,13 +231,13 @@ function AttendanceSummaryContent() {
   return (
     <>
       <Card>
-        <CardContent className="p-2">
+        <CardContent className="overflow-x-auto p-2">
         {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
            <div className="overflow-x-auto">
               <table className="min-w-full border-collapse text-[10px]">
                   <thead className="text-center font-bold text-black">
                       <tr>
-                          <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-base">
+                          <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs">
                           ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
                           </th>
                       </tr>
