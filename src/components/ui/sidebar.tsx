@@ -54,10 +54,10 @@ export function Sidebar() {
     <>
       {/* Mobile Sidebar */}
       <header className="sm:hidden sticky top-0 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 z-40">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-start w-1/4">
           <Sheet>
             <SheetTrigger asChild>
-              <Button size="icon" variant="outline" className="sm:hidden shrink-0 h-9 w-9">
+              <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle Menu</span>
               </Button>
@@ -67,20 +67,15 @@ export function Sidebar() {
               {sidebarContent}
             </SheetContent>
           </Sheet>
-          {!isDashboard && (
-            <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9" onClick={() => router.back()}>
-                <ArrowLeft className="h-5 w-5" />
-                <span className="sr-only">Volver</span>
-            </Button>
-          )}
+           {actions.left}
         </div>
         <div className="flex-1 text-center font-semibold text-lg truncate px-2">
-          {actions.title}
+          {actions.center || actions.title}
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center justify-end w-1/4">
             {actions.right ||
              <Link href="/dashboard" passHref>
-                <Button size="icon" variant="outline" className="sm:hidden shrink-0 h-9 w-9">
+                <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9">
                     <LayoutGrid className="h-5 w-5" />
                     <span className="sr-only">Dashboard</span>
                 </Button>
