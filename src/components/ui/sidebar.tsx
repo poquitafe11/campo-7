@@ -54,7 +54,7 @@ export function Sidebar() {
     <>
       {/* Mobile Sidebar */}
       <header className="sm:hidden sticky top-0 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 z-40">
-        <div className="flex items-center justify-start w-1/4">
+        <div className="flex items-center justify-start">
           <Sheet>
             <SheetTrigger asChild>
               <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9">
@@ -72,7 +72,7 @@ export function Sidebar() {
         <div className="flex-1 text-center font-semibold text-lg truncate px-2">
           {actions.center || actions.title}
         </div>
-        <div className="flex items-center justify-end w-1/4">
+        <div className="flex items-center justify-end">
             {actions.right ||
              <Link href="/dashboard" passHref>
                 <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9">
