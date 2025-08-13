@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -20,9 +21,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen w-full bg-background">
       <Sidebar />
-      <main className="flex-1 gap-4 p-4 md:gap-8 md:p-8 sm:ml-14">
-        {children}
-      </main>
+      <div className="flex flex-col flex-1 w-full">
+        <main className="flex-1 p-4 md:p-8 sm:ml-14">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
