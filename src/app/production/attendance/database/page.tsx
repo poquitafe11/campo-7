@@ -2,6 +2,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
