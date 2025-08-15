@@ -94,10 +94,10 @@ export type LoteData = z.infer<typeof LoteDataSchema>;
 
 
 export type AttendanceRecord = {
-  id: string;
+  id?: string;
   date: string;
-  lote: string; // Changed from lotName to lote to match usage
-  lotName: string; // Kept for compatibility, but lote should be primary
+  lote: string; 
+  lotName: string; 
   variedad: string;
   fechaCianamida: Date;
   campana: string;
