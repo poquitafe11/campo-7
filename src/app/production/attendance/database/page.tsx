@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -66,7 +66,12 @@ export default function AttendanceDatabasePage() {
   
   useEffect(() => {
     setActions({
-      title: "Historial de Asistencia",
+      left: (
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+        </Button>
+      ),
+      center: "Historial de Asistencia",
     });
     return () => setActions({});
   }, [setActions, router]);
@@ -75,11 +80,17 @@ export default function AttendanceDatabasePage() {
     return records.reduce((acc, record) => {
       const dateKey = record.date;
       if (!acc[dateKey]) {
-        acc[dateKey] = [];
+        acc[dateKey] = {
+          records: [],
+          totalPersonnel: 0,
+          totalAbsent: 0,
+        };
       }
-      acc[dateKey].push(record);
+      acc[dateKey].records.push(record);
+      acc[dateKey].totalPersonnel += record.totals.personnelCount;
+      acc[dateKey].totalAbsent += record.totals.absentCount;
       return acc;
-    }, {} as Record<string, AttendanceRecordWithId[]>);
+    }, {} as Record<string, { records: AttendanceRecordWithId[], totalPersonnel: number, totalAbsent: number }>);
   }, [records]);
   
   const handleEditAssistant = (record: AttendanceRecordWithId, assistant: Assistant) => {
@@ -139,10 +150,18 @@ export default function AttendanceDatabasePage() {
     <div className="flex flex-col h-full space-y-4">
         {Object.keys(groupedByDate).length > 0 ? (
             <Accordion type="single" collapsible className="w-full space-y-4">
-                {Object.entries(groupedByDate).map(([date, dateRecords]) => (
+                {Object.entries(groupedByDate).map(([date, { records: dateRecords, totalPersonnel, totalAbsent }]) => (
                     <AccordionItem value={date} key={date} className="border rounded-lg">
-                        <AccordionTrigger className="px-4 py-3 text-lg font-semibold hover:no-underline">
-                            {format(parseISO(date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+                        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                            <div className="flex justify-between items-center w-full">
+                                <span className="text-lg font-semibold">
+                                    {format(parseISO(date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+                                </span>
+                                <div className="flex gap-4 text-sm">
+                                    <span><strong>Total Personal:</strong> {totalPersonnel}</span>
+                                    <span><strong>Total Faltos:</strong> {totalAbsent}</span>
+                                </div>
+                            </div>
                         </AccordionTrigger>
                         <AccordionContent className="p-4 pt-0 space-y-3">
                            {dateRecords.map(record => (
@@ -212,4 +231,3 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
-
