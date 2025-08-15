@@ -171,21 +171,6 @@ export default function AttendanceDatabasePage() {
                                       <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {record.lote}</div>
                                       <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
                                     </div>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="sm" className="flex-shrink-0"><Trash2 className="mr-2 h-4 w-4"/>Eliminar Registro</Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>¿Eliminar todo el registro?</AlertDialogTitle>
-                                          <AlertDialogDescription>Esta acción eliminará el registro completo para este lote y labor del día. No se puede deshacer.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDeleteRecord(record.id)}>Eliminar</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
                                   </div>
                                    
                                    <div className="overflow-x-auto">
