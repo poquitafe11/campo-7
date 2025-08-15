@@ -2,14 +2,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteAttendanceRecord } from './actions';
+import { deleteAttendanceRecord, deleteAssistantFromRecord } from './actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -131,6 +131,17 @@ export default function AttendanceDatabasePage() {
     });
   };
 
+  const handleDeleteAssistant = async (recordId: string, assistantId: string) => {
+     startTransition(async () => {
+      const result = await deleteAssistantFromRecord(recordId, assistantId);
+      if (result.success) {
+        toast({ title: "Éxito", description: "Asistente eliminado del registro." });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: result.message });
+      }
+    });
+  };
+
   if (loading) {
      return <div className="flex h-64 items-center justify-center"><Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" /></div>
   }
@@ -194,9 +205,28 @@ export default function AttendanceDatabasePage() {
                                               <TableCell className="text-center">{assistant.personnelCount}</TableCell>
                                               <TableCell className="text-center">{assistant.absentCount}</TableCell>
                                               <TableCell className="text-right">
-                                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAssistant(record, assistant)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                  </Button>
+                                                  <div className="flex justify-end gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAssistant(record, assistant)}>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                            <AlertDialogTitle>¿Eliminar asistente?</AlertDialogTitle>
+                                                            <AlertDialogDescription>Se eliminará a {assistant.assistantName} de este registro.</AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteAssistant(record.id, assistant.id)}>Eliminar</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                  </div>
                                               </TableCell>
                                             </TableRow>
                                           ))}
@@ -223,5 +253,3 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
-
-    
