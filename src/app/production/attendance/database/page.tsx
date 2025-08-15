@@ -155,32 +155,33 @@ export default function AttendanceDatabasePage() {
                         <AccordionContent className="pt-3 space-y-3">
                            {dateRecords.map(record => (
                                <div key={record.id} className="border rounded-lg p-4 bg-background/50 space-y-3">
-                                  <div className='flex flex-col gap-2'>
-                                    <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {record.lote}</div>
-                                    <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
+                                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                                    <div className='flex flex-col gap-1'>
+                                      <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {record.lote}</div>
+                                      <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
+                                    </div>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="sm" className="flex-shrink-0"><Trash2 className="mr-2 h-4 w-4"/>Eliminar Registro</Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>¿Eliminar todo el registro?</AlertDialogTitle>
+                                          <AlertDialogDescription>Esta acción eliminará el registro completo para este lote y labor del día. No se puede deshacer.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleDeleteRecord(record.id)}>Eliminar</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
                                   </div>
-
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="destructive" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4"/>Eliminar Registro</Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>¿Eliminar todo el registro?</AlertDialogTitle>
-                                        <AlertDialogDescription>Esta acción eliminará el registro completo para este lote y labor del día. No se puede deshacer.</AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteRecord(record.id)}>Eliminar</AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
                                    
                                    <div className="overflow-x-auto">
                                       <Table className="text-xs">
                                         <TableHeader>
                                           <TableRow>
-                                            <TableHead className="w-2/5">Asistente/Encargado</TableHead>
+                                            <TableHead>Asistente/Encargado</TableHead>
                                             <TableHead className="text-center">Personal</TableHead>
                                             <TableHead className="text-center">Faltos</TableHead>
                                             <TableHead className="text-right">Acciones</TableHead>
@@ -222,3 +223,5 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
+
+    
