@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, FileDown, Filter, Calendar as CalendarIcon, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteActivity } from './actions';
+import { deleteActivity } from '@/app/production/activities/database/actions';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import * as xlsx from "xlsx";
@@ -698,19 +698,6 @@ export default function ActivityDatabasePage() {
 
     
 
+    
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
