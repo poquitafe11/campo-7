@@ -166,14 +166,14 @@ export default function AttendanceDatabasePage() {
                         <AccordionContent className="p-4 pt-0 space-y-3">
                            {dateRecords.map(record => (
                                <div key={record.id} className="border rounded-md p-3">
-                                  <div className="flex justify-between items-center mb-2">
-                                    <div className='flex items-center gap-4 text-sm'>
+                                  <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-2 gap-2">
+                                    <div className='flex flex-wrap items-center gap-x-4 gap-y-1 text-sm'>
                                       <span className='flex items-center gap-1'><Sprout size={16} /> <strong>Lote:</strong> {record.lote}</span>
                                       <span className='flex items-center gap-1'><Wrench size={16} /> <strong>Labor:</strong> {record.labor}</span>
                                     </div>
                                      <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                          <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4"/>Eliminar Registro</Button>
+                                          <Button variant="destructive" size="sm" className="flex-shrink-0"><Trash2 className="mr-2 h-4 w-4"/>Eliminar Registro</Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                           <AlertDialogHeader>
