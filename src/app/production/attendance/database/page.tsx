@@ -20,17 +20,6 @@ import EditAssistantDialog from '@/components/edit-assistant-dialog';
 
 type AttendanceRecordWithId = AttendanceRecord & { id: string };
 
-interface GroupedRecord {
-  lote: string;
-  labor: string;
-  assistants: Assistant[];
-  totals: {
-    personnelCount: number;
-    absentCount: number;
-  };
-  originalRecordId: string;
-}
-
 export default function AttendanceDatabasePage() {
   const [records, setRecords] = useState<AttendanceRecordWithId[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,68 +138,70 @@ export default function AttendanceDatabasePage() {
   return (
     <div className="flex flex-col h-full space-y-4">
         {Object.keys(groupedByDate).length > 0 ? (
-            <Accordion type="single" collapsible className="w-full space-y-4">
+            <Accordion type="single" collapsible className="w-full space-y-4" defaultValue={Object.keys(groupedByDate)[0]}>
                 {Object.entries(groupedByDate).map(([date, { records: dateRecords, totalPersonnel, totalAbsent }]) => (
-                    <AccordionItem value={date} key={date} className="border rounded-lg">
-                        <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                            <div className="flex justify-between items-center w-full">
-                                <span className="text-lg font-semibold">
-                                    {format(parseISO(date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-                                </span>
-                                <div className="flex gap-4 text-sm">
-                                    <span><strong>Total Personal:</strong> {totalPersonnel}</span>
-                                    <span><strong>Total Faltos:</strong> {totalAbsent}</span>
-                                </div>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="p-4 pt-0 space-y-3">
+                    <AccordionItem value={date} key={date} className="border-none">
+                       <AccordionTrigger className="p-4 bg-background rounded-lg shadow-sm border hover:no-underline">
+                           <div className="flex justify-between items-center w-full">
+                               <span className="text-lg font-semibold text-gray-800">
+                                   {format(parseISO(date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+                               </span>
+                               <div className="flex gap-4 text-sm font-medium">
+                                   <span>Total Personal: <span className="font-bold text-primary">{totalPersonnel}</span></span>
+                                   <span>Total Faltos: <span className="font-bold text-destructive">{totalAbsent}</span></span>
+                               </div>
+                           </div>
+                       </AccordionTrigger>
+                        <AccordionContent className="pt-3 space-y-3">
                            {dateRecords.map(record => (
-                               <div key={record.id} className="border rounded-md p-3">
-                                  <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-2 gap-2">
-                                    <div className='flex flex-wrap items-center gap-x-4 gap-y-1 text-sm'>
-                                      <span className='flex items-center gap-1'><Sprout size={16} /> <strong>Lote:</strong> {record.lote}</span>
-                                      <span className='flex items-center gap-1'><Wrench size={16} /> <strong>Labor:</strong> {record.labor}</span>
-                                    </div>
-                                     <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button variant="destructive" size="sm" className="flex-shrink-0"><Trash2 className="mr-2 h-4 w-4"/>Eliminar Registro</Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>¿Eliminar todo el registro?</AlertDialogTitle>
-                                            <AlertDialogDescription>Esta acción eliminará el registro completo para este lote y labor del día. No se puede deshacer.</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteRecord(record.id)}>Eliminar</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
+                               <div key={record.id} className="border rounded-lg p-4 bg-background/50 space-y-3">
+                                  <div className='flex flex-col gap-2'>
+                                    <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {record.lote}</div>
+                                    <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
                                   </div>
-                                   <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Asistente/Encargado</TableHead>
-                                        <TableHead>Personal</TableHead>
-                                        <TableHead>Faltos</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {record.assistants.map(assistant => (
-                                        <TableRow key={assistant.id}>
-                                          <TableCell>{assistant.assistantName}</TableCell>
-                                          <TableCell>{assistant.personnelCount}</TableCell>
-                                          <TableCell>{assistant.absentCount}</TableCell>
-                                          <TableCell className="text-right">
-                                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAssistant(record, assistant)}>
-                                                <Pencil className="h-4 w-4" />
-                                              </Button>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
+
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="destructive" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4"/>Eliminar Registro</Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Eliminar todo el registro?</AlertDialogTitle>
+                                        <AlertDialogDescription>Esta acción eliminará el registro completo para este lote y labor del día. No se puede deshacer.</AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteRecord(record.id)}>Eliminar</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                   
+                                   <div className="overflow-x-auto">
+                                      <Table className="text-xs">
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead className="w-2/5">Asistente/Encargado</TableHead>
+                                            <TableHead className="text-center">Personal</TableHead>
+                                            <TableHead className="text-center">Faltos</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {record.assistants.map(assistant => (
+                                            <TableRow key={assistant.id}>
+                                              <TableCell className="font-medium whitespace-pre-wrap">{assistant.assistantName}</TableCell>
+                                              <TableCell className="text-center">{assistant.personnelCount}</TableCell>
+                                              <TableCell className="text-center">{assistant.absentCount}</TableCell>
+                                              <TableCell className="text-right">
+                                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAssistant(record, assistant)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                  </Button>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                   </div>
                                </div>
                            ))}
                         </AccordionContent>
