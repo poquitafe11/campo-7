@@ -213,8 +213,11 @@ export function AttendanceForm() {
 
         const laborMasterData = labors.find(l => l.descripcion === assistant.labor);
         
-        // Generate a unique ID to prevent duplicates
-        const docId = `${formattedDate}-${loteMasterData.lote}-${assistant.labor}-${assistant.assistantDni}`.replace(/\s+/g, '-');
+        // Sanitize name for use in document ID
+        const sanitizedAssistantName = assistant.assistantName.toUpperCase().replace(/\s+/g, '-').replace(/\//g, '-');
+        
+        // Generate a unique ID to prevent duplicates using the ASSISTANT'S NAME
+        const docId = `${formattedDate}-${loteMasterData.lote}-${assistant.labor}-${sanitizedAssistantName}`.replace(/\s+/g, '-');
         const docRef = doc(attendanceCollectionRef, docId);
 
         try {
