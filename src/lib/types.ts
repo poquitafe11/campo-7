@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 // Production Tracking
@@ -67,6 +66,7 @@ export interface AppState {
 // Asistencia
 export type Assistant = {
   id: string;
+  assistantDni: string;
   assistantName: string;
   personnelCount: number;
   absentCount: number;
@@ -97,9 +97,8 @@ export type AttendanceRecord = {
   id?: string;
   date: string;
   lote: string; 
-  lotName: string; 
   variedad: string;
-  fechaCianamida: Date;
+  fechaCianamida?: Date;
   campana: string;
   code?: string;
   labor: string;

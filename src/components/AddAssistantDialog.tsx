@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -93,13 +92,16 @@ export default function AddAssistantDialog({
     const selectedAssistant = assistantsMaster.find(a => a.id === data.assistantDni);
     
     let assistantName = 'N/A';
+    let assistantDni = 'N/A';
     if (isSpecialLabor) {
         assistantName = currentUserName;
+        assistantDni = 'special'; // Special DNI for this case
     } else if (selectedAssistant) {
         assistantName = selectedAssistant.assistantName;
+        assistantDni = selectedAssistant.id;
     }
 
-    if (!isSpecialLabor && currentAssistants.some(a => a.assistantName === assistantName && a.loteName === loteName && a.labor === labor)) {
+    if (!isSpecialLabor && currentAssistants.some(a => a.assistantDni === assistantDni && a.loteName === loteName && a.labor === labor)) {
         form.setError('assistantDni', {
             type: 'manual',
             message: 'Este asistente ya ha sido añadido para este lote y labor.',
@@ -109,6 +111,7 @@ export default function AddAssistantDialog({
     
     onAddAssistant({
       assistantName,
+      assistantDni,
       personnelCount: data.personnelCount,
       absentCount: data.absentCount,
     });

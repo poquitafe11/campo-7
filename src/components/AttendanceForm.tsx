@@ -14,6 +14,7 @@ import {
   Sprout,
   PlusCircle,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -57,11 +58,12 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, writeBatch, getDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, getDoc } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 
 const assistantInFormSchema = z.object({
   id: z.string(),
+  assistantDni: z.string(),
   assistantName: z.string(),
   personnelCount: z.number(),
   absentCount: z.number(),
@@ -87,6 +89,7 @@ type StagedAssistant = Assistant & {
 
 export function AttendanceForm() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddAssistantDialogOpen, setIsAddAssistantDialogOpen] = useState(false);
   const [assistants, setAssistants] = useState<StagedAssistant[]>([]);
   const { labors, lotes, loading: masterLoading } = useMasterData();
@@ -185,88 +188,85 @@ export function AttendanceForm() {
   const handleDeleteAssistant = (id: string) => {
     setAssistants((prev) => prev.filter((a) => a.id !== id));
   };
-
+  
   async function onSubmit(data: AttendanceFormValues) {
+    setIsSubmitting(true);
     if (!db || !auth?.currentUser) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'No estás autenticado o no hay conexión.',
-        });
+        toast({ variant: 'destructive', title: 'Error', description: 'No estás autenticado o no hay conexión.' });
+        setIsSubmitting(false);
         return;
     }
-     if (assistants.length === 0) {
-        toast({
-            variant: 'destructive',
-            title: 'Lista Vacía',
-            description: 'Añade al menos un asistente a la lista antes de guardar.',
-        });
+    if (assistants.length === 0) {
+        toast({ variant: 'destructive', title: 'Lista Vacía', description: 'Añade al menos un asistente a la lista antes de guardar.' });
+        setIsSubmitting(false);
         return;
     }
 
-    try {
-        const groupedByLotAndLabor = assistants.reduce((acc, assistant) => {
-            const key = `${assistant.loteId}|${assistant.labor}`;
-            if (!acc[key]) {
-                acc[key] = [];
-            }
-            acc[key].push(assistant);
-            return acc;
-        }, {} as Record<string, StagedAssistant[]>);
+    const attendanceCollectionRef = collection(db, 'asistencia');
+    const formattedDate = format(data.date, 'yyyy-MM-dd');
+    let successfulSaves = 0;
+    const failedSaves: string[] = [];
 
-        const batch = writeBatch(db);
-        const attendanceCollection = collection(db, 'asistencia');
-        const formattedDate = format(data.date, 'yyyy-MM-dd');
+    for (const assistant of assistants) {
+        const loteMasterData = lotes.find(l => l.id === assistant.loteId);
+        if (!loteMasterData) continue;
 
-        for (const key in groupedByLotAndLabor) {
-            const group = groupedByLotAndLabor[key];
-            const [loteId, labor] = key.split('|');
-
-            const groupTotals = group.reduce((acc, item) => {
-                acc.personnelCount += item.personnelCount;
-                acc.absentCount += item.absentCount;
-                return acc;
-            }, { personnelCount: 0, absentCount: 0 });
-
-            const groupAssistants: Assistant[] = group.map(({ id, assistantName, personnelCount, absentCount }) => ({
-                id,
-                assistantName,
-                personnelCount,
-                absentCount,
-            }));
-            
-            const loteMasterData = lotes.find(l => l.id === loteId);
-            if (!loteMasterData) continue;
-
-            const laborMasterData = labors.find(l => l.descripcion === labor);
-
-            const record: Omit<AttendanceRecord, 'id' | 'lotName'> = {
-                date: formattedDate,
-                lote: loteMasterData.lote,
-                variedad: loteMasterData.variedad,
-                fechaCianamida: loteMasterData.fechaCianamida
- ? typeof loteMasterData.fechaCianamida === 'string'
- ? new Date(loteMasterData.fechaCianamida)
- : loteMasterData.fechaCianamida
- : undefined,
-                campana: loteMasterData.campana,
-                code: laborMasterData?.codigo,
-                labor,
-                assistants: groupAssistants,
-                totals: groupTotals,
-                registeredBy: auth.currentUser.email,
-            };
-
-            const docRef = doc(attendanceCollection);
-            batch.set(docRef, record);
-        }
-
-        await batch.commit();
+        const laborMasterData = labors.find(l => l.descripcion === assistant.labor);
         
-        toast({
-            title: 'Éxito',
-            description: 'Registros de asistencia guardados correctamente.',
+        // Generate a unique ID to prevent duplicates
+        const docId = `${formattedDate}-${loteMasterData.lote}-${assistant.labor}-${assistant.assistantDni}`.replace(/\s+/g, '-');
+        const docRef = doc(attendanceCollectionRef, docId);
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const docSnap = await transaction.get(docRef);
+
+                if (docSnap.exists()) {
+                    // Document already exists, so it's a duplicate.
+                    throw new Error(`El asistente ${assistant.assistantName} ya fue registrado para este lote y labor el día de hoy.`);
+                }
+                
+                const record: Omit<AttendanceRecord, 'id'> = {
+                    date: formattedDate,
+                    lote: loteMasterData.lote,
+                    variedad: loteMasterData.variedad,
+                    fechaCianamida: loteMasterData.fechaCianamida,
+                    campana: loteMasterData.campana,
+                    code: laborMasterData?.codigo,
+                    labor: assistant.labor,
+                    assistants: [assistant], // Save only the individual assistant
+                    totals: { // Totals for this specific record
+                        personnelCount: assistant.personnelCount,
+                        absentCount: assistant.absentCount,
+                    },
+                    registeredBy: auth.currentUser?.email,
+                };
+                
+                transaction.set(docRef, record);
+            });
+            successfulSaves++;
+        } catch (error: any) {
+            console.error("Error en transacción de guardado:", error);
+            failedSaves.push(error.message || `No se pudo guardar el registro para ${assistant.assistantName}.`);
+        }
+    }
+
+    if (successfulSaves > 0) {
+         toast({
+            title: "Operación Completada",
+            description: `${successfulSaves} de ${assistants.length} registros guardados exitosamente.`,
         });
+    }
+
+    if (failedSaves.length > 0) {
+        toast({
+            variant: "destructive",
+            title: "Registros Duplicados Encontrados",
+            description: failedSaves.join(' '),
+        });
+    }
+
+    if (successfulSaves > 0) {
         form.reset({
           date: new Date(),
           lote: '',
@@ -275,15 +275,9 @@ export function AttendanceForm() {
           assistants: [],
         });
         setAssistants([]);
-
-    } catch (error) {
-        console.error("Error guardando registros:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'No se pudieron guardar los registros de asistencia.',
-        });
     }
+    
+    setIsSubmitting(false);
   }
 
   const canAddAssistant = !!loteIdValue && !!laborValue;
@@ -416,8 +410,9 @@ export function AttendanceForm() {
           )}
           
           <div className="flex flex-col gap-2 pt-4">
-            <Button type="submit" disabled={assistants.length === 0} className="w-full">
-              <Save className="mr-2 h-4 w-4" />Guardar
+            <Button type="submit" disabled={isSubmitting || assistants.length === 0} className="w-full">
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isSubmitting ? 'Guardando...' : 'Guardar'}
             </Button>
             <Button
               type="button"
