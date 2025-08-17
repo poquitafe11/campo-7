@@ -105,8 +105,8 @@ function AttendanceSummaryContent() {
 
   useEffect(() => {
     const headerTitle = (
-        <div className="flex flex-col items-center justify-center leading-tight">
-            <span className="text-sm font-normal text-muted-foreground">Resumen de</span>
+        <div className="flex items-center justify-center leading-tight">
+            <span className="text-sm font-normal text-muted-foreground whitespace-nowrap">Resumen de&nbsp;</span>
             <h1 className="text-lg font-bold text-foreground">Asistencia</h1>
         </div>
     );
@@ -164,7 +164,7 @@ function AttendanceSummaryContent() {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const recordsForDay = allRecords.filter(r => r.date === formattedDate);
     
-    const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))]
+    const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lote))]
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
     const loteHeaders: LoteHeaderInfo[] = uniqueLotesInRecords
@@ -200,7 +200,7 @@ function AttendanceSummaryContent() {
     });
 
     recordsForDay.forEach(record => {
-        const loteKey = record.lotName;
+        const loteKey = record.lote;
         if (!uniqueLotesInRecords.includes(loteKey)) return;
 
         const laborKey = record.labor;
@@ -355,3 +355,4 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
+
