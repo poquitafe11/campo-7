@@ -54,7 +54,7 @@ export function Sidebar() {
     <>
       {/* Mobile Sidebar */}
       <header className="sm:hidden sticky top-0 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 z-40">
-        <div className="flex items-center justify-start">
+        <div className="flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
               <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9">
