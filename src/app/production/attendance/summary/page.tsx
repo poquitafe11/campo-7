@@ -164,7 +164,7 @@ function AttendanceSummaryContent() {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const recordsForDay = allRecords.filter(r => r.date === formattedDate);
     
-    const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lote))]
+    const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
     const loteHeaders: LoteHeaderInfo[] = uniqueLotesInRecords
@@ -200,8 +200,8 @@ function AttendanceSummaryContent() {
     });
 
     recordsForDay.forEach(record => {
-        const loteKey = record.lote;
-        if (!uniqueLotesInRecords.includes(loteKey)) return;
+        const loteKey = record.lotName;
+        if (!loteKey || !uniqueLotesInRecords.includes(loteKey)) return;
 
         const laborKey = record.labor;
         if (!labors[laborKey]) {
@@ -355,4 +355,3 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
-
