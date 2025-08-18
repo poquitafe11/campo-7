@@ -66,20 +66,17 @@ export default function AttendanceDatabasePage() {
   }, [setActions, router]);
 
   const groupedByDate = useMemo(() => {
-    return records.reduce((acc, record) => {
-      const dateKey = record.date;
-      if (!acc[dateKey]) {
-        acc[dateKey] = {
-          records: [],
-          totalPersonnel: 0,
-          totalAbsent: 0,
-        };
-      }
-      acc[dateKey].records.push(record);
-      acc[dateKey].totalPersonnel += record.totals.personnelCount;
-      acc[dateKey].totalAbsent += record.totals.absentCount;
-      return acc;
-    }, {} as Record<string, { records: AttendanceRecordWithId[], totalPersonnel: number, totalAbsent: number }>);
+    const groups: Record<string, { records: AttendanceRecordWithId[], totalPersonnel: number, totalAbsent: number }> = {};
+    for (const record of records) {
+        const dateKey = record.date;
+        if (!groups[dateKey]) {
+            groups[dateKey] = { records: [], totalPersonnel: 0, totalAbsent: 0 };
+        }
+        groups[dateKey].records.push(record);
+        groups[dateKey].totalPersonnel += record.totals.personnelCount;
+        groups[dateKey].totalAbsent += record.totals.absentCount;
+    }
+    return groups;
   }, [records]);
   
   const handleEditAssistant = (record: AttendanceRecordWithId, assistant: Assistant) => {
