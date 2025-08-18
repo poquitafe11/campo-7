@@ -241,98 +241,159 @@ function AttendanceSummaryContent() {
       <CardContent className="p-0">
       {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
           <div className="w-full">
-            <table className="w-full border-collapse text-xs table-fixed">
-                <thead className="text-center font-bold text-black">
-                    <tr>
-                        <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs">
-                        ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
-                        </th>
-                    </tr>
-                    <tr>
-                    <th className="border border-black bg-[#d9e2f3] p-1" colSpan={2}>Fecha: {format(selectedDate, 'dd/MM/yyyy')}</th>
-                        <th className="border border-black bg-[#fff2cc] p-1">DDC</th>
-                        {pivotData.loteHeaders.map(h => (
-                            <th key={`ddc-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.ddc}</th>
-                        ))}
-                        <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={3}>TOTAL</th>
-                    </tr>
-                    <tr>
-                        <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>COD</th>
-                        <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>DESCRIPCION DE LABOR</th>
-                        <th className="border border-black bg-[#fff2cc] p-1">Lote</th>
-                          {pivotData.loteHeaders.map(h => (
-                            <th key={`lote-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.lote}</th>
-                        ))}
-                    </tr>
+             {/* Mobile View: Cards */}
+            <div className="block sm:hidden p-2 space-y-3">
+              <div className="p-2 bg-[#fce5cd] rounded-md text-center text-xs font-bold">
+                 ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
+              </div>
+              <div className="text-center font-bold text-sm bg-[#d9e2f3] p-1 rounded-md">
+                 Fecha: {format(selectedDate, 'dd/MM/yyyy')}
+              </div>
+              {Object.entries(pivotData.labors)
+                .sort(([, valA], [, valB]) => {
+                  const codeA = valA.code;
+                  const codeB = valB.code;
+                  const getSortPriority = (code?: string) => {
+                      if (code === '902') return 1;
+                      if (code === '903') return 2;
+                      const num = Number(code);
+                      return isNaN(num) ? 9999 : num + 2;
+                  };
+                  return getSortPriority(codeA) - getSortPriority(codeB);
+                }).map(([labor, data]) => (
+                <div key={labor} className="border rounded-lg overflow-hidden">
+                    <div className="p-2 bg-[#d9e2f3] font-bold text-sm">
+                       {data.code} - {labor}
+                    </div>
+                    <dl>
+                       {pivotData.loteHeaders.map((h, idx) => {
+                         const value = data.lotes[h.lote];
+                         return value > 0 ? (
+                           <div key={`${labor}-${h.lote}`} className={`flex justify-between p-2 text-xs ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                             <dt className="font-medium">Lote {h.lote} <span className="font-normal text-gray-500">({h.variedadAbreviada} / DDC {h.ddc})</span></dt>
+                             <dd className="font-bold">{value}</dd>
+                           </div>
+                         ) : null;
+                       })}
+                       <div className="flex justify-between p-2 bg-[#fce5cd] font-bold text-xs">
+                          <dt>TOTAL LABOR</dt>
+                          <dd>{data.totalPersonnel}</dd>
+                       </div>
+                    </dl>
+                </div>
+              ))}
+              <div className="border rounded-lg overflow-hidden mt-4">
+                  <div className="p-2 bg-[#fce5cd] font-bold text-sm text-center">
+                    TOTALES DEL DÍA
+                  </div>
+                  <dl>
+                    <div className="flex justify-between p-2 text-xs bg-white">
+                      <dt>TOTAL PERSONAL</dt>
+                      <dd className="font-bold">{pivotData.grandTotalPersonnel}</dd>
+                    </div>
+                     <div className="flex justify-between p-2 text-xs bg-gray-50">
+                      <dt>TOTAL FALTOS</dt>
+                      <dd className="font-bold">{pivotData.grandTotalAbsent}</dd>
+                    </div>
+                  </dl>
+              </div>
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden sm:block">
+              <table className="w-full border-collapse text-xs">
+                  <thead className="text-center font-bold text-black">
                       <tr>
-                        <th className="border border-black bg-[#fff2cc] p-1">Var.</th>
-                        {pivotData.loteHeaders.map(h => (
-                            <th key={`var-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.variedadAbreviada}</th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody className="text-center bg-white">
-                    {Object.keys(pivotData.labors).length > 0 ? (
-                        Object.entries(pivotData.labors)
-                            .sort(([, valA], [, valB]) => {
-                                const codeA = valA.code;
-                                const codeB = valB.code;
-                                
-                                const getSortPriority = (code?: string) => {
-                                    if (code === '902') return 1;
-                                    if (code === '903') return 2;
-                                    const num = Number(code);
-                                    return isNaN(num) ? 9999 : num + 2;
-                                };
-
-                                const priorityA = getSortPriority(codeA);
-                                const priorityB = getSortPriority(codeB);
-
-                                return priorityA - priorityB;
-                            })
-                            .map(([labor, data]) => (
-                            <tr key={labor}>
-                                <td className="border border-black p-1">{data.code}</td>
-                                <td colSpan={2} className="w-auto border border-black p-1 text-left whitespace-normal">{labor}</td>
-                                {pivotData.loteHeaders.map(h => (
-                                    <td key={`${labor}-${h.lote}`} className="border border-black p-1">
-                                        {data.lotes[h.lote] > 0 ? data.lotes[h.lote] : ''}
-                                    </td>
-                                ))}
-                                <td className="border border-black p-1 font-bold">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
-                            </tr>
-                        ))
-                    ) : (
+                          <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs">
+                          ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
+                          </th>
+                      </tr>
+                      <tr>
+                      <th className="border border-black bg-[#d9e2f3] p-1" colSpan={2}>Fecha: {format(selectedDate, 'dd/MM/yyyy')}</th>
+                          <th className="border border-black bg-[#fff2cc] p-1">DDC</th>
+                          {pivotData.loteHeaders.map(h => (
+                              <th key={`ddc-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.ddc}</th>
+                          ))}
+                          <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={3}>TOTAL</th>
+                      </tr>
+                      <tr>
+                          <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>COD</th>
+                          <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={2}>DESCRIPCION DE LABOR</th>
+                          <th className="border border-black bg-[#fff2cc] p-1">Lote</th>
+                            {pivotData.loteHeaders.map(h => (
+                              <th key={`lote-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.lote}</th>
+                          ))}
+                      </tr>
                         <tr>
-                            <td colSpan={4 + pivotData.loteHeaders.length} className="h-24 text-center text-muted-foreground">No hay datos de labores para este día.</td>
-                        </tr>
-                    )}
-                </tbody>
-                <tfoot className="font-bold text-black text-center">
-                    <tr className="bg-[#fce5cd]">
-                        <td colSpan={3} className="border border-black p-2 text-center">TOTAL</td>
-                        {pivotData.loteHeaders.map(h => (
-                            <td key={`total-${h.lote}`} className="border border-black p-2 text-center">
-                                {pivotData.columnTotals[h.lote] > 0 ? pivotData.columnTotals[h.lote] : ''}
-                            </td>
-                        ))}
-                        <td className="border border-black p-2 text-center">
-                          {pivotData.grandTotalPersonnel > 0 ? pivotData.grandTotalPersonnel : ''}
-                        </td>
-                    </tr>
-                    <tr className="bg-[#fce5cd]">
-                        <td colSpan={3} className="border border-black p-2 text-center">FALTOS</td>
-                        {pivotData.loteHeaders.map(h => (
-                            <td key={`faltos-${h.lote}`} className="border border-black p-2 text-center">
-                                {pivotData.absentTotalsByLote[h.lote] > 0 ? pivotData.absentTotalsByLote[h.lote] : ''}
-                            </td>
-                        ))}
-                        <td className="border border-black p-2 text-center">
-                          {pivotData.grandTotalAbsent > 0 ? pivotData.grandTotalAbsent : ''}
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+                          <th className="border border-black bg-[#fff2cc] p-1">Var.</th>
+                          {pivotData.loteHeaders.map(h => (
+                              <th key={`var-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.variedadAbreviada}</th>
+                          ))}
+                      </tr>
+                  </thead>
+                  <tbody className="text-center bg-white">
+                      {Object.keys(pivotData.labors).length > 0 ? (
+                          Object.entries(pivotData.labors)
+                              .sort(([, valA], [, valB]) => {
+                                  const codeA = valA.code;
+                                  const codeB = valB.code;
+                                  
+                                  const getSortPriority = (code?: string) => {
+                                      if (code === '902') return 1;
+                                      if (code === '903') return 2;
+                                      const num = Number(code);
+                                      return isNaN(num) ? 9999 : num + 2;
+                                  };
+
+                                  const priorityA = getSortPriority(codeA);
+                                  const priorityB = getSortPriority(codeB);
+
+                                  return priorityA - priorityB;
+                              })
+                              .map(([labor, data]) => (
+                              <tr key={labor}>
+                                  <td className="border border-black p-1">{data.code}</td>
+                                  <td colSpan={2} className="w-auto border border-black p-1 text-left whitespace-normal">{labor}</td>
+                                  {pivotData.loteHeaders.map(h => (
+                                      <td key={`${labor}-${h.lote}`} className="border border-black p-1">
+                                          {data.lotes[h.lote] > 0 ? data.lotes[h.lote] : ''}
+                                      </td>
+                                  ))}
+                                  <td className="border border-black p-1 font-bold">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
+                              </tr>
+                          ))
+                      ) : (
+                          <tr>
+                              <td colSpan={4 + pivotData.loteHeaders.length} className="h-24 text-center text-muted-foreground">No hay datos de labores para este día.</td>
+                          </tr>
+                      )}
+                  </tbody>
+                  <tfoot className="font-bold text-black text-center">
+                      <tr className="bg-[#fce5cd]">
+                          <td colSpan={3} className="border border-black p-2 text-center">TOTAL</td>
+                          {pivotData.loteHeaders.map(h => (
+                              <td key={`total-${h.lote}`} className="border border-black p-2 text-center">
+                                  {pivotData.columnTotals[h.lote] > 0 ? pivotData.columnTotals[h.lote] : ''}
+                              </td>
+                          ))}
+                          <td className="border border-black p-2 text-center">
+                            {pivotData.grandTotalPersonnel > 0 ? pivotData.grandTotalPersonnel : ''}
+                          </td>
+                      </tr>
+                      <tr className="bg-[#fce5cd]">
+                          <td colSpan={3} className="border border-black p-2 text-center">FALTOS</td>
+                          {pivotData.loteHeaders.map(h => (
+                              <td key={`faltos-${h.lote}`} className="border border-black p-2 text-center">
+                                  {pivotData.absentTotalsByLote[h.lote] > 0 ? pivotData.absentTotalsByLote[h.lote] : ''}
+                              </td>
+                          ))}
+                          <td className="border border-black p-2 text-center">
+                            {pivotData.grandTotalAbsent > 0 ? pivotData.grandTotalAbsent : ''}
+                          </td>
+                      </tr>
+                  </tfoot>
+              </table>
+            </div>
           </div>
       ) : (
         <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed text-center">

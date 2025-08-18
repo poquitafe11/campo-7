@@ -286,7 +286,7 @@ export default function ActivitySummaryPage() {
             ) : multiDaySummary && multiDaySummary.length > 0 ? (
                 <div className="space-y-4">
                     <div className="inline-block">
-                          <table className="border-collapse border border-black text-[10px] table-fixed">
+                          <table className="border-collapse border border-black text-[10px] table-auto">
                               <thead className="text-left font-bold text-black">
                                   <tr>
                                       <th colSpan={2} className="border border-black bg-gray-200 px-1 py-0.5 text-xs font-bold h-6 align-middle whitespace-nowrap">
@@ -306,8 +306,10 @@ export default function ActivitySummaryPage() {
                               </tbody>
                           </table>
                       </div>
-                    <div className="w-full">
-                        <table className="w-full border-collapse border border-black text-xs table-fixed">
+                      
+                    {/* Desktop Table */}
+                    <div className="hidden sm:block">
+                        <table className="w-full border-collapse border border-black text-xs">
                             <thead className="text-center font-bold text-black min-w-full">
                                 <tr className="bg-gray-300">
                                     <th className="border border-black p-1 font-bold w-24">FECHA</th>
@@ -330,6 +332,29 @@ export default function ActivitySummaryPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="block sm:hidden space-y-4">
+                        {multiDaySummary.map((day, index) => (
+                             <Card key={index}>
+                                <CardHeader className="p-3 bg-gray-300 rounded-t-lg">
+                                    <CardTitle className="text-base text-center">{day.summary.fecha}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <dl>
+                                        {summaryRows.map((row, rowIndex) => (
+                                             <div key={String(row.key)} className={`flex justify-between items-center p-2 text-sm ${row.bgClass || (rowIndex % 2 === 0 ? 'bg-[#dbe5f1]' : 'bg-white')}`}>
+                                                <dt className="font-bold">{row.label}</dt>
+                                                <dd className="font-mono">
+                                                    {row.format ? row.format(day.summary[row.key]) : day.summary[row.key]}
+                                                </dd>
+                                            </div>
+                                        ))}
+                                    </dl>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
                 </div>
             ) : (
