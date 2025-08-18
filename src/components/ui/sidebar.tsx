@@ -28,8 +28,8 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <div className={cn("p-4 border-b border-sidebar-accent/20 flex items-center", isExpanded ? "justify-between" : "justify-center")}>
-        <div className={cn("flex items-center gap-3", !isExpanded && "hidden")}>
+      <div className={cn("p-4 border-b border-sidebar-accent/20 flex items-center", isExpanded || isMobile ? "justify-between" : "justify-center")}>
+        <div className={cn("flex items-center gap-3", !(isExpanded || isMobile) && "hidden")}>
           <Avatar className="h-10 w-10 border-2 border-sidebar-accent">
             <AvatarImage src={user?.photoURL || ""} />
             <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground font-bold">
@@ -49,14 +49,14 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <SidebarNav isExpanded={isExpanded} />
+        <SidebarNav isExpanded={isExpanded || isMobile} />
       </div>
 
-      <div className={cn("mt-auto p-4 border-t border-sidebar-accent/20 space-y-4", !isExpanded && "px-2")}>
+      <div className={cn("mt-auto p-4 border-t border-sidebar-accent/20 space-y-4", !(isExpanded || isMobile) && "px-2")}>
         <ConnectionStatus />
-        <Button onClick={logout} variant="ghost" className={cn("w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20", !isExpanded && "justify-center")}>
+        <Button onClick={logout} variant="ghost" className={cn("w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20", !(isExpanded || isMobile) && "justify-center")}>
           <LogOut />
-          {isExpanded && <span className="ml-2">Cerrar Sesión</span>}
+          {(isExpanded || isMobile) && <span className="ml-2">Cerrar Sesión</span>}
         </Button>
       </div>
     </div>
