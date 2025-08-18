@@ -13,11 +13,11 @@ import {
   ScrollText,
   Shield,
   Map,
-  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemo, useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const mainLinks = [
   { href: '/dashboard', label: 'Áreas', icon: LayoutGrid },
@@ -34,7 +34,11 @@ const masterLinks = [
   { href: '/presupuesto', label: 'Presupuesto', icon: ScrollText },
 ];
 
-export function SidebarNav() {
+interface SidebarNavProps {
+  isExpanded: boolean;
+}
+
+export function SidebarNav({ isExpanded }: SidebarNavProps) {
   const pathname = usePathname();
   const { profile } = useAuth();
   
@@ -43,12 +47,9 @@ export function SidebarNav() {
 
   const visibleLinks = useMemo(() => {
     if (!profile) return { main: [], masters: [] };
-    // For now, let's assume Admin sees all.
-    // Logic for other roles can be added here later based on `profile.permissions`.
     if (profile.rol === 'Admin') {
       return { main: mainLinks, masters: masterLinks };
     }
-    // Filter logic for non-admins would go here
     return { main: mainLinks, masters: masterLinks };
   }, [profile]);
   
@@ -56,19 +57,36 @@ export function SidebarNav() {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
   
-  const NavLink = ({ href, label, icon: Icon, disabled = false }: { href: string; label: string; icon: React.ElementType; disabled?: boolean }) => (
-    <Link
-      href={!disabled ? href : '#'}
-      className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
-        isActive(href) && 'bg-sidebar-accent text-sidebar-foreground',
-        disabled && 'cursor-not-allowed opacity-50'
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </Link>
-  );
+  const NavLink = ({ href, label, icon: Icon, disabled = false }: { href: string; label: string; icon: React.ElementType; disabled?: boolean }) => {
+      const linkContent = (
+        <div className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
+          isActive(href) && 'bg-sidebar-accent text-sidebar-foreground',
+          disabled && 'cursor-not-allowed opacity-50',
+          !isExpanded && "justify-center"
+        )}>
+          <Icon className="h-4 w-4 shrink-0" />
+          <span className={cn("truncate", !isExpanded && "hidden")}>{label}</span>
+        </div>
+      );
+
+      return (
+        <TooltipProvider delayDuration={100}>
+           <Tooltip>
+              <TooltipTrigger asChild>
+                  <Link href={!disabled ? href : '#'}>
+                    {linkContent}
+                  </Link>
+              </TooltipTrigger>
+              {!isExpanded && (
+                  <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent/50">
+                      <p>{label}</p>
+                  </TooltipContent>
+              )}
+           </Tooltip>
+        </TooltipProvider>
+      )
+  };
 
   return (
     <nav className="grid items-start gap-1 p-2 text-sm font-medium">
@@ -78,16 +96,27 @@ export function SidebarNav() {
         
         <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
           <AccordionItem value="maestros" className="border-none">
-            <AccordionTrigger className={cn(
-                'flex items-center w-full gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline',
-                 isMastersActive && 'bg-sidebar-accent text-sidebar-foreground'
-            )}>
-              <div className="flex items-center gap-3">
-                <Layers className="h-4 w-4" />
-                Maestros
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="pl-7 pt-1 space-y-1">
+            <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                         <AccordionTrigger className={cn(
+                            'flex items-center w-full gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline',
+                            isMastersActive && 'bg-sidebar-accent text-sidebar-foreground',
+                            !isExpanded && "justify-center"
+                        )}>
+                          <Layers className="h-4 w-4 shrink-0" />
+                          <span className={cn("flex-1 text-left truncate", !isExpanded && "hidden")}>Maestros</span>
+                        </AccordionTrigger>
+                    </TooltipTrigger>
+                    {!isExpanded && (
+                        <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent/50">
+                            <p>Maestros</p>
+                        </TooltipContent>
+                    )}
+                </Tooltip>
+            </TooltipProvider>
+
+            <AccordionContent className={cn("pt-1 space-y-1", isExpanded ? "pl-7" : "pl-0")}>
               {visibleLinks.masters.map((link) => (
                  <NavLink key={link.href} {...link} />
               ))}

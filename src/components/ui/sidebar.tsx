@@ -1,9 +1,10 @@
+
 "use client";
 
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, UserCircle, LayoutGrid, ArrowLeft } from "lucide-react";
+import { Menu, LogOut, UserCircle, LayoutGrid, ArrowLeft, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,19 +12,24 @@ import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-export function Sidebar() {
+interface SidebarProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
   const { profile, user, logout } = useAuth();
   const { actions } = useHeaderActions();
   const pathname = usePathname();
   const router = useRouter();
-
-  const isDashboard = pathname === '/dashboard';
+  const isMobile = useIsMobile();
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <div className="p-4 border-b border-sidebar-accent/20">
-        <div className="flex items-center gap-3">
+      <div className={cn("p-4 border-b border-sidebar-accent/20 flex", isExpanded ? "justify-between" : "justify-center")}>
+        <div className={cn("flex items-center gap-3", !isExpanded && "hidden")}>
           <Avatar className="h-10 w-10 border-2 border-sidebar-accent">
             <AvatarImage src={user?.photoURL || ""} />
             <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground font-bold">
@@ -31,28 +37,34 @@ export function Sidebar() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold text-sm">{profile?.nombre}</p>
-            <p className="text-xs text-sidebar-muted-foreground">Rol: {profile?.rol}</p>
+            <p className="font-semibold text-sm whitespace-nowrap">{profile?.nombre}</p>
+            <p className="text-xs text-sidebar-muted-foreground whitespace-nowrap">Rol: {profile?.rol}</p>
           </div>
         </div>
+        {!isMobile && (
+            <Button variant="ghost" size="icon" onClick={onToggle} className="h-8 w-8 text-sidebar-muted-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-foreground">
+              {isExpanded ? <ChevronsLeft /> : <ChevronsRight />}
+            </Button>
+        )}
       </div>
+
       <div className="flex-1 overflow-y-auto">
-        <SidebarNav />
+        <SidebarNav isExpanded={isExpanded} />
       </div>
-      <div className="mt-auto p-4 border-t border-sidebar-accent/20 space-y-4">
+
+      <div className={cn("mt-auto p-4 border-t border-sidebar-accent/20 space-y-4", !isExpanded && "px-2")}>
         <ConnectionStatus />
-        <Button onClick={logout} variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20">
-          <LogOut className="mr-2 h-4 w-4" />
-          Cerrar Sesión
+        <Button onClick={logout} variant="ghost" className={cn("w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20", !isExpanded && "justify-center")}>
+          <LogOut />
+          {isExpanded && <span className="ml-2">Cerrar Sesión</span>}
         </Button>
       </div>
     </div>
   );
 
-  return (
-    <>
-      {/* Mobile Sidebar */}
-      <header className="sm:hidden sticky top-0 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 z-40">
+  if (isMobile) {
+     return (
+       <header className="sticky top-0 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 z-40">
         <div className="flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
@@ -61,7 +73,7 @@ export function Sidebar() {
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs p-0">
+            <SheetContent side="left" className="sm:max-w-xs p-0 w-64">
               <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
               {sidebarContent}
             </SheetContent>
@@ -82,11 +94,15 @@ export function Sidebar() {
             }
         </div>
       </header>
+     );
+  }
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:w-64 sm:flex sm:flex-col">
-          {sidebarContent}
-      </aside>
-    </>
+  return (
+    <aside className={cn(
+      "hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:flex sm:flex-col transition-[width] duration-300 ease-in-out",
+      isExpanded ? "w-64" : "w-14"
+    )}>
+        {sidebarContent}
+    </aside>
   );
 }
