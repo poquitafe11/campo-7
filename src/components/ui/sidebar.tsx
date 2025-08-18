@@ -28,7 +28,7 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <div className={cn("p-4 border-b border-sidebar-accent/20 flex", isExpanded ? "justify-between" : "justify-center")}>
+      <div className={cn("p-4 border-b border-sidebar-accent/20 flex items-center", isExpanded ? "justify-between" : "justify-center")}>
         <div className={cn("flex items-center gap-3", !isExpanded && "hidden")}>
           <Avatar className="h-10 w-10 border-2 border-sidebar-accent">
             <AvatarImage src={user?.photoURL || ""} />
@@ -43,7 +43,7 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
         </div>
         {!isMobile && (
             <Button variant="ghost" size="icon" onClick={onToggle} className="h-8 w-8 text-sidebar-muted-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-foreground">
-              {isExpanded ? <ChevronsLeft /> : <ChevronsRight />}
+              {isExpanded ? <ChevronsLeft /> : <Menu />}
             </Button>
         )}
       </div>
@@ -78,13 +78,13 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
               {sidebarContent}
             </SheetContent>
           </Sheet>
-           {actions.left}
+           {actions && actions.left}
         </div>
         <div className="flex-1 text-center font-semibold text-lg truncate px-2">
-          {actions.center || actions.title}
+          {actions && (actions.center || actions.title)}
         </div>
         <div className="flex items-center justify-end">
-            {actions.right ||
+            {actions && actions.right ? actions.right :
              <Link href="/dashboard" passHref>
                 <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9">
                     <LayoutGrid className="h-5 w-5" />
