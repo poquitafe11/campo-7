@@ -188,15 +188,15 @@ export default function ActivitySummaryPage() {
     }, [activeFilters, allMinMax, masterLoading]);
 
 
-    const summaryRows: { label: string | React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number }[] = [
-        { label: "N° PERSONAS", key: "personas" },
+    const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number }[] = [
+        { label: "N° PERS.", key: "personas" },
         { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-ES') },
         { label: "JHU", key: "jhu", format: (v) => v.toFixed(2) },
         { label: "PROMEDIO", key: "promedio", format: (v) => Math.round(v) },
-        { label: "Pltas./ Hora", key: "plantasHora", bgClass: "bg-[#f8cbad]" },
+        { label: "Pltas./H", key: "plantasHora", bgClass: "bg-[#f8cbad]" },
         { label: "Has.", key: "has" },
         { label: "% Avance", key: "avance" },
-        { label: "Ha por Trabajar", key: "haPorTrabajar" },
+        { label: "Ha x Trab.", key: "haPorTrabajar" },
         { label: "MINIMO", key: "minimo" },
         { label: "MAXIMO", key: "maximo" },
     ];
@@ -285,8 +285,8 @@ export default function ActivitySummaryPage() {
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : multiDaySummary && multiDaySummary.length > 0 ? (
                 <div className="space-y-4">
-                    <div className="inline-block overflow-x-auto">
-                          <table className="border-collapse border border-black text-[10px]">
+                    <div className="inline-block">
+                          <table className="border-collapse border border-black text-[10px] table-fixed">
                               <thead className="text-left font-bold text-black">
                                   <tr>
                                       <th colSpan={2} className="border border-black bg-gray-200 px-1 py-0.5 text-xs font-bold h-6 align-middle whitespace-nowrap">
@@ -306,22 +306,22 @@ export default function ActivitySummaryPage() {
                               </tbody>
                           </table>
                       </div>
-                    <div className="overflow-x-auto pb-4">
-                        <table className="border-collapse border border-black text-[10px]">
+                    <div className="w-full">
+                        <table className="w-full border-collapse border border-black text-xs table-fixed">
                             <thead className="text-center font-bold text-black min-w-full">
                                 <tr className="bg-gray-300">
-                                    <th className="border border-black px-1 py-0.5 font-bold w-20">FECHA</th>
-                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black px-1 py-0.5 text-center font-bold">{day.summary.fecha}</th>)}
+                                    <th className="border border-black p-1 font-bold w-24">FECHA</th>
+                                    {multiDaySummary.map((day, index) => <th key={index} className="border border-black p-1 text-center font-bold">{day.summary.fecha}</th>)}
                                 </tr>
                             </thead> 
                             <tbody className="bg-[#dbe5f1]">
                                 {summaryRows.map(row => (
                                     <tr key={String(row.key)}>
-                                        <td className={`border border-black px-1 py-0.5 font-bold w-20 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
+                                        <td className={`border border-black p-1 font-bold w-24 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
                                         {multiDaySummary.map((day, index) => {
                                             const value = day.summary[row.key];
                                             return (
-                                                <td key={index} className={`border border-black px-1 py-0.5 text-center ${row.bgClass || ''}`}>
+                                                <td key={index} className={`border border-black p-1 text-center ${row.bgClass || ''}`}>
                                                     {row.format ? row.format(value) : value}
                                                 </td>
                                             )
