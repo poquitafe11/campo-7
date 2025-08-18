@@ -231,9 +231,9 @@ function AttendanceSummaryContent() {
     <Card>
       <CardContent className="p-0">
       {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
-          <div className="w-full overflow-x-auto rounded-lg shadow-md">
-            <div className="w-full bg-white p-2">
-              <table className="min-w-full border-collapse text-xs table-auto">
+          <div className="overflow-x-auto p-2">
+            <div className="bg-white p-2 rounded-lg shadow-md inline-block">
+              <table className="border-collapse text-xs table-auto">
                       <thead className="text-center font-bold text-black">
                           <tr>
                               <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs">
