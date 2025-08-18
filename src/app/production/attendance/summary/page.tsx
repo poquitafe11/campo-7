@@ -240,67 +240,7 @@ function AttendanceSummaryContent() {
     <Card>
       <CardContent className="p-0">
       {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
-          <div className="w-full">
-             {/* Mobile View: Cards */}
-            <div className="block sm:hidden p-2 space-y-3">
-              <div className="p-2 bg-[#fce5cd] rounded-md text-center text-xs font-bold">
-                 ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
-              </div>
-              <div className="text-center font-bold text-sm bg-[#d9e2f3] p-1 rounded-md">
-                 Fecha: {format(selectedDate, 'dd/MM/yyyy')}
-              </div>
-              {Object.entries(pivotData.labors)
-                .sort(([, valA], [, valB]) => {
-                  const codeA = valA.code;
-                  const codeB = valB.code;
-                  const getSortPriority = (code?: string) => {
-                      if (code === '902') return 1;
-                      if (code === '903') return 2;
-                      const num = Number(code);
-                      return isNaN(num) ? 9999 : num + 2;
-                  };
-                  return getSortPriority(codeA) - getSortPriority(codeB);
-                }).map(([labor, data]) => (
-                <div key={labor} className="border rounded-lg overflow-hidden">
-                    <div className="p-2 bg-[#d9e2f3] font-bold text-sm">
-                       {data.code} - {labor}
-                    </div>
-                    <dl>
-                       {pivotData.loteHeaders.map((h, idx) => {
-                         const value = data.lotes[h.lote];
-                         return value > 0 ? (
-                           <div key={`${labor}-${h.lote}`} className={`flex justify-between p-2 text-xs ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                             <dt className="font-medium">Lote {h.lote} <span className="font-normal text-gray-500">({h.variedadAbreviada} / DDC {h.ddc})</span></dt>
-                             <dd className="font-bold">{value}</dd>
-                           </div>
-                         ) : null;
-                       })}
-                       <div className="flex justify-between p-2 bg-[#fce5cd] font-bold text-xs">
-                          <dt>TOTAL LABOR</dt>
-                          <dd>{data.totalPersonnel}</dd>
-                       </div>
-                    </dl>
-                </div>
-              ))}
-              <div className="border rounded-lg overflow-hidden mt-4">
-                  <div className="p-2 bg-[#fce5cd] font-bold text-sm text-center">
-                    TOTALES DEL DÍA
-                  </div>
-                  <dl>
-                    <div className="flex justify-between p-2 text-xs bg-white">
-                      <dt>TOTAL PERSONAL</dt>
-                      <dd className="font-bold">{pivotData.grandTotalPersonnel}</dd>
-                    </div>
-                     <div className="flex justify-between p-2 text-xs bg-gray-50">
-                      <dt>TOTAL FALTOS</dt>
-                      <dd className="font-bold">{pivotData.grandTotalAbsent}</dd>
-                    </div>
-                  </dl>
-              </div>
-            </div>
-
-            {/* Desktop View: Table */}
-            <div className="hidden sm:block">
+          <div className="w-full overflow-x-auto">
               <table className="w-full border-collapse text-xs">
                   <thead className="text-center font-bold text-black">
                       <tr>
@@ -393,7 +333,6 @@ function AttendanceSummaryContent() {
                       </tr>
                   </tfoot>
               </table>
-            </div>
           </div>
       ) : (
         <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed text-center">

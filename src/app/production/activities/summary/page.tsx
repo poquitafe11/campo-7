@@ -307,8 +307,7 @@ export default function ActivitySummaryPage() {
                           </table>
                       </div>
                       
-                    {/* Desktop Table */}
-                    <div className="hidden sm:block">
+                    <div className="w-full overflow-x-auto">
                         <table className="w-full border-collapse border border-black text-xs">
                             <thead className="text-center font-bold text-black min-w-full">
                                 <tr className="bg-gray-300">
@@ -332,29 +331,6 @@ export default function ActivitySummaryPage() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-
-                    {/* Mobile Cards */}
-                    <div className="block sm:hidden space-y-4">
-                        {multiDaySummary.map((day, index) => (
-                             <Card key={index}>
-                                <CardHeader className="p-3 bg-gray-300 rounded-t-lg">
-                                    <CardTitle className="text-base text-center">{day.summary.fecha}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    <dl>
-                                        {summaryRows.map((row, rowIndex) => (
-                                             <div key={String(row.key)} className={`flex justify-between items-center p-2 text-sm ${row.bgClass || (rowIndex % 2 === 0 ? 'bg-[#dbe5f1]' : 'bg-white')}`}>
-                                                <dt className="font-bold">{row.label}</dt>
-                                                <dd className="font-mono">
-                                                    {row.format ? row.format(day.summary[row.key]) : day.summary[row.key]}
-                                                </dd>
-                                            </div>
-                                        ))}
-                                    </dl>
-                                </CardContent>
-                            </Card>
-                        ))}
                     </div>
                 </div>
             ) : (
