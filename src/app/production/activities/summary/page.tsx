@@ -308,7 +308,7 @@ export default function ActivitySummaryPage() {
                       </div>
                       
                     <div className="w-full overflow-x-auto">
-                        <table className="w-full border-collapse border border-black text-xs">
+                        <table className="w-full border-collapse border border-black text-xs table-auto">
                             <thead className="text-center font-bold text-black min-w-full">
                                 <tr className="bg-gray-300">
                                     <th className="border border-black p-1 font-bold w-24">FECHA</th>
@@ -341,3 +341,5 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
+
+    
