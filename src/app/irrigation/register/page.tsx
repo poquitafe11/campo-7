@@ -11,7 +11,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import * as xlsx from "xlsx";
 import { format, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-
+ 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -19,10 +18,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <div className="w-full bg-background">
       <Sidebar />
-      <main className="gap-4 p-4 md:gap-8 md:p-8 sm:ml-14">
-        {children}
+      <main className="sm:ml-64">
+        <div className="overflow-x-auto p-4 md:p-8">
+            {children}
+        </div>
       </main>
     </div>
   );

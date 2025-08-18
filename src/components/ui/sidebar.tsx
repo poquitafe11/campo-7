@@ -1,4 +1,3 @@
-
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -85,7 +84,7 @@ export function Sidebar() {
       </header>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:w-14 sm:flex sm:flex-col">
+      <aside className="hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:w-64 sm:flex sm:flex-col">
           {sidebarContent}
       </aside>
     </>
