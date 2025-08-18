@@ -174,7 +174,7 @@ function AttendanceSummaryContent() {
         const fechaCianamida = loteDataFromMaestro?.fechaCianamida;
         const campana = loteDataFromMaestro?.campana || '';
 
-        let ddc: number | string = '';
+        let ddc: number | string = 'N/A';
         if (fechaCianamida && isValid(fechaCianamida)) {
             ddc = differenceInDays(selectedDate, fechaCianamida);
         }
