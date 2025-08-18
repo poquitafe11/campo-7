@@ -165,7 +165,7 @@ export default function AttendanceDatabasePage() {
                                <div key={record.id} className="border rounded-lg p-4 bg-background/50 space-y-3">
                                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
                                     <div className='flex flex-col gap-1'>
-                                      <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {record.lote || 'N/A'}</div>
+                                      <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {record.lotName || 'N/A'}</div>
                                       <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
                                     </div>
                                   </div>
