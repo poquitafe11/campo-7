@@ -59,7 +59,6 @@ const normalizeLote = (lote: string) => {
 
 interface RecentIrrigationInfo {
   lote: string;
-  lastIrrigationDate: Date | null;
   daysSinceLastIrrigation: number | string;
   recentIrrigations: { date: string; hours: string }[];
 }
@@ -136,7 +135,7 @@ export default function IrrigationSummaryPage() {
         if (filters.lotes.length > 0) {
             lotesForColumns = filters.lotes;
         } else {
-            lotesForColumns = [...new Set(recordsToProcess
+             lotesForColumns = [...new Set(recordsToProcess
                 .filter(record => 
                     (!filters.campaign || record['Campaña'] === filters.campaign) &&
                     (!filters.stage || record['Etapa'] === filters.stage)
@@ -228,7 +227,7 @@ export default function IrrigationSummaryPage() {
                 return { date: '-', hours: '-' };
             });
     
-            return { lote, lastIrrigationDate, daysSinceLastIrrigation: daysSince, recentIrrigations };
+            return { lote, daysSinceLastIrrigation: daysSince, recentIrrigations };
         });
     
     }, [summaryData, irrigationRecords, selectedDate]);
@@ -304,29 +303,27 @@ export default function IrrigationSummaryPage() {
                                             </div>
                                             <div className="grid gap-2">
                                                 <Label>Lotes</Label>
-                                                <div className="relative">
-                                                 <CommandInput 
+                                                <CommandInput 
                                                     placeholder="Buscar lote..." 
                                                     value={loteSearch} 
                                                     onValueChange={setLoteSearch}
-                                                    className="pl-2"
-                                                 />
-                                                </div>
+                                                />
                                                 <ScrollArea className="h-[150px] border rounded-md">
-                                                    <div className="p-1">
+                                                    <CommandList>
+                                                        <CommandGroup>
                                                         {searchedLotes.map(lote => (
-                                                             <div key={lote} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => toggleLoteSelection(lote)}>
+                                                             <CommandItem key={lote} onSelect={() => toggleLoteSelection(lote)} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted">
                                                                 <Checkbox
                                                                     id={`lote-${lote}`}
                                                                     checked={popoverFilters.lotes.includes(lote)}
-                                                                    onCheckedChange={() => toggleLoteSelection(lote)}
                                                                 />
                                                                 <Label htmlFor={`lote-${lote}`} className="cursor-pointer w-full text-sm font-normal">
                                                                     {lote}
                                                                 </Label>
-                                                            </div>
+                                                            </CommandItem>
                                                         ))}
-                                                    </div>
+                                                        </CommandGroup>
+                                                    </CommandList>
                                                 </ScrollArea>
                                                 <div className="flex flex-wrap gap-1">
                                                     {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
@@ -411,20 +408,20 @@ export default function IrrigationSummaryPage() {
                            <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="font-bold">Lote</TableHead>
-                                        <TableHead className="font-bold text-center">Días sin Riego</TableHead>
-                                        <TableHead className="text-center">Riego 1 (Reciente)</TableHead>
-                                        <TableHead className="text-center">Riego 2</TableHead>
-                                        <TableHead className="text-center">Riego 3</TableHead>
+                                        <TableHead className="font-bold py-2 px-3">Lote</TableHead>
+                                        <TableHead className="font-bold text-center py-2 px-3">Días sin Riego</TableHead>
+                                        <TableHead className="text-center py-2 px-3">Riego 1 (Reciente)</TableHead>
+                                        <TableHead className="text-center py-2 px-3">Riego 2</TableHead>
+                                        <TableHead className="text-center py-2 px-3">Riego 3</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {recentIrrigationData.map((data, index) => (
                                         <TableRow key={`${data.lote}-${index}`}>
-                                            <TableCell className="font-semibold">{data.lote}</TableCell>
-                                            <TableCell className="text-center">{data.daysSinceLastIrrigation}</TableCell>
+                                            <TableCell className="font-semibold py-2 px-3">{data.lote}</TableCell>
+                                            <TableCell className="text-center py-2 px-3">{data.daysSinceLastIrrigation}</TableCell>
                                             {data.recentIrrigations.map((irrigation, i) => (
-                                                 <TableCell key={i} className="text-center">
+                                                 <TableCell key={i} className="text-center py-2 px-3">
                                                     <div>{irrigation.date}</div>
                                                     <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
                                                 </TableCell>
