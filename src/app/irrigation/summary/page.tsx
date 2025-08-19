@@ -496,18 +496,27 @@ export default function IrrigationSummaryPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {lavadoIrrigationData.map((data, index) => (
-                                        <TableRow key={`${data.lote}-${index}`}>
-                                            <TableCell className="font-semibold py-2 px-3">{data.lote}</TableCell>
-                                            <TableCell className="text-center py-2 px-3">{data.daysSinceLastIrrigation}</TableCell>
-                                            {data.recentIrrigations.map((irrigation, i) => (
-                                                 <TableCell key={i} className="text-center py-2 px-3">
-                                                    <div>{irrigation.date}</div>
-                                                    <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
+                                    {lavadoIrrigationData.map((data, index) => {
+                                        const daysSince = data.daysSinceLastIrrigation;
+                                        const needsAttention = typeof daysSince === 'number' && daysSince >= 15;
+                                        return (
+                                            <TableRow key={`${data.lote}-${index}`}>
+                                                <TableCell className="font-semibold py-2 px-3">{data.lote}</TableCell>
+                                                <TableCell className={cn(
+                                                    "text-center py-2 px-3",
+                                                    needsAttention && "bg-red-200 text-red-900 font-bold"
+                                                )}>
+                                                    {daysSince}
                                                 </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
+                                                {data.recentIrrigations.map((irrigation, i) => (
+                                                     <TableCell key={i} className="text-center py-2 px-3">
+                                                        <div>{irrigation.date}</div>
+                                                        <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>
@@ -520,4 +529,5 @@ export default function IrrigationSummaryPage() {
     
 
     
+
 
