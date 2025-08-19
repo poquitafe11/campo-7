@@ -19,10 +19,13 @@ interface DetailedSummaryTableProps {
 }
 
 const formatNumber = (num: number | string | undefined, digits = 2): string => {
-    if (num === undefined || num === null || num === '') return '#DIV/0!';
+    if (num === undefined || num === null || num === '') return '0';
     const number = typeof num === 'string' ? parseFloat(num.replace(',', '.')) : num;
     if (isNaN(number) || !isFinite(number)) {
-        return '#DIV/0!';
+        return '0';
+    }
+     if (digits === 0) {
+        return Math.round(number).toLocaleString('es-PE');
     }
     return number.toLocaleString('es-PE', {
         minimumFractionDigits: digits,
@@ -42,10 +45,8 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
         const variety = selectedLoteData.variedad;
 
         const varietyLotes = allLotes.filter(l => l.variedad === variety);
-        const varietyLoteNumbers = varietyLotes.map(l => l.lote);
 
         const filteredActivities = allActivities.filter(a =>
-            varietyLoteNumbers.includes(a.lote) &&
             (!activeFilters.campaign || a.campaign === activeFilters.campaign) &&
             (!activeFilters.labor || a.labor === activeFilters.labor) &&
             (!activeFilters.pasada || String(a.pass) === activeFilters.pasada)
@@ -70,10 +71,12 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             const jrHa = haTrabajada > 0 ? totalWorkday / haTrabajada : 0;
             
             const prom = totalWorkday > 0 ? totalPerformance / totalWorkday : 0;
+            
+            // Corrected MIN/MAX calculation based on actual performance
+            const performanceValues = loteActivities.map(a => a.performance || 0).filter(p => p > 0);
+            const minimo = performanceValues.length > 0 ? Math.min(...performanceValues) : 0;
+            const maximo = performanceValues.length > 0 ? Math.max(...performanceValues) : 0;
 
-            const minMaxValues = loteActivities.map(a => a.performance || 0).filter(p => p > 0);
-            const minimo = minMaxValues.length > 0 ? Math.min(...minMaxValues) : 0;
-            const maximo = minMaxValues.length > 0 ? Math.max(...minMaxValues) : 0;
 
             const pltaHora = totalWorkday > 0 ? totalPerformance / (totalWorkday * 8) : 0;
 
@@ -130,7 +133,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
         if (loteSummaries.length === 0) return null;
 
         const metrics = [
-            { key: 'ddc', label: 'DDC'},
+            { key: 'ddc', label: 'DDC', format: (v: number) => formatNumber(v,0)},
             { key: 'lote', label: 'Lote' },
             { key: 'variedad', label: 'Variedad' },
             { key: 'haTrabajada', label: 'Ha Trabajada' },
@@ -167,10 +170,17 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
 
     return (
         <div className="overflow-x-auto pt-6">
-             <h3 className="text-lg font-semibold mb-2">Tabla 3: Resumen por Lote</h3>
+            <h3 className="text-lg font-semibold mb-2">Resumen por Lote</h3>
             <table className="border-collapse border border-black text-xs table-auto w-full">
-                <thead className="text-center font-bold text-black">
-                    {/* This structure is a bit different, let's build row by row */}
+                <thead>
+                    <tr>
+                         <th className="border border-black p-1 font-bold"></th>
+                        {detailedSummaryData.headers.map(header => (
+                            <th key={header.id} className="border border-black p-1 text-center bg-green-200">
+                                {header[header.variedad.toLowerCase() === 'ddc' ? 'ddc' : 'lote']}
+                            </th>
+                        ))}
+                    </tr>
                 </thead>
                 <tbody>
                     {detailedSummaryData.rows.map(row => {
@@ -186,10 +196,12 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                                 <td className={`border border-black p-1 font-bold ${headerBg}`}>{row.label}</td>
                                 {detailedSummaryData.headers.map(header => {
                                      let cellBg = '';
-                                     if(row.key === 'ddc' || row.key === 'lote' || row.key === 'variedad') cellBg = 'bg-green-200';
+                                     if(row.key === 'ddc') cellBg = 'bg-green-200';
+                                     if(row.key === 'lote') cellBg = 'bg-green-200';
+                                     if(row.key === 'variedad') cellBg = 'bg-green-200';
 
                                      const rawValue = (header as any)[row.key];
-                                     const displayValue = row.format ? row.format(rawValue) : (typeof rawValue === 'number' ? formatNumber(rawValue) : rawValue);
+                                     const displayValue = row.format ? row.format(rawValue) : (typeof rawValue === 'number' ? formatNumber(rawValue, 2) : rawValue);
 
                                     return (
                                         <td key={`${header.id}-${row.key}`} className={`border border-black p-1 text-center ${cellBg}`}>
