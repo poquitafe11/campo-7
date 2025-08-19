@@ -135,7 +135,6 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
 
         const metrics = [
             { key: 'ddc', label: 'DDC', format: (v: number) => formatNumber(v,0)},
-            { key: 'lote', label: 'Lote' },
             { key: 'variedad', label: 'Variedad' },
             { key: 'haTrabajada', label: 'Ha Trabajada' },
             { key: 'haPorTrabajar', label: 'Ha por Trabajar' },
@@ -178,7 +177,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                          <th className="border border-black p-1 font-bold"></th>
                         {detailedSummaryData.headers.map(header => (
                             <th key={header.id} className="border border-black p-1 text-center bg-green-200">
-                                {(header as any)[header.variedad.toLowerCase() === 'ddc' ? 'ddc' : 'lote']}
+                                {header.lote}
                             </th>
                         ))}
                     </tr>
@@ -198,9 +197,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                                 {detailedSummaryData.headers.map(header => {
                                      let cellBg = '';
                                      if(row.key === 'ddc') cellBg = 'bg-green-200';
-                                     if(row.key === 'lote') cellBg = 'bg-green-200';
-                                     if(row.key === 'variedad') cellBg = 'bg-green-200';
-
+                                     
                                      const rawValue = (header as any)[row.key];
                                      const displayValue = row.format ? row.format(rawValue) : (typeof rawValue === 'number' ? formatNumber(rawValue, 2) : rawValue);
 
