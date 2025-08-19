@@ -1,8 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useToast } from '@/hooks/use-toast';
@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { format, parse, isValid, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2, Filter, Check, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Filter, Check, Calendar as CalendarIcon, Save } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { Calendar } from '@/components/ui/calendar';
+import { getVisibleLotesSetting, saveVisibleLotesSetting } from './actions';
 
 
 type IrrigationRecord = { [key: string]: any; id: string; };
@@ -61,6 +62,7 @@ export default function IrrigationSummaryPage() {
     const { lotes: masterLotes, loading: masterLoading } = useMasterData();
     const [irrigationRecords, setIrrigationRecords] = useState<IrrigationRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isSaving, startSavingTransition] = useTransition();
     
     const [filters, setFilters] = useState<{ campaign: string; stage: string; lotes: string[] }>({
         campaign: '',
@@ -76,22 +78,41 @@ export default function IrrigationSummaryPage() {
         setLoading(true);
         const unsubscribe = onSnapshot(collection(db, "registros-riego"), (snapshot) => {
             const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IrrigationRecord));
-            setIrrigationRecords(records);
-            setLoading(false);
+            
+            if (profile && profile.rol !== 'Admin') {
+                getVisibleLotesSetting().then(visibleLotes => {
+                    if (visibleLotes.length > 0) {
+                        const filteredRecords = records.filter(r => visibleLotes.includes(r.Lote));
+                        setIrrigationRecords(filteredRecords);
+                        setFilters(f => ({ ...f, lotes: visibleLotes }));
+                    } else {
+                        setIrrigationRecords(records);
+                    }
+                    setLoading(false);
+                });
+            } else {
+                setIrrigationRecords(records);
+                setLoading(false);
+            }
         }, (error) => {
             console.error("Error fetching irrigation records: ", error);
             toast({ variant: "destructive", title: "Error de Carga", description: "No se pudieron cargar los registros de riego." });
             setLoading(false);
         });
         return () => unsubscribe();
-    }, [toast]);
+    }, [toast, profile]);
     
     const filterOptions = useMemo(() => {
-        const campaigns = [...new Set(irrigationRecords.map(r => r['Campaña']))].filter(Boolean);
-        const stages = [...new Set(irrigationRecords.map(r => r['Etapa']))].filter(Boolean);
-        const lotes = [...new Set(irrigationRecords.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+        let recordsForOptions = irrigationRecords;
+        if (profile?.rol !== 'Admin' && filters.lotes.length > 0) {
+            recordsForOptions = recordsForOptions.filter(r => filters.lotes.includes(r.Lote));
+        }
+
+        const campaigns = [...new Set(recordsForOptions.map(r => r['Campaña']))].filter(Boolean);
+        const stages = [...new Set(recordsForOptions.map(r => r['Etapa']))].filter(Boolean);
+        const lotes = [...new Set(recordsForOptions.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         return { campaigns, stages, lotes };
-    }, [irrigationRecords]);
+    }, [irrigationRecords, profile, filters.lotes]);
 
 
     const summaryData = useMemo(() => {
@@ -179,6 +200,17 @@ export default function IrrigationSummaryPage() {
             return { ...prev, lotes: newLotes.sort((a,b) => a.localeCompare(b, undefined, {numeric: true})) };
         });
     };
+    
+    const handleSaveView = () => {
+        startSavingTransition(async () => {
+            const result = await saveVisibleLotesSetting(filters.lotes);
+            if(result.success) {
+                toast({ title: "Vista Guardada", description: "La selección de lotes ha sido guardada para los demás usuarios." });
+            } else {
+                toast({ variant: "destructive", title: "Error", description: result.message });
+            }
+        });
+    };
 
     const searchedLotes = useMemo(() => {
         return filterOptions.lotes.filter(l => l.toLowerCase().includes(loteSearch.toLowerCase()));
@@ -212,20 +244,20 @@ export default function IrrigationSummaryPage() {
                                     <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4"/>Filtros</Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-80">
-                                    <div className="grid gap-4">
-                                        <h4 className="font-medium leading-none">Filtros</h4>
-                                        <div className="grid gap-2">
-                                            <Label>Campaña</Label>
-                                            <Select value={popoverFilters.campaign} onValueChange={v => setPopoverFilters(p => ({...p, campaign: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>Etapa</Label>
-                                            <Select value={popoverFilters.stage} onValueChange={v => setPopoverFilters(p => ({...p, stage: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>Lotes</Label>
-                                            <Command className="p-2 border rounded-md">
-                                                <div className="relative mb-2">
+                                    <Command>
+                                        <div className="grid gap-4">
+                                            <h4 className="font-medium leading-none">Filtros</h4>
+                                            <div className="grid gap-2">
+                                                <Label>Campaña</Label>
+                                                <Select value={popoverFilters.campaign} onValueChange={v => setPopoverFilters(p => ({...p, campaign: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>Etapa</Label>
+                                                <Select value={popoverFilters.stage} onValueChange={v => setPopoverFilters(p => ({...p, stage: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>Lotes</Label>
+                                                <div className="relative">
                                                  <CommandInput 
                                                     placeholder="Buscar lote..." 
                                                     value={loteSearch} 
@@ -233,10 +265,10 @@ export default function IrrigationSummaryPage() {
                                                     className="pl-2"
                                                  />
                                                 </div>
-                                                <ScrollArea className="h-[150px]">
+                                                <ScrollArea className="h-[150px] border rounded-md">
                                                     <CommandGroup>
                                                         {searchedLotes.map(lote => (
-                                                            <div key={lote} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => toggleLoteSelection(lote)}>
+                                                             <div key={lote} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => toggleLoteSelection(lote)}>
                                                                 <Checkbox
                                                                     id={`lote-${lote}`}
                                                                     checked={popoverFilters.lotes.includes(lote)}
@@ -249,13 +281,22 @@ export default function IrrigationSummaryPage() {
                                                         ))}
                                                     </CommandGroup>
                                                 </ScrollArea>
-                                            </Command>
-                                            <div className="flex flex-wrap gap-1">
-                                                {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
+                                                <div className="flex flex-wrap gap-1">
+                                                    {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2">
+                                                {profile?.rol === 'Admin' && (
+                                                    <Button variant="outline" size="sm" onClick={handleSaveView} disabled={isSaving}>
+                                                       {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                                       Guardar Vista
+                                                    </Button>
+                                                )}
+                                                <div className="flex-grow"></div>
+                                                <Button onClick={handleApplyFilters}>Aplicar</Button>
                                             </div>
                                         </div>
-                                        <Button onClick={handleApplyFilters}>Aplicar</Button>
-                                    </div>
+                                    </Command>
                                 </PopoverContent>
                             </Popover>
                         </div>
@@ -314,12 +355,4 @@ export default function IrrigationSummaryPage() {
         </div>
     );
 }
-    
-
-    
-
-    
-
-    
-
     
