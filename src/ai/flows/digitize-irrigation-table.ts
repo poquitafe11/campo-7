@@ -46,7 +46,7 @@ Next, analyze all the tables in the image. The rows are related horizontally acr
 IMPORTANT: Use the following exact, Firestore-compatible keys for the JSON objects, unifying any variations from the image. Do NOT use slashes '/' in the keys.
 - 'BombaNo' (from "Bomba N°")
 - 'Total_m3_Dia' (from "Total m3/Dia")
-- 'm3_Ha_Hora' (from "m3/Ha /Hora")
+- 'm3HaHora' (from "m3/Ha /Hora")
 - 'Ha' (from "Ha.")
 - For columns under 'Unidades/Ha', use the specific header (e.g., 'N', 'P2O5', 'K', 'Mn').
 - Pay close attention to chemical symbols. The symbol "Mπ", "Mpi", or similar-looking text MUST be interpreted and keyed as "Mn" (Manganeso).
@@ -70,7 +70,7 @@ Example of a single object in the output array:
   "Kc": "1.2",
   "Total_m3_Dia": "1,003.8",
   "Ha": "31.00",
-  "m3_Ha_Hora": "8.1",
+  "m3HaHora": "8.1",
   "Lps Ideal": "70",
   "Lps adicion al 10%": "77",
   "Tiosulfato de Calcio (Lts)": "",
