@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { Calendar } from '@/components/ui/calendar';
 import { getVisibleLotesSetting, saveVisibleLotesSetting } from './actions';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 type IrrigationRecord = { [key: string]: any; id: string; };
@@ -54,6 +55,12 @@ const normalizeLote = (lote: string) => {
     if (!lote || typeof lote !== 'string') return '';
     return String(Math.floor(Number(lote.trim())));
 };
+
+interface RecentIrrigationInfo {
+  lote: string;
+  lastIrrigationDate: string;
+  recentIrrigations: { date: string; hours: string }[];
+}
 
 
 export default function IrrigationSummaryPage() {
@@ -185,6 +192,41 @@ export default function IrrigationSummaryPage() {
         };
 
     }, [filters, irrigationRecords, masterLotes, selectedDate]);
+    
+    const recentIrrigationData = useMemo<RecentIrrigationInfo[]>(() => {
+        if (!summaryData?.columns) return [];
+
+        return summaryData.columns.map(({ lote }) => {
+            const loteRecords = irrigationRecords
+                .filter(r => r['Lote'] === lote)
+                .map(r => ({...r, parsedDate: parseSpanishDate(r.Fecha)}))
+                .filter(r => r.parsedDate && isValid(r.parsedDate))
+                .sort((a, b) => b.parsedDate!.getTime() - a.parsedDate!.getTime());
+
+            if (loteRecords.length === 0) {
+                return {
+                    lote,
+                    lastIrrigationDate: 'N/A',
+                    recentIrrigations: Array(3).fill({ date: 'N/A', hours: 'N/A' }),
+                };
+            }
+
+            const lastIrrigationDate = format(loteRecords[0].parsedDate!, 'dd/MM/yyyy');
+            
+            const recentIrrigations = Array(3).fill(null).map((_, i) => {
+                if (loteRecords[i]) {
+                    return {
+                        date: format(loteRecords[i].parsedDate!, 'dd/MM'),
+                        hours: loteRecords[i]['Total Horas'] || '00:00'
+                    };
+                }
+                return { date: '-', hours: '-' };
+            });
+
+            return { lote, lastIrrigationDate, recentIrrigations };
+        });
+
+    }, [summaryData, irrigationRecords]);
 
     const handleApplyFilters = () => {
         setFilters(popoverFilters);
@@ -352,6 +394,44 @@ export default function IrrigationSummaryPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {isContentReady && recentIrrigationData.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Historial de Riegos Recientes</CardTitle>
+                        <CardDescription>Detalle de las últimas 3 aplicaciones de riego para los lotes seleccionados.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="font-bold">Lote</TableHead>
+                                        <TableHead className="font-bold text-center">Último Riego</TableHead>
+                                        <TableHead className="text-center">Riego 1 (Reciente)</TableHead>
+                                        <TableHead className="text-center">Riego 2</TableHead>
+                                        <TableHead className="text-center">Riego 3</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {recentIrrigationData.map((data, index) => (
+                                        <TableRow key={`${data.lote}-${index}`}>
+                                            <TableCell className="font-semibold">{data.lote}</TableCell>
+                                            <TableCell className="text-center">{data.lastIrrigationDate}</TableCell>
+                                            {data.recentIrrigations.map((irrigation, i) => (
+                                                 <TableCell key={i} className="text-center">
+                                                    <div>{irrigation.date}</div>
+                                                    <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }
