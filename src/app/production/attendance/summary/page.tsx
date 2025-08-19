@@ -104,11 +104,17 @@ function AttendanceSummaryContent() {
 
   useEffect(() => {
     const headerTitle = (
-        <div className="flex items-center justify-center leading-tight">
-            <span className="text-sm font-normal text-muted-foreground whitespace-nowrap">Resumen de&nbsp;</span>
+        <div className="flex flex-col items-center justify-center leading-tight">
+            <span className="text-sm font-normal text-muted-foreground whitespace-nowrap">Resumen de</span>
             <h1 className="text-lg font-bold text-foreground">Asistencia</h1>
         </div>
     );
+
+    const leftComponent = (
+       <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+        </Button>
+    )
 
     const rightComponent = (
         <div className="flex justify-end items-center gap-1">
@@ -140,6 +146,7 @@ function AttendanceSummaryContent() {
     );
     
     setActions({
+        left: leftComponent,
         center: headerTitle,
         right: rightComponent,
     });
@@ -227,7 +234,7 @@ function AttendanceSummaryContent() {
   }
 
   return (
-    <div className="p-1">
+    <div className="p-1 flex justify-center">
       {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
           <div className="inline-block bg-white p-2 shadow-md rounded-lg">
             <table className="table-auto border-collapse text-xs">
