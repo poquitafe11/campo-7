@@ -99,10 +99,10 @@ export default function IrrigationSummaryPage() {
         
         let lotesForColumns = filters.lotes.length > 0
             ? filters.lotes
-            : [...new Set(recordsToProcess.map(r => r['Lote']))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            : [...new Set(recordsToProcess.map(r => r['Lote']))].filter(Boolean).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
         if (lotesForColumns.length === 0 && irrigationRecords.length > 0 && !filters.campaign && !filters.stage) {
-             const allLotes = [...new Set(irrigationRecords.map(r => r['Lote']))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+             const allLotes = [...new Set(irrigationRecords.map(r => r['Lote']))].filter(Boolean).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
              lotesForColumns.push(...allLotes);
         }
         
@@ -217,11 +217,7 @@ export default function IrrigationSummaryPage() {
                                                     <CommandEmpty>No se encontraron lotes.</CommandEmpty>
                                                     <CommandGroup>
                                                         {searchedLotes.map(lote => (
-                                                             <CommandItem
-                                                                key={lote}
-                                                                onSelect={() => toggleLoteSelection(lote)}
-                                                                className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent"
-                                                            >
+                                                            <div key={lote} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent" onClick={() => toggleLoteSelection(lote)}>
                                                                 <Checkbox
                                                                     id={`lote-${lote}`}
                                                                     checked={popoverFilters.lotes.includes(lote)}
@@ -229,7 +225,7 @@ export default function IrrigationSummaryPage() {
                                                                 <Label htmlFor={`lote-${lote}`} className="cursor-pointer w-full">
                                                                     {lote}
                                                                 </Label>
-                                                            </CommandItem>
+                                                            </div>
                                                         ))}
                                                     </CommandGroup>
                                                 </CommandList>
@@ -298,6 +294,8 @@ export default function IrrigationSummaryPage() {
         </div>
     );
 }
+    
+
     
 
     
