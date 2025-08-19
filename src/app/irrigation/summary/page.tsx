@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { format, parse, isValid, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2, Filter, Check } from 'lucide-react';
+import { Loader2, Filter, Check, Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuth } from '@/hooks/useAuth';
+import { Calendar } from '@/components/ui/calendar';
 
 
 type IrrigationRecord = { [key: string]: any; id: string; };
@@ -48,13 +50,14 @@ const parseSpanishDate = (dateString: string): Date | null => {
 };
 
 const normalizeLote = (lote: string) => {
-    if (!lote) return '';
-    return String(Math.floor(Number(lote)));
+    if (!lote || typeof lote !== 'string') return '';
+    return String(Math.floor(Number(lote.trim())));
 };
 
 
 export default function IrrigationSummaryPage() {
     const { toast } = useToast();
+    const { profile } = useAuth();
     const { lotes: masterLotes, loading: masterLoading } = useMasterData();
     const [irrigationRecords, setIrrigationRecords] = useState<IrrigationRecord[]>([]);
     const [loading, setLoading] = useState(true);
@@ -67,6 +70,7 @@ export default function IrrigationSummaryPage() {
 
     const [popoverFilters, setPopoverFilters] = useState(filters);
     const [loteSearch, setLoteSearch] = useState('');
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     
     useEffect(() => {
         setLoading(true);
@@ -91,7 +95,16 @@ export default function IrrigationSummaryPage() {
 
 
     const summaryData = useMemo(() => {
-        const recordsToProcess = irrigationRecords.filter(record => 
+        let recordsToProcess = irrigationRecords;
+
+        if (selectedDate) {
+           recordsToProcess = recordsToProcess.filter(record => {
+             const recordDate = parseSpanishDate(record.Fecha);
+             return recordDate && isValid(recordDate) && recordDate <= selectedDate;
+           });
+        }
+        
+        recordsToProcess = recordsToProcess.filter(record => 
             (!filters.campaign || record['Campaña'] === filters.campaign) &&
             (!filters.stage || record['Etapa'] === filters.stage) &&
             (filters.lotes.length === 0 || filters.lotes.includes(record['Lote']))
@@ -109,17 +122,6 @@ export default function IrrigationSummaryPage() {
         if(lotesForColumns.length === 0) return null;
 
 
-        let latestDate: Date | null = null;
-        
-        recordsToProcess.forEach(record => {
-            const recordDate = parseSpanishDate(record.Fecha);
-            if (recordDate && isValid(recordDate)) {
-                if (!latestDate || recordDate > latestDate) {
-                    latestDate = recordDate;
-                }
-            }
-        });
-        
         const accumulated = recordsToProcess.reduce((acc, record) => {
             const lote = record['Lote'];
             if (!lotesForColumns.includes(lote)) return acc;
@@ -145,8 +147,8 @@ export default function IrrigationSummaryPage() {
             const fechaCianamida = loteMaster?.fechaCianamida;
             let ddc: number | string = 'N/A';
             
-            if (latestDate && fechaCianamida && isValid(fechaCianamida)) {
-                ddc = differenceInDays(latestDate, fechaCianamida);
+            if (selectedDate && fechaCianamida && isValid(fechaCianamida)) {
+                ddc = differenceInDays(selectedDate, fechaCianamida);
             }
 
             return {
@@ -157,11 +159,11 @@ export default function IrrigationSummaryPage() {
         });
         
         return {
-            date: latestDate ? format(latestDate, 'P', { locale: es }) : 'N/A',
+            date: selectedDate ? format(selectedDate, 'P', { locale: es }) : 'N/A',
             columns: summaryColumns
         };
 
-    }, [filters, irrigationRecords, masterLotes]);
+    }, [filters, irrigationRecords, masterLotes, selectedDate]);
 
     const handleApplyFilters = () => {
         setFilters(popoverFilters);
@@ -189,56 +191,74 @@ export default function IrrigationSummaryPage() {
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <CardTitle>Unidades Acumuladas</CardTitle>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4"/>Filtros</Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-80">
-                                <div className="grid gap-4">
-                                    <h4 className="font-medium leading-none">Filtros</h4>
-                                    <div className="grid gap-2">
-                                        <Label>Campaña</Label>
-                                        <Select value={popoverFilters.campaign} onValueChange={v => setPopoverFilters(p => ({...p, campaign: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>Etapa</Label>
-                                        <Select value={popoverFilters.stage} onValueChange={v => setPopoverFilters(p => ({...p, stage: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>Lotes</Label>
-                                         <Command className="rounded-lg border shadow-md">
-                                             <CommandInput 
-                                                placeholder="Buscar lote..." 
-                                                value={loteSearch} 
-                                                onValueChange={setLoteSearch}
-                                             />
-                                             <ScrollArea className="h-[200px]">
-                                                <CommandList>
-                                                    <CommandEmpty>No se encontraron lotes.</CommandEmpty>
-                                                    <CommandGroup>
+                        <div className="flex items-center gap-2">
+                            {profile?.rol === 'Admin' && (
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="icon"><CalendarIcon className="h-4 w-4" /></Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="end">
+                                        <Calendar
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={setSelectedDate}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            )}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4"/>Filtros</Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80">
+                                    <div className="grid gap-4">
+                                        <h4 className="font-medium leading-none">Filtros</h4>
+                                        <div className="grid gap-2">
+                                            <Label>Campaña</Label>
+                                            <Select value={popoverFilters.campaign} onValueChange={v => setPopoverFilters(p => ({...p, campaign: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Etapa</Label>
+                                            <Select value={popoverFilters.stage} onValueChange={v => setPopoverFilters(p => ({...p, stage: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Lotes</Label>
+                                            <div className="p-2 border rounded-md">
+                                                <div className="relative mb-2">
+                                                 <CommandInput 
+                                                    placeholder="Buscar lote..." 
+                                                    value={loteSearch} 
+                                                    onValueChange={setLoteSearch}
+                                                    className="pl-2"
+                                                 />
+                                                </div>
+                                                <ScrollArea className="h-[150px]">
+                                                    <div className="space-y-1">
                                                         {searchedLotes.map(lote => (
-                                                            <div key={lote} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent" onClick={() => toggleLoteSelection(lote)}>
+                                                            <div key={lote} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => toggleLoteSelection(lote)}>
                                                                 <Checkbox
                                                                     id={`lote-${lote}`}
                                                                     checked={popoverFilters.lotes.includes(lote)}
+                                                                    onCheckedChange={() => toggleLoteSelection(lote)}
                                                                 />
-                                                                <Label htmlFor={`lote-${lote}`} className="cursor-pointer w-full">
+                                                                <Label htmlFor={`lote-${lote}`} className="cursor-pointer w-full text-sm font-normal">
                                                                     {lote}
                                                                 </Label>
                                                             </div>
                                                         ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </ScrollArea>
-                                         </Command>
-                                        <div className="flex flex-wrap gap-1">
-                                            {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
+                                                    </div>
+                                                </ScrollArea>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
+                                            </div>
                                         </div>
+                                        <Button onClick={handleApplyFilters}>Aplicar</Button>
                                     </div>
-                                    <Button onClick={handleApplyFilters}>Aplicar</Button>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
