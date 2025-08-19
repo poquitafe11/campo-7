@@ -82,18 +82,30 @@ export default function IrrigationSummaryPage() {
 
 
     const summaryData = useMemo(() => {
-        if (filters.lotes.length === 0) return null;
-
-        const filteredRecords = irrigationRecords.filter(record => 
+        const recordsToProcess = irrigationRecords.filter(record => 
             (!filters.campaign || record['Campaña'] === filters.campaign) &&
             (!filters.stage || record['Etapa'] === filters.stage) &&
-            filters.lotes.includes(record['Lote'])
+            (filters.lotes.length === 0 || filters.lotes.includes(record['Lote']))
         );
         
+        if (recordsToProcess.length === 0 && filters.lotes.length > 0) { // Show message only if filters are active and there are no results
+            return null;
+        }
+
+        const lotesForColumns = filters.lotes.length > 0
+            ? filters.lotes
+            : [...new Set(recordsToProcess.map(r => r['Lote']))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+        if (lotesForColumns.length === 0) {
+             return null; // Return null if there are no lots to display columns for.
+        }
+
         let latestDate: Date | null = null;
         
-        const accumulated = filteredRecords.reduce((acc, record) => {
+        const accumulated = recordsToProcess.reduce((acc, record) => {
             const lote = record['Lote'];
+            if (!lotesForColumns.includes(lote)) return acc;
+
             if (!acc[lote]) {
                 acc[lote] = { lote: lote };
                 NUTRIENTS.forEach(n => acc[lote][n] = 0);
@@ -114,7 +126,7 @@ export default function IrrigationSummaryPage() {
             return acc;
         }, {} as { [key: string]: any });
 
-        const summaryColumns = filters.lotes.map(lote => {
+        const summaryColumns = lotesForColumns.map(lote => {
             const data = accumulated[lote] || { lote };
             const loteMaster = masterLotes.find(l => l.lote === lote);
             const fechaCianamida = loteMaster?.fechaCianamida ? (loteMaster.fechaCianamida instanceof Date ? loteMaster.fechaCianamida : parseSpanishDate(loteMaster.fechaCianamida as string)) : null;
@@ -208,9 +220,11 @@ export default function IrrigationSummaryPage() {
                         <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
-                    ) : !summaryData ? (
+                    ) : !summaryData || summaryData.columns.length === 0 ? (
                          <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground text-center">Seleccione al menos un lote en los filtros para ver el resumen.</p>
+                            <p className="text-muted-foreground text-center">
+                                {filters.lotes.length > 0 || filters.campaign || filters.stage ? "No se encontraron datos para los filtros seleccionados." : "No hay datos de riego para mostrar."}
+                            </p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
@@ -256,5 +270,4 @@ export default function IrrigationSummaryPage() {
 }
     
 
-
-
+    
