@@ -57,6 +57,16 @@ const normalizeLote = (lote: string) => {
     return String(parseInt(numericPart, 10));
 };
 
+const parseHours = (timeString: string): number => {
+    if (!timeString || typeof timeString !== 'string') return 0;
+    const parts = timeString.split(':');
+    if (parts.length < 2) return 0;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    if (isNaN(hours) || isNaN(minutes)) return 0;
+    return hours + minutes / 60;
+};
+
 interface RecentIrrigationInfo {
   lote: string;
   daysSinceLastIrrigation: number | string;
@@ -200,7 +210,7 @@ export default function IrrigationSummaryPage() {
     
         return lotesToShow.map((lote) => {
             const loteRecords = irrigationRecords
-                .filter(r => r['Lote'] === lote && r['Total Horas'] && r['Total Horas'] !== '00:00' && parseSpanishDate(r.Fecha))
+                .filter(r => r['Lote'] === lote && r['Total Horas'] && parseHours(r['Total Horas']) > 0 && parseSpanishDate(r.Fecha))
                 .map(r => ({...r, parsedDate: parseSpanishDate(r.Fecha)}))
                 .filter(r => r.parsedDate && isValid(r.parsedDate))
                 .sort((a, b) => b.parsedDate!.getTime() - a.parsedDate!.getTime());
@@ -230,6 +240,43 @@ export default function IrrigationSummaryPage() {
         });
     
     }, [summaryData, irrigationRecords, selectedDate]);
+
+    const lavadoIrrigationData = useMemo<RecentIrrigationInfo[]>(() => {
+        const lotesToShow = summaryData?.columns.map(c => c.lote) || [];
+        if (lotesToShow.length === 0) return [];
+    
+        return lotesToShow.map((lote) => {
+            const lavadoRecords = irrigationRecords
+                .filter(r => r['Lote'] === lote && r['Total Horas'] && parseHours(r['Total Horas']) > 8 && parseSpanishDate(r.Fecha))
+                .map(r => ({...r, parsedDate: parseSpanishDate(r.Fecha)}))
+                .filter(r => r.parsedDate && isValid(r.parsedDate))
+                .sort((a, b) => b.parsedDate!.getTime() - a.parsedDate!.getTime());
+    
+            if (lavadoRecords.length === 0) {
+                return {
+                    lote,
+                    daysSinceLastIrrigation: 'N/A',
+                    recentIrrigations: Array(3).fill({ date: '-', hours: '-' }),
+                };
+            }
+            
+            const lastLavadoDate = lavadoRecords[0].parsedDate!;
+            const daysSince = selectedDate ? differenceInDays(selectedDate, lastLavadoDate) : 'N/A';
+
+            const recentLavados = Array(3).fill(null).map((_, i) => {
+                if (lavadoRecords[i]) {
+                    return {
+                        date: format(lavadoRecords[i].parsedDate!, 'dd/MM'),
+                        hours: lavadoRecords[i]['Total Horas'] || '00:00'
+                    };
+                }
+                return { date: '-', hours: '-' };
+            });
+    
+            return { lote, daysSinceLastIrrigation: daysSince, recentIrrigations: recentLavados };
+        });
+    }, [summaryData, irrigationRecords, selectedDate]);
+
 
     const handleApplyFilters = () => {
         setFilters(popoverFilters);
@@ -412,6 +459,44 @@ export default function IrrigationSummaryPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {recentIrrigationData.map((data, index) => (
+                                        <TableRow key={`${data.lote}-${index}`}>
+                                            <TableCell className="font-semibold py-2 px-3">{data.lote}</TableCell>
+                                            <TableCell className="text-center py-2 px-3">{data.daysSinceLastIrrigation}</TableCell>
+                                            {data.recentIrrigations.map((irrigation, i) => (
+                                                 <TableCell key={i} className="text-center py-2 px-3">
+                                                    <div>{irrigation.date}</div>
+                                                    <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {isContentReady && lavadoIrrigationData.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Historial de Riego de Lavado</CardTitle>
+                        <CardDescription>Detalle de los últimos 3 riegos de más de 8 horas.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                           <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="font-bold py-2 px-3">Lote</TableHead>
+                                        <TableHead className="font-bold text-center py-2 px-3">Días sin Lavado</TableHead>
+                                        <TableHead className="text-center py-2 px-3">Lavado 1 (Reciente)</TableHead>
+                                        <TableHead className="text-center py-2 px-3">Lavado 2</TableHead>
+                                        <TableHead className="text-center py-2 px-3">Lavado 3</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {lavadoIrrigationData.map((data, index) => (
                                         <TableRow key={`${data.lote}-${index}`}>
                                             <TableCell className="font-semibold py-2 px-3">{data.lote}</TableCell>
                                             <TableCell className="text-center py-2 px-3">{data.daysSinceLastIrrigation}</TableCell>
