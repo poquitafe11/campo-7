@@ -309,29 +309,39 @@ export default function RegisterIrrigationPage() {
     }
   };
   
-  const onUpdateSubmit = async (values: { [key: string]: any }) => {
-    if (!editingRecord) return;
-    
-    // Logic for updating a row from the preview table
-    if (editingRecord.internalId) {
-        const { internalId, ...dataToUpdate } = values;
-        setParsedData(prev => prev.map(row => 
-            row.internalId === editingRecord.internalId ? { ...row, ...dataToUpdate } : row
-        ));
-        toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
-    } else { // Logic for updating a saved record in Firestore
-        try {
-            const docRef = doc(db, "registros-riego", editingRecord.id);
-            const { id, internalId, ...dataToUpdate } = values;
-            await updateDoc(docRef, dataToUpdate);
-            toast({ title: "Éxito", description: "Registro actualizado en la base de datos." });
-        } catch(error) {
-            console.error("Error updating record:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el registro." });
+    const onUpdateSubmit = async (values: { [key: string]: any }) => {
+        if (!editingRecord) return;
+
+        const { id, internalId, ...dataToUpdate } = values;
+        
+        if (editingRecord.internalId) {
+            // Updating a preview record
+            setParsedData(prev => prev.map(row => 
+                row.internalId === editingRecord.internalId ? { ...row, ...dataToUpdate } : row
+            ));
+            toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
+        } else {
+            // Updating a saved record in Firestore
+            try {
+                const docRef = doc(db, "registros-riego", editingRecord.id);
+                
+                // Sanitize keys before sending to Firestore
+                const sanitizedData: { [key: string]: any } = {};
+                for (const key in dataToUpdate) {
+                    const sanitizedKey = key.replace(/\//g, '_');
+                    sanitizedData[sanitizedKey] = dataToUpdate[key];
+                }
+
+                await updateDoc(docRef, sanitizedData);
+                toast({ title: "Éxito", description: "Registro actualizado en la base de datos." });
+            } catch(error) {
+                console.error("Error updating record:", error);
+                toast({ variant: "destructive", title: "Error", description: `No se pudo actualizar el registro: ${error}` });
+            }
         }
-    }
-    setEditingRecord(null);
-  };
+        setEditingRecord(null);
+    };
+
   
   const renderEditFormFields = () => {
     if (!editingRecord) return null;
@@ -584,3 +594,4 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
+
