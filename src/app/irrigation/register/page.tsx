@@ -219,7 +219,7 @@ export default function RegisterIrrigationPage() {
           const firstRow = enrichedData[0];
           const allHeaders = Object.keys(firstRow);
           
-          const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3HaHora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
+          const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
           
           const sortedHeaders = allHeaders
             .filter(h => h !== 'internalId')
@@ -326,16 +326,7 @@ export default function RegisterIrrigationPage() {
       // Updating a saved record in Firestore
       try {
         const docRef = doc(db, 'registros-riego', id);
-
-        // Sanitize keys before sending to Firestore
-        const sanitizedData: { [key: string]: any } = {};
-        for (const key in dataFromForm) {
-          // Replace any invalid characters (like '/') with an underscore '_'
-          const sanitizedKey = key.replace(/[\/\s.]/g, '_');
-          sanitizedData[sanitizedKey] = dataFromForm[key];
-        }
-
-        await updateDoc(docRef, sanitizedData);
+        await updateDoc(docRef, dataFromForm);
         toast({
           title: 'Éxito',
           description: 'Registro actualizado en la base de datos.',
@@ -374,7 +365,7 @@ export default function RegisterIrrigationPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3HaHora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
+    const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
     const headers = new Set<string>();
     savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
@@ -604,3 +595,4 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
+
