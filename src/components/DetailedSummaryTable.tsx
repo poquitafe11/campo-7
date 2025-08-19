@@ -2,8 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { format, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import { format, parseISO, differenceInDays, isValid } from "date-fns";
 import type { ActivityRecordData, LoteData, Presupuesto, MinMax } from "@/lib/types";
 
 interface DetailedSummaryTableProps {
@@ -19,20 +18,22 @@ interface DetailedSummaryTableProps {
   };
 }
 
-const formatNumber = (num: number, digits = 2) => {
-    if (isNaN(num) || !isFinite(num)) {
-      return '0.00';
+const formatNumber = (num: number | string | undefined, digits = 2): string => {
+    if (num === undefined || num === null || num === '') return '#DIV/0!';
+    const number = typeof num === 'string' ? parseFloat(num.replace(',', '.')) : num;
+    if (isNaN(number) || !isFinite(number)) {
+        return '#DIV/0!';
     }
-    return num.toLocaleString('es-PE', {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
+    return number.toLocaleString('es-PE', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
     });
 };
 
 export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos, allMinMax, activeFilters }: DetailedSummaryTableProps) {
 
     const detailedSummaryData = useMemo(() => {
-        if (!activeFilters.lote || allLotes.length === 0) {
+        if (!activeFilters.lote || allLotes.length === 0 || !activeFilters.labor) {
             return null;
         }
 
@@ -49,64 +50,113 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             (!activeFilters.labor || a.labor === activeFilters.labor) &&
             (!activeFilters.pasada || String(a.pass) === activeFilters.pasada)
         );
-
+        
         if (filteredActivities.length === 0) return null;
 
         const loteSummaries = varietyLotes.map(loteInfo => {
             const loteActivities = filteredActivities.filter(a => a.lote === loteInfo.lote);
             if (loteActivities.length === 0) return null;
 
-            const haProd = loteInfo.haProd || 0;
+            const haProdTotal = loteInfo.haProd || 0;
             const densidad = loteInfo.densidad || 0;
 
-            const totalPersonnel = loteActivities.reduce((sum, act) => sum + act.personnelCount, 0);
-            const totalWorkday = loteActivities.reduce((sum, act) => sum + act.workdayCount, 0);
             const totalPerformance = loteActivities.reduce((sum, act) => sum + (act.performance || 0), 0);
+            const totalWorkday = loteActivities.reduce((sum, act) => sum + act.workdayCount, 0);
 
-            const jrHa = haProd > 0 ? totalWorkday / haProd : 0;
             const haTrabajada = densidad > 0 ? totalPerformance / densidad : 0;
-            const avance = haProd > 0 ? (haTrabajada / haProd) * 100 : 0;
+            const haPorTrabajar = haProdTotal - haTrabajada;
+            const avance = haProdTotal > 0 ? (haTrabajada / haProdTotal) * 100 : 0;
+
+            const jrHa = haTrabajada > 0 ? totalWorkday / haTrabajada : 0;
             
+            const prom = totalWorkday > 0 ? totalPerformance / totalWorkday : 0;
+
+            const minMaxValues = loteActivities.map(a => a.performance || 0).filter(p => p > 0);
+            const minimo = minMaxValues.length > 0 ? Math.min(...minMaxValues) : 0;
+            const maximo = minMaxValues.length > 0 ? Math.max(...minMaxValues) : 0;
+
+            const pltaHora = totalWorkday > 0 ? totalPerformance / (totalWorkday * 8) : 0;
+
+            const costoUnitario = loteActivities[0]?.cost || 0;
+            const costoLabor = costoUnitario > 0 ? totalPerformance * costoUnitario : totalWorkday * 60;
+            const ingresoPersona = totalWorkday > 0 ? costoLabor / totalWorkday : 0;
+
+            const costoPlta = totalPerformance > 0 ? costoLabor / totalPerformance : 0;
+
+            const firstActivityDate = loteActivities.reduce((earliest, act) => {
+                const actDate = act.registerDate instanceof Date ? act.registerDate : parseISO(act.registerDate as any);
+                return actDate < earliest ? actDate : earliest;
+            }, new Date());
+            
+            const ddcInicioLabor = loteInfo.fechaCianamida && isValid(loteInfo.fechaCianamida) && isValid(firstActivityDate)
+                ? differenceInDays(firstActivityDate, loteInfo.fechaCianamida)
+                : 'N/A';
+            
+            const ddcHoy = loteInfo.fechaCianamida && isValid(loteInfo.fechaCianamida) ? differenceInDays(new Date(), loteInfo.fechaCianamida) : 'N/A';
+
+            const minMaxEstablecido = allMinMax.find(mm => mm.lote === loteInfo.lote && mm.labor === activeFilters.labor && String(mm.pasada) === activeFilters.pasada);
             const presupuesto = allPresupuestos.find(p => p.lote === loteInfo.lote && p.descripcionLabor === activeFilters.labor);
-            const jrPresup = presupuesto?.jrnHa || 0;
-            const saldo = jrPresup - jrHa;
-
-            const minMax = allMinMax.find(mm => mm.lote === loteInfo.lote && mm.labor === activeFilters.labor && String(mm.pasada) === activeFilters.pasada);
+            const jrnPresup = presupuesto?.jornadas || 0;
+            const saldo = jrnPresup - totalWorkday;
             
-            const pagoUnitario = loteActivities[0]?.cost || 0; 
-            const costoLabor = pagoUnitario > 0 ? totalPerformance * pagoUnitario : totalWorkday * 60;
-            const costoHa = haTrabajada > 0 ? costoLabor / haTrabajada : 0;
-
             return {
                 id: loteInfo.id,
                 lote: loteInfo.lote,
-                ddc: 'N/A', // Placeholder
-                haTrabajada: formatNumber(haTrabajada),
-                porcAvance: `${formatNumber(avance, 0)}%`,
-                saldo: formatNumber(saldo),
-                jrHa, // Raw value for color coding
-                jrPresup: formatNumber(jrPresup),
-                jrEjecutado: formatNumber(jrHa),
-                min: minMax?.min ?? 'N/A',
-                max: minMax?.max ?? 'N/A',
-                costoHa: `S/ ${formatNumber(costoHa)}`,
+                variedad: loteInfo.variedad,
+                ddc: ddcHoy,
+                haTrabajada: haTrabajada,
+                haPorTrabajar: haPorTrabajar,
+                porcAvance: avance,
+                totalJr: totalWorkday,
+                jrHa: jrHa,
+                prom: prom,
+                minimo: minimo,
+                maximo: maximo,
+                pltaHora: pltaHora,
+                ingresoPersona: ingresoPersona,
+                costoPlta: costoPlta,
+                pagoPlttaRaci: costoUnitario > 0 ? costoUnitario : 'N/A',
+                ddcInicioLabor: ddcInicioLabor,
+                minEstablecido: minMaxEstablecido?.min ?? 0,
+                maxEstablecido: minMaxEstablecido?.max ?? 0,
+                jhPresupHa: presupuesto?.jrnHa ?? 0,
+                jrnPresup: jrnPresup,
+                jhu: totalWorkday,
+                saldo: saldo,
             };
 
         }).filter((item): item is NonNullable<typeof item> => item !== null);
 
+        if (loteSummaries.length === 0) return null;
+
+        const metrics = [
+            { key: 'ddc', label: 'DDC'},
+            { key: 'lote', label: 'Lote' },
+            { key: 'variedad', label: 'Variedad' },
+            { key: 'haTrabajada', label: 'Ha Trabajada' },
+            { key: 'haPorTrabajar', label: 'Ha por Trabajar' },
+            { key: 'porcAvance', label: '% Avance', format: (v: number) => `${formatNumber(v,0)}%` },
+            { key: 'totalJr', label: 'Total Jr.' },
+            { key: 'jrHa', label: 'Jr/Ha' },
+            { key: 'prom', label: 'Prom', format: (v: number) => formatNumber(v,0) },
+            { key: 'minimo', label: 'MINIMO', format: (v: number) => formatNumber(v,0) },
+            { key: 'maximo', label: 'MAXIMO', format: (v: number) => formatNumber(v,0) },
+            { key: 'pltaHora', label: 'Plta. /Hora', format: (v: number) => formatNumber(v,0) },
+            { key: 'ingresoPersona', label: 'INGRESO EN S/ persona', format: (v: number) => `S/ ${formatNumber(v)}` },
+            { key: 'costoPlta', label: 'Costo Plta' },
+            { key: 'pagoPlttaRaci', label: 'Pago pltta/raci', format: (v: any) => typeof v === 'number' ? `S/${formatNumber(v)}` : v },
+            { key: 'ddcInicioLabor', label: 'DDC INICIO DE LABOR'},
+            { key: 'minEstablecido', label: 'MIN. ESTABLECIDO' },
+            { key: 'maxEstablecido', label: 'MAX. ESTABLECIDO' },
+            { key: 'jhPresupHa', label: 'JH. Presup/Ha.' },
+            { key: 'jrnPresup', label: 'Jrn Presup' },
+            { key: 'jhu', label: 'JHU' },
+            { key: 'saldo', label: 'saldo' },
+        ];
+
         return {
             headers: loteSummaries,
-            rows: [
-                { label: 'DDC', key: 'ddc' },
-                { label: 'Ha. Trabajada', key: 'haTrabajada' },
-                { label: '% Avance', key: 'porcAvance' },
-                { label: 'Saldo', key: 'saldo' },
-                { label: 'Jr/Ha Presup.', key: 'jrPresup' },
-                { label: 'Jr/Ha Ejecutado', key: 'jrEjecutado' },
-                { label: 'Minimo', key: 'min' },
-                { label: 'Maximo', key: 'max' },
-                { label: 'Costo/Ha', key: 'costoHa' },
-            ]
+            rows: metrics,
         };
 
     }, [allActivities, allLotes, allPresupuestos, allMinMax, activeFilters]);
@@ -117,38 +167,39 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
 
     return (
         <div className="overflow-x-auto pt-6">
+             <h3 className="text-lg font-semibold mb-2">Tabla 3: Resumen por Lote</h3>
             <table className="border-collapse border border-black text-xs table-auto w-full">
                 <thead className="text-center font-bold text-black">
-                    <tr className="bg-[#ddebf7]">
-                        <th className="border border-black p-1 font-bold">LOTE</th>
-                        {detailedSummaryData.headers.map(h => (
-                            <th key={h.id} className="border border-black p-1 font-bold">{h.lote}</th>
-                        ))}
-                    </tr>
+                    {/* This structure is a bit different, let's build row by row */}
                 </thead>
                 <tbody>
-                    {detailedSummaryData.rows.map(row => (
-                         <tr key={row.key}>
-                            <td className="border border-black p-1 font-bold bg-[#f2f2f2]">{row.label}</td>
-                            {detailedSummaryData.headers.map(h => {
-                                const value = (h as any)[row.key];
-                                let className = 'border border-black p-1 text-center';
-                                if (row.key === 'jrEjecutado') {
-                                    const jrEjecutadoNum = h.jrHa;
-                                    const min = h.min !== 'N/A' ? h.min : -Infinity;
-                                    const max = h.max !== 'N/A' ? h.max : Infinity;
-                                    if (jrEjecutadoNum < min) className += ' bg-red-200';
-                                    if (jrEjecutadoNum > max) className += ' bg-yellow-200';
-                                }
+                    {detailedSummaryData.rows.map(row => {
+                         let headerBg = '';
+                         if (['lote', 'variedad'].includes(row.key)) headerBg = 'bg-gray-200';
+                         if (['haTrabajada', 'haPorTrabajar', 'porcAvance', 'totalJr', 'jrHa', 'prom', 'minimo', 'maximo', 'pltaHora'].includes(row.key)) headerBg = 'bg-blue-200';
+                         if (['ingresoPersona', 'costoPlta', 'pagoPlttaRaci'].includes(row.key)) headerBg = 'bg-orange-200';
+                         if (['ddcInicioLabor', 'minEstablecido', 'maxEstablecido', 'jhPresupHa'].includes(row.key)) headerBg = 'bg-cyan-200';
+                         if (['jrnPresup', 'jhu', 'saldo'].includes(row.key)) headerBg = 'bg-yellow-200';
+                        
+                        return (
+                            <tr key={row.key}>
+                                <td className={`border border-black p-1 font-bold ${headerBg}`}>{row.label}</td>
+                                {detailedSummaryData.headers.map(header => {
+                                     let cellBg = '';
+                                     if(row.key === 'ddc' || row.key === 'lote' || row.key === 'variedad') cellBg = 'bg-green-200';
 
-                                return (
-                                    <td key={`${h.id}-${row.key}`} className={className}>
-                                        {value}
-                                    </td>
-                                )
-                            })}
-                         </tr>
-                    ))}
+                                     const rawValue = (header as any)[row.key];
+                                     const displayValue = row.format ? row.format(rawValue) : (typeof rawValue === 'number' ? formatNumber(rawValue) : rawValue);
+
+                                    return (
+                                        <td key={`${header.id}-${row.key}`} className={`border border-black p-1 text-center ${cellBg}`}>
+                                            {displayValue}
+                                        </td>
+                                    )
+                                })}
+                            </tr>
+                        )
+                    })}
                 </tbody>
             </table>
         </div>
