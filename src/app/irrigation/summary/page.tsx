@@ -47,6 +47,11 @@ const parseSpanishDate = (dateString: string): Date | null => {
     return null;
 };
 
+const normalizeLote = (lote: string) => {
+    if (!lote) return '';
+    return String(Math.floor(Number(lote)));
+};
+
 
 export default function IrrigationSummaryPage() {
     const { toast } = useToast();
@@ -106,9 +111,16 @@ export default function IrrigationSummaryPage() {
 
         let latestDate: Date | null = null;
         
-        const recordsForSummary = recordsToProcess;
+        recordsToProcess.forEach(record => {
+            const recordDate = parseSpanishDate(record.Fecha);
+            if (recordDate && isValid(recordDate)) {
+                if (!latestDate || recordDate > latestDate) {
+                    latestDate = recordDate;
+                }
+            }
+        });
         
-        const accumulated = recordsForSummary.reduce((acc, record) => {
+        const accumulated = recordsToProcess.reduce((acc, record) => {
             const lote = record['Lote'];
             if (!lotesForColumns.includes(lote)) return acc;
 
@@ -123,23 +135,20 @@ export default function IrrigationSummaryPage() {
                 }
             });
 
-            const recordDate = parseSpanishDate(record.Fecha);
-            if (recordDate && isValid(recordDate)) {
-                if (!latestDate || recordDate > latestDate) {
-                    latestDate = recordDate;
-                }
-            }
             return acc;
         }, {} as { [key: string]: any });
 
         const summaryColumns = lotesForColumns.map(lote => {
             const data = accumulated[lote] || { lote };
-            const loteMaster = masterLotes.find(l => l.lote === lote);
-            const fechaCianamida = loteMaster?.fechaCianamida ? (loteMaster.fechaCianamida instanceof Date ? loteMaster.fechaCianamida : parseSpanishDate(loteMaster.fechaCianamida as string)) : null;
-            let ddc = 'N/A';
+            const normalizedLoteNum = normalizeLote(lote);
+            const loteMaster = masterLotes.find(l => normalizeLote(l.lote) === normalizedLoteNum);
+            const fechaCianamida = loteMaster?.fechaCianamida;
+            let ddc: number | string = 'N/A';
+            
             if (latestDate && fechaCianamida && isValid(fechaCianamida)) {
-                ddc = differenceInDays(latestDate, fechaCianamida).toString();
+                ddc = differenceInDays(latestDate, fechaCianamida);
             }
+
             return {
                 lote,
                 ddc,
@@ -208,18 +217,19 @@ export default function IrrigationSummaryPage() {
                                                     <CommandEmpty>No se encontraron lotes.</CommandEmpty>
                                                     <CommandGroup>
                                                         {searchedLotes.map(lote => (
-                                                            <div key={lote} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent"
-                                                                onClick={() => toggleLoteSelection(lote)}
+                                                             <CommandItem
+                                                                key={lote}
+                                                                onSelect={() => toggleLoteSelection(lote)}
+                                                                className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent"
                                                             >
                                                                 <Checkbox
                                                                     id={`lote-${lote}`}
                                                                     checked={popoverFilters.lotes.includes(lote)}
-                                                                    onCheckedChange={() => toggleLoteSelection(lote)}
                                                                 />
                                                                 <Label htmlFor={`lote-${lote}`} className="cursor-pointer w-full">
                                                                     {lote}
                                                                 </Label>
-                                                            </div>
+                                                            </CommandItem>
                                                         ))}
                                                     </CommandGroup>
                                                 </CommandList>
@@ -288,6 +298,8 @@ export default function IrrigationSummaryPage() {
         </div>
     );
 }
+    
+
     
 
     
