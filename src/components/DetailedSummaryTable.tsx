@@ -173,10 +173,10 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             <h3 className="text-lg font-semibold mb-2">Resumen por Lote</h3>
             <table className="border-collapse border border-black text-xs table-auto w-full">
                 <thead>
-                    <tr>
-                         <th className="border border-black p-1 font-bold"></th>
+                    <tr className="bg-green-200">
+                        <th className="border border-black p-1 font-bold bg-white">Lote</th>
                         {detailedSummaryData.headers.map(header => (
-                            <th key={header.id} className="border border-black p-1 text-center bg-green-200">
+                            <th key={header.id} className="border border-black p-1 text-center">
                                 {header.lote}
                             </th>
                         ))}
@@ -186,6 +186,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                     {detailedSummaryData.rows.map(row => {
                          let headerBg = '';
                          if (['lote', 'variedad'].includes(row.key)) headerBg = 'bg-gray-200';
+                         if (row.key === 'ddc') headerBg = 'bg-green-200';
                          if (['haTrabajada', 'haPorTrabajar', 'porcAvance', 'totalJr', 'jrHa', 'prom', 'minimo', 'maximo', 'pltaHora'].includes(row.key)) headerBg = 'bg-blue-200';
                          if (['ingresoPersona', 'costoPlta', 'pagoPlttaRaci'].includes(row.key)) headerBg = 'bg-orange-200';
                          if (['ddcInicioLabor', 'minEstablecido', 'maxEstablecido', 'jhPresupHa'].includes(row.key)) headerBg = 'bg-cyan-200';
