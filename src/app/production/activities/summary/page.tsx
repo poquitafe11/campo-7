@@ -107,26 +107,25 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        const dateMap = new Map<string, { personas: number; plantas: number; jhu: number; performances: number[] }>();
+        const dateMap = new Map<string, { personas: number; plantas: number; jhu: number; minRanges: number[]; maxRanges: number[] }>();
         
         filteredActivities.forEach(activity => {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
             if (!dateMap.has(dateKey)) {
-                dateMap.set(dateKey, { personas: 0, plantas: 0, jhu: 0, performances: [] });
+                dateMap.set(dateKey, { personas: 0, plantas: 0, jhu: 0, minRanges: [], maxRanges: [] });
             }
             const dayData = dateMap.get(dateKey)!;
             dayData.personas += activity.personnelCount;
             dayData.plantas += (activity.performance || 0);
             dayData.jhu += activity.workdayCount;
-            if (activity.performance) {
-                dayData.performances.push(activity.performance);
-            }
+            if (activity.minRange) dayData.minRanges.push(activity.minRange);
+            if (activity.maxRange) dayData.maxRanges.push(activity.maxRange);
         });
         
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
-            const minPerformance = data.performances.length > 0 ? Math.min(...data.performances) : 0;
-            const maxPerformance = data.performances.length > 0 ? Math.max(...data.performances) : 0;
+            const avgMinRange = data.minRanges.length > 0 ? data.minRanges.reduce((a, b) => a + b, 0) / data.minRanges.length : 0;
+            const avgMaxRange = data.maxRanges.length > 0 ? data.maxRanges.reduce((a, b) => a + b, 0) / data.maxRanges.length : 0;
 
             return {
                 date: parseISO(dateStr),
@@ -143,8 +142,8 @@ export default function ActivitySummaryPage() {
                     has: Number(hasDia.toFixed(2)),
                     avance: haProd > 0 ? (hasDia / haProd) * 100 : 0,
                     haPorTrabajar: 0,
-                    minimo: minPerformance,
-                    maximo: maxPerformance,
+                    minimo: avgMinRange,
+                    maximo: avgMaxRange,
                 }
             };
         }).sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -347,3 +346,5 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
+
+    
