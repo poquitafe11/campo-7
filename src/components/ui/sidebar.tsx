@@ -78,11 +78,12 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
               {sidebarContent}
             </SheetContent>
           </Sheet>
-          <Button variant="ghost" size="icon" className="sm:hidden shrink-0 h-9 w-9" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-            <span className="sr-only">Atrás</span>
-          </Button>
-           {actions && actions.left}
+           {actions && actions.left ? actions.left : (
+              <Button variant="ghost" size="icon" className="sm:hidden shrink-0 h-9 w-9" onClick={() => router.back()}>
+                  <ArrowLeft className="h-5 w-5" />
+                  <span className="sr-only">Atrás</span>
+              </Button>
+           )}
         </div>
         <div className="flex-1 text-center font-semibold text-lg truncate px-2">
           {actions && (actions.center || actions.title)}

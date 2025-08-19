@@ -110,12 +110,6 @@ function AttendanceSummaryContent() {
         </div>
     );
 
-    const leftComponent = (
-       <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-        </Button>
-    )
-
     const rightComponent = (
         <div className="flex justify-end items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-8 w-8">
@@ -146,7 +140,6 @@ function AttendanceSummaryContent() {
     );
     
     setActions({
-        left: leftComponent,
         center: headerTitle,
         right: rightComponent,
     });
