@@ -14,7 +14,7 @@ import { Loader2, Filter, Check, Calendar as CalendarIcon, Save } from 'lucide-r
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -208,7 +208,6 @@ export default function IrrigationSummaryPage() {
             if (loteRecords.length === 0) {
                 return {
                     lote,
-                    lastIrrigationDate: null,
                     daysSinceLastIrrigation: 'N/A',
                     recentIrrigations: Array(3).fill({ date: '-', hours: '-' }),
                 };
@@ -290,57 +289,53 @@ export default function IrrigationSummaryPage() {
                                     <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4"/>Filtros</Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-80">
-                                    <Command>
-                                        <div className="grid gap-4">
-                                            <h4 className="font-medium leading-none">Filtros</h4>
-                                            <div className="grid gap-2">
-                                                <Label>Campaña</Label>
-                                                <Select value={popoverFilters.campaign} onValueChange={v => setPopoverFilters(p => ({...p, campaign: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label>Etapa</Label>
-                                                <Select value={popoverFilters.stage} onValueChange={v => setPopoverFilters(p => ({...p, stage: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label>Lotes</Label>
-                                                <CommandInput 
-                                                    placeholder="Buscar lote..." 
-                                                    value={loteSearch} 
-                                                    onValueChange={setLoteSearch}
-                                                />
-                                                <ScrollArea className="h-[150px] border rounded-md">
-                                                    <CommandList>
-                                                        <CommandGroup>
-                                                        {searchedLotes.map(lote => (
-                                                             <CommandItem key={lote} onSelect={() => toggleLoteSelection(lote)} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted">
-                                                                <Checkbox
-                                                                    id={`lote-${lote}`}
-                                                                    checked={popoverFilters.lotes.includes(lote)}
-                                                                />
-                                                                <Label htmlFor={`lote-${lote}`} className="cursor-pointer w-full text-sm font-normal">
-                                                                    {lote}
-                                                                </Label>
-                                                            </CommandItem>
-                                                        ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </ScrollArea>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
+                                    <div className="grid gap-4">
+                                        <h4 className="font-medium leading-none">Filtros</h4>
+                                        <div className="grid gap-2">
+                                            <Label>Campaña</Label>
+                                            <Select value={popoverFilters.campaign} onValueChange={v => setPopoverFilters(p => ({...p, campaign: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Etapa</Label>
+                                            <Select value={popoverFilters.stage} onValueChange={v => setPopoverFilters(p => ({...p, stage: v}))}><SelectTrigger><SelectValue placeholder="Seleccionar..."/></SelectTrigger><SelectContent>{filterOptions.stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Lotes</Label>
+                                            <Input 
+                                                placeholder="Buscar lote..." 
+                                                value={loteSearch} 
+                                                onChange={(e) => setLoteSearch(e.target.value)}
+                                            />
+                                            <ScrollArea className="h-[150px] border rounded-md">
+                                                <div className="p-2 space-y-1">
+                                                    {searchedLotes.map(lote => (
+                                                        <div key={lote} onClick={() => toggleLoteSelection(lote)} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted">
+                                                            <Checkbox
+                                                                id={`lote-${lote}`}
+                                                                checked={popoverFilters.lotes.includes(lote)}
+                                                            />
+                                                            <Label htmlFor={`lote-${lote}`} className="cursor-pointer w-full text-sm font-normal">
+                                                                {lote}
+                                                            </Label>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            </div>
-                                            <div className="flex justify-between items-center pt-2">
-                                                {profile?.rol === 'Admin' && (
-                                                    <Button variant="outline" size="sm" onClick={handleSaveView} disabled={isSaving}>
-                                                       {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                                       Guardar Vista
-                                                    </Button>
-                                                )}
-                                                <div className="flex-grow"></div>
-                                                <Button onClick={handleApplyFilters}>Aplicar</Button>
+                                            </ScrollArea>
+                                            <div className="flex flex-wrap gap-1">
+                                                {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
                                             </div>
                                         </div>
-                                    </Command>
+                                        <div className="flex justify-between items-center pt-2">
+                                            {profile?.rol === 'Admin' && (
+                                                <Button variant="outline" size="sm" onClick={handleSaveView} disabled={isSaving}>
+                                                   {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                                   Guardar Vista
+                                                </Button>
+                                            )}
+                                            <div className="flex-grow"></div>
+                                            <Button onClick={handleApplyFilters}>Aplicar</Button>
+                                        </div>
+                                    </div>
                                 </PopoverContent>
                             </Popover>
                         </div>
