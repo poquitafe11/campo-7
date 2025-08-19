@@ -53,7 +53,8 @@ const parseSpanishDate = (dateString: string): Date | null => {
 
 const normalizeLote = (lote: string) => {
     if (!lote || typeof lote !== 'string') return '';
-    return String(Math.floor(Number(lote.trim())));
+    const numericPart = lote.trim().split('.')[0];
+    return String(parseInt(numericPart, 10));
 };
 
 interface RecentIrrigationInfo {
@@ -111,16 +112,13 @@ export default function IrrigationSummaryPage() {
     }, [toast, profile]);
     
     const filterOptions = useMemo(() => {
-        let recordsForOptions = irrigationRecords;
-        if (profile?.rol !== 'Admin' && filters.lotes.length > 0) {
-            recordsForOptions = recordsForOptions.filter(r => filters.lotes.includes(r.Lote));
-        }
+        const recordsForOptions = irrigationRecords;
 
         const campaigns = [...new Set(recordsForOptions.map(r => r['Campaña']))].filter(Boolean);
         const stages = [...new Set(recordsForOptions.map(r => r['Etapa']))].filter(Boolean);
         const lotes = [...new Set(recordsForOptions.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         return { campaigns, stages, lotes };
-    }, [irrigationRecords, profile, filters.lotes]);
+    }, [irrigationRecords]);
 
 
     const summaryData = useMemo(() => {
@@ -133,28 +131,31 @@ export default function IrrigationSummaryPage() {
            });
         }
         
-        recordsToProcess = recordsToProcess.filter(record => 
-            (!filters.campaign || record['Campaña'] === filters.campaign) &&
-            (!filters.stage || record['Etapa'] === filters.stage) &&
-            (filters.lotes.length === 0 || filters.lotes.includes(record['Lote']))
-        );
-        
-        let lotesForColumns = filters.lotes.length > 0
-            ? filters.lotes
-            : [...new Set(recordsToProcess.map(r => r['Lote']))].filter(Boolean).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        let lotesForColumns: string[] = [];
 
-        if (lotesForColumns.length === 0 && irrigationRecords.length > 0 && !filters.campaign && !filters.stage) {
-             const allLotes = [...new Set(irrigationRecords.map(r => r['Lote']))].filter(Boolean).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-             lotesForColumns.push(...allLotes);
+        if (filters.lotes.length > 0) {
+            lotesForColumns = filters.lotes;
+        } else {
+            lotesForColumns = [...new Set(recordsToProcess
+                .filter(record => 
+                    (!filters.campaign || record['Campaña'] === filters.campaign) &&
+                    (!filters.stage || record['Etapa'] === filters.stage)
+                )
+                .map(r => r['Lote']))
+            ].filter(Boolean).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         }
+
+        recordsToProcess = recordsToProcess.filter(record => 
+            lotesForColumns.includes(record['Lote']) &&
+            (!filters.campaign || record['Campaña'] === filters.campaign) &&
+            (!filters.stage || record['Etapa'] === filters.stage)
+        );
         
         if(lotesForColumns.length === 0) return null;
 
 
         const accumulated = recordsToProcess.reduce((acc, record) => {
             const lote = record['Lote'];
-            if (!lotesForColumns.includes(lote)) return acc;
-
             if (!acc[lote]) {
                 acc[lote] = { lote: lote };
                 NUTRIENTS.forEach(n => acc[lote][n] = 0);
@@ -312,7 +313,7 @@ export default function IrrigationSummaryPage() {
                                                  />
                                                 </div>
                                                 <ScrollArea className="h-[150px] border rounded-md">
-                                                    <CommandGroup>
+                                                    <div className="p-1">
                                                         {searchedLotes.map(lote => (
                                                              <div key={lote} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => toggleLoteSelection(lote)}>
                                                                 <Checkbox
@@ -325,7 +326,7 @@ export default function IrrigationSummaryPage() {
                                                                 </Label>
                                                             </div>
                                                         ))}
-                                                    </CommandGroup>
+                                                    </div>
                                                 </ScrollArea>
                                                 <div className="flex flex-wrap gap-1">
                                                     {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
@@ -411,7 +412,6 @@ export default function IrrigationSummaryPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="font-bold">Lote</TableHead>
-                                        <TableHead className="font-bold text-center">Último Riego</TableHead>
                                         <TableHead className="font-bold text-center">Días sin Riego</TableHead>
                                         <TableHead className="text-center">Riego 1 (Reciente)</TableHead>
                                         <TableHead className="text-center">Riego 2</TableHead>
@@ -422,7 +422,6 @@ export default function IrrigationSummaryPage() {
                                     {recentIrrigationData.map((data, index) => (
                                         <TableRow key={`${data.lote}-${index}`}>
                                             <TableCell className="font-semibold">{data.lote}</TableCell>
-                                            <TableCell className="text-center">{data.lastIrrigationDate ? format(data.lastIrrigationDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
                                             <TableCell className="text-center">{data.daysSinceLastIrrigation}</TableCell>
                                             {data.recentIrrigations.map((irrigation, i) => (
                                                  <TableCell key={i} className="text-center">
@@ -443,3 +442,4 @@ export default function IrrigationSummaryPage() {
 }
     
 
+    
