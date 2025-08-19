@@ -92,13 +92,19 @@ export default function IrrigationSummaryPage() {
             ? filters.lotes
             : [...new Set(recordsToProcess.map(r => r['Lote']))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-        if (lotesForColumns.length === 0) {
-             return null; // Return null if there are no lots to display columns for.
+        if (lotesForColumns.length === 0 && irrigationRecords.length > 0) {
+             const allLotes = [...new Set(irrigationRecords.map(r => r['Lote']))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+             lotesForColumns.push(...allLotes);
         }
+        
+        if(lotesForColumns.length === 0) return null;
+
 
         let latestDate: Date | null = null;
         
-        const accumulated = recordsToProcess.reduce((acc, record) => {
+        const recordsForSummary = lotesForColumns.length > 0 ? recordsToProcess : irrigationRecords;
+        
+        const accumulated = recordsForSummary.reduce((acc, record) => {
             const lote = record['Lote'];
             if (!lotesForColumns.includes(lote)) return acc;
 
@@ -194,8 +200,10 @@ export default function IrrigationSummaryPage() {
                                                             onSelect={() => toggleLoteSelection(lote)}
                                                             className="cursor-pointer"
                                                         >
-                                                            <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", popoverFilters.lotes.includes(lote) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}><Check className={cn("h-4 w-4")}/></div>
-                                                            {lote}
+                                                            <div onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); toggleLoteSelection(lote);}} className='w-full flex items-center'>
+                                                                <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", popoverFilters.lotes.includes(lote) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}><Check className={cn("h-4 w-4")}/></div>
+                                                                {lote}
+                                                            </div>
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
