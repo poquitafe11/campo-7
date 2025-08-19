@@ -8,13 +8,13 @@ import { useMasterData } from '@/context/MasterDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { format, parse, isValid, differenceInDays } from 'date-fns';
+import { format, parse, isValid, differenceInDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, Filter, Check, Calendar as CalendarIcon, Save } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -58,7 +58,8 @@ const normalizeLote = (lote: string) => {
 
 interface RecentIrrigationInfo {
   lote: string;
-  lastIrrigationDate: string;
+  lastIrrigationDate: Date | null;
+  daysSinceLastIrrigation: number | string;
   recentIrrigations: { date: string; hours: string }[];
 }
 
@@ -194,25 +195,28 @@ export default function IrrigationSummaryPage() {
     }, [filters, irrigationRecords, masterLotes, selectedDate]);
     
     const recentIrrigationData = useMemo<RecentIrrigationInfo[]>(() => {
-        if (!summaryData?.columns) return [];
-
-        return summaryData.columns.map(({ lote }) => {
+        const lotesToShow = summaryData?.columns.map(c => c.lote) || [];
+        if (lotesToShow.length === 0) return [];
+    
+        return lotesToShow.map((lote) => {
             const loteRecords = irrigationRecords
-                .filter(r => r['Lote'] === lote)
+                .filter(r => r['Lote'] === lote && r['Total Horas'] && r['Total Horas'] !== '00:00' && parseSpanishDate(r.Fecha))
                 .map(r => ({...r, parsedDate: parseSpanishDate(r.Fecha)}))
                 .filter(r => r.parsedDate && isValid(r.parsedDate))
                 .sort((a, b) => b.parsedDate!.getTime() - a.parsedDate!.getTime());
-
+    
             if (loteRecords.length === 0) {
                 return {
                     lote,
-                    lastIrrigationDate: 'N/A',
-                    recentIrrigations: Array(3).fill({ date: 'N/A', hours: 'N/A' }),
+                    lastIrrigationDate: null,
+                    daysSinceLastIrrigation: 'N/A',
+                    recentIrrigations: Array(3).fill({ date: '-', hours: '-' }),
                 };
             }
-
-            const lastIrrigationDate = format(loteRecords[0].parsedDate!, 'dd/MM/yyyy');
             
+            const lastIrrigationDate = loteRecords[0].parsedDate!;
+            const daysSince = selectedDate ? differenceInDays(selectedDate, lastIrrigationDate) : 'N/A';
+
             const recentIrrigations = Array(3).fill(null).map((_, i) => {
                 if (loteRecords[i]) {
                     return {
@@ -222,11 +226,11 @@ export default function IrrigationSummaryPage() {
                 }
                 return { date: '-', hours: '-' };
             });
-
-            return { lote, lastIrrigationDate, recentIrrigations };
+    
+            return { lote, lastIrrigationDate, daysSinceLastIrrigation: daysSince, recentIrrigations };
         });
-
-    }, [summaryData, irrigationRecords]);
+    
+    }, [summaryData, irrigationRecords, selectedDate]);
 
     const handleApplyFilters = () => {
         setFilters(popoverFilters);
@@ -403,11 +407,12 @@ export default function IrrigationSummaryPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
-                            <Table>
+                           <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="font-bold">Lote</TableHead>
                                         <TableHead className="font-bold text-center">Último Riego</TableHead>
+                                        <TableHead className="font-bold text-center">Días sin Riego</TableHead>
                                         <TableHead className="text-center">Riego 1 (Reciente)</TableHead>
                                         <TableHead className="text-center">Riego 2</TableHead>
                                         <TableHead className="text-center">Riego 3</TableHead>
@@ -417,7 +422,8 @@ export default function IrrigationSummaryPage() {
                                     {recentIrrigationData.map((data, index) => (
                                         <TableRow key={`${data.lote}-${index}`}>
                                             <TableCell className="font-semibold">{data.lote}</TableCell>
-                                            <TableCell className="text-center">{data.lastIrrigationDate}</TableCell>
+                                            <TableCell className="text-center">{data.lastIrrigationDate ? format(data.lastIrrigationDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                            <TableCell className="text-center">{data.daysSinceLastIrrigation}</TableCell>
                                             {data.recentIrrigations.map((irrigation, i) => (
                                                  <TableCell key={i} className="text-center">
                                                     <div>{irrigation.date}</div>
@@ -436,3 +442,4 @@ export default function IrrigationSummaryPage() {
     );
 }
     
+
