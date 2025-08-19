@@ -323,9 +323,6 @@ export default function RegisterIrrigationPage() {
   const onUpdateSubmit = async (values: any) => {
     if (!editingRecord) return;
     
-    const dataToUpdate = { ...values };
-    delete dataToUpdate.id; // Remove id from the object to be updated
-
     if (editingRecord.internalId) {
         setParsedData(prev => prev.map(row => 
             row.internalId === editingRecord.internalId ? { ...row, ...values } : row
@@ -334,6 +331,7 @@ export default function RegisterIrrigationPage() {
     } else {
         try {
             const docRef = doc(db, "registros-riego", editingRecord.id);
+            const { id, internalId, ...dataToUpdate } = values;
             await updateDoc(docRef, dataToUpdate);
             toast({ title: "Éxito", description: "Registro actualizado en la base de datos." });
         } catch(error) {
