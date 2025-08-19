@@ -18,6 +18,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 type IrrigationRecord = { [key: string]: any; id: string; };
 
@@ -58,6 +61,7 @@ export default function IrrigationSummaryPage() {
     });
 
     const [popoverFilters, setPopoverFilters] = useState(filters);
+    const [loteSearch, setLoteSearch] = useState('');
     
     useEffect(() => {
         setLoading(true);
@@ -88,11 +92,11 @@ export default function IrrigationSummaryPage() {
             (filters.lotes.length === 0 || filters.lotes.includes(record['Lote']))
         );
         
-        const lotesForColumns = filters.lotes.length > 0
+        let lotesForColumns = filters.lotes.length > 0
             ? filters.lotes
             : [...new Set(recordsToProcess.map(r => r['Lote']))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-        if (lotesForColumns.length === 0 && irrigationRecords.length > 0) {
+        if (lotesForColumns.length === 0 && irrigationRecords.length > 0 && !filters.campaign && !filters.stage) {
              const allLotes = [...new Set(irrigationRecords.map(r => r['Lote']))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
              lotesForColumns.push(...allLotes);
         }
@@ -102,7 +106,7 @@ export default function IrrigationSummaryPage() {
 
         let latestDate: Date | null = null;
         
-        const recordsForSummary = lotesForColumns.length > 0 ? recordsToProcess : irrigationRecords;
+        const recordsForSummary = recordsToProcess;
         
         const accumulated = recordsForSummary.reduce((acc, record) => {
             const lote = record['Lote'];
@@ -165,6 +169,10 @@ export default function IrrigationSummaryPage() {
         });
     };
 
+    const searchedLotes = useMemo(() => {
+        return filterOptions.lotes.filter(l => l.toLowerCase().includes(loteSearch.toLowerCase()));
+    }, [filterOptions.lotes, loteSearch]);
+
     return (
         <div className="space-y-6">
             <PageHeader title="Resumen de Riego" />
@@ -189,24 +197,34 @@ export default function IrrigationSummaryPage() {
                                     </div>
                                     <div className="grid gap-2">
                                         <Label>Lotes</Label>
-                                        <Command className="rounded-lg border shadow-md"><CommandInput placeholder="Buscar lote..."/>
-                                            <CommandList>
-                                                <CommandEmpty>No se encontraron lotes.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {filterOptions.lotes.map(lote => (
-                                                        <CommandItem 
-                                                            key={lote} 
-                                                            value={lote}
-                                                            onSelect={() => toggleLoteSelection(lote)}
-                                                            className="cursor-pointer"
-                                                        >
-                                                            <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", popoverFilters.lotes.includes(lote) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}><Check className={cn("h-4 w-4")}/></div>
-                                                            <span>{lote}</span>
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
+                                         <Command className="rounded-lg border shadow-md">
+                                             <CommandInput 
+                                                placeholder="Buscar lote..." 
+                                                value={loteSearch} 
+                                                onValueChange={setLoteSearch}
+                                             />
+                                             <ScrollArea className="h-[200px]">
+                                                <CommandList>
+                                                    <CommandEmpty>No se encontraron lotes.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {searchedLotes.map(lote => (
+                                                            <div key={lote} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent"
+                                                                onClick={() => toggleLoteSelection(lote)}
+                                                            >
+                                                                <Checkbox
+                                                                    id={`lote-${lote}`}
+                                                                    checked={popoverFilters.lotes.includes(lote)}
+                                                                    onCheckedChange={() => toggleLoteSelection(lote)}
+                                                                />
+                                                                <Label htmlFor={`lote-${lote}`} className="cursor-pointer w-full">
+                                                                    {lote}
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </ScrollArea>
+                                         </Command>
                                         <div className="flex flex-wrap gap-1">
                                             {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
                                         </div>
