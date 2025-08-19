@@ -45,6 +45,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
         const variety = selectedLoteData.variedad;
 
         const varietyLotes = allLotes.filter(l => l.variedad === variety);
+        const uniqueLoteNumbers = [...new Set(varietyLotes.map(l => l.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
 
         const filteredActivities = allActivities.filter(a =>
             (!activeFilters.campaign || a.campaign === activeFilters.campaign) &&
@@ -54,12 +55,13 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
         
         if (filteredActivities.length === 0) return null;
 
-        const loteSummaries = varietyLotes.map(loteInfo => {
-            const loteActivities = filteredActivities.filter(a => a.lote === loteInfo.lote);
+        const loteSummaries = uniqueLoteNumbers.map(loteNum => {
+            const lotesDelNumero = allLotes.filter(l => l.lote === loteNum);
+            const loteActivities = filteredActivities.filter(a => a.lote === loteNum);
             if (loteActivities.length === 0) return null;
 
-            const haProdTotal = loteInfo.haProd || 0;
-            const densidad = loteInfo.densidad || 0;
+            const haProdTotal = lotesDelNumero.reduce((sum, l) => sum + (l.haProd || 0), 0);
+            const densidad = lotesDelNumero[0]?.densidad || 0; // Assume density is the same across a lot
 
             const totalPerformance = loteActivities.reduce((sum, act) => sum + (act.performance || 0), 0);
             const totalWorkday = loteActivities.reduce((sum, act) => sum + act.workdayCount, 0);
@@ -67,16 +69,14 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             const haTrabajada = densidad > 0 ? totalPerformance / densidad : 0;
             const haPorTrabajar = haProdTotal - haTrabajada;
             const avance = haProdTotal > 0 ? (haTrabajada / haProdTotal) * 100 : 0;
-
+            
             const jrHa = haTrabajada > 0 ? totalWorkday / haTrabajada : 0;
             
             const prom = totalWorkday > 0 ? totalPerformance / totalWorkday : 0;
             
-            // Corrected MIN/MAX calculation based on actual performance
             const performanceValues = loteActivities.map(a => a.performance || 0).filter(p => p > 0);
             const minimo = performanceValues.length > 0 ? Math.min(...performanceValues) : 0;
             const maximo = performanceValues.length > 0 ? Math.max(...performanceValues) : 0;
-
 
             const pltaHora = totalWorkday > 0 ? totalPerformance / (totalWorkday * 8) : 0;
 
@@ -91,21 +91,22 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                 return actDate < earliest ? actDate : earliest;
             }, new Date());
             
-            const ddcInicioLabor = loteInfo.fechaCianamida && isValid(loteInfo.fechaCianamida) && isValid(firstActivityDate)
-                ? differenceInDays(firstActivityDate, loteInfo.fechaCianamida)
+            const representativeLoteData = lotesDelNumero[0];
+            const ddcInicioLabor = representativeLoteData.fechaCianamida && isValid(representativeLoteData.fechaCianamida) && isValid(firstActivityDate)
+                ? differenceInDays(firstActivityDate, representativeLoteData.fechaCianamida)
                 : 'N/A';
             
-            const ddcHoy = loteInfo.fechaCianamida && isValid(loteInfo.fechaCianamida) ? differenceInDays(new Date(), loteInfo.fechaCianamida) : 'N/A';
+            const ddcHoy = representativeLoteData.fechaCianamida && isValid(representativeLoteData.fechaCianamida) ? differenceInDays(new Date(), representativeLoteData.fechaCianamida) : 'N/A';
 
-            const minMaxEstablecido = allMinMax.find(mm => mm.lote === loteInfo.lote && mm.labor === activeFilters.labor && String(mm.pasada) === activeFilters.pasada);
-            const presupuesto = allPresupuestos.find(p => p.lote === loteInfo.lote && p.descripcionLabor === activeFilters.labor);
+            const minMaxEstablecido = allMinMax.find(mm => mm.lote === loteNum && mm.labor === activeFilters.labor && String(mm.pasada) === activeFilters.pasada);
+            const presupuesto = allPresupuestos.find(p => p.lote === loteNum && p.descripcionLabor === activeFilters.labor);
             const jrnPresup = presupuesto?.jornadas || 0;
             const saldo = jrnPresup - totalWorkday;
             
             return {
-                id: loteInfo.id,
-                lote: loteInfo.lote,
-                variedad: loteInfo.variedad,
+                id: loteNum,
+                lote: loteNum,
+                variedad: variety,
                 ddc: ddcHoy,
                 haTrabajada: haTrabajada,
                 haPorTrabajar: haPorTrabajar,
@@ -149,8 +150,8 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             { key: 'costoPlta', label: 'Costo Plta' },
             { key: 'pagoPlttaRaci', label: 'Pago pltta/raci', format: (v: any) => typeof v === 'number' ? `S/${formatNumber(v)}` : v },
             { key: 'ddcInicioLabor', label: 'DDC INICIO DE LABOR'},
-            { key: 'minEstablecido', label: 'MIN. ESTABLECIDO' },
-            { key: 'maxEstablecido', label: 'MAX. ESTABLECIDO' },
+            { key: 'minEstablecido', label: 'MIN. ESTABLECIDO', format: (v: number) => formatNumber(v,0) },
+            { key: 'maxEstablecido', label: 'MAX. ESTABLECIDO', format: (v: number) => formatNumber(v,0) },
             { key: 'jhPresupHa', label: 'JH. Presup/Ha.' },
             { key: 'jrnPresup', label: 'Jrn Presup' },
             { key: 'jhu', label: 'JHU' },
@@ -177,7 +178,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                          <th className="border border-black p-1 font-bold"></th>
                         {detailedSummaryData.headers.map(header => (
                             <th key={header.id} className="border border-black p-1 text-center bg-green-200">
-                                {header[header.variedad.toLowerCase() === 'ddc' ? 'ddc' : 'lote']}
+                                {(header as any)[header.variedad.toLowerCase() === 'ddc' ? 'ddc' : 'lote']}
                             </th>
                         ))}
                     </tr>
