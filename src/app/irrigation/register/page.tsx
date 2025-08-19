@@ -32,8 +32,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
 
 const editRecordSchema = z.object({
-  id: z.string(),
-});
+  id: z.string().optional(),
+  internalId: z.string().optional(),
+}).passthrough();
 
 function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string> {
   const canvas = document.createElement('canvas');
@@ -109,28 +110,16 @@ export default function RegisterIrrigationPage() {
 
   const [filters, setFilters] = useState({ campana: '', lote: '', etapa: '', fecha: '' });
 
-  const form = useForm<z.infer<typeof editRecordSchema>>({
+  const form = useForm({
     resolver: zodResolver(editRecordSchema),
   });
-
+  
   useEffect(() => {
     if (editingRecord) {
-        const dynamicSchemaFields = Object.keys(editingRecord).reduce((acc, key) => {
-            if (key !== 'id' && key !== 'internalId') {
-                (acc as any)[key] = z.string().optional();
-            }
-            return acc;
-        }, {} as Record<string, z.ZodType<any, any>>);
-        
-        const dynamicSchema = z.object({
-            id: z.string(),
-            ...dynamicSchemaFields
-        });
-        
-        const resolver = zodResolver(dynamicSchema);
-        form.reset(editingRecord, { resolver } as any);
+        form.reset(editingRecord);
     }
   }, [editingRecord, form]);
+
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "registros-riego"), (snapshot) => {
@@ -320,15 +309,16 @@ export default function RegisterIrrigationPage() {
     }
   };
   
-  const onUpdateSubmit = async (values: any) => {
+  const onUpdateSubmit = async (values: { [key: string]: any }) => {
     if (!editingRecord) return;
     
+    // Logic for updating a row from the preview table
     if (editingRecord.internalId) {
         setParsedData(prev => prev.map(row => 
             row.internalId === editingRecord.internalId ? { ...row, ...values } : row
         ));
         toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
-    } else {
+    } else { // Logic for updating a saved record in Firestore
         try {
             const docRef = doc(db, "registros-riego", editingRecord.id);
             const { id, internalId, ...dataToUpdate } = values;
@@ -344,23 +334,22 @@ export default function RegisterIrrigationPage() {
   
   const renderEditFormFields = () => {
     if (!editingRecord) return null;
-    return Object.keys(editingRecord).map(key => {
-        if (key === 'id' || key === 'internalId') return null;
-        return (
-            <FormField
-                key={key}
-                control={form.control}
-                name={key as any}
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>{key}</FormLabel>
-                        <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-        );
-    });
+    const fieldsToRender = Object.keys(editingRecord).filter(key => key !== 'id' && key !== 'internalId');
+    
+    return fieldsToRender.map(key => (
+        <FormField
+            key={key}
+            control={form.control}
+            name={key}
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>{key}</FormLabel>
+                    <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
+    ));
   };
 
   const savedRecordsHeaders = useMemo(() => {
