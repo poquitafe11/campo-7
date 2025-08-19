@@ -76,9 +76,9 @@ export default function IrrigationSummaryPage() {
     const filterOptions = useMemo(() => {
         const campaigns = [...new Set(irrigationRecords.map(r => r['Campaña']))].filter(Boolean);
         const stages = [...new Set(irrigationRecords.map(r => r['Etapa']))].filter(Boolean);
-        const lotes = [...new Set(masterLotes.map(l => l.lote))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+        const lotes = [...new Set(irrigationRecords.map(r => r['Lote']))].filter(Boolean).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
         return { campaigns, stages, lotes };
-    }, [irrigationRecords, masterLotes]);
+    }, [irrigationRecords]);
 
 
     const summaryData = useMemo(() => {
@@ -88,10 +88,6 @@ export default function IrrigationSummaryPage() {
             (filters.lotes.length === 0 || filters.lotes.includes(record['Lote']))
         );
         
-        if (recordsToProcess.length === 0 && filters.lotes.length > 0) { // Show message only if filters are active and there are no results
-            return null;
-        }
-
         const lotesForColumns = filters.lotes.length > 0
             ? filters.lotes
             : [...new Set(recordsToProcess.map(r => r['Lote']))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
