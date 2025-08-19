@@ -314,19 +314,34 @@ export default function RegisterIrrigationPage() {
   
     const { id, internalId, ...dataFromForm } = values;
   
+    // This function sanitizes the keys of an object, replacing '/' with '_'.
+    const sanitizeKeys = (obj: { [key: string]: any }) => {
+      const sanitizedObj: { [key: string]: any } = {};
+      for (const key in obj) {
+        const sanitizedKey = key.replace(/\//g, '_');
+        sanitizedObj[sanitizedKey] = obj[key];
+      }
+      return sanitizedObj;
+    };
+  
     if (internalId) {
-      // Updating a preview record
+      // This is a preview record, update it in the local state.
       setParsedData(prev =>
         prev.map(row =>
-          row.internalId === internalId ? { ...row, ...dataFromForm } : row
+          row.internalId === internalId
+            ? { ...row, ...dataFromForm } // Keep original keys for preview
+            : row
         )
       );
       toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
-      // Updating a saved record in Firestore
+      // This is a saved record, update it in Firestore.
       try {
         const docRef = doc(db, 'registros-riego', id);
-        await updateDoc(docRef, dataFromForm);
+        // Sanitize the keys before sending to Firestore.
+        const sanitizedData = sanitizeKeys(dataFromForm);
+  
+        await updateDoc(docRef, sanitizedData);
         toast({
           title: 'Éxito',
           description: 'Registro actualizado en la base de datos.',
@@ -595,4 +610,5 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
+
 
