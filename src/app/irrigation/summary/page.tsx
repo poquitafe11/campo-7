@@ -247,7 +247,7 @@ export default function IrrigationSummaryPage() {
     
         return lotesToShow.map((lote) => {
             const lavadoRecords = irrigationRecords
-                .filter(r => r['Lote'] === lote && r['Total Horas'] && parseHours(r['Total Horas']) > 8 && parseSpanishDate(r.Fecha))
+                .filter(r => r['Lote'] === lote && r['Total Horas'] && parseHours(r['Total Horas']) >= 8 && parseSpanishDate(r.Fecha))
                 .map(r => ({...r, parsedDate: parseSpanishDate(r.Fecha)}))
                 .filter(r => r.parsedDate && isValid(r.parsedDate))
                 .sort((a, b) => b.parsedDate!.getTime() - a.parsedDate!.getTime());
@@ -481,7 +481,7 @@ export default function IrrigationSummaryPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Historial de Riego de Lavado</CardTitle>
-                        <CardDescription>Detalle de los últimos 3 riegos de más de 8 horas.</CardDescription>
+                        <CardDescription>Detalle de los últimos 3 riegos de 8 horas a más.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
@@ -520,3 +520,4 @@ export default function IrrigationSummaryPage() {
     
 
     
+
