@@ -219,7 +219,7 @@ export default function RegisterIrrigationPage() {
           const firstRow = enrichedData[0];
           const allHeaders = Object.keys(firstRow);
           
-          const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total m3/Dia', 'Ha.', 'm3/Ha /Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
+          const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
           
           const sortedHeaders = allHeaders
             .filter(h => h !== 'internalId')
@@ -314,8 +314,9 @@ export default function RegisterIrrigationPage() {
     
     // Logic for updating a row from the preview table
     if (editingRecord.internalId) {
+        const { internalId, ...dataToUpdate } = values;
         setParsedData(prev => prev.map(row => 
-            row.internalId === editingRecord.internalId ? { ...row, ...values } : row
+            row.internalId === editingRecord.internalId ? { ...row, ...dataToUpdate } : row
         ));
         toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else { // Logic for updating a saved record in Firestore
@@ -353,7 +354,7 @@ export default function RegisterIrrigationPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total m3/Dia', 'Ha.', 'm3/Ha /Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
+    const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
     const headers = new Set<string>();
     savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
