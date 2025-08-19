@@ -78,6 +78,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             const costoHa = haTrabajada > 0 ? costoLabor / haTrabajada : 0;
 
             return {
+                id: loteInfo.id,
                 lote: loteInfo.lote,
                 ddc: 'N/A', // Placeholder
                 haTrabajada: formatNumber(haTrabajada),
@@ -91,10 +92,10 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                 costoHa: `S/ ${formatNumber(costoHa)}`,
             };
 
-        }).filter(Boolean);
+        }).filter((item): item is NonNullable<typeof item> => item !== null);
 
         return {
-            headers: loteSummaries.map(s => s!),
+            headers: loteSummaries,
             rows: [
                 { label: 'DDC', key: 'ddc' },
                 { label: 'Ha. Trabajada', key: 'haTrabajada' },
@@ -121,7 +122,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                     <tr className="bg-[#ddebf7]">
                         <th className="border border-black p-1 font-bold">LOTE</th>
                         {detailedSummaryData.headers.map(h => (
-                            <th key={h.lote} className="border border-black p-1 font-bold">{h.lote}</th>
+                            <th key={h.id} className="border border-black p-1 font-bold">{h.lote}</th>
                         ))}
                     </tr>
                 </thead>
@@ -141,7 +142,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                                 }
 
                                 return (
-                                    <td key={`${h.lote}-${row.key}`} className={className}>
+                                    <td key={`${h.id}-${row.key}`} className={className}>
                                         {value}
                                     </td>
                                 )
