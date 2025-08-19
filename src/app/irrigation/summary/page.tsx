@@ -224,7 +224,7 @@ export default function IrrigationSummaryPage() {
                                         </div>
                                         <div className="grid gap-2">
                                             <Label>Lotes</Label>
-                                            <div className="p-2 border rounded-md">
+                                            <Command className="p-2 border rounded-md">
                                                 <div className="relative mb-2">
                                                  <CommandInput 
                                                     placeholder="Buscar lote..." 
@@ -234,7 +234,7 @@ export default function IrrigationSummaryPage() {
                                                  />
                                                 </div>
                                                 <ScrollArea className="h-[150px]">
-                                                    <div className="space-y-1">
+                                                    <CommandGroup>
                                                         {searchedLotes.map(lote => (
                                                             <div key={lote} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => toggleLoteSelection(lote)}>
                                                                 <Checkbox
@@ -247,9 +247,9 @@ export default function IrrigationSummaryPage() {
                                                                 </Label>
                                                             </div>
                                                         ))}
-                                                    </div>
+                                                    </CommandGroup>
                                                 </ScrollArea>
-                                            </div>
+                                            </Command>
                                             <div className="flex flex-wrap gap-1">
                                                 {popoverFilters.lotes.map(lote => <Badge key={lote} variant="secondary">{lote}</Badge>)}
                                             </div>
@@ -314,6 +314,8 @@ export default function IrrigationSummaryPage() {
         </div>
     );
 }
+    
+
     
 
     
