@@ -3,12 +3,11 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, Filter, RefreshCcw, Calendar as CalendarIcon } from 'lucide-react';
-import { format, parseISO, isValid, differenceInDays } from 'date-fns';
+import { Loader2, Filter, RefreshCcw } from 'lucide-react';
+import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { type ActivityRecordData, type LoteData, type MinMax } from '@/lib/types';
+import { type ActivityRecordData, type LoteData, Presupuesto, MinMax } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -18,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DetailedSummaryTable } from '@/components/DetailedSummaryTable';
+
 
 interface SummaryValues {
     lote: string;
@@ -35,21 +36,13 @@ interface SummaryValues {
     maximo: number;
 }
 
-const formatNumber = (num: number, digits = 2) => {
-  if (isNaN(num) || !isFinite(num)) {
-    return '0.00';
-  }
-  return num.toLocaleString('es-PE', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
-};
-
 export default function ActivitySummaryPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
-    const { lotes: allLotes, labors: allLabors, minMax: allMinMax, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+    const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
+    const [allMinMax, setAllMinMax] = useState<MinMax[]>([]);
+    const { lotes: allLotes, labors: allLabors, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
     const [activeFilters, setActiveFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
     const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
@@ -59,7 +52,11 @@ export default function ActivitySummaryPage() {
     const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
         try {
-            const activitiesSnapshot = await getDocs(collection(db, 'actividades'));
+            const [activitiesSnapshot, presupuestosSnapshot, minMaxSnapshot] = await Promise.all([
+                getDocs(collection(db, 'actividades')),
+                getDocs(collection(db, 'presupuesto')),
+                getDocs(collection(db, 'min-max')),
+            ]);
 
             const activitiesData = activitiesSnapshot.docs.map(doc => {
                 const data = doc.data();
@@ -67,6 +64,12 @@ export default function ActivitySummaryPage() {
                 return { ...data, registerDate } as ActivityRecordData;
             });
             setAllActivities(activitiesData);
+            
+            const presupuestosData = presupuestosSnapshot.docs.map(doc => doc.data() as Presupuesto);
+            setAllPresupuestos(presupuestosData);
+
+            const minMaxData = minMaxSnapshot.docs.map(doc => doc.data() as MinMax);
+            setAllMinMax(minMaxData);
             
             await refreshMasterData();
 
@@ -87,9 +90,8 @@ export default function ActivitySummaryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const multiDaySummary = useMemo<{ summary: SummaryValues; date: Date }[] | null>(() => {
+    const multiDaySummary = useMemo(() => {
         const filteredActivities = allActivities.filter(a => {
-            const loteInfo = allLotes.find(l => l.lote === a.lote);
             const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
             const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
             const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
@@ -105,31 +107,21 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        const groupedByDate: { [date: string]: ActivityRecordData[] } = {};
-        for (const activity of filteredActivities) {
-            const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
-            if (!groupedByDate[dateKey]) {
-                groupedByDate[dateKey] = [];
-            }
-            groupedByDate[dateKey].push(activity);
-        }
+        const dateMap = new Map<string, { personas: number; plantas: number; jhu: number; has: number; }>();
         
-        const dailyData = Object.entries(groupedByDate).map(([dateStr, activitiesOnDate]) => {
-            const personas = activitiesOnDate.reduce((sum, act) => sum + act.personnelCount, 0);
-            const jhu = activitiesOnDate.reduce((sum, act) => sum + act.workdayCount, 0);
-            const plantas = activitiesOnDate.reduce((sum, act) => sum + (act.performance || 0), 0);
-            
-            const promedio = jhu > 0 ? plantas / jhu : 0;
-            const plantasHora = jhu > 0 ? plantas / (jhu * 8) : 0;
-            const hasDia = densidad > 0 ? plantas / densidad : 0;
-            
-            const avanceDia = haProd > 0 ? (hasDia / haProd) * 100 : 0;
-
-            const relevantActivities = activitiesOnDate;
-
-            const minRange = relevantActivities.length > 0 ? Math.min(...relevantActivities.map(a => a.minRange || 0)) : 0;
-            const maxRange = relevantActivities.length > 0 ? Math.max(...relevantActivities.map(a => a.maxRange || 0)) : 0;
-
+        filteredActivities.forEach(activity => {
+            const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
+            if (!dateMap.has(dateKey)) {
+                dateMap.set(dateKey, { personas: 0, plantas: 0, jhu: 0, has: 0 });
+            }
+            const dayData = dateMap.get(dateKey)!;
+            dayData.personas += activity.personnelCount;
+            dayData.plantas += (activity.performance || 0);
+            dayData.jhu += activity.workdayCount;
+        });
+        
+        const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
+            const hasDia = densidad > 0 ? data.plantas / densidad : 0;
             return {
                 date: parseISO(dateStr),
                 hasDia,
@@ -137,16 +129,16 @@ export default function ActivitySummaryPage() {
                     lote: activeFilters.lote,
                     pasada: parseInt(activeFilters.pasada, 10),
                     fecha: format(parseISO(dateStr), 'dd-MMM', { locale: es }),
-                    personas,
-                    plantas,
-                    jhu,
-                    promedio,
-                    plantasHora: Math.round(plantasHora),
+                    personas: data.personas,
+                    plantas: data.plantas,
+                    jhu: data.jhu,
+                    promedio: data.jhu > 0 ? data.plantas / data.jhu : 0,
+                    plantasHora: data.jhu > 0 ? data.plantas / (data.jhu * 8) : 0,
                     has: Number(hasDia.toFixed(2)),
-                    avance: `${Math.round(avanceDia)}%`,
-                    haPorTrabajar: 0, 
-                    minimo: minRange,
-                    maximo: maxRange,
+                    avance: haProd > 0 ? (hasDia / haProd) * 100 : 0,
+                    haPorTrabajar: 0,
+                    minimo: 0,
+                    maximo: 0,
                 }
             };
         }).sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -156,10 +148,18 @@ export default function ActivitySummaryPage() {
             cumulativeHas += day.hasDia;
             const haPorTrabajar = haProd - cumulativeHas;
             
+            const relevantMinMax = allMinMax.find(item =>
+                item.lote === activeFilters.lote &&
+                item.labor === activeFilters.labor &&
+                String(item.pasada) === activeFilters.pasada
+            );
+            
             return {
                 summary: {
                     ...day.summaryData,
-                    haPorTrabajar: Number(haPorTrabajar.toFixed(2))
+                    haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
+                    minimo: relevantMinMax?.min || 0,
+                    maximo: relevantMinMax?.max || 0,
                 },
                 date: day.date
             };
@@ -167,7 +167,7 @@ export default function ActivitySummaryPage() {
 
         return summariesWithCumulative.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-    }, [allActivities, allLotes, activeFilters]);
+    }, [allActivities, allLotes, allMinMax, activeFilters]);
 
     const minMaxData = useMemo(() => {
         if (!activeFilters.lote || !activeFilters.labor || !activeFilters.pasada || masterLoading) {
@@ -193,9 +193,9 @@ export default function ActivitySummaryPage() {
         { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-ES') },
         { label: "JHU", key: "jhu", format: (v) => v.toFixed(2) },
         { label: "PROMEDIO", key: "promedio", format: (v) => Math.round(v) },
-        { label: "Pltas./H", key: "plantasHora", bgClass: "bg-[#f8cbad]" },
+        { label: "Pltas./H", key: "plantasHora", bgClass: "bg-[#f8cbad]", format: (v) => Math.round(v) },
         { label: "Has.", key: "has" },
-        { label: "% Avance", key: "avance" },
+        { label: "% Avance", key: "avance", format: (v) => `${Math.round(v)}%` },
         { label: "Ha x Trab.", key: "haPorTrabajar" },
         { label: "MINIMO", key: "minimo" },
         { label: "MAXIMO", key: "maximo" },
@@ -280,7 +280,7 @@ export default function ActivitySummaryPage() {
 
 
     return (
-        <div className="w-full">
+        <div className="w-full space-y-6">
              {loading ? (
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : multiDaySummary && multiDaySummary.length > 0 ? (
@@ -338,8 +338,14 @@ export default function ActivitySummaryPage() {
                     <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir Lote, Labor y Pasada.</p>
                 </div>
             )}
+
+            <DetailedSummaryTable 
+                allActivities={allActivities} 
+                allLotes={allLotes} 
+                allPresupuestos={allPresupuestos} 
+                allMinMax={allMinMax}
+                activeFilters={activeFilters}
+            />
         </div>
     );
 }
-
-    
