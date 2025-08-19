@@ -107,21 +107,27 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        const dateMap = new Map<string, { personas: number; plantas: number; jhu: number; has: number; }>();
+        const dateMap = new Map<string, { personas: number; plantas: number; jhu: number; performances: number[] }>();
         
         filteredActivities.forEach(activity => {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
             if (!dateMap.has(dateKey)) {
-                dateMap.set(dateKey, { personas: 0, plantas: 0, jhu: 0, has: 0 });
+                dateMap.set(dateKey, { personas: 0, plantas: 0, jhu: 0, performances: [] });
             }
             const dayData = dateMap.get(dateKey)!;
             dayData.personas += activity.personnelCount;
             dayData.plantas += (activity.performance || 0);
             dayData.jhu += activity.workdayCount;
+            if (activity.performance) {
+                dayData.performances.push(activity.performance);
+            }
         });
         
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
+            const minPerformance = data.performances.length > 0 ? Math.min(...data.performances) : 0;
+            const maxPerformance = data.performances.length > 0 ? Math.max(...data.performances) : 0;
+
             return {
                 date: parseISO(dateStr),
                 hasDia,
@@ -137,8 +143,8 @@ export default function ActivitySummaryPage() {
                     has: Number(hasDia.toFixed(2)),
                     avance: haProd > 0 ? (hasDia / haProd) * 100 : 0,
                     haPorTrabajar: 0,
-                    minimo: 0,
-                    maximo: 0,
+                    minimo: minPerformance,
+                    maximo: maxPerformance,
                 }
             };
         }).sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -148,18 +154,10 @@ export default function ActivitySummaryPage() {
             cumulativeHas += day.hasDia;
             const haPorTrabajar = haProd - cumulativeHas;
             
-            const relevantMinMax = allMinMax.find(item =>
-                item.lote === activeFilters.lote &&
-                item.labor === activeFilters.labor &&
-                String(item.pasada) === activeFilters.pasada
-            );
-            
             return {
                 summary: {
                     ...day.summaryData,
                     haPorTrabajar: Number(haPorTrabajar.toFixed(2)),
-                    minimo: relevantMinMax?.min || 0,
-                    maximo: relevantMinMax?.max || 0,
                 },
                 date: day.date
             };
@@ -167,7 +165,7 @@ export default function ActivitySummaryPage() {
 
         return summariesWithCumulative.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-    }, [allActivities, allLotes, allMinMax, activeFilters]);
+    }, [allActivities, allLotes, activeFilters]);
 
     const minMaxData = useMemo(() => {
         if (!activeFilters.lote || !activeFilters.labor || !activeFilters.pasada || masterLoading) {
@@ -197,8 +195,8 @@ export default function ActivitySummaryPage() {
         { label: "Has.", key: "has" },
         { label: "% Avance", key: "avance", format: (v) => `${Math.round(v)}%` },
         { label: "Ha x Trab.", key: "haPorTrabajar" },
-        { label: "MINIMO", key: "minimo" },
-        { label: "MAXIMO", key: "maximo" },
+        { label: "MINIMO", key: "minimo", format: (v) => Math.round(v) },
+        { label: "MAXIMO", key: "maximo", format: (v) => Math.round(v) },
     ];
     
     const loading = isLoading || masterLoading;
