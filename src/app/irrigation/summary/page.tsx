@@ -200,10 +200,8 @@ export default function IrrigationSummaryPage() {
                                                             onSelect={() => toggleLoteSelection(lote)}
                                                             className="cursor-pointer"
                                                         >
-                                                            <div onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); toggleLoteSelection(lote);}} className='w-full flex items-center'>
-                                                                <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", popoverFilters.lotes.includes(lote) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}><Check className={cn("h-4 w-4")}/></div>
-                                                                {lote}
-                                                            </div>
+                                                            <div className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", popoverFilters.lotes.includes(lote) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible")}><Check className={cn("h-4 w-4")}/></div>
+                                                            <span>{lote}</span>
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
