@@ -25,6 +25,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 type AttendanceRecordWithId = AttendanceRecord & { id: string };
 
 interface LoteGroup {
+  recordId: string;
   loteName: string;
   assistants: Assistant[];
   totalPersonnel: number;
@@ -116,6 +117,7 @@ export default function AttendanceDatabasePage() {
         if (!groups[dateKey][laborKey]) groups[dateKey][laborKey] = {};
         if (!groups[dateKey][laborKey][loteKey]) {
             groups[dateKey][laborKey][loteKey] = {
+                recordId: record.id,
                 loteName: loteKey,
                 assistants: [],
                 totalPersonnel: 0,
@@ -133,12 +135,15 @@ export default function AttendanceDatabasePage() {
     return groups;
   }, [records]);
   
-  const handleEditAssistant = (record: AttendanceRecordWithId, assistant: Assistant) => {
-    setEditingData({ record, assistant });
-    setIsEditDialogOpen(true);
+  const handleEditAssistant = (recordId: string, assistant: Assistant) => {
+    const record = records.find(r => r.id === recordId);
+    if(record) {
+      setEditingData({ record, assistant });
+      setIsEditDialogOpen(true);
+    }
   };
   
-  const handleSaveAssistantUpdate = async (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id'>) => {
+  const handleSaveAssistantUpdate = async (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id' | 'assistantDni'>) => {
     startTransition(async () => {
         const recordRef = doc(db, 'asistencia', recordId);
         const recordToUpdate = records.find(r => r.id === recordId);
@@ -171,22 +176,11 @@ export default function AttendanceDatabasePage() {
     });
   };
 
-  const handleDeleteRecord = (id: string) => {
-    startTransition(async () => {
-      const result = await deleteAttendanceRecord(id);
-      if (result.success) {
-        toast({ title: "Éxito", description: "Registro de asistencia eliminado." });
-      } else {
-        toast({ variant: "destructive", title: "Error", description: result.message });
-      }
-    });
-  };
-
   const handleDeleteAssistant = async (recordId: string, assistantId: string) => {
      startTransition(async () => {
       const result = await deleteAssistantFromRecord(recordId, assistantId);
       if (result.success) {
-        toast({ title: "Éxito", description: "Asistente eliminado del registro." });
+        toast({ title: "Éxito", description: result.message });
       } else {
         toast({ variant: "destructive", title: "Error", description: result.message });
       }
@@ -227,12 +221,16 @@ export default function AttendanceDatabasePage() {
                                 <Accordion type="multiple" className="w-full space-y-2">
                                     {Object.entries(laborsForDay).map(([labor, lotes]) => {
                                         const laborTotalPersonnel = Object.values(lotes).reduce((sum, lote) => sum + lote.totalPersonnel, 0);
+                                        const laborTotalAbsent = Object.values(lotes).reduce((sum, lote) => sum + lote.totalAbsent, 0);
                                         return (
                                             <AccordionItem value={labor} key={labor} className="border-none">
                                                 <AccordionTrigger className="p-3 bg-muted/50 rounded-md hover:no-underline">
                                                      <div className="flex justify-between items-center w-full">
                                                         <div className="flex items-center gap-2 text-sm sm:text-base font-medium"><Wrench size={16} />{labor}</div>
-                                                        <Badge variant="secondary">Personal: {laborTotalPersonnel}</Badge>
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge variant="secondary">Personal: {laborTotalPersonnel}</Badge>
+                                                            <Badge variant="destructive" className="bg-red-100 text-red-800">Faltos: {laborTotalAbsent}</Badge>
+                                                        </div>
                                                      </div>
                                                 </AccordionTrigger>
                                                 <AccordionContent className="pt-2 pl-2 pr-0 pb-0 space-y-2">
@@ -251,9 +249,10 @@ export default function AttendanceDatabasePage() {
                                                                      <Table className="text-xs bg-white">
                                                                         <TableHeader>
                                                                         <TableRow>
-                                                                            <TableHead className="w-[60%]">Asistente/Encargado</TableHead>
+                                                                            <TableHead className="w-[50%]">Asistente/Encargado</TableHead>
                                                                             <TableHead className="text-center">Personal</TableHead>
                                                                             <TableHead className="text-center">Faltos</TableHead>
+                                                                            <TableHead className="text-right">Acciones</TableHead>
                                                                         </TableRow>
                                                                         </TableHeader>
                                                                         <TableBody>
@@ -262,6 +261,30 @@ export default function AttendanceDatabasePage() {
                                                                             <TableCell className="font-medium whitespace-nowrap">{assistant.assistantName}</TableCell>
                                                                             <TableCell className="text-center">{assistant.personnelCount}</TableCell>
                                                                             <TableCell className="text-center">{assistant.absentCount}</TableCell>
+                                                                            <TableCell className="text-right">
+                                                                                <div className="flex gap-1 justify-end">
+                                                                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditAssistant(loteData.recordId, assistant)} disabled={isPending}>
+                                                                                       <Pencil className="h-4 w-4" />
+                                                                                   </Button>
+                                                                                   <AlertDialog>
+                                                                                        <AlertDialogTrigger asChild>
+                                                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" disabled={isPending}>
+                                                                                                <Trash2 className="h-4 w-4" />
+                                                                                            </Button>
+                                                                                        </AlertDialogTrigger>
+                                                                                        <AlertDialogContent>
+                                                                                            <AlertDialogHeader>
+                                                                                                <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+                                                                                                <AlertDialogDescription>Se eliminará al asistente <strong>{assistant.assistantName}</strong> de este registro. Esta acción es permanente.</AlertDialogDescription>
+                                                                                            </AlertDialogHeader>
+                                                                                            <AlertDialogFooter>
+                                                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                                                <AlertDialogAction onClick={() => handleDeleteAssistant(loteData.recordId, assistant.id)}>Eliminar</AlertDialogAction>
+                                                                                            </AlertDialogFooter>
+                                                                                        </AlertDialogContent>
+                                                                                    </AlertDialog>
+                                                                                </div>
+                                                                            </TableCell>
                                                                             </TableRow>
                                                                         ))}
                                                                         </TableBody>
