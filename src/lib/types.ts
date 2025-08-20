@@ -175,6 +175,7 @@ export type ActivityRecordData = z.infer<typeof ActivityRecordSchema>;
 
 export const PresupuestoSchema = z.object({
   id: z.string(),
+  campana: z.string().optional(),
   descripcionLabor: z.string(),
   lote: z.string(),
   jornadas: z.number(),

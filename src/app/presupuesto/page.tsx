@@ -82,6 +82,7 @@ import { Label } from "@/components/ui/label";
 
 
 const presupuestoSchema = z.object({
+  campana: z.string().min(1, "La campaña es requerida."),
   descripcionLabor: z.string().min(1, "La descripción es requerida"),
   lote: z.string().min(1, "El lote es requerido"),
   jornadas: z.coerce.number().positive("Debe ser un número positivo"),
@@ -115,6 +116,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const keyMap: { [key: string]: string } = {};
 
                 const schemaKeys = {
+                    campana: 'campana',
                     descripcionLabor: 'descripcionlabor',
                     lote: 'lote',
                     jornadas: 'jornadas',
@@ -126,8 +128,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                     if (foundKey) keyMap[field] = foundKey;
                 });
 
-                if (!keyMap.descripcionLabor || !keyMap.lote || !keyMap.jornadas || !keyMap.jrnHa) {
-                   return reject(new Error("El archivo debe contener columnas para 'DESCRIPCION LABOR', 'LOTE', 'JORNADAS' y 'JRN/HA'."));
+                if (!keyMap.campana || !keyMap.descripcionLabor || !keyMap.lote || !keyMap.jornadas || !keyMap.jrnHa) {
+                   return reject(new Error("El archivo debe contener columnas para 'CAMPAÑA', 'DESCRIPCION LABOR', 'LOTE', 'JORNADAS' y 'JRN/HA'."));
                 }
                 
                 const normalizedData = json.map((row, index) => {
@@ -143,7 +145,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                         const validatedData = presupuestoSchema.parse(rowData);
                         const sanitizedDesc = validatedData.descripcionLabor.replace(/[\s\/]/g, '-');
                         const sanitizedLote = String(validatedData.lote).replace(/[\s\/]/g, '-');
-                        const id = `${sanitizedLote}-${sanitizedDesc}-${Date.now()}-${index}`;
+                        const id = `${validatedData.campana}-${sanitizedLote}-${sanitizedDesc}-${Date.now()}-${index}`;
                         
                         return { ...validatedData, id };
 
@@ -193,6 +195,7 @@ export default function PresupuestoPage() {
   const [laborFilter, setLaborFilter] = useState('');
   
   const defaultFormValues = {
+    campana: "",
     descripcionLabor: "",
     lote: "",
     jornadas: 0,
@@ -241,6 +244,7 @@ export default function PresupuestoPage() {
   const handleDownload = () => {
     const dataToExport = table.getRowModel().rows.map(row => row.original);
     const worksheet = xlsx.utils.json_to_sheet(dataToExport.map(({ id, ...rest }) => ({
+        "CAMPAÑA": rest.campana,
         "DESCRIPCION LABOR": rest.descripcionLabor,
         "LOTE": rest.lote,
         "JORNADAS": rest.jornadas,
@@ -304,7 +308,7 @@ export default function PresupuestoPage() {
     try {
         const sanitizedDesc = values.descripcionLabor.replace(/[\s\/]/g, '-');
         const sanitizedLote = String(values.lote).replace(/[\s\/]/g, '-');
-        let id = editingRecord ? editingRecord.id : `${sanitizedLote}-${sanitizedDesc}-${Date.now()}`;
+        let id = editingRecord ? editingRecord.id : `${values.campana}-${sanitizedLote}-${sanitizedDesc}-${Date.now()}`;
         
         const docRef = doc(db, "presupuesto", id);
         
@@ -324,6 +328,7 @@ export default function PresupuestoPage() {
 
   const columns = useMemo<ColumnDef<Presupuesto>[]>(
     () => [
+      { accessorKey: "campana", header: "CAMPAÑA" },
       { accessorKey: "descripcionLabor", header: "DESCRIPCION LABOR" },
       { accessorKey: "lote", header: "LOTE" },
       { accessorKey: "jornadas", header: "JORNADAS" },
@@ -358,7 +363,8 @@ export default function PresupuestoPage() {
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
-      <FormField control={form.control} name="descripcionLabor" render={({ field }) => ( <FormItem className="sm:col-span-2"><FormLabel>Descripción Labor</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+      <FormField control={form.control} name="campana" render={({ field }) => ( <FormItem><FormLabel>Campaña</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+      <FormField control={form.control} name="descripcionLabor" render={({ field }) => ( <FormItem><FormLabel>Descripción Labor</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
       <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem><FormLabel>Lote</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
       <FormField control={form.control} name="jornadas" render={({ field }) => ( <FormItem><FormLabel>Jornadas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
       <FormField control={form.control} name="jrnHa" render={({ field }) => ( <FormItem><FormLabel>JRN/HA</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
