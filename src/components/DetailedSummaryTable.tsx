@@ -173,7 +173,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             <h3 className="text-lg font-semibold mb-2">Resumen por Lote</h3>
             <table className="border-collapse border border-black text-xs table-auto w-full">
                 <thead>
-                    <tr className="bg-green-200">
+                     <tr className="bg-green-200">
                         <th className="border border-black p-1 font-bold bg-white">Lote</th>
                         {detailedSummaryData.headers.map(header => (
                             <th key={header.id} className="border border-black p-1 text-center">
