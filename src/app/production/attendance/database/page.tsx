@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
@@ -45,10 +46,18 @@ export default function AttendanceDatabasePage() {
     setLoading(true);
     const q = query(collection(db, "asistencia"), orderBy("date", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const recordsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as AttendanceRecordWithId));
+      const recordsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let date;
+        if (data.date?.toDate) {
+            date = data.date.toDate();
+        } else if (typeof data.date === 'string') {
+            date = parseISO(data.date);
+        } else {
+            date = new Date();
+        }
+        return { id: doc.id, ...data, date } as AttendanceRecordWithId;
+      });
       setRecords(recordsData);
       setLoading(false);
     }, (error) => {
@@ -78,7 +87,8 @@ export default function AttendanceDatabasePage() {
   const groupedByDate = useMemo(() => {
     const groups: Record<string, { records: AttendanceRecordWithId[], totalPersonnel: number, totalAbsent: number }> = {};
     for (const record of records) {
-        const dateKey = record.date;
+        if (!record.date) continue;
+        const dateKey = format(record.date, 'yyyy-MM-dd');
         if (!groups[dateKey]) {
             groups[dateKey] = { records: [], totalPersonnel: 0, totalAbsent: 0 };
         }
