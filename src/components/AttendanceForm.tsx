@@ -277,8 +277,8 @@ export function AttendanceForm() {
 
                     const record: Omit<AttendanceRecord, 'id'> = {
                         date: formattedDate,
-                        lote: loteName,
-                        lotName: loteName,
+                        lote: loteId, // Store the ID
+                        lotName: loteName, // Store the name
                         variedad: loteMasterData.variedad,
                         fechaCianamida: loteMasterData.fechaCianamida,
                         campana: loteMasterData.campana,

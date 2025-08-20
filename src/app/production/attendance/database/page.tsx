@@ -17,6 +17,7 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useRouter } from 'next/navigation';
 import type { AttendanceRecord, Assistant } from '@/lib/types';
 import EditAssistantDialog from '@/components/edit-assistant-dialog';
+import { useMasterData } from '@/context/MasterDataContext';
 
 type AttendanceRecordWithId = AttendanceRecord & { id: string };
 
@@ -27,9 +28,18 @@ export default function AttendanceDatabasePage() {
   const { toast } = useToast();
   const { setActions } = useHeaderActions();
   const router = useRouter();
+  const { lotes: masterLotes, loading: masterLoading } = useMasterData();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingData, setEditingData] = useState<{ record: AttendanceRecordWithId; assistant: Assistant } | null>(null);
+
+  const lotesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    masterLotes.forEach(lote => {
+        map.set(lote.id, lote.lote);
+    });
+    return map;
+  }, [masterLotes]);
 
   useEffect(() => {
     setLoading(true);
@@ -139,7 +149,12 @@ export default function AttendanceDatabasePage() {
     });
   };
 
-  if (loading) {
+  const getLoteName = (record: AttendanceRecordWithId) => {
+    if (record.lotName) return record.lotName; // For new records
+    return lotesMap.get(record.lote) || record.lote; // For old records (lote is ID)
+  };
+
+  if (loading || masterLoading) {
      return <div className="flex h-64 items-center justify-center"><Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" /></div>
   }
 
@@ -165,7 +180,7 @@ export default function AttendanceDatabasePage() {
                                <div key={record.id} className="border rounded-lg p-4 bg-background/50 space-y-3">
                                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
                                     <div className='flex flex-col gap-1'>
-                                      <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {record.lote || 'N/A'}</div>
+                                      <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {getLoteName(record) || 'N/A'}</div>
                                       <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
                                     </div>
                                   </div>
