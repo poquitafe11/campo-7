@@ -100,8 +100,8 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
 
             const minMaxEstablecido = allMinMax.find(mm => mm.lote === loteNum && mm.labor === activeFilters.labor && String(mm.pasada) === activeFilters.pasada);
             
-            const presupuesto = allPresupuestos.find(p => 
-                p.lote === loteNum &&
+            const presupuesto = allPresupuestos.find(p =>
+                parseInt(p.lote, 10) === parseInt(loteNum, 10) &&
                 p.descripcionLabor.trim().toLowerCase() === activeFilters.labor.trim().toLowerCase() &&
                 p.campana === activeFilters.campaign
             );
@@ -164,7 +164,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
         ];
 
         return {
-            headers: loteSummaries,
+            loteHeaders: loteSummaries,
             rows: metrics,
         };
 
@@ -179,9 +179,9 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             <h3 className="text-lg font-semibold mb-2">Resumen por Lote</h3>
             <table className="border-collapse border border-black text-xs table-auto w-full">
                 <thead>
-                     <tr className="bg-gray-200">
+                    <tr className="bg-gray-200">
                         <th className="border border-black p-1 font-bold bg-white">Lote</th>
-                        {detailedSummaryData.headers.map(header => (
+                        {detailedSummaryData.loteHeaders.map(header => (
                             <th key={header.id} className="border border-black p-1 text-center">
                                 {header.lote}
                             </th>
@@ -201,7 +201,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                         return (
                             <tr key={row.key}>
                                 <td className={`border border-black p-1 font-bold ${headerBg}`}>{row.label}</td>
-                                {detailedSummaryData.headers.map(header => {
+                                {detailedSummaryData.loteHeaders.map(header => {
                                      let cellBg = '';
                                      if(row.key === 'ddc') cellBg = 'bg-green-200';
                                      
