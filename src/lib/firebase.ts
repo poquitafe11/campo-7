@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence, terminate, clearIndexedDbPersistence, initializeFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
@@ -22,7 +22,7 @@ let db;
 
 try {
   db = getFirestore(app);
-  enableIndexedDbPersistence(db, { forceOwnership: true })
+  enableIndexedDbPersistence(db)
     .catch((err) => {
         if (err.code === 'failed-precondition') {
             console.warn("Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a a time.");
