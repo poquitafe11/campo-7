@@ -5,10 +5,10 @@ import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilePlus2, Database, BarChart3, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import FeaturePermissionsDialog from "@/components/FeaturePermissionsDialog";
-import { PageHeader } from "@/components/PageHeader";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const allActivityFeatures = [
   {
@@ -35,8 +35,14 @@ type Feature = (typeof allActivityFeatures)[0];
 
 export default function ProductionActivitiesPage() {
   const { profile } = useAuth();
+  const { setActions } = useHeaderActions();
   const [isPermissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+
+  useEffect(() => {
+    setActions({ title: "Registro de Actividades" });
+    return () => setActions({});
+  }, [setActions]);
 
   const handlePermissionSettings = (e: React.MouseEvent, feature: Feature) => {
     e.preventDefault();
@@ -58,7 +64,6 @@ export default function ProductionActivitiesPage() {
 
   return (
     <>
-      <PageHeader title="Registro de Actividades" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {visibleFeatures.map((feature) => (
           <Link href={feature.href} key={feature.title} className="block group relative">
