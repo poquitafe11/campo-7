@@ -55,8 +55,6 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
         
         if (filteredActivities.length === 0) return null;
         
-        const filteredLaborCode = filteredActivities[0]?.code;
-
         const loteSummaries = uniqueLoteNumbers.map(loteNum => {
             const lotesDelNumero = allLotes.filter(l => l.lote === loteNum);
             const loteActivities = filteredActivities.filter(a => a.lote === loteNum);
