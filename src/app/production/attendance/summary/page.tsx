@@ -70,24 +70,16 @@ function AttendanceSummaryContent() {
         return;
     }
     try {
-        const dayStart = startOfDay(selectedDate);
-        const dayEnd = endOfDay(selectedDate);
-
-        const attendanceQuery = query(
-            collection(db, 'asistencia'),
-            where('date', '>=', dayStart),
-            where('date', '<=', dayEnd)
-        );
-
         const [recordsSnapshot, lotesSnapshot] = await Promise.all([
-          getDocs(attendanceQuery),
+          getDocs(collection(db, 'asistencia')),
           getDocs(collection(db, 'maestro-lotes'))
         ]);
         
         const records = recordsSnapshot.docs.map(doc => {
           const data = doc.data();
+          // Firestore Timestamps need to be converted to JS Date objects
           const date = data.date?.toDate ? data.date.toDate() : new Date();
-          return { id: doc.id, ...data, date: date } as AttendanceRecord;
+          return { id: doc.id, ...data, date } as AttendanceRecord;
         });
         setAllRecords(records);
         
@@ -104,7 +96,7 @@ function AttendanceSummaryContent() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast, selectedDate]);
+  }, [toast]);
   
   useEffect(() => {
     loadData();
@@ -159,7 +151,8 @@ function AttendanceSummaryContent() {
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
 
-    const recordsForDay = allRecords;
+    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+    const recordsForDay = allRecords.filter(r => format(r.date, 'yyyy-MM-dd') === selectedDateStr);
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
