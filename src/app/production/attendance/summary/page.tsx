@@ -77,7 +77,7 @@ function AttendanceSummaryContent() {
         
         const records = recordsSnapshot.docs.map(doc => {
           const data = doc.data();
-          const date = data.date?.toDate ? data.date.toDate() : new Date();
+          const date = data.date?.toDate ? data.date.toDate() : parseISO(data.date);
           return { id: doc.id, ...data, date } as AttendanceRecord;
         });
         setAllRecords(records);
