@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench, Briefcase, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteAttendanceRecord, deleteAssistantFromRecord } from './actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -18,8 +18,27 @@ import { useRouter } from 'next/navigation';
 import type { AttendanceRecord, Assistant } from '@/lib/types';
 import EditAssistantDialog from '@/components/edit-assistant-dialog';
 import { useMasterData } from '@/context/MasterDataContext';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
 
 type AttendanceRecordWithId = AttendanceRecord & { id: string };
+
+interface LoteGroup {
+  loteName: string;
+  assistants: Assistant[];
+  totalPersonnel: number;
+  totalAbsent: number;
+}
+interface LaborGroup {
+  [loteName: string]: LoteGroup;
+}
+interface DayGroup {
+  [labor: string]: LaborGroup;
+}
+interface GroupedData {
+  [dateKey: string]: DayGroup;
+}
 
 export default function AttendanceDatabasePage() {
   const [records, setRecords] = useState<AttendanceRecordWithId[]>([]);
@@ -84,18 +103,32 @@ export default function AttendanceDatabasePage() {
   }, [setActions, router]);
 
   const groupedByDate = useMemo(() => {
-    const groups: Record<string, { records: AttendanceRecordWithId[], totalPersonnel: number, totalAbsent: number }> = {};
+    const groups: { [dateKey: string]: { [labor: string]: { [lote: string]: LoteGroup } } } = {};
+
     for (const record of records) {
         if (!record.date || !isValid(record.date)) continue;
         
         const dateKey = format(startOfDay(record.date), 'yyyy-MM-dd');
-        
-        if (!groups[dateKey]) {
-            groups[dateKey] = { records: [], totalPersonnel: 0, totalAbsent: 0 };
+        const laborKey = record.labor || 'Sin Labor';
+        const loteKey = record.lotName || record.lote || 'Sin Lote';
+
+        if (!groups[dateKey]) groups[dateKey] = {};
+        if (!groups[dateKey][laborKey]) groups[dateKey][laborKey] = {};
+        if (!groups[dateKey][laborKey][loteKey]) {
+            groups[dateKey][laborKey][loteKey] = {
+                loteName: loteKey,
+                assistants: [],
+                totalPersonnel: 0,
+                totalAbsent: 0
+            };
         }
-        groups[dateKey].records.push(record);
-        groups[dateKey].totalPersonnel += record.totals.personnelCount;
-        groups[dateKey].totalAbsent += record.totals.absentCount;
+
+        const loteGroup = groups[dateKey][laborKey][loteKey];
+        record.assistants.forEach(assistant => {
+            loteGroup.assistants.push(assistant);
+            loteGroup.totalPersonnel += assistant.personnelCount;
+            loteGroup.totalAbsent += assistant.absentCount;
+        });
     }
     return groups;
   }, [records]);
@@ -159,11 +192,6 @@ export default function AttendanceDatabasePage() {
       }
     });
   };
-
-  const getLoteName = (record: AttendanceRecordWithId) => {
-    if (record.lotName) return record.lotName;
-    return lotesMap.get(record.lote) || record.lote;
-  };
   
   const sortedDateKeys = useMemo(() => {
     return Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
@@ -178,77 +206,75 @@ export default function AttendanceDatabasePage() {
         {sortedDateKeys.length > 0 ? (
             <Accordion type="single" collapsible className="w-full space-y-4" defaultValue={sortedDateKeys[0]}>
                 {sortedDateKeys.map((dateKey) => {
-                    const { records: dateRecords, totalPersonnel, totalAbsent } = groupedByDate[dateKey];
+                    const laborsForDay = groupedByDate[dateKey];
+                    const dailyTotalPersonnel = Object.values(laborsForDay).flatMap(lotes => Object.values(lotes)).reduce((sum, lote) => sum + lote.totalPersonnel, 0);
+                    const dailyTotalAbsent = Object.values(laborsForDay).flatMap(lotes => Object.values(lotes)).reduce((sum, lote) => sum + lote.totalAbsent, 0);
+
                     return (
-                        <AccordionItem value={dateKey} key={dateKey} className="border-none">
-                           <AccordionTrigger className="p-4 bg-background rounded-lg shadow-sm border hover:no-underline">
+                        <AccordionItem value={dateKey} key={dateKey} className="border rounded-lg shadow-sm bg-background">
+                           <AccordionTrigger className="p-4 hover:no-underline">
                                <div className="flex justify-between items-center w-full">
-                                   <span className="text-lg font-semibold text-gray-800">
+                                   <span className="text-md sm:text-lg font-semibold text-gray-800">
                                        {format(parseISO(dateKey), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
                                    </span>
                                    <div className="flex gap-4 text-sm font-medium">
-                                       <span>Total Personal: <span className="font-bold text-primary">{totalPersonnel}</span></span>
-                                       <span>Total Faltos: <span className="font-bold text-destructive">{totalAbsent}</span></span>
+                                       <span>Total Personal: <span className="font-bold text-primary">{dailyTotalPersonnel}</span></span>
+                                       <span>Total Faltos: <span className="font-bold text-destructive">{dailyTotalAbsent}</span></span>
                                    </div>
                                </div>
                            </AccordionTrigger>
-                            <AccordionContent className="pt-3 space-y-3">
-                               {dateRecords.map(record => (
-                                   <div key={record.id} className="border rounded-lg p-4 bg-background/50 space-y-3">
-                                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-                                        <div className='flex flex-col gap-1'>
-                                          <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {getLoteName(record) || 'N/A'}</div>
-                                          <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
-                                        </div>
-                                      </div>
-                                       
-                                       <div className="overflow-x-auto">
-                                          <Table className="text-xs">
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Asistente/Encargado</TableHead>
-                                                <TableHead className="text-center">Personal</TableHead>
-                                                <TableHead className="text-center">Faltos</TableHead>
-                                                <TableHead className="text-right">Acciones</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              {record.assistants.map(assistant => (
-                                                <TableRow key={assistant.id}>
-                                                  <TableCell className="font-medium whitespace-pre-wrap">{assistant.assistantName}</TableCell>
-                                                  <TableCell className="text-center">{assistant.personnelCount}</TableCell>
-                                                  <TableCell className="text-center">{assistant.absentCount}</TableCell>
-                                                  <TableCell className="text-right">
-                                                      <div className="flex justify-end gap-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAssistant(record, assistant)}>
-                                                            <Pencil className="h-4 w-4" />
-                                                        </Button>
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                <AlertDialogTitle>¿Eliminar asistente?</AlertDialogTitle>
-                                                                <AlertDialogDescription>Se eliminará a {assistant.assistantName} de este registro.</AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDeleteAssistant(record.id, assistant.id)}>Eliminar</AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                      </div>
-                                                  </TableCell>
-                                                </TableRow>
-                                              ))}
-                                            </TableBody>
-                                          </Table>
-                                       </div>
-                                   </div>
-                               ))}
+                            <AccordionContent className="pt-0 px-4 pb-4 space-y-2">
+                                <Accordion type="multiple" className="w-full space-y-2">
+                                    {Object.entries(laborsForDay).map(([labor, lotes]) => {
+                                        const laborTotalPersonnel = Object.values(lotes).reduce((sum, lote) => sum + lote.totalPersonnel, 0);
+                                        return (
+                                            <AccordionItem value={labor} key={labor} className="border-none">
+                                                <AccordionTrigger className="p-3 bg-muted/50 rounded-md hover:no-underline">
+                                                     <div className="flex justify-between items-center w-full">
+                                                        <div className="flex items-center gap-2 text-sm sm:text-base font-medium"><Wrench size={16} />{labor}</div>
+                                                        <Badge variant="secondary">Personal: {laborTotalPersonnel}</Badge>
+                                                     </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="pt-2 pl-2 pr-0 pb-0 space-y-2">
+                                                     {Object.entries(lotes).map(([loteName, loteData]) => (
+                                                        <Collapsible key={loteName} className="border-l-2 border-primary/50 pl-3">
+                                                            <CollapsibleTrigger className="flex justify-between items-center w-full p-2 text-left hover:bg-muted/30 rounded-md">
+                                                                <div className="flex items-center gap-2 text-sm font-medium"><Sprout size={16} />Lote: {loteName}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Badge variant="outline">Personal: {loteData.totalPersonnel}</Badge>
+                                                                    <Badge variant="destructive" className="bg-red-100 text-red-800">Faltos: {loteData.totalAbsent}</Badge>
+                                                                    <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                                                                </div>
+                                                            </CollapsibleTrigger>
+                                                            <CollapsibleContent className="p-2">
+                                                                <div className="overflow-x-auto border rounded-md">
+                                                                     <Table className="text-xs bg-white">
+                                                                        <TableHeader>
+                                                                        <TableRow>
+                                                                            <TableHead className="w-[60%]">Asistente/Encargado</TableHead>
+                                                                            <TableHead className="text-center">Personal</TableHead>
+                                                                            <TableHead className="text-center">Faltos</TableHead>
+                                                                        </TableRow>
+                                                                        </TableHeader>
+                                                                        <TableBody>
+                                                                        {loteData.assistants.map(assistant => (
+                                                                            <TableRow key={assistant.id}>
+                                                                            <TableCell className="font-medium whitespace-nowrap">{assistant.assistantName}</TableCell>
+                                                                            <TableCell className="text-center">{assistant.personnelCount}</TableCell>
+                                                                            <TableCell className="text-center">{assistant.absentCount}</TableCell>
+                                                                            </TableRow>
+                                                                        ))}
+                                                                        </TableBody>
+                                                                    </Table>
+                                                                </div>
+                                                            </CollapsibleContent>
+                                                        </Collapsible>
+                                                     ))}
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        )
+                                    })}
+                                </Accordion>
                             </AccordionContent>
                         </AccordionItem>
                     )
