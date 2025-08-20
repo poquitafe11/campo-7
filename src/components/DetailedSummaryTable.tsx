@@ -54,6 +54,8 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
         );
         
         if (filteredActivities.length === 0) return null;
+        
+        const filteredLaborCode = filteredActivities[0]?.code;
 
         const loteSummaries = uniqueLoteNumbers.map(loteNum => {
             const lotesDelNumero = allLotes.filter(l => l.lote === loteNum);
@@ -102,7 +104,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             
             const presupuesto = allPresupuestos.find(p => 
                 p.lote === loteNum && 
-                p.descripcionLabor === activeFilters.labor && 
+                p.descripcionLabor === activeFilters.labor &&
                 p.campana === activeFilters.campaign
             );
             const jrnPresup = presupuesto?.jornadas || 0;
