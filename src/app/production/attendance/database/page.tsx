@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
@@ -88,7 +87,10 @@ export default function AttendanceDatabasePage() {
     const groups: Record<string, { records: AttendanceRecordWithId[], totalPersonnel: number, totalAbsent: number }> = {};
     for (const record of records) {
         if (!record.date || !isValid(record.date)) continue;
+        
+        // --- FIX: Standardize the date key ---
         const dateKey = format(startOfDay(record.date), 'yyyy-MM-dd');
+        
         if (!groups[dateKey]) {
             groups[dateKey] = { records: [], totalPersonnel: 0, totalAbsent: 0 };
         }
@@ -160,8 +162,8 @@ export default function AttendanceDatabasePage() {
   };
 
   const getLoteName = (record: AttendanceRecordWithId) => {
-    if (record.lotName) return record.lotName; // For new records
-    return lotesMap.get(record.lote) || record.lote; // For old records (lote is ID)
+    if (record.lotName) return record.lotName;
+    return lotesMap.get(record.lote) || record.lote;
   };
 
   if (loading || masterLoading) {
@@ -172,12 +174,12 @@ export default function AttendanceDatabasePage() {
     <div className="flex flex-col h-full space-y-4">
         {Object.keys(groupedByDate).length > 0 ? (
             <Accordion type="single" collapsible className="w-full space-y-4" defaultValue={Object.keys(groupedByDate)[0]}>
-                {Object.entries(groupedByDate).map(([date, { records: dateRecords, totalPersonnel, totalAbsent }]) => (
-                    <AccordionItem value={date} key={date} className="border-none">
+                {Object.entries(groupedByDate).map(([dateKey, { records: dateRecords, totalPersonnel, totalAbsent }]) => (
+                    <AccordionItem value={dateKey} key={dateKey} className="border-none">
                        <AccordionTrigger className="p-4 bg-background rounded-lg shadow-sm border hover:no-underline">
                            <div className="flex justify-between items-center w-full">
                                <span className="text-lg font-semibold text-gray-800">
-                                   {format(parseISO(date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+                                   {format(parseISO(dateKey), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
                                </span>
                                <div className="flex gap-4 text-sm font-medium">
                                    <span>Total Personal: <span className="font-bold text-primary">{totalPersonnel}</span></span>
@@ -261,3 +263,4 @@ export default function AttendanceDatabasePage() {
   );
 }
 
+    
