@@ -251,7 +251,10 @@ export function AttendanceForm() {
                     );
                     
                     if (newAssistantsToAdd.length === 0) {
-                        throw new Error(`Todos los asistentes para ${loteName} - ${labor} ya fueron registrados hoy.`);
+                        // Instead of throwing an error, we'll just inform the user via toast later.
+                        // We mark this as a "failed save" for reporting purposes.
+                        failedSaves.push(`Todos los asistentes para ${loteName} - ${labor} ya fueron registrados hoy.`);
+                        return; // Exit the transaction for this group
                     }
 
                     const combinedAssistants = [...existingAssistants, ...newAssistantsToAdd];
@@ -275,7 +278,7 @@ export function AttendanceForm() {
                     }, { personnelCount: 0, absentCount: 0 });
 
                     const record: Omit<AttendanceRecord, 'id'> = {
-                        date: data.date, // Save date as a Date object
+                        date: data.date,
                         lote: loteId,
                         lotName: loteName,
                         variedad: loteMasterData.variedad,
@@ -290,7 +293,10 @@ export function AttendanceForm() {
                     transaction.set(docRef, record);
                 }
             });
-            successfulSaves++;
+            // If the transaction for this group didn't fail early, it's a success
+            if (!failedSaves.some(msg => msg.includes(`${loteName} - ${labor}`))) {
+              successfulSaves++;
+            }
         } catch (error: any) {
              console.error("Error en transacción de guardado:", error);
              failedSaves.push(error.message || `No se pudo guardar el registro para ${loteName} - ${labor}.`);
