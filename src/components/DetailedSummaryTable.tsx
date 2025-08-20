@@ -102,9 +102,10 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             
             const presupuesto = allPresupuestos.find(p => 
                 p.lote === loteNum && 
-                p.descripcionLabor === activeFilters.labor &&
+                p.descripcionLabor.trim().toLowerCase() === activeFilters.labor.trim().toLowerCase() &&
                 p.campana === activeFilters.campaign
             );
+
             const jrnPresup = presupuesto?.jornadas || 0;
             const saldo = jrnPresup - totalWorkday;
             
@@ -178,7 +179,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             <h3 className="text-lg font-semibold mb-2">Resumen por Lote</h3>
             <table className="border-collapse border border-black text-xs table-auto w-full">
                 <thead>
-                     <tr className="bg-gray-200">
+                    <tr className="bg-gray-200">
                         <th className="border border-black p-1 font-bold bg-white">Lote</th>
                         {detailedSummaryData.headers.map(header => (
                             <th key={header.id} className="border border-black p-1 text-center">
