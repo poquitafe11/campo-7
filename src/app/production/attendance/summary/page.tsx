@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, RefreshCcw, Calendar as CalendarIcon, ArrowLeft, LayoutGrid } from 'lucide-react';
-import { format, parseISO, isValid, differenceInDays, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, isValid, differenceInDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { type AttendanceRecord, type LoteData } from '@/lib/types';
@@ -151,10 +151,11 @@ function AttendanceSummaryContent() {
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
 
-    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+    const startOfSelectedDay = startOfDay(selectedDate).getTime();
+    
     const recordsForDay = allRecords.filter(r => {
         if (!r.date || !isValid(r.date)) return false;
-        return format(r.date, 'yyyy-MM-dd') === selectedDateStr;
+        return startOfDay(r.date).getTime() === startOfSelectedDay;
     });
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
@@ -348,5 +349,3 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
-
-    
