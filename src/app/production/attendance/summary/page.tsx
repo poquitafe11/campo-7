@@ -10,7 +10,7 @@ import { es } from 'date-fns/locale';
 import { type AttendanceRecord, type LoteData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -77,7 +77,6 @@ function AttendanceSummaryContent() {
         
         const records = recordsSnapshot.docs.map(doc => {
           const data = doc.data();
-          // Firestore Timestamps need to be converted to JS Date objects
           const date = data.date?.toDate ? data.date.toDate() : new Date();
           return { id: doc.id, ...data, date } as AttendanceRecord;
         });
@@ -151,11 +150,12 @@ function AttendanceSummaryContent() {
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
 
-    const startOfSelectedDay = startOfDay(selectedDate).getTime();
+    const selectedDayString = format(startOfDay(selectedDate), 'yyyy-MM-dd');
     
     const recordsForDay = allRecords.filter(r => {
         if (!r.date || !isValid(r.date)) return false;
-        return startOfDay(r.date).getTime() === startOfSelectedDay;
+        const recordDayString = format(startOfDay(r.date), 'yyyy-MM-dd');
+        return recordDayString === selectedDayString;
     });
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
@@ -349,3 +349,5 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
+
+    
