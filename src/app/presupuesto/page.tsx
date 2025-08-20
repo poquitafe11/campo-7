@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
@@ -182,7 +183,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
 
 export default function PresupuestoPage() {
-  const [data, setData] = useState<Presupuesto[]>([]);
+  const [allData, setAllData] = useState<Presupuesto[]>([]);
+  const [filteredData, setFilteredData] = useState<Presupuesto[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<Presupuesto | null>(null);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
@@ -202,34 +204,28 @@ export default function PresupuestoPage() {
     jrnHa: 0,
   };
 
-  const fetchAndSetData = useCallback(() => {
+  useEffect(() => {
     setLoading(true);
-    let q = query(collection(db, "presupuesto"));
-
-    if (loteFilter) {
-      q = query(q, where("lote", "==", loteFilter));
-    }
-    if (laborFilter) {
-      q = query(q, where("descripcionLabor", "==", laborFilter));
-    }
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(collection(db, "presupuesto"), (snapshot) => {
         const recordsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Presupuesto));
-        setData(recordsData);
+        setAllData(recordsData);
         setLoading(false);
     }, (error) => {
         console.error("Error fetching data from Firestore: ", error);
         toast({ title: "Error de Conexión", description: "No se pudieron cargar los datos.", variant: "destructive" });
         setLoading(false);
     });
-    return unsubscribe;
-  }, [toast, loteFilter, laborFilter]);
+    return () => unsubscribe();
+  }, [toast]);
   
   useEffect(() => {
-    const unsubscribe = fetchAndSetData();
-    return () => unsubscribe();
-  }, [fetchAndSetData]);
-
+    const results = allData.filter(record => {
+      const loteMatch = loteFilter ? record.lote.toLowerCase().includes(loteFilter.toLowerCase()) : true;
+      const laborMatch = laborFilter ? record.descripcionLabor.toLowerCase().includes(laborFilter.toLowerCase()) : true;
+      return loteMatch && laborMatch;
+    });
+    setFilteredData(results);
+  }, [loteFilter, laborFilter, allData]);
 
   const form = useForm<z.infer<typeof presupuestoSchema>>({
     resolver: zodResolver(presupuestoSchema),
@@ -242,7 +238,11 @@ export default function PresupuestoPage() {
   };
   
   const handleDownload = () => {
-    const dataToExport = data; // Use the full filtered data from state
+    const dataToExport = filteredData;
+    if (dataToExport.length === 0) {
+      toast({ title: 'No hay datos para exportar', description: 'Seleccione otros filtros o agregue datos.' });
+      return;
+    }
     const worksheet = xlsx.utils.json_to_sheet(dataToExport.map(({ id, ...rest }) => ({
         "CAMPAÑA": rest.campana,
         "DESCRIPCION LABOR": rest.descripcionLabor,
@@ -359,7 +359,7 @@ export default function PresupuestoPage() {
     []
   );
 
-  const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel() });
+  const table = useReactTable({ data: filteredData, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel() });
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
@@ -401,7 +401,7 @@ export default function PresupuestoPage() {
               <div className="flex gap-2 w-full sm:w-auto">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
                   <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
-                  <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={table.getRowModel().rows.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
+                  <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={filteredData.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
                   <Button size="sm" className="h-9" onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button>
               </div>
           </div>
