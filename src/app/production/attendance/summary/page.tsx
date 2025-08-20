@@ -152,7 +152,10 @@ function AttendanceSummaryContent() {
     if (!selectedDate || !lotesMaestro.length) return null;
 
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-    const recordsForDay = allRecords.filter(r => format(r.date, 'yyyy-MM-dd') === selectedDateStr);
+    const recordsForDay = allRecords.filter(r => {
+        if (!r.date || !isValid(r.date)) return false;
+        return format(r.date, 'yyyy-MM-dd') === selectedDateStr;
+    });
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -345,3 +348,5 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
+
+    
