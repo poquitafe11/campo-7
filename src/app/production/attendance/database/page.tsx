@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench } from 'lucide-react';
@@ -51,7 +51,7 @@ export default function AttendanceDatabasePage() {
         let date;
         if (data.date?.toDate) {
             date = data.date.toDate();
-        } else if (typeof data.date === 'string') {
+        } else if (typeof data.date === 'string' && isValid(parseISO(data.date))) {
             date = parseISO(data.date);
         } else {
             date = new Date();
@@ -87,8 +87,8 @@ export default function AttendanceDatabasePage() {
   const groupedByDate = useMemo(() => {
     const groups: Record<string, { records: AttendanceRecordWithId[], totalPersonnel: number, totalAbsent: number }> = {};
     for (const record of records) {
-        if (!record.date) continue;
-        const dateKey = format(record.date, 'yyyy-MM-dd');
+        if (!record.date || !isValid(record.date)) continue;
+        const dateKey = format(startOfDay(record.date), 'yyyy-MM-dd');
         if (!groups[dateKey]) {
             groups[dateKey] = { records: [], totalPersonnel: 0, totalAbsent: 0 };
         }
@@ -260,3 +260,4 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
+
