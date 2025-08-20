@@ -242,7 +242,7 @@ export default function PresupuestoPage() {
   };
   
   const handleDownload = () => {
-    const dataToExport = table.getRowModel().rows.map(row => row.original);
+    const dataToExport = data; // Use the full filtered data from state
     const worksheet = xlsx.utils.json_to_sheet(dataToExport.map(({ id, ...rest }) => ({
         "CAMPAÑA": rest.campana,
         "DESCRIPCION LABOR": rest.descripcionLabor,
