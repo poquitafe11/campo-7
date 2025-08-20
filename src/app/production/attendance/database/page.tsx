@@ -47,7 +47,7 @@ export default function AttendanceDatabasePage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const recordsData = snapshot.docs.map(doc => {
         const data = doc.data();
-        let date;
+        let date: Date;
         if (data.date?.toDate) {
             date = data.date.toDate();
         } else if (typeof data.date === 'string' && isValid(parseISO(data.date))) {
@@ -88,7 +88,6 @@ export default function AttendanceDatabasePage() {
     for (const record of records) {
         if (!record.date || !isValid(record.date)) continue;
         
-        // --- FIX: Standardize the date key ---
         const dateKey = format(startOfDay(record.date), 'yyyy-MM-dd');
         
         if (!groups[dateKey]) {
@@ -165,6 +164,10 @@ export default function AttendanceDatabasePage() {
     if (record.lotName) return record.lotName;
     return lotesMap.get(record.lote) || record.lote;
   };
+  
+  const sortedDateKeys = useMemo(() => {
+    return Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+  }, [groupedByDate]);
 
   if (loading || masterLoading) {
      return <div className="flex h-64 items-center justify-center"><Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" /></div>
@@ -172,81 +175,84 @@ export default function AttendanceDatabasePage() {
 
   return (
     <div className="flex flex-col h-full space-y-4">
-        {Object.keys(groupedByDate).length > 0 ? (
-            <Accordion type="single" collapsible className="w-full space-y-4" defaultValue={Object.keys(groupedByDate)[0]}>
-                {Object.entries(groupedByDate).map(([dateKey, { records: dateRecords, totalPersonnel, totalAbsent }]) => (
-                    <AccordionItem value={dateKey} key={dateKey} className="border-none">
-                       <AccordionTrigger className="p-4 bg-background rounded-lg shadow-sm border hover:no-underline">
-                           <div className="flex justify-between items-center w-full">
-                               <span className="text-lg font-semibold text-gray-800">
-                                   {format(parseISO(dateKey), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-                               </span>
-                               <div className="flex gap-4 text-sm font-medium">
-                                   <span>Total Personal: <span className="font-bold text-primary">{totalPersonnel}</span></span>
-                                   <span>Total Faltos: <span className="font-bold text-destructive">{totalAbsent}</span></span>
-                               </div>
-                           </div>
-                       </AccordionTrigger>
-                        <AccordionContent className="pt-3 space-y-3">
-                           {dateRecords.map(record => (
-                               <div key={record.id} className="border rounded-lg p-4 bg-background/50 space-y-3">
-                                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-                                    <div className='flex flex-col gap-1'>
-                                      <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {getLoteName(record) || 'N/A'}</div>
-                                      <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
-                                    </div>
-                                  </div>
-                                   
-                                   <div className="overflow-x-auto">
-                                      <Table className="text-xs">
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead>Asistente/Encargado</TableHead>
-                                            <TableHead className="text-center">Personal</TableHead>
-                                            <TableHead className="text-center">Faltos</TableHead>
-                                            <TableHead className="text-right">Acciones</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {record.assistants.map(assistant => (
-                                            <TableRow key={assistant.id}>
-                                              <TableCell className="font-medium whitespace-pre-wrap">{assistant.assistantName}</TableCell>
-                                              <TableCell className="text-center">{assistant.personnelCount}</TableCell>
-                                              <TableCell className="text-center">{assistant.absentCount}</TableCell>
-                                              <TableCell className="text-right">
-                                                  <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAssistant(record, assistant)}>
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                            <AlertDialogTitle>¿Eliminar asistente?</AlertDialogTitle>
-                                                            <AlertDialogDescription>Se eliminará a {assistant.assistantName} de este registro.</AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteAssistant(record.id, assistant.id)}>Eliminar</AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                  </div>
-                                              </TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
+        {sortedDateKeys.length > 0 ? (
+            <Accordion type="single" collapsible className="w-full space-y-4" defaultValue={sortedDateKeys[0]}>
+                {sortedDateKeys.map((dateKey) => {
+                    const { records: dateRecords, totalPersonnel, totalAbsent } = groupedByDate[dateKey];
+                    return (
+                        <AccordionItem value={dateKey} key={dateKey} className="border-none">
+                           <AccordionTrigger className="p-4 bg-background rounded-lg shadow-sm border hover:no-underline">
+                               <div className="flex justify-between items-center w-full">
+                                   <span className="text-lg font-semibold text-gray-800">
+                                       {format(parseISO(dateKey), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+                                   </span>
+                                   <div className="flex gap-4 text-sm font-medium">
+                                       <span>Total Personal: <span className="font-bold text-primary">{totalPersonnel}</span></span>
+                                       <span>Total Faltos: <span className="font-bold text-destructive">{totalAbsent}</span></span>
                                    </div>
                                </div>
-                           ))}
-                        </AccordionContent>
-                    </AccordionItem>
-                ))}
+                           </AccordionTrigger>
+                            <AccordionContent className="pt-3 space-y-3">
+                               {dateRecords.map(record => (
+                                   <div key={record.id} className="border rounded-lg p-4 bg-background/50 space-y-3">
+                                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                                        <div className='flex flex-col gap-1'>
+                                          <div className='flex items-center gap-2 text-sm'><Sprout size={16} className="text-primary"/> <strong>Lote:</strong> {getLoteName(record) || 'N/A'}</div>
+                                          <div className='flex items-center gap-2 text-sm'><Wrench size={16} className="text-primary"/> <strong>Labor:</strong> {record.labor}</div>
+                                        </div>
+                                      </div>
+                                       
+                                       <div className="overflow-x-auto">
+                                          <Table className="text-xs">
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Asistente/Encargado</TableHead>
+                                                <TableHead className="text-center">Personal</TableHead>
+                                                <TableHead className="text-center">Faltos</TableHead>
+                                                <TableHead className="text-right">Acciones</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {record.assistants.map(assistant => (
+                                                <TableRow key={assistant.id}>
+                                                  <TableCell className="font-medium whitespace-pre-wrap">{assistant.assistantName}</TableCell>
+                                                  <TableCell className="text-center">{assistant.personnelCount}</TableCell>
+                                                  <TableCell className="text-center">{assistant.absentCount}</TableCell>
+                                                  <TableCell className="text-right">
+                                                      <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAssistant(record, assistant)}>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                <AlertDialogTitle>¿Eliminar asistente?</AlertDialogTitle>
+                                                                <AlertDialogDescription>Se eliminará a {assistant.assistantName} de este registro.</AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDeleteAssistant(record.id, assistant.id)}>Eliminar</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                      </div>
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                       </div>
+                                   </div>
+                               ))}
+                            </AccordionContent>
+                        </AccordionItem>
+                    )
+                })}
             </Accordion>
         ) : (
             <div className="flex h-64 items-center justify-center rounded-lg border border-dashed">
@@ -262,5 +268,3 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
-
-    
