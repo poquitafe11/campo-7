@@ -78,7 +78,8 @@ function AttendanceSummaryContent() {
         
         const records = recordsSnapshot.docs.map(doc => {
           const data = doc.data();
-          const date = data.date;
+          // Correctly parse the date, whether it's a string or a Firestore Timestamp
+          const date = data.date?.toDate ? data.date.toDate() : parseISO(data.date);
           return { id: doc.id, ...data, date: date } as AttendanceRecord;
         });
         setAllRecords(records);
@@ -152,7 +153,10 @@ function AttendanceSummaryContent() {
     if (!selectedDate || !lotesMaestro.length) return null;
 
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-    const recordsForDay = allRecords.filter(r => r.date === formattedDate);
+    const recordsForDay = allRecords.filter(r => {
+      if (!r.date || !isValid(r.date)) return false;
+      return format(r.date, 'yyyy-MM-dd') === formattedDate;
+    });
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
