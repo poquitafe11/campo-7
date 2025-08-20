@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -213,10 +214,8 @@ export function AttendanceForm() {
 
         const laborMasterData = labors.find(l => l.descripcion === assistant.labor);
         
-        // Sanitize name for use in document ID
         const sanitizedAssistantName = assistant.assistantName.toUpperCase().replace(/\s+/g, '-').replace(/\//g, '-');
         
-        // Generate a unique ID to prevent duplicates using the ASSISTANT'S NAME
         const docId = `${formattedDate}-${loteMasterData.lote}-${assistant.labor}-${sanitizedAssistantName}`.replace(/\s+/g, '-');
         const docRef = doc(attendanceCollectionRef, docId);
 
@@ -225,20 +224,20 @@ export function AttendanceForm() {
                 const docSnap = await transaction.get(docRef);
 
                 if (docSnap.exists()) {
-                    // Document already exists, so it's a duplicate.
                     throw new Error(`El asistente ${assistant.assistantName} ya fue registrado para este lote y labor el día de hoy.`);
                 }
                 
                 const record: Omit<AttendanceRecord, 'id'> = {
                     date: formattedDate,
-                    lote: loteMasterData.lote,
+                    lote: loteMasterData.id,
+                    lotName: loteMasterData.lote,
                     variedad: loteMasterData.variedad,
                     fechaCianamida: loteMasterData.fechaCianamida,
                     campana: loteMasterData.campana,
                     code: laborMasterData?.codigo,
                     labor: assistant.labor,
-                    assistants: [assistant], // Save only the individual assistant
-                    totals: { // Totals for this specific record
+                    assistants: [assistant],
+                    totals: {
                         personnelCount: assistant.personnelCount,
                         absentCount: assistant.absentCount,
                     },

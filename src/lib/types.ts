@@ -97,6 +97,7 @@ export type AttendanceRecord = {
   id?: string;
   date: string;
   lote: string; 
+  lotName?: string;
   variedad: string;
   fechaCianamida?: Date;
   campana: string;
