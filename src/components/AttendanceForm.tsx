@@ -204,7 +204,6 @@ export function AttendanceForm() {
     }
 
     const attendanceCollectionRef = collection(db, 'asistencia');
-    const formattedDate = format(data.date, 'yyyy-MM-dd');
     let successfulSaves = 0;
     const failedSaves: string[] = [];
 
@@ -234,7 +233,7 @@ export function AttendanceForm() {
         const laborMasterData = labors.find(l => l.descripcion === labor);
         const laborCode = laborMasterData?.codigo || '';
 
-        const docId = `${formattedDate}-${loteName}-${labor}`.replace(/\s+/g, '-');
+        const docId = `${format(data.date, 'yyyy-MM-dd')}-${loteName}-${labor}`.replace(/\s+/g, '-');
         const docRef = doc(attendanceCollectionRef, docId);
         
         try {
@@ -276,7 +275,7 @@ export function AttendanceForm() {
                     }, { personnelCount: 0, absentCount: 0 });
 
                     const record: Omit<AttendanceRecord, 'id'> = {
-                        date: formattedDate,
+                        date: data.date, // Store the JS Date object
                         lote: loteId, // Store the ID
                         lotName: loteName, // Store the name
                         variedad: loteMasterData.variedad,

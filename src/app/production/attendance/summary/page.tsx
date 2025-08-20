@@ -78,7 +78,7 @@ function AttendanceSummaryContent() {
         
         const records = recordsSnapshot.docs.map(doc => {
           const data = doc.data();
-          const date = data.date?.toDate ? data.date.toDate() : (typeof data.date === 'string' ? parseISO(data.date) : new Date());
+          const date = data.date?.toDate ? data.date.toDate() : new Date(); // Always convert to Date object
           return { id: doc.id, ...data, date: date } as AttendanceRecord;
         });
         setAllRecords(records);
@@ -151,12 +151,13 @@ function AttendanceSummaryContent() {
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
 
-    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    const formattedSelectedDate = format(selectedDate, 'yyyy-MM-dd');
+    
     const recordsForDay = allRecords.filter(r => {
         if (!r.date || !isValid(r.date)) return false;
-        // Compare date part only
+        // Compare date part only by formatting both to strings
         const recordDateStr = format(r.date, 'yyyy-MM-dd');
-        return recordDateStr === formattedDate;
+        return recordDateStr === formattedSelectedDate;
     });
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
