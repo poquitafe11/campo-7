@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -79,7 +80,7 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMasterData } from "@/context/MasterDataContext";
-import type { Labor } from "@/lib/types";
+import type { Labor, MinMax } from "@/lib/types";
 
 
 const minMaxSchema = z.object({
@@ -94,9 +95,6 @@ const minMaxSchema = z.object({
     message: "El valor máximo no puede ser menor que el mínimo.",
     path: ["max"],
 });
-
-
-type MinMax = z.infer<typeof minMaxSchema> & { id: string, labor: string };
 
 function normalizeKey(key: string): string {
     return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '').replace(/\./g, '');
@@ -199,8 +197,7 @@ async function processAndUploadFile(file: File, laborsData: Labor[]): Promise<{ 
 
 
 export default function MinMaxPage() {
-  const [data, setData] = useState<MinMax[]>([]);
-  const [fbLoading, setFbLoading] = useState(true);
+  const { minMax, lotes, labors, loading: masterLoading } = useMasterData();
   const [editingRecord, setEditingRecord] = useState<MinMax | null>(null);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -208,7 +205,6 @@ export default function MinMaxPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const { lotes, labors, loading: masterLoading } = useMasterData();
 
   const defaultFormValues = {
     campana: '',
@@ -229,22 +225,6 @@ export default function MinMaxPage() {
     });
     return Array.from(lotesMap.values());
   }, [lotes]);
-
-
-  useEffect(() => {
-    setFbLoading(true);
-    const unsubscribe = onSnapshot(collection(db, "min-max"), (snapshot) => {
-      const recordsData = snapshot.docs.map(doc => ({ ...doc.data() } as MinMax));
-      const sortedData = recordsData.sort((a,b) => a.id.localeCompare(b.id));
-      setData(sortedData);
-      setFbLoading(false);
-    }, (error) => {
-      console.error("Error fetching data from Firestore: ", error);
-      toast({ title: "Error de Conexión", description: "No se pudieron cargar los datos.", variant: "destructive" });
-      setFbLoading(false);
-    });
-    return () => unsubscribe();
-  }, [toast]);
 
   const form = useForm<z.infer<typeof minMaxSchema>>({
     resolver: zodResolver(minMaxSchema),
@@ -360,7 +340,7 @@ export default function MinMaxPage() {
     []
   );
 
-  const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), onColumnFiltersChange: setColumnFilters, getFilteredRowModel: getFilteredRowModel(), state: { columnFilters } });
+  const table = useReactTable({ data: minMax, columns, getCoreRowModel: getCoreRowModel(), getPaginationRowModel: getPaginationRowModel(), onColumnFiltersChange: setColumnFilters, getFilteredRowModel: getFilteredRowModel(), state: { columnFilters } });
 
   const renderFormFields = () => (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
@@ -380,8 +360,6 @@ export default function MinMaxPage() {
     </div>
   );
   
-  const loading = fbLoading || masterLoading;
-
   return (
     <TooltipProvider>
       <>
@@ -402,7 +380,7 @@ export default function MinMaxPage() {
 
           {selectedFile && ( <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50"><span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span><Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon"><X className="h-4 w-4" /></Button><Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>{isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}{isUploading ? 'Subiendo...' : 'Confirmar'}</Button></div> )}
 
-          <div className="rounded-md border"><Table><TableHeader>{table.getHeaderGroups().map((headerGroup) => ( <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => ( <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead> ))}</TableRow> ))}</TableHeader><TableBody>{loading ? ( <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow> ) : table.getRowModel().rows?.length ? ( table.getRowModel().rows.map((row) => ( <TableRow key={row.id}>{row.getVisibleCells().map((cell) => ( <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell> ))}</TableRow> )) ) : ( <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No hay datos.</TableCell></TableRow> )}</TableBody></Table></div>
+          <div className="rounded-md border"><Table><TableHeader>{table.getHeaderGroups().map((headerGroup) => ( <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => ( <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead> ))}</TableRow> ))}</TableHeader><TableBody>{masterLoading ? ( <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow> ) : table.getRowModel().rows?.length ? ( table.getRowModel().rows.map((row) => ( <TableRow key={row.id}>{row.getVisibleCells().map((cell) => ( <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell> ))}</TableRow> )) ) : ( <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No hay datos.</TableCell></TableRow> )}</TableBody></Table></div>
           <div className="flex items-center justify-between gap-2 flex-wrap"><div className="flex items-center gap-2"><Select value={`${table.getState().pagination.pageSize}`} onValueChange={(value) => table.setPageSize(Number(value))}><SelectTrigger className="w-[70px] h-9"><SelectValue placeholder={table.getState().pagination.pageSize} /></SelectTrigger><SelectContent>{[10, 20, 50, 100].map((pageSize) => ( <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem> ))}</SelectContent></Select><span className="text-sm text-muted-foreground">Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{" "} de {table.getFilteredRowModel().rows.length}</span></div><div className="flex items-center gap-2"><Button variant="outline" size="icon" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronsLeft className="h-4 w-4" /></Button><Button variant="outline" size="icon" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="h-9 w-9"><ChevronLeft className="h-4 w-4" /></Button><span className="text-sm">Página {table.getPageCount() > 0 ? table.getState().pagination.pageIndex + 1 : 0} de {table.getPageCount()}</span><Button variant="outline" size="icon" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronRight className="h-4 w-4" /></Button><Button variant="outline" size="icon" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className="h-9 w-9"><ChevronsRight className="h-4 w-4" /></Button></div></div>
           <Dialog open={!!editingRecord} onOpenChange={(open) => { if (!open) setEditingRecord(null); }}><DialogContent className="sm:max-w-3xl"><DialogHeader><DialogTitle>Editar Registro</DialogTitle></DialogHeader><Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">{renderFormFields()}<DialogFooter><DialogClose asChild><Button type="button" variant="secondary" onClick={() => setEditingRecord(null)}>Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter></form></Form></DialogContent></Dialog>
         </div>

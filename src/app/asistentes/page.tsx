@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -78,6 +79,7 @@ import {
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMasterData } from "@/context/MasterDataContext";
 
 const asistenteSchema = z.object({
     dni: z.string().min(1, "El DNI es requerido"),
@@ -85,7 +87,14 @@ const asistenteSchema = z.object({
     cargo: z.string().min(1, "El cargo es requerido"),
 });
 
-type Asistente = z.infer<typeof asistenteSchema>;
+type Asistente = {
+  id: string;
+  assistantName: string;
+  cargo: string;
+  personnelCount?: number;
+  absentCount?: number;
+} & { dni?: string; nombre?: string };
+
 
 function normalizeKey(key: string): string {
     return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '');
@@ -152,8 +161,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
 
 export default function AsistentesPage() {
+  const { asistentes, loading: masterLoading } = useMasterData();
   const [data, setData] = useState<Asistente[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editingAsistente, setEditingAsistente] = useState<Asistente | null>(null);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -163,23 +172,16 @@ export default function AsistentesPage() {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, "asistentes"), (snapshot) => {
-      const asistenteData = snapshot.docs.map(doc => ({ dni: doc.id, ...doc.data() })) as Asistente[];
-      setData(asistenteData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching data from Firestore: ", error);
-      toast({
-          title: "Error de Conexión",
-          description: "No se pudieron cargar los datos.",
-          variant: "destructive"
-      });
-      setLoading(false);
-    });
+    const formattedData = asistentes.map(a => ({
+        id: a.id,
+        dni: a.id,
+        nombre: a.assistantName,
+        cargo: a.cargo
+    })).sort((a,b) => a.nombre.localeCompare(b.nombre));
 
-    return () => unsubscribe();
-  }, [toast]);
+    setData(formattedData);
+  }, [asistentes]);
+
 
   const form = useForm<z.infer<typeof asistenteSchema>>({
     resolver: zodResolver(asistenteSchema),
@@ -233,7 +235,7 @@ export default function AsistentesPage() {
     try {
       const batch = writeBatch(db);
       data.forEach((asistente) => {
-        const docRef = doc(db, "asistentes", asistente.dni);
+        const docRef = doc(db, "asistentes", asistente.id);
         batch.delete(docRef);
       });
       await batch.commit();
@@ -257,7 +259,7 @@ export default function AsistentesPage() {
 
         if (editingAsistente) {
             if (editingAsistente.dni !== values.dni) {
-                await deleteDoc(doc(db, "asistentes", editingAsistente.dni));
+                await deleteDoc(doc(db, "asistentes", editingAsistente.dni!));
             }
             toast({ title: "Éxito", description: "Registro actualizado correctamente." });
             setEditingAsistente(null);
@@ -300,7 +302,7 @@ export default function AsistentesPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleDelete(row.original.dni)}>
+                  <AlertDialogAction onClick={() => handleDelete(row.original.id)}>
                     Eliminar
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -449,7 +451,7 @@ export default function AsistentesPage() {
                 ))}
               </TableHeader>
               <TableBody>
-                {loading ? (
+                {masterLoading ? (
                   <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
                 ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (

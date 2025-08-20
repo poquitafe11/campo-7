@@ -74,9 +74,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+import { useMasterData } from "@/context/MasterDataContext";
 
 type Labor = {
   codigo: string;
@@ -91,7 +91,6 @@ const laborSchema = z.object({
 function normalizeKey(key: string): string {
   return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '');
 }
-
 
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
     return new Promise((resolve, reject) => {
@@ -153,42 +152,13 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
 
 export default function MaestroLaboresPage() {
-  const [data, setData] = useState<Labor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { labors, loading: masterLoading } = useMasterData();
   const [isUploading, setIsUploading] = useState(false);
   const [editingLabor, setEditingLabor] = useState<Labor | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, "maestro-labores"), (snapshot) => {
-      const laboresData = snapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() })) as Labor[];
-      const sortedData = laboresData.sort((a, b) => {
-          const codeA = parseInt(a.codigo, 10);
-          const codeB = parseInt(b.codigo, 10);
-          if (!isNaN(codeA) && !isNaN(codeB)) {
-            return codeA - codeB;
-          }
-          return a.codigo.localeCompare(b.codigo);
-      });
-      setData(sortedData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching data from Firestore: ", error);
-      toast({
-          title: "Error de Conexión",
-          description: "No se pudieron cargar los datos. Revisa la consola y las reglas de seguridad de Firestore.",
-          variant: "destructive"
-      });
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
-
 
   const form = useForm<z.infer<typeof laborSchema>>({
     resolver: zodResolver(laborSchema),
@@ -222,7 +192,7 @@ export default function MaestroLaboresPage() {
   };
 
   const handleDownload = () => {
-    const worksheet = xlsx.utils.json_to_sheet(data.map(d => ({ Codigo: d.codigo, Descripcion: d.descripcion })));
+    const worksheet = xlsx.utils.json_to_sheet(labors.map(d => ({ Codigo: d.codigo, Descripcion: d.descripcion })));
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, "Maestro de Labores");
     xlsx.writeFile(workbook, "MaestroDeLabores.xlsx");
@@ -239,7 +209,7 @@ export default function MaestroLaboresPage() {
   };
   
   const handleDeleteAll = async () => {
-    if (data.length === 0) {
+    if (labors.length === 0) {
       toast({
         title: "No hay nada que eliminar",
         description: "La base de datos ya está vacía.",
@@ -248,14 +218,14 @@ export default function MaestroLaboresPage() {
     }
     try {
       const batch = writeBatch(db);
-      data.forEach((labor) => {
+      labors.forEach((labor) => {
         const docRef = doc(db, "maestro-labores", labor.codigo);
         batch.delete(docRef);
       });
       await batch.commit();
       toast({
         title: "Éxito",
-        description: `Se eliminaron ${data.length} registros.`,
+        description: `Se eliminaron ${labors.length} registros.`,
       });
     } catch (error) {
       toast({
@@ -327,11 +297,11 @@ export default function MaestroLaboresPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data]
+    []
   );
 
   const table = useReactTable({
-    data,
+    data: labors,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -374,7 +344,7 @@ export default function MaestroLaboresPage() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button onClick={handleDownload} variant="outline" size="sm" disabled={data.length === 0} className="h-9">
+                  <Button onClick={handleDownload} variant="outline" size="sm" disabled={labors.length === 0} className="h-9">
                     <FileDown className="h-4 w-4" /> 
                   </Button>
                 </TooltipTrigger>
@@ -386,7 +356,7 @@ export default function MaestroLaboresPage() {
                 <AlertDialogTrigger asChild>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="destructive" size="sm" disabled={data.length === 0} className="h-9">
+                      <Button variant="destructive" size="sm" disabled={labors.length === 0} className="h-9">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
@@ -399,7 +369,7 @@ export default function MaestroLaboresPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta acción no se puede deshacer. Esto eliminará permanentemente los {data.length} registros de la base de datos.
+                      Esta acción no se puede deshacer. Esto eliminará permanentemente los {labors.length} registros de la base de datos.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -442,7 +412,7 @@ export default function MaestroLaboresPage() {
                 ))}
               </TableHeader>
               <TableBody>
-                {loading ? (
+                {masterLoading ? (
                   <TableRow>
                       <TableCell colSpan={columns.length} className="h-24 text-center">
                           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />

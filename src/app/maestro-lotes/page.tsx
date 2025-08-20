@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -77,12 +78,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useMasterData } from '@/context/MasterDataContext';
 
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
   ssr: false,
@@ -239,8 +241,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 }
 
 export default function MaestroLotesPage() {
-  const [data, setData] = useState<Lote[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { lotes, loading: masterLoading } = useMasterData();
   const [editingLote, setEditingLote] = useState<Lote | null>(null);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -248,49 +249,6 @@ export default function MaestroLotesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-
-  useEffect(() => {
-    setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, 'maestro-lotes'), snapshot => {
-      const lotesData = snapshot.docs.map(doc => {
-        const docData = doc.data();
-        let fechaCianamida = new Date();
-        if (docData.fechaCianamida?.toDate) {
-            fechaCianamida = docData.fechaCianamida.toDate();
-        } else if (docData.fechaCianamida) {
-            const parsed = parseISO(docData.fechaCianamida);
-            if(isValid(parsed)) fechaCianamida = parsed;
-        }
-        return { id: doc.id, ...docData, fechaCianamida } as Lote;
-      });
-      const sortedData = lotesData.sort((a, b) => {
-        const loteA = parseInt(a.lote, 10);
-        const loteB = parseInt(b.lote, 10);
-        const cuartelA = parseInt(a.cuartel, 10);
-        const cuartelB = parseInt(b.cuartel, 10);
-
-        if (loteA !== loteB) {
-          return loteA - loteB;
-        }
-        if (!isNaN(cuartelA) && !isNaN(cuartelB)) {
-          return cuartelA - cuartelB;
-        }
-        return a.cuartel.localeCompare(b.cuartel);
-      });
-      setData(sortedData);
-      setLoading(false);
-    }, error => {
-      console.error('Error fetching data from Firestore: ', error);
-      toast({
-        title: 'Error de Conexión',
-        description: 'No se pudieron cargar los datos.',
-        variant: 'destructive',
-      });
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
 
   const form = useForm<z.infer<typeof loteSchema>>({
     resolver: zodResolver(loteSchema),
@@ -368,15 +326,15 @@ export default function MaestroLotesPage() {
   };
 
   const handleDeleteAll = async () => {
-    if (data.length === 0) return;
+    if (lotes.length === 0) return;
     try {
       const batch = writeBatch(db);
-      data.forEach(lote => {
+      lotes.forEach(lote => {
         const docRef = doc(db, 'maestro-lotes', lote.id);
         batch.delete(docRef);
       });
       await batch.commit();
-      toast({ title: 'Éxito', description: `Se eliminaron ${data.length} registros.` });
+      toast({ title: 'Éxito', description: `Se eliminaron ${lotes.length} registros.` });
     } catch (error) {
       toast({
         title: 'Error',
@@ -492,7 +450,7 @@ export default function MaestroLotesPage() {
   );
 
   const table = useReactTable({
-    data,
+    data: lotes,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -755,7 +713,7 @@ export default function MaestroLotesPage() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        disabled={data.length === 0}
+                        disabled={lotes.length === 0}
                         className="h-9"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -770,7 +728,7 @@ export default function MaestroLotesPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta acción eliminará permanentemente los {data.length} registros.
+                      Esta acción eliminará permanentemente los {lotes.length} registros.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -826,7 +784,7 @@ export default function MaestroLotesPage() {
                 ))}
               </TableHeader>
               <TableBody>
-                {loading ? (
+                {masterLoading ? (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="h-24 text-center">
                       <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
