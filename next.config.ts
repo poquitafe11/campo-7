@@ -8,9 +8,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   skipWaiting: true,
   extendDefaultRuntimeCaching: true,
   cacheOnFrontEndNav: true,
-  pwa_manifest: {
-    orientation: 'any',
-  },
+  orientation: 'any',
 });
 
 const nextConfig = {
