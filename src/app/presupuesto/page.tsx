@@ -39,6 +39,7 @@ import {
   CheckCircle,
   X,
   Filter,
+  Layers,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -237,7 +238,7 @@ export default function PresupuestoPage() {
   };
   
   const handleDownload = () => {
-    const dataToExport = table.getFilteredRowModel().rows.map(row => row.original);
+    const dataToExport = table.getRowModel().rows.map(row => row.original);
     if (dataToExport.length === 0) {
       toast({ title: 'No hay datos para exportar', description: 'Seleccione otros filtros o agregue datos.' });
       return;
@@ -309,6 +310,25 @@ export default function PresupuestoPage() {
         setEditingRecord(null);
     } catch (error) {
         toast({ title: "Error", description: "No se pudo guardar el registro.", variant: "destructive" });
+    }
+  };
+  
+  const handleUpdateAllCampaigns = async () => {
+    setIsUploading(true);
+    try {
+      const snapshot = await getDocs(collection(db, 'presupuesto'));
+      const batch = writeBatch(db);
+      snapshot.forEach(document => {
+        const docRef = doc(db, 'presupuesto', document.id);
+        batch.update(docRef, { campana: '2025' });
+      });
+      await batch.commit();
+      toast({ title: 'Éxito', description: `Se actualizaron ${snapshot.size} registros a la campaña 2025.` });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron actualizar los registros.' });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -392,9 +412,10 @@ export default function PresupuestoPage() {
             </div>
               <div className="flex gap-2 w-full sm:w-auto">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
-                  <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Seleccionar Excel</p></TooltipContent></Tooltip>
+                  <Tooltip><TooltipTrigger asChild><Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-9"><FileUp className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Subir Excel</p></TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild><Button onClick={handleDownload} variant="outline" size="sm" disabled={table.getRowModel().rows.length === 0} className="h-9"><FileDown className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Descargar Excel</p></TooltipContent></Tooltip>
                   <Button size="sm" className="h-9" onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4" />Agregar</Button>
+                  <Tooltip><TooltipTrigger asChild><Button onClick={handleUpdateAllCampaigns} variant="secondary" size="sm" className="h-9"><Layers className="mr-2 h-4 w-4" />Actualizar Campañas</Button></TooltipTrigger><TooltipContent><p>Asigna la campaña '2025' a todos los registros.</p></TooltipContent></Tooltip>
               </div>
           </div>
 
