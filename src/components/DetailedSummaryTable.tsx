@@ -101,7 +101,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             const minMaxEstablecido = allMinMax.find(mm => mm.lote === loteNum && mm.labor === activeFilters.labor && String(mm.pasada) === activeFilters.pasada);
             
             const presupuesto = allPresupuestos.find(p => 
-                p.lote === loteNum && 
+                p.lote === loteNum &&
                 p.descripcionLabor.trim().toLowerCase() === activeFilters.labor.trim().toLowerCase() &&
                 p.campana === activeFilters.campaign
             );
