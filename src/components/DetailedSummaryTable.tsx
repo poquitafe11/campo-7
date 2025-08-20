@@ -99,6 +99,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             const ddcHoy = representativeLoteData.fechaCianamida && isValid(representativeLoteData.fechaCianamida) ? differenceInDays(new Date(), representativeLoteData.fechaCianamida) : 'N/A';
 
             const minMaxEstablecido = allMinMax.find(mm => mm.lote === loteNum && mm.labor === activeFilters.labor && String(mm.pasada) === activeFilters.pasada);
+            
             const presupuesto = allPresupuestos.find(p => 
                 p.lote === loteNum && 
                 p.descripcionLabor === activeFilters.labor && 
