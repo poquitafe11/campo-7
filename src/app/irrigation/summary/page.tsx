@@ -94,24 +94,22 @@ export default function IrrigationSummaryPage() {
     
     useEffect(() => {
         setLoading(true);
+
+        const loadInitialView = async () => {
+            const visibleLotes = await getVisibleLotesSetting();
+            if (visibleLotes.length > 0) {
+                const initialFilters = { campaign: '', stage: '', lotes: visibleLotes };
+                setFilters(initialFilters);
+                setPopoverFilters(initialFilters);
+            }
+        };
+
+        loadInitialView();
+
         const unsubscribe = onSnapshot(collection(db, "registros-riego"), (snapshot) => {
             const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IrrigationRecord));
-            
-            if (profile && profile.rol !== 'Admin') {
-                getVisibleLotesSetting().then(visibleLotes => {
-                    if (visibleLotes.length > 0) {
-                        const filteredRecords = records.filter(r => visibleLotes.includes(r.Lote));
-                        setIrrigationRecords(filteredRecords);
-                        setFilters(f => ({ ...f, lotes: visibleLotes }));
-                    } else {
-                        setIrrigationRecords(records);
-                    }
-                    setLoading(false);
-                });
-            } else {
-                setIrrigationRecords(records);
-                setLoading(false);
-            }
+            setIrrigationRecords(records);
+            setLoading(false);
         }, (error) => {
             console.error("Error fetching irrigation records: ", error);
             toast({ variant: "destructive", title: "Error de Carga", description: "No se pudieron cargar los registros de riego." });
@@ -529,5 +527,6 @@ export default function IrrigationSummaryPage() {
     
 
     
+
 
 
