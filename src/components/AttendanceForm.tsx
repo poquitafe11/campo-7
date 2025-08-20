@@ -59,7 +59,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, runTransaction, getDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 
 const assistantInFormSchema = z.object({
@@ -208,62 +208,108 @@ export function AttendanceForm() {
     let successfulSaves = 0;
     const failedSaves: string[] = [];
 
-    for (const assistant of assistants) {
-        const loteMasterData = lotes.find(l => l.id === assistant.loteId);
+    // Group assistants by Lote and Labor
+    const groupedAssistants = assistants.reduce((acc, assistant) => {
+        const key = `${assistant.loteId}|${assistant.labor}`;
+        if (!acc[key]) {
+            acc[key] = {
+                loteId: assistant.loteId,
+                loteName: assistant.loteName,
+                labor: assistant.labor,
+                assistantsList: []
+            };
+        }
+        acc[key].assistantsList.push(assistant);
+        return acc;
+    }, {} as Record<string, { loteId: string; loteName: string; labor: string; assistantsList: StagedAssistant[] }>);
+
+
+    for (const groupKey in groupedAssistants) {
+        const group = groupedAssistants[groupKey];
+        const { loteId, loteName, labor, assistantsList } = group;
+
+        const loteMasterData = lotes.find(l => l.id === loteId);
         if (!loteMasterData) continue;
 
-        const laborMasterData = labors.find(l => l.descripcion === assistant.labor);
-        
-        const sanitizedAssistantName = assistant.assistantName.toUpperCase().replace(/\s+/g, '-').replace(/\//g, '-');
-        
-        const docId = `${formattedDate}-${loteMasterData.lote}-${assistant.labor}-${sanitizedAssistantName}`.replace(/\s+/g, '-');
-        const docRef = doc(attendanceCollectionRef, docId);
+        const laborMasterData = labors.find(l => l.descripcion === labor);
+        const laborCode = laborMasterData?.codigo || '';
 
+        const docId = `${formattedDate}-${loteName}-${labor}`.replace(/\s+/g, '-');
+        const docRef = doc(attendanceCollectionRef, docId);
+        
         try {
             await runTransaction(db, async (transaction) => {
                 const docSnap = await transaction.get(docRef);
 
                 if (docSnap.exists()) {
-                    throw new Error(`El asistente ${assistant.assistantName} ya fue registrado para este lote y labor el día de hoy.`);
+                    // Document exists, update it by adding new assistants
+                    const existingData = docSnap.data() as AttendanceRecord;
+                    const existingAssistants = existingData.assistants || [];
+
+                    // Filter out assistants that might already exist by DNI
+                    const newAssistantsToAdd = assistantsList.filter(newA => 
+                        !existingAssistants.some(existA => existA.assistantDni === newA.assistantDni)
+                    );
+                    
+                    if (newAssistantsToAdd.length === 0) {
+                        throw new Error(`Todos los asistentes para ${loteName} - ${labor} ya fueron registrados hoy.`);
+                    }
+
+                    const combinedAssistants = [...existingAssistants, ...newAssistantsToAdd];
+                    const newTotals = combinedAssistants.reduce((acc, a) => {
+                        acc.personnelCount += a.personnelCount || 0;
+                        acc.absentCount += a.absentCount || 0;
+                        return acc;
+                    }, { personnelCount: 0, absentCount: 0 });
+
+                    transaction.update(docRef, {
+                        assistants: combinedAssistants,
+                        totals: newTotals
+                    });
+
+                } else {
+                    // Document doesn't exist, create it
+                    const totals = assistantsList.reduce((acc, a) => {
+                        acc.personnelCount += a.personnelCount || 0;
+                        acc.absentCount += a.absentCount || 0;
+                        return acc;
+                    }, { personnelCount: 0, absentCount: 0 });
+
+                    const record: Omit<AttendanceRecord, 'id'> = {
+                        date: formattedDate,
+                        lote: loteId,
+                        lotName: loteName,
+                        variedad: loteMasterData.variedad,
+                        fechaCianamida: loteMasterData.fechaCianamida,
+                        campana: loteMasterData.campana,
+                        code: laborCode,
+                        labor: labor,
+                        assistants: assistantsList,
+                        totals: totals,
+                        registeredBy: auth.currentUser?.email,
+                    };
+                    transaction.set(docRef, record);
                 }
-                
-                const record: Omit<AttendanceRecord, 'id'> = {
-                    date: formattedDate,
-                    lote: loteMasterData.id,
-                    lotName: loteMasterData.lote,
-                    variedad: loteMasterData.variedad,
-                    fechaCianamida: loteMasterData.fechaCianamida,
-                    campana: loteMasterData.campana,
-                    code: laborMasterData?.codigo,
-                    labor: assistant.labor,
-                    assistants: [assistant],
-                    totals: {
-                        personnelCount: assistant.personnelCount,
-                        absentCount: assistant.absentCount,
-                    },
-                    registeredBy: auth.currentUser?.email,
-                };
-                
-                transaction.set(docRef, record);
             });
             successfulSaves++;
         } catch (error: any) {
-            console.error("Error en transacción de guardado:", error);
-            failedSaves.push(error.message || `No se pudo guardar el registro para ${assistant.assistantName}.`);
+             console.error("Error en transacción de guardado:", error);
+             failedSaves.push(error.message || `No se pudo guardar el registro para ${loteName} - ${labor}.`);
         }
     }
+
 
     if (successfulSaves > 0) {
          toast({
             title: "Operación Completada",
-            description: `${successfulSaves} de ${assistants.length} registros guardados exitosamente.`,
+            description: `${successfulSaves} de ${Object.keys(groupedAssistants).length} grupos guardados/actualizados.`,
         });
     }
 
     if (failedSaves.length > 0) {
         toast({
             variant: "destructive",
-            title: "Registros Duplicados Encontrados",
+            title: "Algunos Registros Fallaron",
             description: failedSaves.join(' '),
         });
     }
