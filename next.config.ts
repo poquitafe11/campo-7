@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 
 const withPWA = require('@ducanh2912/next-pwa').default({
@@ -7,7 +8,6 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   skipWaiting: true,
   extendDefaultRuntimeCaching: true,
   cacheOnFrontEndNav: true,
-  // Add this to allow any orientation
   orientation: 'any',
 });
 
