@@ -4,13 +4,13 @@
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, RefreshCcw, Calendar as CalendarIcon, ArrowLeft, LayoutGrid } from 'lucide-react';
-import { format, parseISO, isValid, differenceInDays } from 'date-fns';
+import { format, parseISO, isValid, differenceInDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { type AttendanceRecord, type LoteData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,6 @@ function AttendanceSummaryContent() {
   const refreshParam = searchParams.get('refresh'); 
 
   const selectedDate = useMemo(() => {
-    // Default to today if no date is in the URL
     if (selectedDateParam && isValid(parseISO(selectedDateParam))) {
       return parseISO(selectedDateParam);
     }
@@ -71,14 +70,23 @@ function AttendanceSummaryContent() {
         return;
     }
     try {
+        const dayStart = startOfDay(selectedDate);
+        const dayEnd = endOfDay(selectedDate);
+
+        const attendanceQuery = query(
+            collection(db, 'asistencia'),
+            where('date', '>=', dayStart),
+            where('date', '<=', dayEnd)
+        );
+
         const [recordsSnapshot, lotesSnapshot] = await Promise.all([
-          getDocs(collection(db, 'asistencia')),
+          getDocs(attendanceQuery),
           getDocs(collection(db, 'maestro-lotes'))
         ]);
         
         const records = recordsSnapshot.docs.map(doc => {
           const data = doc.data();
-          const date = data.date?.toDate ? data.date.toDate() : new Date(); // Always convert to Date object
+          const date = data.date?.toDate ? data.date.toDate() : new Date();
           return { id: doc.id, ...data, date: date } as AttendanceRecord;
         });
         setAllRecords(records);
@@ -96,11 +104,11 @@ function AttendanceSummaryContent() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, selectedDate]);
   
   useEffect(() => {
     loadData();
-  }, [loadData, refreshParam, selectedDate]); 
+  }, [loadData, refreshParam]);
 
   useEffect(() => {
     const headerTitle = (
@@ -151,14 +159,7 @@ function AttendanceSummaryContent() {
   const pivotData = useMemo<PivotData | null>(() => {
     if (!selectedDate || !lotesMaestro.length) return null;
 
-    const formattedSelectedDate = format(selectedDate, 'yyyy-MM-dd');
-    
-    const recordsForDay = allRecords.filter(r => {
-        if (!r.date || !isValid(r.date)) return false;
-        // Compare date part only by formatting both to strings
-        const recordDateStr = format(r.date, 'yyyy-MM-dd');
-        return recordDateStr === formattedSelectedDate;
-    });
+    const recordsForDay = allRecords;
     
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
