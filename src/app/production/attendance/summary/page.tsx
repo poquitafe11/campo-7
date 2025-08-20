@@ -77,7 +77,15 @@ function AttendanceSummaryContent() {
         
         const records = recordsSnapshot.docs.map(doc => {
           const data = doc.data();
-          const date = data.date?.toDate ? data.date.toDate() : parseISO(data.date);
+          // Handle both Timestamp and string dates
+          let date;
+          if (data.date?.toDate) {
+              date = data.date.toDate();
+          } else if (typeof data.date === 'string' && isValid(parseISO(data.date))) {
+              date = parseISO(data.date);
+          } else {
+              date = new Date(); // Fallback for invalid data
+          }
           return { id: doc.id, ...data, date } as AttendanceRecord;
         });
         setAllRecords(records);
@@ -349,5 +357,3 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
-
-    
