@@ -38,7 +38,7 @@ import { ActivityRecordSchema, type LoteData } from '@/lib/types';
 import { saveActivity } from './actions';
 import { useAuth } from '@/hooks/useAuth';
 import { useMasterData } from '@/context/MasterDataContext';
-import { PageHeader } from '@/components/PageHeader';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 // Dynamically import the Calendar to ensure it's client-side only
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
@@ -58,6 +58,12 @@ export default function CreateActivityPage() {
   const { user } = useAuth();
   const [isPending, startTransition] = useTransition();
   const { labors, lotes, loading: masterLoading } = useMasterData();
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions({ title: "Crear Ficha de Actividad" });
+    return () => setActions({});
+  }, [setActions]);
 
   const form = useForm<ActivityFormValues>({
     resolver: zodResolver(ActivityRecordSchema),
@@ -147,7 +153,6 @@ export default function CreateActivityPage() {
 
   return (
     <>
-      <PageHeader title="Crear Ficha de Actividad" />
       <div className="mx-auto max-w-4xl">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
