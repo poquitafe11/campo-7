@@ -99,7 +99,11 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
             const ddcHoy = representativeLoteData.fechaCianamida && isValid(representativeLoteData.fechaCianamida) ? differenceInDays(new Date(), representativeLoteData.fechaCianamida) : 'N/A';
 
             const minMaxEstablecido = allMinMax.find(mm => mm.lote === loteNum && mm.labor === activeFilters.labor && String(mm.pasada) === activeFilters.pasada);
-            const presupuesto = allPresupuestos.find(p => p.lote === loteNum && p.descripcionLabor === activeFilters.labor && p.campana === activeFilters.campaign);
+            const presupuesto = allPresupuestos.find(p => 
+                p.lote === loteNum && 
+                p.descripcionLabor === activeFilters.labor && 
+                p.campana === activeFilters.campaign
+            );
             const jrnPresup = presupuesto?.jornadas || 0;
             const saldo = jrnPresup - totalWorkday;
             
@@ -189,8 +193,8 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
                          if (row.key === 'ddc') headerBg = 'bg-green-200';
                          if (['haTrabajada', 'haPorTrabajar', 'porcAvance', 'totalJr', 'jrHa', 'prom', 'minimo', 'maximo', 'pltaHora'].includes(row.key)) headerBg = 'bg-blue-200';
                          if (['ingresoPersona', 'costoPlta', 'pagoPlttaRaci'].includes(row.key)) headerBg = 'bg-orange-200';
-                         if (['ddcInicioLabor', 'minEstablecido', 'maxEstablecido', 'jhPresupHa'].includes(row.key)) headerBg = 'bg-cyan-200';
-                         if (['jrnPresup', 'jhu', 'saldo'].includes(row.key)) headerBg = 'bg-yellow-200';
+                         if (['ddcInicioLabor', 'minEstablecido', 'maxEstablecido'].includes(row.key)) headerBg = 'bg-cyan-200';
+                         if (['jhPresupHa', 'jrnPresup', 'jhu', 'saldo'].includes(row.key)) headerBg = 'bg-yellow-200';
                         
                         return (
                             <tr key={row.key}>
