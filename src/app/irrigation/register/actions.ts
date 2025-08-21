@@ -9,9 +9,18 @@ interface RenameAndMergePayload {
     newHeader: string;
 }
 
+const sanitizeFieldName = (name: string) => name.replace(/[.#$[\]/]/g, '').trim();
+
 export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMergePayload): Promise<{ success: boolean; message: string; count?: number }> {
     if (!oldHeader || !newHeader) {
         return { success: false, message: 'El nombre antiguo y el nuevo no pueden estar vacíos.' };
+    }
+    
+    const sanitizedOldHeader = sanitizeFieldName(oldHeader);
+    const sanitizedNewHeader = sanitizeFieldName(newHeader);
+
+    if (!sanitizedOldHeader || !sanitizedNewHeader) {
+        return { success: false, message: 'Los nombres de los encabezados no son válidos después de la limpieza.' };
     }
 
     try {
@@ -30,22 +39,22 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
             const updateData: { [key: string]: any } = {};
             let needsUpdate = false;
 
+            // Use the original (unsanitized) oldHeader to check for property existence
             if (Object.prototype.hasOwnProperty.call(data, oldHeader)) {
                 needsUpdate = true;
-                const oldValue = data[oldHeader];
-                const newValue = data[newHeader];
+                const oldValueToMove = data[oldHeader];
+                const existingValueInNew = data[sanitizedNewHeader];
 
-                if (newValue !== undefined && newValue !== null && String(newValue).trim() !== '') {
-                    // Merge logic: concatenate if both are non-empty strings
-                    if (oldValue !== undefined && oldValue !== null && String(oldValue).trim() !== '') {
-                        updateData[newHeader] = `${newValue}. ${oldValue}`;
+                // Merge logic
+                if (existingValueInNew !== undefined && existingValueInNew !== null && String(existingValueInNew).trim() !== '') {
+                    if (oldValueToMove !== undefined && oldValueToMove !== null && String(oldValueToMove).trim() !== '') {
+                        updateData[sanitizedNewHeader] = `${existingValueInNew}. ${oldValueToMove}`;
                     }
                 } else {
-                    // Target is empty, just move the value
-                    updateData[newHeader] = oldValue;
+                    updateData[sanitizedNewHeader] = oldValueToMove;
                 }
                 
-                // Mark the old field for deletion
+                // Mark the old field for deletion using its original name
                 updateData[oldHeader] = deleteField();
             }
 
