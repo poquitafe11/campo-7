@@ -38,51 +38,38 @@ const editRecordSchema = z.object({
 
 
 // --- Canonical Header Mapping ---
-// Maps various possible keys (lowercase, no spaces/special chars) to the single correct key.
-const keyNormalizationMap: { [key: string]: string } = {
-    'totalm3dia': 'Total_m3_Dia',
-    'totalm3/dia': 'Total_m3_Dia',
-    'm3ha/hora': 'm3_Ha_Hora',
-    'm3hahora': 'm3_Ha_Hora',
-    'ha.': 'Ha',
-    'p2o5': 'P2O5',
-    'bombon°': 'BombaNo',
-    'lpsadicional10%': 'Lps adicion al 10%',
-    'tiosulfatodecalcio(lts)': 'Tiosulfato de Calcio (Lts)',
-    'tiosulfatodemagnesio(lts)': 'Tiosulfato de Magnesio (Lts)',
+const keyNormalizationMap: { [canonical: string]: string[] } = {
+    'Total_m3_Dia': ['totalm3dia', 'totalm3/dia'],
+    'm3_Ha_Hora': ['m3ha/hora', 'm3hahora', 'm3/ha/hora'],
+    'Ha': ['ha.'],
+    'BombaNo': ['bomban°', 'bombano'],
+    'Lps_adicion_al_10': ['lpsadicional10%', 'lpsadicional10'],
+    'Tiosulfato_de_Calcio_Lts': ['tiosulfatodecalcio(lts)'],
+    'Tiosulfato_de_Magnesio_Lts': ['tiosulfatodemagnesio(lts)'],
 };
+
+// Reverse map for quick lookups
+const reverseKeyMap = new Map<string, string>();
+for (const canonical in keyNormalizationMap) {
+    keyNormalizationMap[canonical].forEach(alias => {
+        reverseKeyMap.set(alias, canonical);
+    });
+    reverseKeyMap.set(canonical.toLowerCase().replace(/_/g, ''), canonical);
+}
 
 function normalizeObjectKeys(obj: { [key: string]: any }): { [key: string]: any } {
     const newObj: { [key: string]: any } = {};
     const processedKeys = new Set<string>();
 
-    // First pass with the strict normalization map
     for (const key in obj) {
-        const normalizedKey = key.toLowerCase().replace(/[\s\.]/g, '');
-        const canonicalKey = keyNormalizationMap[normalizedKey];
+        const normalizedKey = key.toLowerCase().replace(/[\s\./]/g, '');
+        const canonicalKey = reverseKeyMap.get(normalizedKey) || key;
 
-        if (canonicalKey && !processedKeys.has(canonicalKey)) {
+        if (!processedKeys.has(canonicalKey)) {
             newObj[canonicalKey] = obj[key];
             processedKeys.add(canonicalKey);
         }
     }
-
-    // Second pass for remaining keys, applying general sanitation and adding if not already processed
-    for (const key in obj) {
-        const normalizedKey = key.toLowerCase().replace(/[\s\.]/g, '');
-        const canonicalKey = keyNormalizationMap[normalizedKey];
-        
-        // If it was already mapped, skip it
-        if (canonicalKey && processedKeys.has(canonicalKey)) continue;
-
-        // If it was NOT mapped, create a standard key and check if THAT standard key has been processed.
-        const standardKey = key.replace(/[\/\.]/g, '_').replace(/_$/, '');
-        if (!processedKeys.has(standardKey)) {
-             newObj[standardKey] = obj[key];
-             processedKeys.add(standardKey);
-        }
-    }
-
     return newObj;
 }
 
@@ -270,7 +257,7 @@ export default function RegisterIrrigationPage() {
           const firstRow = enrichedData[0];
           const allHeaders = Object.keys(firstRow);
           
-          const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
+          const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps_adicion_al_10', 'Tiosulfato_de_Calcio_Lts', 'Tiosulfato_de_Magnesio_Lts', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
           
           const sortedHeaders = allHeaders
             .filter(h => h !== 'internalId')
@@ -324,7 +311,7 @@ export default function RegisterIrrigationPage() {
         parsedData.forEach(row => {
             const { internalId, ...rowData } = row;
             const docRef = doc(collection(db, "registros-riego"));
-            batch.set(docRef, rowData);
+            batch.set(docRef, normalizeObjectKeys(rowData));
         });
         await batch.commit();
         
@@ -364,10 +351,9 @@ export default function RegisterIrrigationPage() {
     if (!editingRecord) return;
   
     const { id, internalId, ...dataFromForm } = values;
+    const sanitizedData = normalizeObjectKeys(dataFromForm);
   
     if (internalId) {
-      // This is a preview record, update it in the local state.
-      const sanitizedData = normalizeObjectKeys(dataFromForm);
       setParsedData(prev =>
         prev.map(row =>
           row.internalId === internalId
@@ -377,13 +363,11 @@ export default function RegisterIrrigationPage() {
       );
       toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
-      // This is a saved record, update it in Firestore.
       try {
         const docRef = doc(db, 'registros-riego', id);
-        const sanitizedData = normalizeObjectKeys(dataFromForm);
-  
-        // To prevent duplicate fields we set the entire object, which overwrites.
-        await updateDoc(docRef, sanitizedData);
+        // Important: Use set with merge:false to completely overwrite the document,
+        // which removes any old, non-canonical keys.
+        await setDoc(docRef, sanitizedData);
 
         toast({
           title: 'Éxito',
@@ -422,7 +406,7 @@ export default function RegisterIrrigationPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps adicion al 10%', 'Tiosulfato de Calcio (Lts)', 'Tiosulfato de Magnesio (Lts)', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
+    const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps_adicion_al_10', 'Tiosulfato_de_Calcio_Lts', 'Tiosulfato_de_Magnesio_Lts', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
     const headers = new Set<string>();
     savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);

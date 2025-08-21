@@ -43,11 +43,14 @@ First, extract the general information from the title:
 
 Next, analyze all the tables in the image. The rows are related horizontally across all tables, even if they are visually separated. For each main row (identified by 'Bomba N°' or similar), combine the data from all tables into a single JSON object.
 
-IMPORTANT: Use the following exact, Firestore-compatible keys for the JSON objects, unifying any variations from the image. Do NOT use slashes '/' in the keys. Use underscores '_' instead.
+VERY IMPORTANT: Use the following exact, Firestore-compatible keys for the JSON objects. Do NOT use slashes '/' or dots '.' in the keys. Use underscores '_' instead. This is critical for database compatibility.
 - 'BombaNo' (from "Bomba N°")
 - 'Total_m3_Dia' (from "Total m3/Dia")
 - 'm3_Ha_Hora' (from "m3/Ha /Hora")
 - 'Ha' (from "Ha.")
+- 'Lps_adicion_al_10' (from "Lps adicion al 10%")
+- 'Tiosulfato_de_Calcio_Lts' (from "Tiosulfato de Calcio (Lts)")
+- 'Tiosulfato_de_Magnesio_Lts' (from "Tiosulfato de Magnesio (Lts)")
 - For columns under 'Unidades/Ha', use the specific header (e.g., 'N', 'P2O5', 'K', 'Mn').
 - Pay close attention to chemical symbols. The symbol "Mπ", "Mpi", or similar-looking text MUST be interpreted and keyed as "Mn" (Manganeso).
 - Include the extracted 'Fundo', 'Dia', 'Fecha', and 'eT' in every single row object of the final JSON array.
@@ -72,9 +75,9 @@ Example of a single object in the output array:
   "Ha": "31.00",
   "m3_Ha_Hora": "8.1",
   "Lps Ideal": "70",
-  "Lps adicion al 10%": "77",
-  "Tiosulfato de Calcio (Lts)": "",
-  "Tiosulfato de Magnesio (Lts)": "",
+  "Lps_adicion_al_10": "77",
+  "Tiosulfato_de_Calcio_Lts": "",
+  "Tiosulfato_de_Magnesio_Lts": "",
   "N": "",
   "P2O5": "",
   "K": "",
@@ -99,6 +102,3 @@ const digitizeIrrigationTableFlow = ai.defineFlow(
     return output!;
   }
 );
-
-
-
