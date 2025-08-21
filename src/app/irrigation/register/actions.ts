@@ -31,24 +31,15 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
             const data = doc.data();
             
             // Check if the document has the old header property.
-            // We use Object.prototype.hasOwnProperty.call to safely check, as data can have any key.
             if (Object.prototype.hasOwnProperty.call(data, oldHeader)) {
                 const updateData: { [key: string]: any } = {};
                 const oldValueToMove = data[oldHeader];
-                const existingValueInNew = data[sanitizedNewHeader];
 
-                // Merge logic: If new field has content, append old content. Otherwise, just move it.
-                if (existingValueInNew !== undefined && existingValueInNew !== null && String(existingValueInNew).trim() !== '') {
-                    if (oldValueToMove !== undefined && oldValueToMove !== null && String(oldValueToMove).trim() !== '') {
-                        updateData[sanitizedNewHeader] = `${existingValueInNew}. ${oldValueToMove}`;
-                    }
-                } else {
-                    updateData[sanitizedNewHeader] = oldValueToMove;
-                }
+                // Assign the old value to the new key.
+                updateData[sanitizedNewHeader] = oldValueToMove;
                 
-                // Add the old field to be deleted.
-                // This is the critical change: We add it to the same update object.
-                // When batch.update is called, it will set the new field and delete the old one.
+                // IMPORTANT: Mark the old field for deletion.
+                // This will be part of the same update operation.
                 updateData[oldHeader] = deleteField();
 
                 batch.update(doc.ref, updateData);
@@ -56,7 +47,9 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
             }
         });
 
-        await batch.commit();
+        if (updatedCount > 0) {
+            await batch.commit();
+        }
 
         return { success: true, message: 'Encabezados actualizados y fusionados correctamente.', count: updatedCount };
 
