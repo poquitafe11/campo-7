@@ -38,8 +38,8 @@ const editRecordSchema = z.object({
 }).passthrough();
 
 const editHeaderSchema = z.object({
-    newName: z.string().min(1, "El nuevo nombre no puede estar vacío.").refine(name => !name.match(/[.#$[\]]/), {
-        message: "El nombre no puede contener los caracteres: . # $ [ ]",
+    newName: z.string().min(1, "El nuevo nombre no puede estar vacío.").refine(name => !name.match(/[.#$[\]/]/), {
+        message: "El nombre no puede contener los caracteres: . # $ [ ] /",
     }),
     mergeWith: z.string().optional(),
 });
@@ -745,3 +745,6 @@ export default function RegisterIrrigationPage() {
   );
 }
 
+
+
+    
