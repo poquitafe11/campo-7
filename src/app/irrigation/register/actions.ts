@@ -9,19 +9,12 @@ interface RenameAndMergePayload {
     newHeader: string;
 }
 
-const sanitizeFieldName = (name: string) => name.replace(/[.#$[\]/]/g, '').trim();
-
 export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMergePayload): Promise<{ success: boolean; message: string; count?: number }> {
     if (!oldHeader || !newHeader) {
         return { success: false, message: 'El nombre antiguo y el nuevo no pueden estar vacíos.' };
     }
     
-    const sanitizedOldHeader = sanitizeFieldName(oldHeader);
-    const sanitizedNewHeader = sanitizeFieldName(newHeader);
-
-    if (!sanitizedOldHeader || !sanitizedNewHeader) {
-        return { success: false, message: 'Los nombres de los encabezados no son válidos después de la limpieza.' };
-    }
+    const sanitizedNewHeader = newHeader.trim();
 
     try {
         const collectionRef = collection(db, 'registros-riego');
@@ -36,16 +29,15 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
 
         querySnapshot.forEach(doc => {
             const data = doc.data();
-            const updateData: { [key: string]: any } = {};
-            let needsUpdate = false;
-
-            // Use the original (unsanitized) oldHeader to check for property existence
+            
+            // Check if the document has the old header property.
+            // We use Object.prototype.hasOwnProperty.call to safely check, as data can have any key.
             if (Object.prototype.hasOwnProperty.call(data, oldHeader)) {
-                needsUpdate = true;
+                const updateData: { [key: string]: any } = {};
                 const oldValueToMove = data[oldHeader];
                 const existingValueInNew = data[sanitizedNewHeader];
 
-                // Merge logic
+                // Merge logic: If new field has content, append old content. Otherwise, just move it.
                 if (existingValueInNew !== undefined && existingValueInNew !== null && String(existingValueInNew).trim() !== '') {
                     if (oldValueToMove !== undefined && oldValueToMove !== null && String(oldValueToMove).trim() !== '') {
                         updateData[sanitizedNewHeader] = `${existingValueInNew}. ${oldValueToMove}`;
@@ -54,11 +46,11 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
                     updateData[sanitizedNewHeader] = oldValueToMove;
                 }
                 
-                // Mark the old field for deletion using its original name
+                // Add the old field to be deleted.
+                // This is the critical change: We add it to the same update object.
+                // When batch.update is called, it will set the new field and delete the old one.
                 updateData[oldHeader] = deleteField();
-            }
 
-            if (needsUpdate) {
                 batch.update(doc.ref, updateData);
                 updatedCount++;
             }
