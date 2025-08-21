@@ -36,6 +36,57 @@ const editRecordSchema = z.object({
   internalId: z.string().optional(),
 }).passthrough();
 
+
+// --- Canonical Header Mapping ---
+// Maps various possible keys (lowercase, no spaces/special chars) to the single correct key.
+const keyNormalizationMap: { [key: string]: string } = {
+    'totalm3dia': 'Total_m3_Dia',
+    'totalm3/dia': 'Total_m3_Dia',
+    'm3ha/hora': 'm3_Ha_Hora',
+    'm3hahora': 'm3_Ha_Hora',
+    'ha.': 'Ha',
+    'p2o5': 'P2O5',
+    'bombon°': 'BombaNo',
+    'lpsadicional10%': 'Lps adicion al 10%',
+    'tiosulfatodecalcio(lts)': 'Tiosulfato de Calcio (Lts)',
+    'tiosulfatodemagnesio(lts)': 'Tiosulfato de Magnesio (Lts)',
+};
+
+function normalizeObjectKeys(obj: { [key: string]: any }): { [key: string]: any } {
+    const newObj: { [key: string]: any } = {};
+    const processedKeys = new Set<string>();
+
+    // First pass with the strict normalization map
+    for (const key in obj) {
+        const normalizedKey = key.toLowerCase().replace(/[\s\.]/g, '');
+        const canonicalKey = keyNormalizationMap[normalizedKey];
+
+        if (canonicalKey && !processedKeys.has(canonicalKey)) {
+            newObj[canonicalKey] = obj[key];
+            processedKeys.add(canonicalKey);
+        }
+    }
+
+    // Second pass for remaining keys, applying general sanitation and adding if not already processed
+    for (const key in obj) {
+        const normalizedKey = key.toLowerCase().replace(/[\s\.]/g, '');
+        const canonicalKey = keyNormalizationMap[normalizedKey];
+        
+        // If it was already mapped, skip it
+        if (canonicalKey && processedKeys.has(canonicalKey)) continue;
+
+        // If it was NOT mapped, create a standard key and check if THAT standard key has been processed.
+        const standardKey = key.replace(/[\/\.]/g, '_').replace(/_$/, '');
+        if (!processedKeys.has(standardKey)) {
+             newObj[standardKey] = obj[key];
+             processedKeys.add(standardKey);
+        }
+    }
+
+    return newObj;
+}
+
+
 function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string> {
   const canvas = document.createElement('canvas');
   const scaleX = image.naturalWidth / image.width;
@@ -314,21 +365,13 @@ export default function RegisterIrrigationPage() {
   
     const { id, internalId, ...dataFromForm } = values;
   
-    const sanitizeObject = (obj: { [key: string]: any }) => {
-        const sanitizedObj: { [key: string]: any } = {};
-        for (const key in obj) {
-            const sanitizedKey = key.replace(/[\/\.]/g, '_').replace(/_$/, '');
-            sanitizedObj[sanitizedKey] = obj[key];
-        }
-        return sanitizedObj;
-    };
-  
     if (internalId) {
       // This is a preview record, update it in the local state.
+      const sanitizedData = normalizeObjectKeys(dataFromForm);
       setParsedData(prev =>
         prev.map(row =>
           row.internalId === internalId
-            ? { ...row, ...dataFromForm } // Keep original keys for preview
+            ? { ...row, ...sanitizedData }
             : row
         )
       );
@@ -337,13 +380,11 @@ export default function RegisterIrrigationPage() {
       // This is a saved record, update it in Firestore.
       try {
         const docRef = doc(db, 'registros-riego', id);
-        // We pass the entire form data, which includes original and edited fields.
-        // We will sanitize this entire object to ensure all keys are valid.
-        const sanitizedData = sanitizeObject(dataFromForm);
+        const sanitizedData = normalizeObjectKeys(dataFromForm);
   
-        // To prevent duplicate fields (e.g. 'Ha' and 'Ha.'), we should set the entire object.
-        // This overwrites the document with the cleaned-up version.
+        // To prevent duplicate fields we set the entire object, which overwrites.
         await updateDoc(docRef, sanitizedData);
+
         toast({
           title: 'Éxito',
           description: 'Registro actualizado en la base de datos.',
