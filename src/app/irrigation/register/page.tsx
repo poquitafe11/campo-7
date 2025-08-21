@@ -314,10 +314,10 @@ export default function RegisterIrrigationPage() {
   
     const { id, internalId, ...dataFromForm } = values;
   
-    const sanitizeKeys = (obj: { [key: string]: any }) => {
+    const sanitizeObject = (obj: { [key: string]: any }) => {
         const sanitizedObj: { [key: string]: any } = {};
         for (const key in obj) {
-            const sanitizedKey = key.replace(/\//g, '_').replace(/\.$/, '');
+            const sanitizedKey = key.replace(/[\/\.]/g, '_').replace(/_$/, '');
             sanitizedObj[sanitizedKey] = obj[key];
         }
         return sanitizedObj;
@@ -337,8 +337,12 @@ export default function RegisterIrrigationPage() {
       // This is a saved record, update it in Firestore.
       try {
         const docRef = doc(db, 'registros-riego', id);
-        const sanitizedData = sanitizeKeys(dataFromForm);
+        // We pass the entire form data, which includes original and edited fields.
+        // We will sanitize this entire object to ensure all keys are valid.
+        const sanitizedData = sanitizeObject(dataFromForm);
   
+        // To prevent duplicate fields (e.g. 'Ha' and 'Ha.'), we should set the entire object.
+        // This overwrites the document with the cleaned-up version.
         await updateDoc(docRef, sanitizedData);
         toast({
           title: 'Éxito',
@@ -355,7 +359,6 @@ export default function RegisterIrrigationPage() {
     }
     setEditingRecord(null);
   };
-
   
   const renderEditFormFields = () => {
     if (!editingRecord) return null;
@@ -611,3 +614,6 @@ export default function RegisterIrrigationPage() {
 
 
 
+
+
+    
