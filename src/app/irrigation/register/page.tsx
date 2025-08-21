@@ -314,14 +314,13 @@ export default function RegisterIrrigationPage() {
   
     const { id, internalId, ...dataFromForm } = values;
   
-    // This function sanitizes the keys of an object, replacing '/' with '_'.
     const sanitizeKeys = (obj: { [key: string]: any }) => {
-      const sanitizedObj: { [key: string]: any } = {};
-      for (const key in obj) {
-        const sanitizedKey = key.replace(/\//g, '_');
-        sanitizedObj[sanitizedKey] = obj[key];
-      }
-      return sanitizedObj;
+        const sanitizedObj: { [key: string]: any } = {};
+        for (const key in obj) {
+            const sanitizedKey = key.replace(/\//g, '_').replace(/\.$/, '');
+            sanitizedObj[sanitizedKey] = obj[key];
+        }
+        return sanitizedObj;
     };
   
     if (internalId) {
@@ -338,7 +337,6 @@ export default function RegisterIrrigationPage() {
       // This is a saved record, update it in Firestore.
       try {
         const docRef = doc(db, 'registros-riego', id);
-        // Sanitize the keys before sending to Firestore.
         const sanitizedData = sanitizeKeys(dataFromForm);
   
         await updateDoc(docRef, sanitizedData);
@@ -610,5 +608,6 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
+
 
 
