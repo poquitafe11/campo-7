@@ -20,7 +20,7 @@ import { digitizeIrrigationTable } from "@/ai/flows/digitize-irrigation-table";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, writeBatch, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, writeBatch, doc, deleteDoc, updateDoc, setDoc } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -37,39 +37,76 @@ const editRecordSchema = z.object({
 }).passthrough();
 
 
-// --- Canonical Header Mapping ---
-const keyNormalizationMap: { [canonical: string]: string[] } = {
-    'Total_m3_Dia': ['totalm3dia', 'totalm3/dia'],
-    'm3_Ha_Hora': ['m3ha/hora', 'm3hahora', 'm3/ha/hora'],
-    'Ha': ['ha.'],
-    'BombaNo': ['bomban°', 'bombano'],
-    'Lps_adicion_al_10': ['lpsadicional10%', 'lpsadicional10'],
-    'Tiosulfato_de_Calcio_Lts': ['tiosulfatodecalcio(lts)'],
-    'Tiosulfato_de_Magnesio_Lts': ['tiosulfatodemagnesio(lts)'],
+const CANONICAL_KEYS_MAP: { [canonical: string]: string[] } = {
+  Fundo: ['fundo'],
+  Dia: ['dia'],
+  Fecha: ['fecha'],
+  Campaña: ['campaña'],
+  Etapa: ['etapa'],
+  BombaNo: ['bombano', 'bomban°'],
+  Sector: ['sector'],
+  Lote: ['lote'],
+  De: ['de'],
+  Hasta: ['hasta'],
+  'Total Horas': ['totalhoras'],
+  Observaciones: ['observaciones'],
+  eT: ['et'],
+  Kc: ['kc'],
+  Total_m3_Dia: ['totalm3dia', 'totalm3/dia'],
+  Ha: ['ha', 'ha.'],
+  m3_Ha_Hora: ['m3ha/hora', 'm3hahora', 'm3/ha/hora'],
+  'Lps Ideal': ['lpsideal'],
+  Lps_adicion_al_10: ['lpsadicional10%', 'lpsadicional10'],
+  Tiosulfato_de_Calcio_Lts: ['tiosulfatodecalcio(lts)'],
+  Tiosulfato_de_Magnesio_Lts: ['tiosulfatodemagnesio(lts)'],
+  N: ['n'],
+  P2O5: ['p2o5'],
+  K: ['k'],
+  Ca: ['ca'],
+  Mg: ['mg'],
+  Zn: ['zn'],
+  Mn: ['mn', 'mπ', 'mpi'],
 };
 
-// Reverse map for quick lookups
-const reverseKeyMap = new Map<string, string>();
-for (const canonical in keyNormalizationMap) {
-    keyNormalizationMap[canonical].forEach(alias => {
-        reverseKeyMap.set(alias, canonical);
-    });
-    reverseKeyMap.set(canonical.toLowerCase().replace(/_/g, ''), canonical);
+const ALIAS_TO_CANONICAL_MAP = new Map<string, string>();
+for (const canonicalKey in CANONICAL_KEYS_MAP) {
+  CANONICAL_KEYS_MAP[canonicalKey].forEach(alias => {
+    ALIAS_TO_CANONICAL_MAP.set(alias, canonicalKey);
+  });
+  ALIAS_TO_CANONICAL_MAP.set(canonicalKey.toLowerCase().replace(/[\s._/]/g, ''), canonicalKey);
 }
 
 function normalizeObjectKeys(obj: { [key: string]: any }): { [key: string]: any } {
     const newObj: { [key: string]: any } = {};
-    const processedKeys = new Set<string>();
 
-    for (const key in obj) {
-        const normalizedKey = key.toLowerCase().replace(/[\s\./]/g, '');
-        const canonicalKey = reverseKeyMap.get(normalizedKey) || key;
+    for (const canonicalKey of Object.keys(CANONICAL_KEYS_MAP)) {
+        const aliases = CANONICAL_KEYS_MAP[canonicalKey];
+        let foundValue: any = undefined;
 
-        if (!processedKeys.has(canonicalKey)) {
-            newObj[canonicalKey] = obj[key];
-            processedKeys.add(canonicalKey);
+        for (const key in obj) {
+            const normalizedKey = key.toLowerCase().replace(/[\s._/]/g, '');
+            if (aliases.includes(normalizedKey) || ALIAS_TO_CANONICAL_MAP.get(normalizedKey) === canonicalKey) {
+                 if (obj[key] !== undefined && obj[key] !== null && String(obj[key]).trim() !== '') {
+                    foundValue = obj[key];
+                    break;
+                }
+            }
+        }
+        
+        if (foundValue !== undefined) {
+          newObj[canonicalKey] = foundValue;
+        } else if (obj[canonicalKey] !== undefined) { // Check original canonical key as well
+           newObj[canonicalKey] = obj[canonicalKey];
         }
     }
+
+    // Add any keys that weren't in the canonical map
+    for (const key in obj) {
+        if (!Object.values(CANONICAL_KEYS_MAP).flat().some(alias => key.toLowerCase().replace(/[\s._/]/g, '') === alias) && !newObj.hasOwnProperty(key)) {
+            newObj[key] = obj[key];
+        }
+    }
+
     return newObj;
 }
 
@@ -351,9 +388,10 @@ export default function RegisterIrrigationPage() {
     if (!editingRecord) return;
   
     const { id, internalId, ...dataFromForm } = values;
-    const sanitizedData = normalizeObjectKeys(dataFromForm);
   
     if (internalId) {
+      // This is a preview record, just update state
+      const sanitizedData = normalizeObjectKeys(dataFromForm);
       setParsedData(prev =>
         prev.map(row =>
           row.internalId === internalId
@@ -363,11 +401,13 @@ export default function RegisterIrrigationPage() {
       );
       toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
+      // This is a saved record, update Firestore
       try {
         const docRef = doc(db, 'registros-riego', id);
-        // Important: Use set with merge:false to completely overwrite the document,
+        const finalData = normalizeObjectKeys(dataFromForm);
+        // Use set with merge:false to completely overwrite the document,
         // which removes any old, non-canonical keys.
-        await setDoc(docRef, sanitizedData);
+        await setDoc(docRef, finalData);
 
         toast({
           title: 'Éxito',
@@ -640,5 +680,7 @@ export default function RegisterIrrigationPage() {
 
 
 
+
+    
 
     
