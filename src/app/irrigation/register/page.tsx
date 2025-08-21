@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { renameAndMergeHeader } from "./actions";
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
 
@@ -35,6 +36,13 @@ const editRecordSchema = z.object({
   id: z.string().optional(),
   internalId: z.string().optional(),
 }).passthrough();
+
+const editHeaderSchema = z.object({
+    newName: z.string().min(1, "El nuevo nombre no puede estar vacío.").refine(name => !name.match(/[.#$[\]]/), {
+        message: "El nombre no puede contener los caracteres: . # $ [ ]",
+    }),
+    mergeWith: z.string().optional(),
+});
 
 
 const CANONICAL_KEYS_MAP: { [canonical: string]: string[] } = {
@@ -78,35 +86,25 @@ for (const canonicalKey in CANONICAL_KEYS_MAP) {
 
 function normalizeObjectKeys(obj: { [key: string]: any }): { [key: string]: any } {
     const newObj: { [key: string]: any } = {};
+    const processedOriginalKeys = new Set<string>();
 
-    for (const canonicalKey of Object.keys(CANONICAL_KEYS_MAP)) {
-        const aliases = CANONICAL_KEYS_MAP[canonicalKey];
-        let foundValue: any = undefined;
-
-        for (const key in obj) {
-            const normalizedKey = key.toLowerCase().replace(/[\s._/]/g, '');
-            if (aliases.includes(normalizedKey) || ALIAS_TO_CANONICAL_MAP.get(normalizedKey) === canonicalKey) {
-                 if (obj[key] !== undefined && obj[key] !== null && String(obj[key]).trim() !== '') {
-                    foundValue = obj[key];
-                    break;
-                }
-            }
-        }
+    for (const originalKey in obj) {
+        const normalizedKey = originalKey.toLowerCase().replace(/[\s._/]/g, '');
+        const canonicalKey = ALIAS_TO_CANONICAL_MAP.get(normalizedKey) || originalKey;
         
-        if (foundValue !== undefined) {
-          newObj[canonicalKey] = foundValue;
-        } else if (obj[canonicalKey] !== undefined) { // Check original canonical key as well
-           newObj[canonicalKey] = obj[canonicalKey];
+        if (newObj.hasOwnProperty(canonicalKey)) {
+             if (obj[originalKey] !== undefined && obj[originalKey] !== null && String(obj[originalKey]).trim() !== '') {
+                 // Simple merge: If target is empty, fill it. If not, maybe log a conflict.
+                 // A more robust strategy could be concatenation if both are strings.
+                 if (!newObj[canonicalKey]) {
+                     newObj[canonicalKey] = obj[originalKey];
+                 }
+             }
+        } else {
+             newObj[canonicalKey] = obj[originalKey];
         }
+        processedOriginalKeys.add(originalKey);
     }
-
-    // Add any keys that weren't in the canonical map
-    for (const key in obj) {
-        if (!Object.values(CANONICAL_KEYS_MAP).flat().some(alias => key.toLowerCase().replace(/[\s._/]/g, '') === alias) && !newObj.hasOwnProperty(key)) {
-            newObj[key] = obj[key];
-        }
-    }
-
     return newObj;
 }
 
@@ -184,6 +182,12 @@ export default function RegisterIrrigationPage() {
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({ campana: '', lote: '', etapa: '', fecha: '' });
+  
+  const [editingHeader, setEditingHeader] = useState<string | null>(null);
+  const [isHeaderSubmitting, setIsHeaderSubmitting] = useState(false);
+  const editHeaderForm = useForm<z.infer<typeof editHeaderSchema>>({
+    resolver: zodResolver(editHeaderSchema),
+  });
 
   const form = useForm({
     resolver: zodResolver(editRecordSchema),
@@ -405,8 +409,6 @@ export default function RegisterIrrigationPage() {
       try {
         const docRef = doc(db, 'registros-riego', id);
         const finalData = normalizeObjectKeys(dataFromForm);
-        // Use set with merge:false to completely overwrite the document,
-        // which removes any old, non-canonical keys.
         await setDoc(docRef, finalData);
 
         toast({
@@ -448,7 +450,7 @@ export default function RegisterIrrigationPage() {
   const savedRecordsHeaders = useMemo(() => {
     const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps_adicion_al_10', 'Tiosulfato_de_Calcio_Lts', 'Tiosulfato_de_Magnesio_Lts', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
     const headers = new Set<string>();
-    savedRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
+    filteredRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
     headersArray.sort((a, b) => {
         const indexA = PREFERRED_ORDER.indexOf(a);
@@ -460,7 +462,7 @@ export default function RegisterIrrigationPage() {
     });
     
     return headersArray;
-  }, [savedRecords]);
+  }, [filteredRecords]);
 
   const handleDownloadExcel = () => {
     const dataToExport = filteredRecords.map(record => {
@@ -481,6 +483,35 @@ export default function RegisterIrrigationPage() {
       const fechas = [...new Set(savedRecords.map(r => r.Fecha))].filter(Boolean);
       return { campanas, lotes, etapas, fechas };
   }, [savedRecords]);
+
+  const handleEditHeader = (header: string) => {
+    setEditingHeader(header);
+    editHeaderForm.reset({ newName: header, mergeWith: '' });
+  };
+
+  const onEditHeaderSubmit = async (values: z.infer<typeof editHeaderSchema>) => {
+    if (!editingHeader) return;
+    setIsHeaderSubmitting(true);
+    const { newName, mergeWith } = values;
+
+    if(editingHeader === newName && !mergeWith) {
+        setEditingHeader(null);
+        setIsHeaderSubmitting(false);
+        return;
+    }
+
+    const finalNewName = mergeWith || newName;
+
+    const result = await renameAndMergeHeader({ oldHeader: editingHeader, newHeader: finalNewName });
+
+    if(result.success) {
+        toast({ title: "Éxito", description: `Se procesaron ${result.count} registros.` });
+        setEditingHeader(null);
+    } else {
+        toast({ variant: "destructive", title: "Error", description: result.message });
+    }
+    setIsHeaderSubmitting(false);
+  };
 
   return (
     <>
@@ -623,7 +654,16 @@ export default function RegisterIrrigationPage() {
                     <Table className="bg-background">
                         <TableHeader>
                             <TableRow>
-                                {savedRecordsHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}
+                                {savedRecordsHeaders.map(header => (
+                                    <TableHead key={header} className="group">
+                                        <div className="flex items-center gap-1">
+                                            {header}
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditHeader(header)}>
+                                                <Pencil className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    </TableHead>
+                                ))}
                                 <TableHead>Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -673,14 +713,34 @@ export default function RegisterIrrigationPage() {
             </Form>
         </DialogContent>
     </Dialog>
+
+    <Dialog open={!!editingHeader} onOpenChange={setEditingHeader}>
+        <DialogContent>
+            <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescription>Renombra o fusiona la columna "{editingHeader}".</DialogDescription></DialogHeader>
+            <Form {...editHeaderForm}>
+                <form onSubmit={editHeaderForm.handleSubmit(onEditHeaderSubmit)} className="space-y-4">
+                    <FormField
+                        control={editHeaderForm.control}
+                        name="newName"
+                        render={({ field }) => (
+                            <FormItem><FormLabel>Nuevo Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={editHeaderForm.control}
+                        name="mergeWith"
+                        render={({ field }) => (
+                            <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
+                        )}
+                    />
+                    <DialogFooter className="pt-4">
+                        <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                        <Button type="submit" disabled={isHeaderSubmitting}>{isHeaderSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar</Button>
+                    </DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+    </Dialog>
     </>
   );
 }
-
-
-
-
-
-    
-
-    
