@@ -22,15 +22,25 @@ import { collection, addDoc, onSnapshot, writeBatch, doc, deleteDoc, updateDoc }
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { renameAndMergeHeader } from "./actions";
+
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
 
 const editRecordSchema = z.object({
   id: z.string(),
 });
+
+const editHeaderSchema = z.object({
+    newName: z.string().min(1, "El nuevo nombre no puede estar vacío.").refine(name => !name.match(/[.#$[\]/]/), {
+        message: "El nombre no puede contener los caracteres: . # $ [ ] /",
+    }),
+    mergeWith: z.string().optional(),
+});
+
 
 function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string> {
   const canvas = document.createElement('canvas');
@@ -108,6 +118,13 @@ export default function RegisterHealthPage() {
   const [completedCrop, setCompletedCrop] = useState<CropType>();
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
+
+  const [editingHeader, setEditingHeader] = useState<string | null>(null);
+  const [isHeaderSubmitting, setIsHeaderSubmitting] = useState(false);
+  
+  const editHeaderForm = useForm<z.infer<typeof editHeaderSchema>>({
+    resolver: zodResolver(editHeaderSchema),
+  });
 
   const form = useForm<z.infer<typeof editRecordSchema>>({
     resolver: zodResolver(editRecordSchema),
@@ -387,6 +404,35 @@ export default function RegisterHealthPage() {
     return headersArray;
   }, [savedRecords]);
 
+  const handleEditHeader = (header: string) => {
+    setEditingHeader(header);
+    editHeaderForm.reset({ newName: header, mergeWith: '' });
+  };
+
+  const onEditHeaderSubmit = async (values: z.infer<typeof editHeaderSchema>) => {
+    if (!editingHeader) return;
+    setIsHeaderSubmitting(true);
+    const { newName, mergeWith } = values;
+
+    if(editingHeader === newName && !mergeWith) {
+        setEditingHeader(null);
+        setIsHeaderSubmitting(false);
+        return;
+    }
+
+    const finalNewName = mergeWith || newName;
+
+    const result = await renameAndMergeHeader({ oldHeader: editingHeader, newHeader: finalNewName });
+
+    if(result.success) {
+        toast({ title: "Éxito", description: `Se procesaron ${result.count} registros.` });
+        setEditingHeader(null);
+    } else {
+        toast({ variant: "destructive", title: "Error", description: result.message });
+    }
+    setIsHeaderSubmitting(false);
+  };
+
 
   return (
     <>
@@ -491,17 +537,16 @@ export default function RegisterHealthPage() {
                     <Table className="bg-background">
                         <TableHeader>
                             <TableRow>
-                                {savedRecordsHeaders.map(header => {
-                                    let headerText;
-                                    switch (header) {
-                                        case 'fechaAplicacion': headerText = 'Fecha Plan de Aplicación'; break;
-                                        case 'prHoras': headerText = 'P.R. Horas'; break;
-                                        case 'tipoApp': headerText = 'Tipo de App'; break;
-                                        case 'ingredienteActivo': headerText = 'Ingrediente Activo'; break;
-                                        default: headerText = header.charAt(0).toUpperCase() + header.slice(1);
-                                    }
-                                    return <TableHead key={header}>{headerText}</TableHead>
-                                })}
+                                {savedRecordsHeaders.map(header => (
+                                    <TableHead key={header} className="group">
+                                        <div className="flex items-center gap-1">
+                                            {header}
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditHeader(header)}>
+                                                <Pencil className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    </TableHead>
+                                ))}
                                 <TableHead>Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -551,6 +596,35 @@ export default function RegisterHealthPage() {
             </Form>
         </DialogContent>
     </Dialog>
+
+    <Dialog open={!!editingHeader} onOpenChange={setEditingHeader}>
+        <DialogContent>
+            <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescription>Renombra o fusiona la columna "{editingHeader}".</DialogDescription></DialogHeader>
+            <Form {...editHeaderForm}>
+                <form onSubmit={editHeaderForm.handleSubmit(onEditHeaderSubmit)} className="space-y-4">
+                    <FormField
+                        control={editHeaderForm.control}
+                        name="newName"
+                        render={({ field }) => (
+                            <FormItem><FormLabel>Nuevo Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={editHeaderForm.control}
+                        name="mergeWith"
+                        render={({ field }) => (
+                            <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
+                        )}
+                    />
+                    <DialogFooter className="pt-4">
+                        <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                        <Button type="submit" disabled={isHeaderSubmitting}>{isHeaderSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar</Button>
+                    </DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+    </Dialog>
+
     </>
   );
 }
