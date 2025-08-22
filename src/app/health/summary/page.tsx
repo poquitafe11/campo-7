@@ -132,8 +132,12 @@ export default function HealthSummaryPage() {
         const dataToExport = processedData.map(record => {
             const loteMaster = lotesMap.get(record.lote);
             let ddc = 'N/A';
-            if(loteMaster?.fechaCianamida && record.parsedDate && isValid(loteMaster.fechaCianamida) && isValid(record.parsedDate)) {
-              ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
+            let daysSince = 'N/A';
+            if (record.parsedDate && isValid(record.parsedDate)) {
+                daysSince = differenceInDays(new Date(), record.parsedDate).toString();
+                if (loteMaster?.fechaCianamida && isValid(loteMaster.fechaCianamida)) {
+                  ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
+                }
             }
             return {
                 'Fecha': record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida',
@@ -142,7 +146,7 @@ export default function HealthSummaryPage() {
                 'Cuartel(es)': record.cuarteles,
                 'Producto': record['producto'],
                 'Ingrediente Activo': record['ingredienteActivo'],
-                'Días Transcurridos': 'N/A', // Omit calculation
+                'Días Transcurridos': daysSince,
             };
         });
 
@@ -200,8 +204,13 @@ export default function HealthSummaryPage() {
                                             processedData.map((record) => {
                                                 const loteMaster = lotesMap.get(record.lote);
                                                 let ddc = 'N/A';
-                                                if(loteMaster?.fechaCianamida && record.parsedDate && isValid(loteMaster.fechaCianamida) && isValid(record.parsedDate)) {
-                                                  ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
+                                                let daysSince = 'N/A';
+
+                                                if(record.parsedDate && isValid(record.parsedDate)) {
+                                                  daysSince = differenceInDays(new Date(), record.parsedDate).toString();
+                                                  if(loteMaster?.fechaCianamida && isValid(loteMaster.fechaCianamida)) {
+                                                    ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
+                                                  }
                                                 }
                                                 
                                                 return (
@@ -212,7 +221,7 @@ export default function HealthSummaryPage() {
                                                         <TableCell>{record.cuarteles}</TableCell>
                                                         <TableCell>{record['producto']}</TableCell>
                                                         <TableCell>{record['ingredienteActivo']}</TableCell>
-                                                        <TableCell>N/A</TableCell>
+                                                        <TableCell>{daysSince}</TableCell>
                                                     </TableRow>
                                                 );
                                             })
