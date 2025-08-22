@@ -39,7 +39,7 @@ Analyze the image and transcribe the entire content of the table into a structur
 Each object in the array should represent a row from the table.
 
 IMPORTANT: Use the following exact keys for the JSON objects, unifying any variations from the image.
-- "fechaAplicacion" (from "Fecha Plan de Aplicación")
+- "fechaAplicacion" (from "Fecha Plan de Aplicación" or "Fecha Aplicacion")
 - "lote" (from "Lote" or "L O T")
 - "cuartel" (from "Cuartel")
 - "tipoApp" (from "Tipo de App")

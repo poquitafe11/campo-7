@@ -17,7 +17,8 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 type HealthRecord = {
     id: string;
-    fechaAplicacion: string;
+    fechaAplicacion?: string;
+    'Fecha Plan de Aplicación'?: string;
     [key: string]: any;
 };
 
@@ -83,7 +84,7 @@ export default function HealthSummaryPage() {
         // Step 1: Normalize records
         const normalized = healthRecords.map(r => ({
             ...r,
-            fechaAplicacion: r['fechaAplicacion'] || '',
+            fechaAplicacion: r.fechaAplicacion || r['Fecha Plan de Aplicación'] || '',
             lote: String(r['lote'] || r['Lote'] || ''),
             cuarteles: String(r['cuartel'] || r['Cuartel'] || ''),
             producto: String(r['producto'] || r['Producto'] || ''),
