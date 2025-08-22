@@ -133,12 +133,14 @@ export default function HealthSummaryPage() {
             const loteMaster = lotesMap.get(record.lote);
             let ddc = 'N/A';
             let daysSince = 'N/A';
+
             if (record.parsedDate && isValid(record.parsedDate)) {
                 daysSince = differenceInDays(new Date(), record.parsedDate).toString();
                 if (loteMaster?.fechaCianamida && isValid(loteMaster.fechaCianamida)) {
                   ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
                 }
             }
+            
             return {
                 'Fecha': record.parsedDate ? format(record.parsedDate, 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida',
                 'DDC': ddc,
@@ -207,7 +209,9 @@ export default function HealthSummaryPage() {
                                                 let daysSince = 'N/A';
 
                                                 if(record.parsedDate && isValid(record.parsedDate)) {
+                                                  // Días transcurridos desde la aplicación hasta hoy
                                                   daysSince = differenceInDays(new Date(), record.parsedDate).toString();
+                                                  // DDC: Días desde cianamida hasta la aplicación
                                                   if(loteMaster?.fechaCianamida && isValid(loteMaster.fechaCianamida)) {
                                                     ddc = differenceInDays(record.parsedDate, loteMaster.fechaCianamida).toString();
                                                   }
