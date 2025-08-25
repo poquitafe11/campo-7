@@ -10,7 +10,6 @@ import { useAuth } from "@/hooks/useAuth";
 import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarProps {
@@ -21,7 +20,6 @@ interface SidebarProps {
 export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
   const { profile, user, logout } = useAuth();
   const { actions } = useHeaderActions();
-  const router = useRouter();
   const isMobile = useIsMobile();
 
   const sidebarContent = (
@@ -76,7 +74,7 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
         <div className="flex-1 text-center font-semibold text-lg truncate px-2">
           {actions?.title ?? ''}
         </div>
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end min-w-[40px]">
             {actions?.right ??
              <Link href="/dashboard" passHref>
                 <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9">
