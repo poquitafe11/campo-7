@@ -61,7 +61,7 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
         <div className="flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9">
+              <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle Menu</span>
               </Button>
@@ -72,19 +72,19 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
             </SheetContent>
           </Sheet>
            {actions && actions.left ? actions.left : (
-              <Button variant="ghost" size="icon" className="sm:hidden shrink-0 h-9 w-9" onClick={() => router.back()}>
+              <Button variant="ghost" size="icon" className="hidden" onClick={() => router.back()}>
                   <ArrowLeft className="h-5 w-5" />
                   <span className="sr-only">Atrás</span>
               </Button>
            )}
         </div>
         <div className="flex-1 text-center font-semibold text-lg truncate px-2">
-          {actions && (actions.center || actions.title)}
+          {actions?.title ?? ''}
         </div>
         <div className="flex items-center justify-end">
             {actions && actions.right ? actions.right :
              <Link href="/dashboard" passHref>
-                <Button size="icon" variant="ghost" className="sm:hidden shrink-0 h-9 w-9">
+                <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9">
                     <LayoutGrid className="h-5 w-5" />
                     <span className="sr-only">Dashboard</span>
                 </Button>

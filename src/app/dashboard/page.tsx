@@ -66,8 +66,8 @@ export default function DashboardPage() {
     const { setActions } = useHeaderActions();
 
     useEffect(() => {
-        setActions(<>Áreas de Gestión</>);
-        return () => setActions(null);
+        setActions({ title: "Áreas de Gestión" });
+        return () => setActions({});
     }, [setActions]);
 
     const handlePermissionSettings = (e: React.MouseEvent, feature: Feature) => {

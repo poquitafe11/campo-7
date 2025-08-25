@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface HeaderActions {
   title?: React.ReactNode;
+  center?: React.ReactNode;
   left?: React.ReactNode;
   right?: React.ReactNode;
 }
