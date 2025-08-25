@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, UserCircle, LayoutGrid, ArrowLeft } from "lucide-react";
+import { Menu, LogOut, LayoutGrid } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,7 +26,7 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <div className={cn("p-4 border-b border-sidebar-accent/20 flex items-center", isExpanded || isMobile ? "justify-between" : "justify-center")}>
+      <div className={cn("p-4 border-b border-sidebar-accent/20 flex items-center h-[73px]", isExpanded || isMobile ? "justify-between" : "justify-center")}>
         <div className={cn("flex items-center gap-3", !(isExpanded || isMobile) && "hidden")}>
           <Avatar className="h-10 w-10 border-2 border-sidebar-accent">
             <AvatarImage src={user?.photoURL || ""} />
@@ -66,23 +66,18 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs p-0 w-64">
+            <SheetContent side="left" className="sm:max-w-xs p-0 w-64 bg-sidebar border-r-0">
               <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
               {sidebarContent}
             </SheetContent>
           </Sheet>
-           {actions && actions.left ? actions.left : (
-              <Button variant="ghost" size="icon" className="hidden" onClick={() => router.back()}>
-                  <ArrowLeft className="h-5 w-5" />
-                  <span className="sr-only">Atrás</span>
-              </Button>
-           )}
+           {actions?.left}
         </div>
         <div className="flex-1 text-center font-semibold text-lg truncate px-2">
           {actions?.title ?? ''}
         </div>
         <div className="flex items-center justify-end">
-            {actions && actions.right ? actions.right :
+            {actions?.right ??
              <Link href="/dashboard" passHref>
                 <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9">
                     <LayoutGrid className="h-5 w-5" />

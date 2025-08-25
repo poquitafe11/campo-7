@@ -26,7 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return <>{children}</>;
   }
 
-  // On mobile, the sidebar is a sheet, so no margin is needed.
+  // On mobile, the margin is handled by the header, so it's always full width.
   // On desktop, the margin depends on the sidebar state.
   const mainContentMargin = isMobile ? '' : (isSidebarExpanded ? 'sm:ml-64' : 'sm:ml-14');
 
