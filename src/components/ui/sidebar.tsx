@@ -1,23 +1,53 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, LayoutGrid } from "lucide-react";
+import { LogOut, LayoutGrid, Users, Map, Settings } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
 import ConnectionStatus from "../ConnectionStatus";
-import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+
+
+const BottomNavbar = () => {
+    const { logout } = useAuth();
+    const pathname = usePathname();
+    const isActive = (href: string) => pathname === href;
+
+    const navItems = [
+        { href: '/dashboard', label: 'Áreas', icon: LayoutGrid },
+        { href: '/users', label: 'Usuarios', icon: Users },
+        { href: '/maps', label: 'Mapas', icon: Map },
+    ];
+
+    return (
+        <nav className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 sm:hidden">
+            <div className="flex justify-around items-center h-16">
+                {navItems.map(item => (
+                     <Link href={item.href} key={item.href} className={cn(
+                        "flex flex-col items-center justify-center gap-1 w-full h-full",
+                        isActive(item.href) ? "text-primary" : "text-muted-foreground"
+                     )}>
+                        <item.icon className="h-5 w-5" />
+                        <span className="text-xs">{item.label}</span>
+                    </Link>
+                ))}
+                <button onClick={logout} className="flex flex-col items-center justify-center gap-1 w-full h-full text-muted-foreground">
+                    <LogOut className="h-5 w-5" />
+                    <span className="text-xs">Salir</span>
+                </button>
+            </div>
+        </nav>
+    )
+}
+
 
 export function Sidebar() {
-  const { profile, user, logout } = useAuth();
-  const { actions } = useHeaderActions();
+  const { profile, user } = useAuth();
   const isMobile = useIsMobile();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
@@ -40,49 +70,14 @@ export function Sidebar() {
         <SidebarNav isExpanded={true} />
       </div>
 
-      <div className={cn("mt-auto p-4 border-t border-sidebar-accent/20 space-y-4")}>
+      <div className={cn("mt-auto p-4 border-t border-sidebar-accent/20")}>
         <ConnectionStatus />
-        <Button onClick={logout} variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20">
-          <LogOut />
-          <span className="ml-2">Cerrar Sesión</span>
-        </Button>
       </div>
     </div>
   );
 
   if (isMobile) {
-     return (
-       <header className="sticky top-0 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 z-40">
-        <div className="flex items-center gap-2">
-          <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs p-0 w-64 bg-sidebar border-r-0">
-              <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
-              {sidebarContent}
-            </SheetContent>
-          </Sheet>
-           {actions?.left}
-        </div>
-        <div className="flex-1 text-center font-semibold text-lg truncate px-2">
-          {actions?.title ?? ''}
-        </div>
-        <div className="flex items-center justify-end min-w-[40px]">
-            {actions?.right ??
-             <Link href="/dashboard" passHref>
-                <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9">
-                    <LayoutGrid className="h-5 w-5" />
-                    <span className="sr-only">Dashboard</span>
-                </Button>
-            </Link>
-            }
-        </div>
-      </header>
-     );
+     return <BottomNavbar />;
   }
 
   return (
