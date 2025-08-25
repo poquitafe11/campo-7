@@ -25,7 +25,8 @@ if (typeof window !== 'undefined') {
     enableIndexedDbPersistence(db)
       .catch((err) => {
         if (err.code === 'failed-precondition') {
-          // Multiple tabs open, persistence can only be enabled in one tab at a time.
+          // This can happen if multiple tabs are open.
+          // Persistence can only be enabled in one tab at a time.
           console.warn("Firestore persistence failed: Multiple tabs open.");
         } else if (err.code === 'unimplemented') {
           // The current browser does not support all of the features required to enable persistence
@@ -33,8 +34,9 @@ if (typeof window !== 'undefined') {
         }
       });
   } catch (error) {
-    console.error("An error occurred while enabling Firestore persistence:", error);
+    console.error("An error occurred while trying to enable Firestore persistence:", error);
   }
 }
+
 
 export { db, app, auth };
