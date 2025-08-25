@@ -11,6 +11,7 @@ import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 export function Sidebar() {
   const { profile, user, logout } = useAuth();
