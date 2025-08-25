@@ -16,7 +16,6 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useMemo, useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const mainLinks = [
   { href: '/dashboard', label: 'Áreas', icon: LayoutGrid },
@@ -56,36 +55,19 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
   
-  const NavLink = ({ href, label, icon: Icon, disabled = false }: { href: string; label: string; icon: React.ElementType; disabled?: boolean }) => {
-      const linkContent = (
-        <div className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
-          isActive(href) && 'bg-sidebar-accent text-sidebar-foreground',
-          disabled && 'cursor-not-allowed opacity-50',
-          !isExpanded && "justify-center"
-        )}>
-          <Icon className="h-4 w-4 shrink-0" />
-          <span className={cn("truncate", !isExpanded && "hidden")}>{label}</span>
-        </div>
-      );
-
-      return (
-        <TooltipProvider delayDuration={100}>
-           <Tooltip>
-              <TooltipTrigger asChild>
-                  <Link href={!disabled ? href : '#'}>
-                    {linkContent}
-                  </Link>
-              </TooltipTrigger>
-              {!isExpanded && (
-                  <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent/50">
-                      <p>{label}</p>
-                  </TooltipContent>
-              )}
-           </Tooltip>
-        </TooltipProvider>
-      )
-  };
+  const NavLink = ({ href, label, icon: Icon, disabled = false }: { href: string; label: string; icon: React.ElementType; disabled?: boolean }) => (
+    <Link
+      href={!disabled ? href : '#'}
+      className={cn(
+        'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
+        isActive(href) && 'bg-sidebar-accent text-sidebar-foreground',
+        disabled && 'cursor-not-allowed opacity-50'
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </Link>
+  );
 
   return (
     <nav className="grid items-start gap-1 p-2 text-sm font-medium">
@@ -95,27 +77,14 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
         
         <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
           <AccordionItem value="maestros" className="border-none">
-            <TooltipProvider delayDuration={100}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                         <AccordionTrigger className={cn(
-                            'flex items-center w-full gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline',
-                            isMastersActive && 'bg-sidebar-accent text-sidebar-foreground',
-                            !isExpanded && "justify-center"
-                        )}>
-                          <Layers className="h-4 w-4 shrink-0" />
-                          <span className={cn("flex-1 text-left truncate", !isExpanded && "hidden")}>Maestros</span>
-                        </AccordionTrigger>
-                    </TooltipTrigger>
-                    {!isExpanded && (
-                        <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent/50">
-                            <p>Maestros</p>
-                        </TooltipContent>
-                    )}
-                </Tooltip>
-            </TooltipProvider>
-
-            <AccordionContent className={cn("pt-1 space-y-1", isExpanded ? "pl-7" : "pl-0")}>
+            <AccordionTrigger className={cn(
+                'flex items-center w-full gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline',
+                isMastersActive && 'bg-sidebar-accent text-sidebar-foreground'
+            )}>
+              <Layers className="h-4 w-4" />
+              <span className="flex-1 text-left">Maestros</span>
+            </AccordionTrigger>
+            <AccordionContent className="pt-1 pl-7 space-y-1">
               {visibleLinks.masters.map((link) => (
                  <NavLink key={link.href} {...link} />
               ))}

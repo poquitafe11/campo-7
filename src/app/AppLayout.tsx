@@ -10,11 +10,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-
-  const toggleSidebar = useCallback(() => {
-    setIsSidebarExpanded(prev => !prev);
-  }, []);
   
   // Special layout for the daily attendance entry page
   if (pathname === '/production/attendance/daily-entry') {
@@ -26,14 +21,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return <>{children}</>;
   }
 
-  // On mobile, the margin is handled by the header, so it's always full width.
-  // On desktop, the margin depends on the sidebar state.
-  const mainContentMargin = isMobile ? '' : (isSidebarExpanded ? 'sm:ml-64' : 'sm:ml-14');
-
   return (
     <div className="w-full bg-background">
-      <Sidebar isExpanded={isSidebarExpanded} onToggle={toggleSidebar} />
-      <main className={cn("transition-[margin-left] duration-300 ease-in-out", mainContentMargin)}>
+      <Sidebar />
+      <main className={cn("transition-[margin-left] duration-300 ease-in-out", !isMobile ? "sm:ml-64" : "")}>
         <div className="overflow-x-auto p-4 md:p-8">
             {children}
         </div>
