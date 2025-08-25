@@ -4,14 +4,14 @@
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, UserCircle, LayoutGrid, ArrowLeft, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Menu, LogOut, UserCircle, LayoutGrid, ArrowLeft } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
 import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarProps {
@@ -22,7 +22,6 @@ interface SidebarProps {
 export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
   const { profile, user, logout } = useAuth();
   const { actions } = useHeaderActions();
-  const pathname = usePathname();
   const router = useRouter();
   const isMobile = useIsMobile();
 
@@ -41,11 +40,6 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
             <p className="text-xs text-sidebar-muted-foreground whitespace-nowrap">Rol: {profile?.rol}</p>
           </div>
         </div>
-        {!isMobile && (
-            <Button variant="ghost" size="icon" onClick={onToggle} className="h-8 w-8 text-sidebar-muted-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-foreground">
-              <Menu />
-            </Button>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -107,7 +101,37 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
       "hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:flex sm:flex-col transition-[width] duration-300 ease-in-out",
       isExpanded ? "w-64" : "w-14"
     )}>
-        {sidebarContent}
+        <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+            <div className={cn("p-4 border-b border-sidebar-accent/20 flex items-center h-[73px]", isExpanded ? "justify-between" : "justify-center")}>
+                {isExpanded && (
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border-2 border-sidebar-accent">
+                            <AvatarImage src={user?.photoURL || ""} />
+                            <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground font-bold">
+                                {profile?.nombre.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p className="font-semibold text-sm whitespace-nowrap">{profile?.nombre}</p>
+                            <p className="text-xs text-sidebar-muted-foreground whitespace-nowrap">Rol: {profile?.rol}</p>
+                        </div>
+                    </div>
+                )}
+                 <Button variant="ghost" size="icon" onClick={onToggle} className="h-8 w-8 text-sidebar-muted-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-foreground">
+                    <Menu />
+                </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+                <SidebarNav isExpanded={isExpanded} />
+            </div>
+            <div className={cn("mt-auto p-4 border-t border-sidebar-accent/20 space-y-4", !isExpanded && "px-2")}>
+                <ConnectionStatus />
+                <Button onClick={logout} variant="ghost" className={cn("w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20", !isExpanded && "justify-center")}>
+                    <LogOut />
+                    {isExpanded && <span className="ml-2">Cerrar Sesión</span>}
+                </Button>
+            </div>
+        </div>
     </aside>
   );
 }
