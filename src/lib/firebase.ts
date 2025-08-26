@@ -1,10 +1,9 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getFirestore, enableIndexedDbPersistence, Firestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
+import { getAuth, Auth, initializeAuth, browserLocalPersistence, indexedDBLocalPersistence } from "firebase/auth";
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBPoccPeNLmj1psrxCw5vMDJ5yrwPoITbk",
   authDomain: "brujos.firebaseapp.com",
@@ -14,28 +13,30 @@ const firebaseConfig = {
   appId: "1:171849909417:web:0d594994387c214e5695b8"
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+function createFirebaseApp() {
+    const apps = getApps();
+    if (apps.length > 0) {
+        return apps[0];
+    }
+    const app = initializeApp(firebaseConfig);
+    return app;
+}
+
+const app = createFirebaseApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Enable persistence only on the client side
+
+// Enable persistence only on the client-side
 if (typeof window !== 'undefined') {
-  try {
-    enableIndexedDbPersistence(db)
-      .catch((err) => {
-        if (err.code === 'failed-precondition') {
-          // This can happen if multiple tabs are open.
-          // Persistence can only be enabled in one tab at a time.
-          console.warn("Firestore persistence failed: Multiple tabs open.");
-        } else if (err.code === 'unimplemented') {
-          // The current browser does not support all of the features required to enable persistence
-          console.warn("Firestore persistence failed: Browser does not support required features.");
-        }
-      });
-  } catch (error) {
-    console.error("An error occurred while trying to enable Firestore persistence:", error);
-  }
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+      console.warn("Firestore persistence failed: Multiple tabs open or other issue.");
+    } else if (err.code == 'unimplemented') {
+      console.warn("Firestore persistence failed: Browser does not support required features.");
+    }
+  });
 }
 
 

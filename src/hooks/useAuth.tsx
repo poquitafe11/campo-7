@@ -26,6 +26,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Avoid running auth logic on the server
+    if (typeof window === 'undefined') {
+        return;
+    }
+      
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser && firebaseUser.email) {
         setUser(firebaseUser);
