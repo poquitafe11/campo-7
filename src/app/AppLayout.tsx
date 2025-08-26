@@ -12,16 +12,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const { width } = useWindowSize();
   
-  // Default to expanded on desktop, collapsed on mobile
+  // Default to collapsed on mobile, expanded on desktop
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(width >= 768);
 
   useEffect(() => {
-    if (width < 768) {
+    if (isMobile) {
       setIsSidebarExpanded(false);
     } else {
       setIsSidebarExpanded(true);
     }
-  }, [width]);
+  }, [isMobile]);
   
   // Special layout for the daily attendance entry page
   if (pathname === '/production/attendance/daily-entry') {
@@ -38,7 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar isExpanded={isSidebarExpanded} setIsExpanded={setIsSidebarExpanded} />
       <main className={cn(
           "transition-[margin-left] duration-300 ease-in-out",
-           isMobile ? "ml-20" : (isSidebarExpanded ? "sm:ml-64" : "sm:ml-20")
+          isSidebarExpanded ? "ml-64" : "ml-20"
         )}>
         <div className="overflow-x-auto p-4 md:p-8">
             {children}
@@ -46,3 +46,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
     </div>
   );
+}
