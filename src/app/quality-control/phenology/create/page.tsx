@@ -8,7 +8,6 @@ import * as z from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Save, Leaf, Loader2 } from 'lucide-react';
-import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -25,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { BudbreakSchema, PhenologySchema } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 type PhenologyFormValues = z.infer<typeof PhenologySchema>;
@@ -43,8 +43,14 @@ export default function CreatePhenologyPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { lotes, loading: masterLoading } = useMasterData();
+  const { setActions } = useHeaderActions();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastTotalBuds, setLastTotalBuds] = useState<number | null>(null);
+
+  useEffect(() => {
+    setActions({ title: "Evaluación Fenológica" });
+    return () => setActions({});
+  }, [setActions]);
 
   const form = useForm<PhenologyFormValues>({
     resolver: zodResolver(PhenologySchema),
@@ -330,7 +336,6 @@ export default function CreatePhenologyPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Evaluación Fenológica" />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Leaf className="h-6 w-6"/>Nuevo Registro Fenológico</CardTitle>

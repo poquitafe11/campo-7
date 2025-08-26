@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { CalendarIcon, BadgeCheck } from "lucide-react";
 import { format } from "date-fns";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,13 +17,20 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/PageHeader";
 import { QualityControlSchema } from "@/lib/types";
 import { useAppData } from "@/context/AppDataContext";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 export default function RegisterQualityControlPage() {
   const { dispatch } = useAppData();
   const { toast } = useToast();
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions({ title: "Control de Calidad" });
+    return () => setActions({});
+  }, [setActions]);
+
 
   const form = useForm<z.infer<typeof QualityControlSchema>>({
     resolver: zodResolver(QualityControlSchema),
@@ -44,7 +52,6 @@ export default function RegisterQualityControlPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Control de Calidad" />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

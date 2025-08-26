@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -28,7 +27,7 @@ import { Label } from '@/components/ui/label';
 import { ChartConfig, ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Bar, BarChart, CartesianGrid, Legend, RadialBar, RadialBarChart, XAxis, YAxis } from 'recharts';
-import { PageHeader } from '@/components/PageHeader';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 const formatNumber = (num: number, digits = 2) => {
@@ -54,12 +53,18 @@ export default function AnalysisPage() {
   const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
   const { lotes: allLotes, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
   const [isLoading, setIsLoading] = useState(true);
+  const { setActions } = useHeaderActions();
   
   const [filters, setFilters] = useState(initialFilters);
   const [drilldownLote, setDrilldownLote] = useState<string | null>(null);
   const [drilldownLabor, setDrilldownLabor] = useState<string | null>(null);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    setActions({ title: "Análisis y Reportes" });
+    return () => setActions({});
+  }, [setActions]);
 
   const loadData = useCallback(async (showToast = false) => {
     setIsLoading(true);

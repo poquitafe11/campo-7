@@ -3,7 +3,8 @@
 
 import { FeatureCard } from "@/components/FeatureCard";
 import { Layers, Box, Users, Thermometer, ScrollText } from "lucide-react";
-import { PageHeader } from "@/components/PageHeader";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+import { useEffect } from "react";
 
 const masterFeatures = [
   {
@@ -45,14 +46,18 @@ const masterFeatures = [
 ];
 
 export default function MaestrosPage() {
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions({ title: "Maestros" });
+    return () => setActions({});
+  }, [setActions]);
+
   return (
-    <>
-      <PageHeader title="Maestros" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {masterFeatures.map((feature) => (
-          <FeatureCard key={feature.title} {...feature} />
-        ))}
-      </div>
-    </>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {masterFeatures.map((feature) => (
+        <FeatureCard key={feature.title} {...feature} />
+      ))}
+    </div>
   );
 }

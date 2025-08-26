@@ -4,13 +4,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Camera, Save, Loader2, RefreshCw, AlertTriangle, ScanLine } from "lucide-react";
 
-import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 // Extend the Window interface to include cv
 declare global {
@@ -28,6 +28,7 @@ const REFERENCE_DIAMETER_MM = 25.5; // Diameter of a 1 Sol coin
 
 export default function EvaluationsPage() {
   const { toast } = useToast();
+  const { setActions } = useHeaderActions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -37,6 +38,11 @@ export default function EvaluationsPage() {
   const [cvReady, setCvReady] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Cargando motor de visión...");
   const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    setActions({ title: "Evaluación de Calibre" });
+    return () => setActions({});
+  }, [setActions]);
 
   useEffect(() => {
     const checkCv = () => {
@@ -180,8 +186,6 @@ export default function EvaluationsPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Evaluación de Calibre" />
-
       <Alert variant="destructive" className="mb-6">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>¡Requisito Importante!</AlertTitle>

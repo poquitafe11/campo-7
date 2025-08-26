@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PageHeader } from '@/components/PageHeader';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
@@ -24,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Calendar } from '@/components/ui/calendar';
 import { getVisibleLotesSetting, saveVisibleLotesSetting } from './actions';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 type IrrigationRecord = { [key: string]: any; id: string; };
@@ -78,6 +78,7 @@ export default function IrrigationSummaryPage() {
     const { toast } = useToast();
     const { profile } = useAuth();
     const { lotes: masterLotes, loading: masterLoading } = useMasterData();
+    const { setActions } = useHeaderActions();
     const [irrigationRecords, setIrrigationRecords] = useState<IrrigationRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSaving, startSavingTransition] = useTransition();
@@ -91,6 +92,11 @@ export default function IrrigationSummaryPage() {
     const [popoverFilters, setPopoverFilters] = useState(filters);
     const [loteSearch, setLoteSearch] = useState('');
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+    
+    useEffect(() => {
+        setActions({ title: "Resumen de Riego" });
+        return () => setActions({});
+    }, [setActions]);
     
     useEffect(() => {
         setLoading(true);
@@ -308,7 +314,6 @@ export default function IrrigationSummaryPage() {
 
     return (
         <div className="space-y-6">
-            <PageHeader title="Resumen de Riego" />
              <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
@@ -524,9 +529,3 @@ export default function IrrigationSummaryPage() {
         </div>
     );
 }
-    
-
-    
-
-
-

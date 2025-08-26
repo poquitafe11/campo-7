@@ -1,13 +1,21 @@
 
 "use client";
 
-import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+import { useEffect } from "react";
 
 export default function PhenologyDatabasePage() {
+  const { setActions } = useHeaderActions();
+
+  useEffect(() => {
+    setActions({ title: "Base de Datos de Fenología" });
+    return () => setActions({});
+  }, [setActions]);
+
+
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Base de Datos de Fenología" />
       <Card>
         <CardHeader>
           <CardTitle>Historial de Evaluaciones</CardTitle>
