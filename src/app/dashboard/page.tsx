@@ -17,7 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState, useEffect } from "react";
 import FeaturePermissionsDialog from "@/components/FeaturePermissionsDialog";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/PageHeader";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+
 
 const allFeatures = [
   {
@@ -61,8 +62,14 @@ type Feature = (typeof allFeatures)[0];
 
 export default function DashboardPage() {
     const { profile } = useAuth();
+    const { setActions } = useHeaderActions();
     const [isPermissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
     const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+
+    useEffect(() => {
+        setActions({ title: "Áreas de Gestión" });
+        return () => setActions({});
+    }, [setActions]);
 
     const handlePermissionSettings = (e: React.MouseEvent, feature: Feature) => {
         e.preventDefault();
@@ -84,7 +91,6 @@ export default function DashboardPage() {
 
     return (
         <div className="flex flex-col h-full">
-            <PageHeader title="Áreas de Gestión" />
             <main className="flex-grow">
                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {visibleFeatures.map((link) => (

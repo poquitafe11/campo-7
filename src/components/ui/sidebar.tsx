@@ -1,41 +1,28 @@
 "use client";
 
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutGrid, Users, Map, Settings, Menu } from "lucide-react";
+import { LogOut, LayoutGrid, Settings, Menu, X } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
 import ConnectionStatus from "../ConnectionStatus";
 import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { usePathname } from "next/navigation";
-import { useWindowSize } from "@/hooks/use-window-size";
-import React, { useEffect } from "react";
-
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 interface SidebarProps {
   isExpanded: boolean;
   setIsExpanded: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
+function SidebarContent({ isExpanded }: { isExpanded: boolean }) {
   const { profile, user, logout } = useAuth();
-  const { width } = useWindowSize();
-
-  const isMobile = width < 768;
-
-  useEffect(() => {
-    if (width < 768) {
-      setIsExpanded(false);
-    } else {
-      setIsExpanded(true);
-    }
-  }, [width, setIsExpanded]);
-
-
-  const sidebarContent = (
-    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+  
+  return (
+     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       <div className={cn("p-4 border-b border-sidebar-accent/20 flex items-center h-[73px] justify-between")}>
           <div className={cn("flex items-center gap-3", !isExpanded && "w-full justify-center")}>
             <Avatar className={cn("h-10 w-10 border-2 border-sidebar-accent", !isExpanded && "h-9 w-9")}>
@@ -65,15 +52,71 @@ export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
          </Button>
       </div>
     </div>
-  );
+  )
+}
 
+function MobileHeader() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { actions } = useHeaderActions();
+
+  return (
+    <header className="sm:hidden fixed top-0 left-0 right-0 z-20 flex items-center justify-between h-16 px-4 border-b bg-background text-foreground">
+        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+            <SheetTrigger asChild>
+                 <Button variant="ghost" size="icon">
+                    <Menu className="h-6 w-6" />
+                </Button>
+            </SheetTrigger>
+             <SheetContent side="left" className="p-0 w-64 bg-sidebar border-none">
+                <SidebarContent isExpanded={true} />
+            </SheetContent>
+        </Sheet>
+        
+        <div className="flex-1 text-center">
+             <h1 className="text-lg font-semibold tracking-tight">
+                {actions.title}
+             </h1>
+        </div>
+
+        <div className="flex items-center gap-2">
+            {actions.right ? actions.right : (
+              <Button variant="ghost" size="icon" asChild>
+                  <Link href="/dashboard">
+                      <LayoutGrid className="h-5 w-5" />
+                  </Link>
+              </Button>
+            )}
+        </div>
+    </header>
+  );
+}
+
+function DesktopSidebar({ isExpanded, setIsExpanded }: SidebarProps) {
   return (
     <aside className={cn(
       "hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:flex sm:flex-col transition-[width] duration-300 ease-in-out",
       isExpanded ? "w-64" : "w-20"
     )}>
-        {sidebarContent}
+        <SidebarContent isExpanded={isExpanded} />
+         <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute top-16 -right-5 h-8 w-8 bg-background border rounded-full text-foreground hover:bg-muted"
+            onClick={() => setIsExpanded(!isExpanded)}
+        >
+            <Menu className="h-4 w-4" />
+        </Button>
     </aside>
   );
 }
 
+
+export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
+    const isMobile = useIsMobile();
+
+    if (isMobile) {
+        return <MobileHeader />;
+    }
+
+    return <DesktopSidebar isExpanded={isExpanded} setIsExpanded={setIsExpanded} />;
+}
