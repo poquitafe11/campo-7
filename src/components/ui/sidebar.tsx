@@ -1,17 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutGrid, Settings, Menu, X } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
 import ConnectionStatus from "../ConnectionStatus";
-import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 interface SidebarProps {
   isExpanded: boolean;
@@ -55,68 +52,25 @@ function SidebarContent({ isExpanded }: { isExpanded: boolean }) {
   )
 }
 
-function MobileHeader() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { actions } = useHeaderActions();
-
-  return (
-    <header className="sm:hidden fixed top-0 left-0 right-0 z-20 flex items-center justify-between h-16 px-4 border-b bg-background text-foreground">
-        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-            <SheetTrigger asChild>
-                 <Button variant="ghost" size="icon">
-                    <Menu className="h-6 w-6" />
-                </Button>
-            </SheetTrigger>
-             <SheetContent side="left" className="p-0 w-64 bg-sidebar border-none">
-                <SidebarContent isExpanded={true} />
-            </SheetContent>
-        </Sheet>
-        
-        <div className="flex-1 text-center">
-             <h1 className="text-lg font-semibold tracking-tight">
-                {actions.title}
-             </h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-            {actions.right ? actions.right : (
-              <Button variant="ghost" size="icon" asChild>
-                  <Link href="/dashboard">
-                      <LayoutGrid className="h-5 w-5" />
-                  </Link>
-              </Button>
-            )}
-        </div>
-    </header>
-  );
-}
-
-function DesktopSidebar({ isExpanded, setIsExpanded }: SidebarProps) {
-  return (
-    <aside className={cn(
-      "hidden sm:fixed sm:inset-y-0 sm:left-0 sm:z-10 sm:flex sm:flex-col transition-[width] duration-300 ease-in-out",
-      isExpanded ? "w-64" : "w-20"
-    )}>
-        <SidebarContent isExpanded={isExpanded} />
-         <Button 
-            variant="ghost" 
-            size="icon" 
-            className="absolute top-16 -right-5 h-8 w-8 bg-background border rounded-full text-foreground hover:bg-muted"
-            onClick={() => setIsExpanded(!isExpanded)}
-        >
-            <Menu className="h-4 w-4" />
-        </Button>
-    </aside>
-  );
-}
-
-
 export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
     const isMobile = useIsMobile();
 
-    if (isMobile) {
-        return <MobileHeader />;
-    }
-
-    return <DesktopSidebar isExpanded={isExpanded} setIsExpanded={setIsExpanded} />;
+    return (
+        <aside className={cn(
+          "fixed inset-y-0 left-0 z-10 flex flex-col transition-[width] duration-300 ease-in-out",
+          isExpanded ? "w-64" : "w-20"
+        )}>
+            <SidebarContent isExpanded={isExpanded} />
+            {!isMobile && (
+                 <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-16 -right-5 h-8 w-8 bg-background border rounded-full text-foreground hover:bg-muted"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                >
+                    <Menu className="h-4 w-4" />
+                </Button>
+            )}
+        </aside>
+    );
 }

@@ -38,7 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar isExpanded={isSidebarExpanded} setIsExpanded={setIsSidebarExpanded} />
       <main className={cn(
           "transition-[margin-left] duration-300 ease-in-out",
-           isMobile ? "pt-16" : (isSidebarExpanded ? "sm:ml-64" : "sm:ml-20")
+           isMobile ? "ml-20" : (isSidebarExpanded ? "sm:ml-64" : "sm:ml-20")
         )}>
         <div className="overflow-x-auto p-4 md:p-8">
             {children}
@@ -46,4 +46,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
     </div>
   );
-}
