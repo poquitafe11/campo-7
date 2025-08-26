@@ -56,15 +56,13 @@ function SidebarContent({ isExpanded, toggleSidebar }: { isExpanded: boolean, to
 }
 
 export function Sidebar() {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const { actions } = useHeaderActions();
   const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isMobile) {
       setIsExpanded(false);
-    } else {
-      setIsExpanded(true);
     }
   }, [isMobile]);
 

@@ -18,11 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <HeaderActionsProvider>
       <div className="w-full bg-background">
         <Sidebar />
-        <main className={cn(
-            "transition-[margin-left] duration-300 ease-in-out",
-            "md:ml-64", // Desktop margin when sidebar is expanded
-            "pt-16 md:pt-0" // Mobile padding top for fixed header
-          )}>
+        <main className="transition-[margin-left] duration-300 ease-in-out md:ml-20 pt-16 md:pt-0">
           <div className="overflow-x-auto p-4 md:p-8">
               {children}
           </div>
