@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isMobile = useIsMobile();
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   
   // Special layout for the daily attendance entry page
   if (pathname === '/production/attendance/daily-entry') {
@@ -23,8 +23,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="w-full bg-background">
-      <Sidebar />
-      <main className={cn("transition-[margin-left] duration-300 ease-in-out sm:ml-64", isMobile && "pb-20")}>
+      <Sidebar isExpanded={isSidebarExpanded} setIsExpanded={setIsSidebarExpanded} />
+      <main className={cn(
+          "transition-[margin-left] duration-300 ease-in-out",
+          isSidebarExpanded ? "sm:ml-64" : "sm:ml-20"
+        )}>
         <div className="overflow-x-auto p-4 md:p-8">
             {children}
         </div>

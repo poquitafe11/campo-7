@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useMemo, useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 const mainLinks = [
   { href: '/dashboard', label: 'Áreas', icon: LayoutGrid },
@@ -41,33 +42,59 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
   const { profile } = useAuth();
   
   const isMastersActive = masterLinks.some(link => pathname.startsWith(link.href));
-  const [activeAccordion, setActiveAccordion] = useState(isMastersActive ? 'maestros' : '');
+  const [activeAccordion, setActiveAccordion] = useState(isMastersActive && isExpanded ? 'maestros' : '');
+
+  useMemo(() => {
+    if (isExpanded) {
+        if(isMastersActive) setActiveAccordion('maestros');
+    } else {
+        setActiveAccordion('');
+    }
+  }, [isExpanded, isMastersActive]);
 
   const visibleLinks = useMemo(() => {
     if (!profile) return { main: [], masters: [] };
     if (profile.rol === 'Admin') {
       return { main: mainLinks, masters: masterLinks };
     }
-    return { main: mainLinks, masters: masterLinks };
+    // Adjust this logic based on non-admin roles if needed
+    return { main: mainLinks.filter(l => l.href !== '/users'), masters: masterLinks };
   }, [profile]);
   
   const isActive = (href: string) => {
-    return pathname === href || (href !== '/' && pathname.startsWith(href));
+    if (href === '/dashboard') return pathname === href;
+    return pathname.startsWith(href);
   };
   
-  const NavLink = ({ href, label, icon: Icon, disabled = false }: { href: string; label: string; icon: React.ElementType; disabled?: boolean }) => (
-    <Link
-      href={!disabled ? href : '#'}
-      className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
-        isActive(href) && 'bg-sidebar-accent text-sidebar-foreground',
-        disabled && 'cursor-not-allowed opacity-50'
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </Link>
-  );
+  const NavLink = ({ href, label, icon: Icon, disabled = false }: { href: string; label: string; icon: React.ElementType; disabled?: boolean }) => {
+    const linkContent = (
+         <div className={cn('flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
+            isActive(href) && 'bg-sidebar-accent text-sidebar-foreground',
+            disabled && 'cursor-not-allowed opacity-50',
+            !isExpanded && "justify-center"
+            )}>
+            <Icon className="h-5 w-5" />
+            {isExpanded && <span>{label}</span>}
+        </div>
+    );
+
+    return (
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+             <Link href={!disabled ? href : '#'}>
+                {linkContent}
+             </Link>
+          </TooltipTrigger>
+          {!isExpanded && (
+            <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent">
+              <p>{label}</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
+    )
+  };
 
   return (
     <nav className="grid items-start gap-1 p-2 text-sm font-medium">
@@ -75,16 +102,26 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
             <NavLink key={link.href} {...link} />
         ))}
         
-        <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
+        <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion} disabled={!isExpanded}>
           <AccordionItem value="maestros" className="border-none">
             <AccordionTrigger className={cn(
-                'flex items-center w-full gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline',
-                isMastersActive && 'bg-sidebar-accent text-sidebar-foreground'
+                'flex items-center w-full gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline [&>svg]:size-5',
+                isMastersActive && 'bg-sidebar-accent text-sidebar-foreground',
+                !isExpanded && 'justify-center'
             )}>
-              <Layers className="h-4 w-4" />
-              <span className="flex-1 text-left">Maestros</span>
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                       <div className="flex items-center gap-3">
+                        <Layers className="h-5 w-5" />
+                        {isExpanded && <span className="flex-1 text-left">Maestros</span>}
+                       </div>
+                    </TooltipTrigger>
+                     {!isExpanded && <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent"><p>Maestros</p></TooltipContent>}
+                </Tooltip>
+              </TooltipProvider>
             </AccordionTrigger>
-            <AccordionContent className="pt-1 pl-7 space-y-1">
+            <AccordionContent className="pt-1 pl-4 space-y-1">
               {visibleLinks.masters.map((link) => (
                  <NavLink key={link.href} {...link} />
               ))}

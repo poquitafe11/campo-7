@@ -3,6 +3,7 @@
 import { useOnlineStatus, type NetworkStatus } from '@/hooks/useOnlineStatus';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 const statusConfig: { [key in NetworkStatus]: { text: string; icon: React.ReactNode; className: string } } = {
   online: {
@@ -22,7 +23,7 @@ const statusConfig: { [key in NetworkStatus]: { text: string; icon: React.ReactN
   },
 };
 
-export default function ConnectionStatus() {
+export default function ConnectionStatus({ isExpanded }: { isExpanded: boolean }) {
   const status = useOnlineStatus();
   const [isClient, setIsClient] = useState(false);
 
@@ -31,11 +32,27 @@ export default function ConnectionStatus() {
   }, []);
 
   if (!isClient) {
-    // Render nothing on the server to avoid hydration mismatch
     return null;
   }
 
   const config = statusConfig[status];
+
+  if (!isExpanded) {
+    return (
+        <TooltipProvider delayDuration={0}>
+            <Tooltip>
+                <TooltipTrigger className="w-full">
+                    <div className={cn("flex items-center justify-center gap-2 p-2 text-sm font-medium", config.className)}>
+                        {config.icon}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent">
+                    <p>{config.text}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    )
+  }
 
   return (
     <div className={cn("flex items-center gap-2 p-2 text-sm font-medium", config.className)}>
