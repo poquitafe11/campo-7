@@ -117,8 +117,8 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
               )}
             </Tooltip>
           </TooltipProvider>
-          <AccordionContent className="pt-1 pl-4 space-y-1">
-            {isExpanded && visibleLinks.masters.map((link) => (
+          <AccordionContent className={cn("pt-1 space-y-1", isExpanded ? "pl-4" : "pl-0")}>
+            {visibleLinks.masters.map((link) => (
                <NavLink key={link.href} {...link} />
             ))}
           </AccordionContent>

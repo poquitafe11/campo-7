@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Sidebar } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -9,7 +9,9 @@ import { HeaderActionsProvider } from '@/contexts/HeaderActionsContext';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const isMobile = useIsMobile();
+
   if (pathname === '/login') {
       return <>{children}</>;
   }
@@ -17,9 +19,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <HeaderActionsProvider>
       <div className="w-full bg-background">
-        <Sidebar />
-        <main className="transition-[margin-left] duration-300 ease-in-out md:ml-20 pt-16 md:pt-0">
-          <div className="overflow-x-auto p-4 md:p-8">
+        <Sidebar
+          isExpanded={isSidebarExpanded}
+          setIsExpanded={setIsSidebarExpanded}
+        />
+        <main
+          className={cn(
+            'transition-[margin-left] duration-300 ease-in-out',
+            isMobile ? 'ml-0' : (isSidebarExpanded ? 'ml-64' : 'ml-20')
+          )}
+        >
+          <div className="overflow-x-auto p-4 md:p-8 pt-20 md:pt-8">
               {children}
           </div>
         </main>
