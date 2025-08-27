@@ -4,7 +4,7 @@ import * as React from "react"
 // This provides a more reliable way to distinguish between touch-first devices (like phones/tablets)
 // and pointer-first devices (like desktops with a mouse). Phones in landscape mode will still
 // be correctly identified as "mobile".
-const MOBILE_MEDIA_QUERY = "(pointer: coarse)"
+const MOBILE_MEDIA_QUERY = "(max-width: 767px)"
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
