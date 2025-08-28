@@ -138,16 +138,11 @@ function AttendanceSummaryContent() {
                     />
                 </PopoverContent>
             </Popover>
-            <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-                <Link href="/dashboard">
-                    <LayoutGrid className="h-5 w-5" />
-                </Link>
-            </Button>
         </div>
     );
     
     setActions({
-        center: headerTitle,
+        title: headerTitle,
         right: rightComponent,
     });
   
