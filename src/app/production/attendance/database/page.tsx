@@ -93,12 +93,7 @@ export default function AttendanceDatabasePage() {
   
   useEffect(() => {
     setActions({
-      left: (
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-        </Button>
-      ),
-      center: "Historial de Asistencia",
+      title: "Historial de Asistencia"
     });
     return () => setActions({});
   }, [setActions, router]);
