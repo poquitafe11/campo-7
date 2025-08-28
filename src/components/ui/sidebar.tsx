@@ -25,6 +25,13 @@ export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
   const router = useRouter();
 
   const toggleSidebar = () => setIsExpanded(!isExpanded);
+  
+  const renderTitle = () => {
+    if (typeof actions.title === 'string') {
+      return <h1 className="text-lg font-bold truncate">{actions.title}</h1>;
+    }
+    return actions.title;
+  }
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
@@ -75,7 +82,7 @@ export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
 
         {/* Center Section */}
         <div className="flex-1 flex justify-center items-center text-center px-2">
-             {actions.title}
+            {renderTitle()}
         </div>
         
         {/* Right Section */}
@@ -90,7 +97,7 @@ export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
 
   const DesktopSidebar = () => (
      <aside className={cn(
-        "hidden md:block fixed top-0 left-0 h-full z-20 transition-width duration-300 ease-in-out",
+        "hidden md:block fixed top-0 left-0 h-full z-20 transition-all duration-300 ease-in-out",
         isExpanded ? "w-64" : "w-20"
       )}>
         <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
