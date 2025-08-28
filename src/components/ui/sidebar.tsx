@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -62,7 +63,8 @@ export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
   
   const MobileHeader = () => (
     <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between p-2 h-16 bg-background border-b">
-        <div className="flex items-center gap-1">
+        {/* Left Section */}
+        <div className="flex items-center gap-1 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={toggleSidebar}>
                 <Menu className="h-6 w-6" />
             </Button>
@@ -71,11 +73,13 @@ export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
             </Button>
         </div>
 
-        <div className="absolute left-1/2 -translate-x-1/2 text-center font-semibold text-lg">
+        {/* Center Section */}
+        <div className="flex-1 flex justify-center items-center text-center px-2">
              {actions.title}
         </div>
         
-        <div className="flex items-center gap-1">
+        {/* Right Section */}
+        <div className="flex items-center gap-1 flex-shrink-0">
             {actions.right}
             <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}>
                 <LayoutGrid className="h-5 w-5" />

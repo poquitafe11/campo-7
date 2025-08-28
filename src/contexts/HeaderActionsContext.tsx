@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface HeaderActions {
   title?: React.ReactNode;
+  right?: React.ReactNode;
 }
 
 interface HeaderActionsContextType {
@@ -15,7 +16,7 @@ interface HeaderActionsContextType {
 const HeaderActionsContext = createContext<HeaderActionsContextType | undefined>(undefined);
 
 export function HeaderActionsProvider({ children }: { children: ReactNode }) {
-  const [actions, setActions] = useState<HeaderActions>({ title: "Áreas de Gestión" });
+  const [actions, setActions] = useState<HeaderActions>({ title: "Áreas de Gestión", right: null });
 
   const value = { actions, setActions };
 
