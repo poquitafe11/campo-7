@@ -216,6 +216,7 @@ export default function ActivitySummaryPage() {
 
     useEffect(() => {
         setActions({
+            title: "Resumen de Actividades",
             right:
             <>
                 <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={loading} className="h-9 w-9">
@@ -346,5 +347,3 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
-
-    
