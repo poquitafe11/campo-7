@@ -217,64 +217,67 @@ export default function ActivitySummaryPage() {
     useEffect(() => {
         setActions({
             title: "Resumen de Actividades",
-            right:
-            <>
+            right: (
+              <>
                 <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={loading} className="h-9 w-9">
-                    <RefreshCcw className="h-5 w-5" />
+                  <RefreshCcw className="h-5 w-5" />
                 </Button>
                 <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                    <PopoverTrigger asChild>
-                         <Button variant="ghost" size="icon" className="h-9 w-9">
-                            <Filter className="h-5 w-5" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80" align="end">
-                       <div className="grid gap-4">
-                           <div className="space-y-2"><h4 className="font-medium leading-none">Filtros de Resumen</h4></div>
-                           <div className="grid gap-2">
-                                <Label>Campaña</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v, lote: '' }))} value={popoverFilters.campaign}>
-                                    <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
-                                        {filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <Label>Lote</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, lote: v === 'all' ? '' : v }))} value={popoverFilters.lote}>
-                                    <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todos"} /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todos</SelectItem>
-                                        {filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <Label>Labor</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, labor: v === 'all' ? '' : v }))} value={popoverFilters.labor}>
-                                    <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
-                                        {filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <Label>Pasada</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, pasada: v === 'all' ? '' : v }))} value={popoverFilters.pasada}>
-                                    <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
-                                        {filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                           </div>
-                           <div className="flex justify-end pt-2">
-                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                           </div>
-                       </div>
-                    </PopoverContent>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9">
+                      <Filter className="h-5 w-5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="end">
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium leading-none">Filtros de Resumen</h4>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Campaña</Label>
+                        <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v, lote: '' }))} value={popoverFilters.campaign}>
+                          <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Label>Lote</Label>
+                        <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, lote: v === 'all' ? '' : v }))} value={popoverFilters.lote}>
+                          <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todos"} /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Label>Labor</Label>
+                        <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, labor: v === 'all' ? '' : v }))} value={popoverFilters.labor}>
+                          <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Label>Pasada</Label>
+                        <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, pasada: v === 'all' ? '' : v }))} value={popoverFilters.pasada}>
+                          <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex justify-end pt-2">
+                        <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
                 </Popover>
-            </>
+              </>
+            ),
         });
         return () => setActions({});
-    }, [setActions, isFilterOpen, popoverFilters, filterOptions, loading, handleApplyFilters]);
+    }, [setActions, isFilterOpen, popoverFilters, filterOptions, loading, handleApplyFilters, loadData]);
 
 
     return (
