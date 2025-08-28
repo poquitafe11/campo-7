@@ -3,13 +3,14 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, ArrowLeft, LayoutGrid } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
 import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   isExpanded: boolean;
@@ -20,25 +21,26 @@ export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
   const { actions } = useHeaderActions();
   const { profile, user, logout } = useAuth();
   const isMobile = useIsMobile();
+  const router = useRouter();
 
   const toggleSidebar = () => setIsExpanded(!isExpanded);
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-        <div className="p-4 border-b border-sidebar-accent/20 flex items-center gap-3 h-[73px] flex-shrink-0">
-          <Avatar className="h-10 w-10 border-2 border-sidebar-accent flex-shrink-0">
-            <AvatarImage src={user?.photoURL || ""} />
-            <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground font-bold">
-              {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
-            </AvatarFallback>
-          </Avatar>
-          {isExpanded && (
-            <div className="overflow-hidden">
-              <p className="font-semibold text-sm truncate">{profile?.nombre}</p>
-              <p className="text-xs text-sidebar-muted-foreground truncate">Rol: {profile?.rol}</p>
-            </div>
-          )}
-        </div>
+      <div className="p-4 border-b border-sidebar-accent/20 flex items-center gap-3 h-[73px] flex-shrink-0">
+        <Avatar className="h-10 w-10 border-2 border-sidebar-accent flex-shrink-0">
+          <AvatarImage src={user?.photoURL || ""} />
+          <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground font-bold">
+            {profile?.nombre ? profile.nombre.charAt(0).toUpperCase() : 'U'}
+          </AvatarFallback>
+        </Avatar>
+        {isExpanded && (
+          <div className="overflow-hidden">
+            <p className="font-semibold text-sm truncate">{profile?.nombre}</p>
+            <p className="text-xs text-sidebar-muted-foreground truncate">Rol: {profile?.rol}</p>
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto">
         <SidebarNav isExpanded={isExpanded} />
@@ -60,28 +62,38 @@ export function Sidebar({ isExpanded, setIsExpanded }: SidebarProps) {
 
   return (
     <>
-        {/* Mobile Header */}
-        <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between p-2 h-[73px] bg-background border-b md:hidden">
-            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+      {/* Header for all views */}
+      <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between p-2 h-16 bg-background border-b">
+          <div className="flex items-center gap-1">
+             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
                 <Menu className="h-6 w-6" />
             </Button>
-            <div className="text-center font-semibold text-lg">
-                {actions.title}
-            </div>
-            <div className="flex items-center gap-2">
-                {actions.right || <div className="w-10 h-10"></div>}
-            </div>
-        </header>
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </div>
 
-        {/* Sidebar */}
-        <aside className={cn(
-          "fixed top-0 left-0 h-full z-40 transition-transform md:transition-width duration-300 ease-in-out",
-          isExpanded ? "w-64 translate-x-0" : "-translate-x-full md:translate-x-0 md:w-20"
-        )}>
-            {sidebarContent}
-        </aside>
+          <div className="absolute left-1/2 -translate-x-1/2 text-center font-semibold text-lg">
+              {actions.title}
+          </div>
+          
+          <div className="flex items-center gap-1">
+             <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}>
+                <LayoutGrid className="h-5 w-5" />
+            </Button>
+          </div>
+      </header>
 
-        {isMobile && isExpanded && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={toggleSidebar}></div>}
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed top-0 left-0 h-full z-40 transition-transform md:transition-width duration-300 ease-in-out mt-16 md:mt-0",
+        "md:translate-x-0", // Always visible on desktop
+        isExpanded ? "w-64 translate-x-0" : "-translate-x-full w-64 md:w-20"
+      )}>
+          {sidebarContent}
+      </aside>
+
+      {isMobile && isExpanded && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={toggleSidebar}></div>}
     </>
   );
 }

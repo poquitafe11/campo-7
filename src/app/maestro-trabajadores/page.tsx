@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -55,6 +56,7 @@ export default function WorkerMasterManagement() {
   const { toast } = useToast();
   const [workerMaster, setWorkerMaster] = useState<WorkerMasterItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { setActions } = useHeaderActions();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -67,6 +69,11 @@ export default function WorkerMasterManagement() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setActions({ title: 'Maestro de Trabajadores' });
+    return () => setActions({});
+  }, [setActions]);
 
   useEffect(() => {
     setLoading(true);

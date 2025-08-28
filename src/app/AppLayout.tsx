@@ -26,10 +26,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main
           className={cn(
             'transition-[margin-left] duration-300 ease-in-out',
+             // Add top padding for the fixed mobile header
+            'pt-16 md:pt-0',
             isMobile ? 'ml-0' : (isSidebarExpanded ? 'ml-64' : 'ml-20')
           )}
         >
-          <div className="overflow-x-auto p-4 md:p-8 pt-20 md:pt-8">
+          <div className="overflow-x-auto p-4 md:p-8">
               {children}
           </div>
         </main>
