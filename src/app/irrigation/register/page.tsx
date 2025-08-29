@@ -31,6 +31,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { renameAndMergeHeader } from "./actions";
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
+type ParsedData = { table1: ParsedRow[], table2: ParsedRow[], table3: ParsedRow[], table4: ParsedRow[] };
+
 
 const editRecordSchema = z.object({
   id: z.string().optional(),
@@ -117,8 +119,7 @@ const headerOrder = [
 export default function RegisterIrrigationPage() {
   const { toast } = useToast();
 
-  const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
-  const [tableHeaders, setTableHeaders] = useState<string[]>([]);
+  const [parsedData, setParsedData] = useState<ParsedData>({ table1: [], table2: [], table3: [], table4: []});
   
   const [isDigitizing, setIsDigitizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -197,8 +198,7 @@ export default function RegisterIrrigationPage() {
       reader.onloadend = () => {
         setSourceImage(reader.result as string);
         setCroppedImage(null);
-        setParsedData([]);
-        setTableHeaders([]);
+        setParsedData({ table1: [], table2: [], table3: [], table4: [] });
         setCrop(undefined);
       };
       reader.readAsDataURL(file);
@@ -235,38 +235,34 @@ export default function RegisterIrrigationPage() {
     }
     
     setIsDigitizing(true);
-    setParsedData([]);
-    setTableHeaders([]);
+    setParsedData({ table1: [], table2: [], table3: [], table4: [] });
 
     try {
       const result = await digitizeIrrigationTable({ photoDataUri: croppedImage });
       
       try {
-        const data = JSON.parse(result.tableContent);
-        if (Array.isArray(data) && data.length > 0) {
-            const allHeaders = new Set<string>();
-            data.forEach(row => {
-                Object.keys(row).forEach(key => allHeaders.add(key));
-            });
+        const { table1, table2, table3, table4 } = JSON.parse(result.tableContent);
+        
+        const enrichTable = (table: any[], index: number) => ({
+            internalId: `preview-${index}`,
+            ...table,
+        });
 
-            const sortedHeaders = ['Campaña', 'Etapa', ...headerOrder.filter(h => allHeaders.has(h))];
-            setTableHeaders(sortedHeaders);
-            
-            const enrichedData = data.map((row, index) => ({
-                internalId: `preview-${index}`,
-                Campaña: campaign,
-                Etapa: stage,
-                ...row
-            }));
-            setParsedData(enrichedData);
-        } else {
-             toast({
-                variant: "destructive",
-                title: "Formato Inesperado",
-                description: "La IA no devolvió una tabla válida. Inténtalo de nuevo.",
-             });
-        }
-      } catch {
+        const enrichedTable1 = table1.map((row: any, index: number) => ({
+            ...enrichTable(row, index),
+            Campaña: campaign,
+            Etapa: stage,
+        }));
+
+        setParsedData({
+          table1: enrichedTable1,
+          table2: table2.map(enrichTable),
+          table3: table3.map(enrichTable),
+          table4: table4.map(enrichTable),
+        });
+
+      } catch (e){
+        console.error(e)
         toast({
             variant: "destructive",
             title: "Error de Formato",
@@ -287,7 +283,14 @@ export default function RegisterIrrigationPage() {
   };
   
   const handleSave = async () => {
-    if (parsedData.length === 0) {
+    const allTables = [
+      ...parsedData.table1, 
+      ...parsedData.table2, 
+      ...parsedData.table3, 
+      ...parsedData.table4
+    ];
+
+    if (allTables.length === 0) {
         toast({ variant: "destructive", title: "Error", description: "No hay datos para guardar." });
         return;
     }
@@ -295,19 +298,18 @@ export default function RegisterIrrigationPage() {
     setIsSaving(true);
     try {
         const batch = writeBatch(db);
-        parsedData.forEach(row => {
+        allTables.forEach(row => {
             const { internalId, ...rowData } = row;
             const docRef = doc(collection(db, "registros-riego"));
             batch.set(docRef, rowData);
         });
         await batch.commit();
         
-        toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados.` });
+        toast({ title: "Éxito", description: `${allTables.length} registros han sido guardados.` });
         
         setSourceImage(null);
         setCroppedImage(null);
-        setParsedData([]);
-        setTableHeaders([]);
+        setParsedData({ table1: [], table2: [], table3: [], table4: [] });
         setCampaign('');
         setStage('');
         if(fileInputRef.current) fileInputRef.current.value = '';
@@ -321,7 +323,12 @@ export default function RegisterIrrigationPage() {
   };
 
   const handleDeletePreview = (internalId: string) => {
-    setParsedData(prev => prev.filter(row => row.internalId !== internalId));
+    setParsedData(prev => ({
+        table1: prev.table1.filter(row => row.internalId !== internalId),
+        table2: prev.table2.filter(row => row.internalId !== internalId),
+        table3: prev.table3.filter(row => row.internalId !== internalId),
+        table4: prev.table4.filter(row => row.internalId !== internalId),
+    }));
   };
   
   const handleDeleteSaved = async (id: string) => {
@@ -340,9 +347,12 @@ export default function RegisterIrrigationPage() {
     const { id, internalId, ...dataFromForm } = values;
 
     if (internalId) {
-        setParsedData(prev => prev.map(row => 
-            row.internalId === internalId ? { ...row, ...dataFromForm } : row
-        ));
+        setParsedData(prev => ({
+            table1: prev.table1.map(r => r.internalId === internalId ? {...r, ...dataFromForm} : r),
+            table2: prev.table2.map(r => r.internalId === internalId ? {...r, ...dataFromForm} : r),
+            table3: prev.table3.map(r => r.internalId === internalId ? {...r, ...dataFromForm} : r),
+            table4: prev.table4.map(r => r.internalId === internalId ? {...r, ...dataFromForm} : r),
+        }));
       toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
       try {
@@ -449,6 +459,45 @@ export default function RegisterIrrigationPage() {
     setIsHeaderSubmitting(false);
   };
 
+  const PreviewTable = ({ title, data }: { title: string, data: ParsedRow[]}) => {
+    if (!data || data.length === 0) return null;
+    const headers = Object.keys(data[0]).filter(k => k !== 'internalId');
+    return (
+      <div className="space-y-2">
+        <Label className="font-bold">{title}</Label>
+        <div className="overflow-x-auto rounded-md border bg-muted/50 p-4">
+            <Table className="bg-background">
+                <TableHeader><TableRow>{headers.map(header => <TableHead key={header} className={cn('whitespace-nowrap')}>{header}</TableHead>)}<TableHead>Acciones</TableHead></TableRow></TableHeader>
+                <TableBody>
+                    {data.map((row) => (
+                        <TableRow key={row.internalId}>
+                            {headers.map(header => (
+                                <TableCell key={`${row.internalId}-${header}`} className={cn('whitespace-nowrap')}>
+                                    {String(row[header] ?? '')}
+                                </TableCell>
+                            ))}
+                            <TableCell>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord(row)}><Pencil className="h-4 w-4"/></Button>
+                                    <AlertDialog>
+                                    <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader><AlertDialogTitle>¿Confirmar?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará la fila de la vista previa.</AlertDialogDescription></AlertDialogHeader>
+                                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePreview(row.internalId!)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+      </div>
+    )
+  };
+
+
   return (
     <>
     <div className="container mx-auto p-0 sm:p-2 lg:p-4 space-y-8">
@@ -502,37 +551,13 @@ export default function RegisterIrrigationPage() {
 
             {isDigitizing && ( <div className="space-y-2"><Label htmlFor="digitized-result">Resultado</Label><div className="space-y-2 rounded-md border p-4"><div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-1/2 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-5/6 animate-pulse"></div></div></div> )}
             
-            {!isDigitizing && parsedData.length > 0 && (
+            {!isDigitizing && (parsedData.table1.length > 0 || parsedData.table2.length > 0 || parsedData.table3.length > 0 || parsedData.table4.length > 0) && (
                 <div className="space-y-4">
                     <Label>Resultado (Vista Previa)</Label>
-                    <div className="overflow-x-auto rounded-md border bg-muted/50 p-4">
-                        <Table className="bg-background">
-                            <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header} className={cn('whitespace-nowrap', getHeaderGroupColor(header))}>{header}</TableHead>)}<TableHead>Acciones</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {parsedData.map((row) => (
-                                    <TableRow key={row.internalId}>
-                                        {tableHeaders.map(header => (
-                                            <TableCell key={`${row.internalId}-${header}`} className={cn('whitespace-nowrap', getHeaderGroupColor(header))}>
-                                                {String(row[header] ?? '')}
-                                            </TableCell>
-                                        ))}
-                                        <TableCell>
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord(row)}><Pencil className="h-4 w-4"/></Button>
-                                                <AlertDialog>
-                                                <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará la fila de la vista previa.</AlertDialogDescription></AlertDialogHeader>
-                                                    <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePreview(row.internalId!)}>Eliminar</AlertDialogAction></AlertDialogFooter>
-                                                </AlertDialogContent>
-                                                </AlertDialog>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                    <PreviewTable title="Tabla 1" data={parsedData.table1} />
+                    <PreviewTable title="Tabla 2" data={parsedData.table2} />
+                    <PreviewTable title="Tabla 3" data={parsedData.table3} />
+                    <PreviewTable title="Tabla 4" data={parsedData.table4} />
                     <Button onClick={handleSave} disabled={isSaving}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         {isSaving ? 'Guardando...' : 'Guardar Datos'}

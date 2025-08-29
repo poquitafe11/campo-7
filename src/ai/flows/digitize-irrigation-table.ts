@@ -21,7 +21,7 @@ const DigitizeIrrigationTableInputSchema = z.object({
 export type DigitizeIrrigationTableInput = z.infer<typeof DigitizeIrrigationTableInputSchema>;
 
 const DigitizeIrrigationTableOutputSchema = z.object({
-  tableContent: z.string().describe('The full content of the table, extracted as a JSON array of objects, where each object represents a fully merged row from all table sections. If the table cannot be extracted, return an empty array string "[]".'),
+  tableContent: z.string().describe('A JSON string containing four arrays: "table1", "table2", "table3", and "table4". Each array should contain objects representing the rows for that specific table section. Return empty arrays for non-existent tables.'),
 });
 export type DigitizeIrrigationTableOutput = z.infer<typeof DigitizeIrrigationTableOutputSchema>;
 
@@ -33,48 +33,37 @@ const prompt = ai.definePrompt({
   name: 'digitizeIrrigationTablePrompt',
   input: {schema: DigitizeIrrigationTableInputSchema},
   output: {schema: DigitizeIrrigationTableOutputSchema},
-  prompt: `You are an expert data entry specialist. Your task is to accurately extract information from an image containing a multi-section irrigation program table and merge it into a single, unified dataset.
+  prompt: `You are an expert data entry specialist. Your task is to accurately extract information from an image containing a multi-section irrigation program, divided into four distinct tables.
 
-Analyze the image provided. It contains one logical table split into four visible sections. Each horizontal row across all sections represents a single record. You must merge the data from each row across all four sections into a single JSON object.
+Analyze the image provided. It contains four separate tables. You must extract the data from each table into its own separate JSON array.
 
 IMPORTANT RULES:
-1.  Process the image row by row. For each row, combine all the data points from the leftmost section to the rightmost section into one object.
-2.  For the HEADERS (keys of the JSON object), use the exact text from the image, but remove any dots '.' and slashes '/'. Do NOT add any other punctuation like underscores '_' or hyphens '-'. For example, "Bomba N°" remains "Bomba N°", "Total m3/Dia" becomes "Total m3Dia", and "m3/Ha /Hora" becomes "m3Ha Hora".
-3.  If a cell in a row is empty or contains a hyphen '-', do not include that key in the JSON object for that row.
-4.  The final output must be a single string containing a valid JSON array of these merged objects.
+1.  **Four Separate Tables**: Identify the four tables in the image and process each one independently.
+2.  **Table 1 (Bomba N°, Sector, etc.)**: Extract all rows from the first table.
+3.  **Table 2 (Kc, Total m3/Dia, etc.)**: Extract all rows from the second table. This table is related by row position to the first.
+4.  **Table 3 (Nitr. Calcio, etc.)**: Extract all rows from the third table.
+5.  **Table 4 (Unidades / Ha)**: Extract all rows from the fourth table.
+6.  **Header Cleaning**: For the HEADERS (keys of the JSON object), use the exact text from the image, but remove any dots '.' and slashes '/'. Do NOT add any other punctuation like underscores '_' or hyphens '-'. For example, "Bomba N°" remains "Bomba N°", "Total m3/Dia" becomes "Total m3Dia", and "m3/Ha /Hora" becomes "m3Ha Hora".
+7.  **Empty Cells**: If a cell in a row is empty or contains only a hyphen '-', do not include that key in the JSON object for that row.
+8.  **Final Output**: The final output must be a single JSON string containing an object with four keys: "table1", "table2", "table3", and "table4". Each key must correspond to the JSON array of a table. If a table has no data, return an empty array for that key.
 
-Example output format for a single, complete row:
-[
-  {
-    "Bomba N°": "003",
-    "Sector": "Vivero",
-    "Lote": "7b",
-    "De": "9:00 a. m.",
-    "Hasta": "3:00 p. m.",
-    "Total Horas": "06:00",
-    "Kc": "2.8",
-    "Total m3Dia": "824.0",
-    "Ha": "4.12",
-    "m3Ha Hora": "16.7",
-    "Lps Ideal": "38",
-    "Lps adicional 10%": "42"
-  },
-  {
-    "Bomba N°": "004",
-    "Sector": "Tb-Arra (c14)",
-    "Lote": "Tb.c14P",
-    "Total Horas": "05:00",
-    "Observaciones": "Fertilizar",
-    "Kc": "1.6",
-    "Total m3Dia": "6.8",
-    "Ha": "0.12",
-    "m3Ha Hora": "11.3",
-    "Nitr Calcio (Kgr)": "12.0",
-    "Molizan (Kgr)": "0.10",
-    "N": "16",
-    "K": "26"
-  }
-]
+Example Output Format:
+{
+  "table1": [
+    { "Bomba N°": "003", "Sector": "Vivero", "Lote": "7a", "De": "9:00 a. m.", "Hasta": "3:00 p. m.", "Total Horas": "06:00" },
+    { "Bomba N°": "003", "Sector": "Vivero", "Lote": "7b", "De": "9:00 a. m.", "Hasta": "3:00 p. m.", "Total Horas": "06:00" }
+  ],
+  "table2": [
+    { "Kc": "2.8", "Total m3Dia": "297.0", "Ha": "2.97", "m3Ha Hora": "16.7", "Lps Ideal": "14", "Lps adicional 10%": "15" },
+    { "Kc": "2.8", "Total m3Dia": "824.0", "Ha": "4.12", "m3Ha Hora": "16.7", "Lps Ideal": "38", "Lps adicional 10%": "42" }
+  ],
+  "table3": [
+    { "Nitr Calcio (Kgr)": "12.0", "Molizan (Kgr)": "0.10" }
+  ],
+  "table4": [
+    { "N": "16", "K": "26" }
+  ]
+}
 
 Image with the tables:
 {{media url=photoDataUri}}`,
