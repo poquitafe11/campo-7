@@ -74,6 +74,7 @@ function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string>
 }
 
 const parseSpanishDate = (dateString: string): Date => {
+    if (!dateString) return new Date('invalid');
     const months: { [key: string]: number } = {
         'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
         'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
@@ -89,6 +90,28 @@ const parseSpanishDate = (dateString: string): Date => {
     }
     return new Date('invalid');
 };
+
+const headerGroups: { [key: string]: string[] } = {
+  blue: ['Fecha', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones'],
+  green: ['Kc', 'ETo', 'ETc', 'Coef Uniformidad', 'Total m3Dia'],
+  yellow: ['Ha', 'm3Ha Hora', 'Distancia', 'Entre', 'Goteros', 'Lps Ideal', 'Lps medido', 'Lps adicional 10%'],
+  gray: ['Nitr Calcio (Kgr)', 'Molizan (Kgr)', 'Sulf Mag (Kgr)', 'Acido Nitrico (Ltr)', 'Acido Fosforico (Ltr)', 'N', 'P', 'K', 'Ca', 'Mg']
+};
+
+const getHeaderGroupColor = (header: string) => {
+  if (headerGroups.blue.includes(header)) return 'bg-blue-100';
+  if (headerGroups.green.includes(header)) return 'bg-green-100';
+  if (headerGroups.yellow.includes(header)) return 'bg-yellow-100';
+  if (headerGroups.gray.includes(header)) return 'bg-gray-100';
+  return 'bg-background';
+};
+
+const headerOrder = [
+  ...headerGroups.blue,
+  ...headerGroups.green,
+  ...headerGroups.yellow,
+  ...headerGroups.gray
+];
 
 
 export default function RegisterIrrigationPage() {
@@ -226,7 +249,9 @@ export default function RegisterIrrigationPage() {
                 Object.keys(row).forEach(key => allHeaders.add(key));
             });
 
-            setTableHeaders(['Campaña', 'Etapa', ...Array.from(allHeaders)]);
+            const sortedHeaders = ['Campaña', 'Etapa', ...headerOrder.filter(h => allHeaders.has(h))];
+            setTableHeaders(sortedHeaders);
+            
             const enrichedData = data.map((row, index) => ({
                 internalId: `preview-${index}`,
                 Campaña: campaign,
@@ -364,8 +389,14 @@ export default function RegisterIrrigationPage() {
     const headers = new Set<string>();
     filteredRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
-    // Simple sort for now, can be improved with a preferred order
-    headersArray.sort((a,b) => a.localeCompare(b));
+    // Sort based on the predefined order
+    headersArray.sort((a,b) => {
+        const indexA = headerOrder.indexOf(a);
+        const indexB = headerOrder.indexOf(b);
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+    });
     return headersArray;
   }, [filteredRecords]);
 
@@ -476,12 +507,12 @@ export default function RegisterIrrigationPage() {
                     <Label>Resultado (Vista Previa)</Label>
                     <div className="overflow-x-auto rounded-md border bg-muted/50 p-4">
                         <Table className="bg-background">
-                            <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}<TableHead>Acciones</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header} className={cn('whitespace-nowrap', getHeaderGroupColor(header))}>{header}</TableHead>)}<TableHead>Acciones</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {parsedData.map((row) => (
                                     <TableRow key={row.internalId}>
                                         {tableHeaders.map(header => (
-                                            <TableCell key={`${row.internalId}-${header}`} className='whitespace-nowrap'>
+                                            <TableCell key={`${row.internalId}-${header}`} className={cn('whitespace-nowrap', getHeaderGroupColor(header))}>
                                                 {String(row[header] ?? '')}
                                             </TableCell>
                                         ))}
@@ -561,7 +592,7 @@ export default function RegisterIrrigationPage() {
                         <TableHeader>
                             <TableRow>
                                 {savedRecordsHeaders.map(header => (
-                                    <TableHead key={header} className="group">
+                                    <TableHead key={header} className={cn("group whitespace-nowrap", getHeaderGroupColor(header))}>
                                         <div className="flex items-center gap-1">
                                             {header}
                                             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditHeader(header)}>
@@ -577,7 +608,7 @@ export default function RegisterIrrigationPage() {
                             {filteredRecords.map(record => (
                                 <TableRow key={record.id}>
                                     {savedRecordsHeaders.map(header => (
-                                        <TableCell key={`${record.id}-${header}`} className='whitespace-nowrap'>
+                                        <TableCell key={`${record.id}-${header}`} className={cn('whitespace-nowrap', getHeaderGroupColor(header))}>
                                             {String(record[header] ?? '')}
                                         </TableCell>
                                     ))}
