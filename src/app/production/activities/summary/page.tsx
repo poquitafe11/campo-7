@@ -216,9 +216,9 @@ export default function ActivitySummaryPage() {
 
     useEffect(() => {
         setActions({
-            title: "Resumen de Actividades",
+            title: <b>Resumen de Actividades</b>,
             right: (
-              <>
+              <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={loading} className="h-9 w-9">
                   <RefreshCcw className="h-5 w-5" />
                 </Button>
@@ -273,7 +273,7 @@ export default function ActivitySummaryPage() {
                     </div>
                   </PopoverContent>
                 </Popover>
-              </>
+              </div>
             ),
         });
         return () => setActions({});
