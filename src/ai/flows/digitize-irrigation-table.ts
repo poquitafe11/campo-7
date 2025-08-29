@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview An AI agent that digitizes an irrigation table from an image.
+ * @fileOverview An AI agent that digitizes up to four separate irrigation tables from a single image.
  *
  * - digitizeIrrigationTable - A function that handles the table digitization process.
  * - DigitizeIrrigationTableInput - The input type for the digitizeIrrigationTable function.
@@ -20,8 +20,9 @@ const DigitizeIrrigationTableInputSchema = z.object({
 });
 export type DigitizeIrrigationTableInput = z.infer<typeof DigitizeIrrigationTableInputSchema>;
 
+// The output will be a JSON string containing an object with up to four arrays, one for each table.
 const DigitizeIrrigationTableOutputSchema = z.object({
-  tableContent: z.string().describe('The full content of the table, extracted as a JSON array of objects, where each object represents a row. If the table cannot be extracted, return an empty array string "[]".'),
+  tableContent: z.string().describe('A single JSON string containing an object with four keys: "tabla1", "tabla2", "tabla3", and "tabla4". Each key holds a JSON array of objects for each table found. If a table is not found, its array should be empty. Example: {"tabla1": [...], "tabla2": [...], "tabla3": [...], "tabla4": [...]}.'),
 });
 export type DigitizeIrrigationTableOutput = z.infer<typeof DigitizeIrrigationTableOutputSchema>;
 
@@ -33,61 +34,34 @@ const prompt = ai.definePrompt({
   name: 'digitizeIrrigationTablePrompt',
   input: {schema: DigitizeIrrigationTableInputSchema},
   output: {schema: DigitizeIrrigationTableOutputSchema},
-  prompt: `You are an expert data entry specialist. Your task is to accurately extract information from a potentially complex irrigation program provided in an image and normalize the keys to be Firestore-compatible.
+  prompt: `You are an expert data entry specialist. Your task is to accurately extract information from an image containing up to four distinct irrigation program tables.
 
-First, extract the general information from the title:
-- The farm name (e.g., "Los Brujos"). Store it as 'Fundo'.
-- The day of the week (e.g., "martes"). Store it as 'Dia'.
-- The full date (e.g., "15 de Julio de 2025"). Store it as 'Fecha'.
-- Extract the 'eT' value if present.
+Analyze the image and transcribe the content of EACH table into its own separate JSON array. The final output must be a single JSON string containing an object with four keys: "tabla1", "tabla2", "tabla3", and "tabla4". Each key will correspond to one of the tables in the image.
 
-Next, analyze all the tables in the image. The rows are related horizontally across all tables, even if they are visually separated. For each main row (identified by 'Bomba N°' or similar), combine the data from all tables into a single JSON object.
+IMPORTANT RULES:
+1.  There are four main tables in the image. The first three tables have the same structure. The fourth table on the far right has additional, different headers.
+2.  Extract each table's data into a separate JSON array.
+3.  For the HEADERS of each table, use the exact text from the image, but remove any dots '.' and slashes '/'. Do NOT add any other punctuation like underscores '_' or hyphens '-'. For example, "Bomba N°" becomes "Bomba N°", and "m3/Ha /Hora" becomes "m3Ha Hora".
+4.  Each object in an array should represent a row from the corresponding table.
+5.  If any of the four tables are not present or empty in the image, its corresponding array in the JSON output should be empty (e.g., "tabla2": []).
+6.  The final output MUST be a single, valid JSON string representing an object with the four table arrays.
 
-VERY IMPORTANT: Use the following exact, Firestore-compatible keys for the JSON objects. Do NOT use slashes '/' or dots '.' in the keys. Use underscores '_' instead. This is critical for database compatibility.
-- 'BombaNo' (from "Bomba N°")
-- 'Total_m3_Dia' (from "Total m3/Dia")
-- 'm3_Ha_Hora' (from "m3/Ha /Hora")
-- 'Ha' (from "Ha.")
-- 'Lps_adicion_al_10' (from "Lps adicion al 10%")
-- 'Tiosulfato_de_Calcio_Lts' (from "Tiosulfato de Calcio (Lts)")
-- 'Tiosulfato_de_Magnesio_Lts' (from "Tiosulfato de Magnesio (Lts)")
-- For columns under 'Unidades/Ha', use the specific header (e.g., 'N', 'P2O5', 'K', 'Mn').
-- Pay close attention to chemical symbols. The symbol "Mπ", "Mpi", or similar-looking text MUST be interpreted and keyed as "Mn" (Manganeso).
-- Include the extracted 'Fundo', 'Dia', 'Fecha', and 'eT' in every single row object of the final JSON array.
-- Ensure all values, including numbers, text, and empty cells (represented as empty strings), are extracted precisely.
-- The final output must be a single, valid JSON array string.
-
-Example of a single object in the output array:
+Example output format for an image with two tables:
 {
-  "Fundo": "Los Brujos",
-  "Dia": "martes",
-  "Fecha": "15 de Julio de 2025",
-  "eT": "2.6",
-  "BombaNo": "002",
-  "Sector": "Autumn Crisp",
-  "Lote": "072",
-  "De": "11:00 a. m.",
-  "Hasta": "3:00 p. m.",
-  "Total Horas": "04:00",
-  "Observaciones": "",
-  "Kc": "1.2",
-  "Total_m3_Dia": "1,003.8",
-  "Ha": "31.00",
-  "m3_Ha_Hora": "8.1",
-  "Lps Ideal": "70",
-  "Lps_adicion_al_10": "77",
-  "Tiosulfato_de_Calcio_Lts": "",
-  "Tiosulfato_de_Magnesio_Lts": "",
-  "N": "",
-  "P2O5": "",
-  "K": "",
-  "Ca": "",
-  "Mg": "",
-  "Zn": "",
-  "Mn": ""
+  "tabla1": [
+    { "Bomba N°": "002", "Sector": "Autumn Crisp", "Lote": "072" },
+    { "Bomba N°": "003", "Sector": "Sweet Globe", "Lote": "078" }
+  ],
+  "tabla2": [
+    { "m3Ha Hora": "8.1", "Lps Ideal": "70", "Lps adicion al 10%": "77" }
+  ],
+  "tabla3": [],
+  "tabla4": [
+    { "N": "1.2", "P2O5": "0.5", "K": "2.0" }
+  ]
 }
 
-Image with the table:
+Image with the tables:
 {{media url=photoDataUri}}`,
 });
 

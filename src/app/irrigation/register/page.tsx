@@ -31,6 +31,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { renameAndMergeHeader } from "./actions";
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
+type ParsedTable = ParsedRow[];
+interface ParsedMultiTableData {
+    tabla1: ParsedTable;
+    tabla2: ParsedTable;
+    tabla3: ParsedTable;
+    tabla4: ParsedTable;
+}
 
 const editRecordSchema = z.object({
   id: z.string().optional(),
@@ -43,71 +50,6 @@ const editHeaderSchema = z.object({
     }),
     mergeWith: z.string().optional(),
 });
-
-
-const CANONICAL_KEYS_MAP: { [canonical: string]: string[] } = {
-  Fundo: ['fundo'],
-  Dia: ['dia'],
-  Fecha: ['fecha'],
-  Campaña: ['campaña'],
-  Etapa: ['etapa'],
-  BombaNo: ['bombano', 'bomban°'],
-  Sector: ['sector'],
-  Lote: ['lote'],
-  De: ['de'],
-  Hasta: ['hasta'],
-  'Total Horas': ['totalhoras'],
-  Observaciones: ['observaciones'],
-  eT: ['et'],
-  Kc: ['kc'],
-  Total_m3_Dia: ['totalm3dia', 'totalm3/dia'],
-  Ha: ['ha', 'ha.'],
-  m3_Ha_Hora: ['m3ha/hora', 'm3hahora', 'm3/ha/hora'],
-  'Lps Ideal': ['lpsideal'],
-  Lps_adicion_al_10: ['lpsadicional10%', 'lpsadicional10'],
-  Tiosulfato_de_Calcio_Lts: ['tiosulfatodecalcio(lts)'],
-  Tiosulfato_de_Magnesio_Lts: ['tiosulfatodemagnesio(lts)'],
-  N: ['n'],
-  P2O5: ['p2o5'],
-  K: ['k'],
-  Ca: ['ca'],
-  Mg: ['mg'],
-  Zn: ['zn'],
-  Mn: ['mn', 'mπ', 'mpi'],
-};
-
-const ALIAS_TO_CANONICAL_MAP = new Map<string, string>();
-for (const canonicalKey in CANONICAL_KEYS_MAP) {
-  CANONICAL_KEYS_MAP[canonicalKey].forEach(alias => {
-    ALIAS_TO_CANONICAL_MAP.set(alias, canonicalKey);
-  });
-  ALIAS_TO_CANONICAL_MAP.set(canonicalKey.toLowerCase().replace(/[\s._/]/g, ''), canonicalKey);
-}
-
-function normalizeObjectKeys(obj: { [key: string]: any }): { [key: string]: any } {
-    const newObj: { [key: string]: any } = {};
-    const processedOriginalKeys = new Set<string>();
-
-    for (const originalKey in obj) {
-        const normalizedKey = originalKey.toLowerCase().replace(/[\s._/]/g, '');
-        const canonicalKey = ALIAS_TO_CANONICAL_MAP.get(normalizedKey) || originalKey;
-        
-        if (newObj.hasOwnProperty(canonicalKey)) {
-             if (obj[originalKey] !== undefined && obj[originalKey] !== null && String(obj[originalKey]).trim() !== '') {
-                 // Simple merge: If target is empty, fill it. If not, maybe log a conflict.
-                 // A more robust strategy could be concatenation if both are strings.
-                 if (!newObj[canonicalKey]) {
-                     newObj[canonicalKey] = obj[originalKey];
-                 }
-             }
-        } else {
-             newObj[canonicalKey] = obj[originalKey];
-        }
-        processedOriginalKeys.add(originalKey);
-    }
-    return newObj;
-}
-
 
 function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string> {
   const canvas = document.createElement('canvas');
@@ -138,7 +80,6 @@ function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string>
   });
 }
 
-// Function to parse Spanish dates like "15 de Julio de 2025"
 const parseSpanishDate = (dateString: string): Date => {
     const months: { [key: string]: number } = {
         'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
@@ -160,8 +101,7 @@ const parseSpanishDate = (dateString: string): Date => {
 export default function RegisterIrrigationPage() {
   const { toast } = useToast();
 
-  const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
-  const [tableHeaders, setTableHeaders] = useState<string[]>([]);
+  const [multiTableData, setMultiTableData] = useState<ParsedMultiTableData | null>(null);
   
   const [isDigitizing, setIsDigitizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -240,8 +180,7 @@ export default function RegisterIrrigationPage() {
       reader.onloadend = () => {
         setSourceImage(reader.result as string);
         setCroppedImage(null);
-        setParsedData([]);
-        setTableHeaders([]);
+        setMultiTableData(null);
         setCrop(undefined);
       };
       reader.readAsDataURL(file);
@@ -278,41 +217,24 @@ export default function RegisterIrrigationPage() {
     }
     
     setIsDigitizing(true);
-    setParsedData([]);
-    setTableHeaders([]);
+    setMultiTableData(null);
 
     try {
       const result = await digitizeIrrigationTable({ photoDataUri: croppedImage });
       
       try {
-        const data = JSON.parse(result.tableContent);
-        if (Array.isArray(data) && data.length > 0) {
-          const enrichedData = data.map((row, index) => ({
-            internalId: `preview-${index}`,
-            'Campaña': campaign,
-            'Etapa': stage,
-            ...row
-          }));
-          setParsedData(enrichedData);
+        const data: ParsedMultiTableData = JSON.parse(result.tableContent);
+        
+        if (data && (data.tabla1?.length || data.tabla2?.length || data.tabla3?.length || data.tabla4?.length)) {
+          const addInternalIds = (table: ParsedTable, prefix: string) => 
+              table.map((row, index) => ({...row, internalId: `${prefix}-${index}`}));
 
-          const firstRow = enrichedData[0];
-          const allHeaders = Object.keys(firstRow);
-          
-          const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps_adicion_al_10', 'Tiosulfato_de_Calcio_Lts', 'Tiosulfato_de_Magnesio_Lts', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
-          
-          const sortedHeaders = allHeaders
-            .filter(h => h !== 'internalId')
-            .sort((a, b) => {
-              const indexA = PREFERRED_ORDER.indexOf(a);
-              const indexB = PREFERRED_ORDER.indexOf(b);
-              if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-              if (indexA !== -1) return -1;
-              if (indexB !== -1) return 1;
-              return a.localeCompare(b);
-            });
-
-          setTableHeaders([...sortedHeaders, 'Acciones']);
-
+          setMultiTableData({
+              tabla1: addInternalIds(data.tabla1 || [], 't1'),
+              tabla2: addInternalIds(data.tabla2 || [], 't2'),
+              tabla3: addInternalIds(data.tabla3 || [], 't3'),
+              tabla4: addInternalIds(data.tabla4 || [], 't4'),
+          });
         } else {
              toast({
                 variant: "destructive",
@@ -341,7 +263,7 @@ export default function RegisterIrrigationPage() {
   };
   
   const handleSave = async () => {
-    if (parsedData.length === 0) {
+    if (!multiTableData || (multiTableData.tabla1.length === 0 && multiTableData.tabla2.length === 0 && multiTableData.tabla3.length === 0 && multiTableData.tabla4.length === 0)) {
         toast({ variant: "destructive", title: "Error", description: "No hay datos para guardar." });
         return;
     }
@@ -349,19 +271,30 @@ export default function RegisterIrrigationPage() {
     setIsSaving(true);
     try {
         const batch = writeBatch(db);
-        parsedData.forEach(row => {
+        const allTables = [
+            ...multiTableData.tabla1, 
+            ...multiTableData.tabla2, 
+            ...multiTableData.tabla3, 
+            ...multiTableData.tabla4
+        ];
+
+        allTables.forEach(row => {
             const { internalId, ...rowData } = row;
             const docRef = doc(collection(db, "registros-riego"));
-            batch.set(docRef, normalizeObjectKeys(rowData));
+            const finalData = {
+                Campaña: campaign,
+                Etapa: stage,
+                ...rowData
+            };
+            batch.set(docRef, finalData);
         });
         await batch.commit();
         
-        toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados.` });
+        toast({ title: "Éxito", description: `${allTables.length} registros han sido guardados.` });
         
         setSourceImage(null);
         setCroppedImage(null);
-        setParsedData([]);
-        setTableHeaders([]);
+        setMultiTableData(null);
         setCampaign('');
         setStage('');
         if(fileInputRef.current) fileInputRef.current.value = '';
@@ -374,8 +307,14 @@ export default function RegisterIrrigationPage() {
     }
   };
 
-  const handleDeletePreview = (internalId: string) => {
-    setParsedData(prev => prev.filter(row => row.internalId !== internalId));
+  const handleDeletePreview = (tableKey: keyof ParsedMultiTableData, internalId: string) => {
+    setMultiTableData(prev => {
+        if (!prev) return null;
+        return {
+            ...prev,
+            [tableKey]: prev[tableKey].filter(row => row.internalId !== internalId)
+        };
+    });
   };
   
   const handleDeleteSaved = async (id: string) => {
@@ -391,25 +330,24 @@ export default function RegisterIrrigationPage() {
   const onUpdateSubmit = async (values: { [key: string]: any }) => {
     if (!editingRecord) return;
   
-    const { id, internalId, ...dataFromForm } = values;
-  
-    if (internalId) {
-      // This is a preview record, just update state
-      const sanitizedData = normalizeObjectKeys(dataFromForm);
-      setParsedData(prev =>
-        prev.map(row =>
-          row.internalId === internalId
-            ? { ...row, ...sanitizedData }
-            : row
-        )
-      );
+    const { id, internalId, tableKey, ...dataFromForm } = values;
+
+    if (internalId && tableKey) {
+      setMultiTableData(prev => {
+        if (!prev) return null;
+        const key = tableKey as keyof ParsedMultiTableData;
+        return {
+            ...prev,
+            [key]: prev[key].map(row => 
+                row.internalId === internalId ? { ...row, ...dataFromForm } : row
+            )
+        };
+      });
       toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
-      // This is a saved record, update Firestore
       try {
         const docRef = doc(db, 'registros-riego', id);
-        const finalData = normalizeObjectKeys(dataFromForm);
-        await setDoc(docRef, finalData);
+        await setDoc(docRef, dataFromForm, { merge: true });
 
         toast({
           title: 'Éxito',
@@ -429,7 +367,7 @@ export default function RegisterIrrigationPage() {
   
   const renderEditFormFields = () => {
     if (!editingRecord) return null;
-    const fieldsToRender = Object.keys(editingRecord).filter(key => key !== 'id' && key !== 'internalId');
+    const fieldsToRender = Object.keys(editingRecord).filter(key => key !== 'id' && key !== 'internalId' && key !== 'tableKey');
     
     return fieldsToRender.map(key => (
         <FormField
@@ -448,19 +386,11 @@ export default function RegisterIrrigationPage() {
   };
 
   const savedRecordsHeaders = useMemo(() => {
-    const PREFERRED_ORDER = ['Fundo', 'Dia', 'Fecha', 'Campaña', 'Etapa', 'BombaNo', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones', 'eT', 'Kc', 'Total_m3_Dia', 'Ha', 'm3_Ha_Hora', 'Lps Ideal', 'Lps_adicion_al_10', 'Tiosulfato_de_Calcio_Lts', 'Tiosulfato_de_Magnesio_Lts', 'N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
     const headers = new Set<string>();
     filteredRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
     const headersArray = Array.from(headers);
-    headersArray.sort((a, b) => {
-        const indexA = PREFERRED_ORDER.indexOf(a);
-        const indexB = PREFERRED_ORDER.indexOf(b);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
-    });
-    
+    // Simple sort for now, can be improved with a preferred order
+    headersArray.sort((a,b) => a.localeCompare(b));
     return headersArray;
   }, [filteredRecords]);
 
@@ -511,6 +441,44 @@ export default function RegisterIrrigationPage() {
         toast({ variant: "destructive", title: "Error", description: result.message });
     }
     setIsHeaderSubmitting(false);
+  };
+  
+  const renderPreviewTable = (tableData: ParsedTable, tableKey: keyof ParsedMultiTableData) => {
+    if (!tableData || tableData.length === 0) return null;
+    const headers = Object.keys(tableData[0]).filter(h => h !== 'internalId');
+    return (
+      <div className="space-y-2">
+        <h4 className="font-semibold text-lg">{`Tabla ${tableKey.replace('tabla', '')}`}</h4>
+        <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
+          <Table className="bg-background">
+            <TableHeader><TableRow>{[...headers, 'Acciones'].map(header => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader>
+            <TableBody>
+              {tableData.map((row) => (
+                <TableRow key={row.internalId}>
+                  {headers.map(header => (
+                    <TableCell key={`${row.internalId}-${header}`} className='whitespace-nowrap'>
+                      {String(row[header] ?? '')}
+                    </TableCell>
+                  ))}
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord({...row, tableKey })}><Pencil className="h-4 w-4"/></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará la fila de la vista previa.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePreview(tableKey, row.internalId!)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -566,35 +534,14 @@ export default function RegisterIrrigationPage() {
 
             {isDigitizing && ( <div className="space-y-2"><Label htmlFor="digitized-result">Resultado</Label><div className="space-y-2 rounded-md border p-4"><div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-1/2 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-5/6 animate-pulse"></div></div></div> )}
             
-            {!isDigitizing && parsedData.length > 0 && (
+            {!isDigitizing && multiTableData && (
                 <div className="space-y-4">
                     <Label>Resultado (Vista Previa)</Label>
-                    <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
-                        <Table className="bg-background">
-                            <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader>
-                            <TableBody>
-                                {parsedData.map((row) => (
-                                    <TableRow key={row.internalId}>
-                                        {tableHeaders.map(header => (
-                                            <TableCell key={`${row.internalId}-${header}`} className='whitespace-nowrap'>
-                                                {header === 'Acciones' ? (
-                                                  <div className="flex gap-2">
-                                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord({...row, id: row.internalId })}><Pencil className="h-4 w-4"/></Button>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará la fila de la vista previa.</AlertDialogDescription></AlertDialogHeader>
-                                                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePreview(row.internalId!)}>Eliminar</AlertDialogAction></AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                  </div>
-                                                ) : String(row[header] ?? '')}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    <div className="space-y-6">
+                        {renderPreviewTable(multiTableData.tabla1, 'tabla1')}
+                        {renderPreviewTable(multiTableData.tabla2, 'tabla2')}
+                        {renderPreviewTable(multiTableData.tabla3, 'tabla3')}
+                        {renderPreviewTable(multiTableData.tabla4, 'tabla4')}
                     </div>
                     <Button onClick={handleSave} disabled={isSaving}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -744,7 +691,3 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
-
-
-
-    
