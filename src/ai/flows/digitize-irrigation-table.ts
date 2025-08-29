@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview An AI agent that digitizes up to four separate irrigation tables from a single image.
+ * @fileOverview An AI agent that digitizes a multi-section irrigation program table from a single image.
  *
  * - digitizeIrrigationTable - A function that handles the table digitization process.
  * - DigitizeIrrigationTableInput - The input type for the digitizeIrrigationTable function.
@@ -20,9 +20,8 @@ const DigitizeIrrigationTableInputSchema = z.object({
 });
 export type DigitizeIrrigationTableInput = z.infer<typeof DigitizeIrrigationTableInputSchema>;
 
-// The output will be a JSON string containing an object with up to four arrays, one for each table.
 const DigitizeIrrigationTableOutputSchema = z.object({
-  tableContent: z.string().describe('A single JSON string containing an object with four keys: "tabla1", "tabla2", "tabla3", and "tabla4". Each key holds a JSON array of objects for each table found. If a table is not found, its array should be empty. Example: {"tabla1": [...], "tabla2": [...], "tabla3": [...], "tabla4": [...]}.'),
+  tableContent: z.string().describe('The full content of the table, extracted as a JSON array of objects, where each object represents a fully merged row from all table sections. If the table cannot be extracted, return an empty array string "[]".'),
 });
 export type DigitizeIrrigationTableOutput = z.infer<typeof DigitizeIrrigationTableOutputSchema>;
 
@@ -34,36 +33,53 @@ const prompt = ai.definePrompt({
   name: 'digitizeIrrigationTablePrompt',
   input: {schema: DigitizeIrrigationTableInputSchema},
   output: {schema: DigitizeIrrigationTableOutputSchema},
-  prompt: `You are an expert data entry specialist. Your task is to accurately extract information from an image containing up to four distinct irrigation program tables.
+  prompt: `You are an expert data entry specialist. Your task is to accurately extract information from an image containing a multi-section irrigation program table and merge it into a single, unified dataset.
 
-Analyze the image and transcribe the content of EACH table into its own separate JSON array. The final output must be a single JSON string containing an object with four keys: "tabla1", "tabla2", "tabla3", and "tabla4". Each key will correspond to one of the tables in the image.
+Analyze the image provided. It contains one logical table split into four visible sections. Each horizontal row across all sections represents a single record. You must merge the data from each row across all four sections into a single JSON object.
 
 IMPORTANT RULES:
-1.  There are four main tables in the image. The first three tables have the same structure. The fourth table on the far right has additional, different headers.
-2.  Extract each table's data into a separate JSON array.
-3.  For the HEADERS of each table, use the exact text from the image, but remove any dots '.' and slashes '/'. Do NOT add any other punctuation like underscores '_' or hyphens '-'. For example, "Bomba N°" becomes "Bomba N°", and "m3/Ha /Hora" becomes "m3Ha Hora".
-4.  Each object in an array should represent a row from the corresponding table.
-5.  If any of the four tables are not present or empty in the image, its corresponding array in the JSON output should be empty (e.g., "tabla2": []).
-6.  The final output MUST be a single, valid JSON string representing an object with the four table arrays.
+1.  Process the image row by row. For each row, combine all the data points from the leftmost section to the rightmost section into one object.
+2.  For the HEADERS (keys of the JSON object), use the exact text from the image, but remove any dots '.' and slashes '/'. Do NOT add any other punctuation like underscores '_' or hyphens '-'. For example, "Bomba N°" remains "Bomba N°", "Total m3/Dia" becomes "Total m3Dia", and "m3/Ha /Hora" becomes "m3Ha Hora".
+3.  If a cell in a row is empty or contains a hyphen '-', do not include that key in the JSON object for that row.
+4.  The final output must be a single string containing a valid JSON array of these merged objects.
 
-Example output format for an image with two tables:
-{
-  "tabla1": [
-    { "Bomba N°": "002", "Sector": "Autumn Crisp", "Lote": "072" },
-    { "Bomba N°": "003", "Sector": "Sweet Globe", "Lote": "078" }
-  ],
-  "tabla2": [
-    { "m3Ha Hora": "8.1", "Lps Ideal": "70", "Lps adicion al 10%": "77" }
-  ],
-  "tabla3": [],
-  "tabla4": [
-    { "N": "1.2", "P2O5": "0.5", "K": "2.0" }
-  ]
-}
+Example output format for a single, complete row:
+[
+  {
+    "Bomba N°": "003",
+    "Sector": "Vivero",
+    "Lote": "7b",
+    "De": "9:00 a. m.",
+    "Hasta": "3:00 p. m.",
+    "Total Horas": "06:00",
+    "Kc": "2.8",
+    "Total m3Dia": "824.0",
+    "Ha": "4.12",
+    "m3Ha Hora": "16.7",
+    "Lps Ideal": "38",
+    "Lps adicional 10%": "42"
+  },
+  {
+    "Bomba N°": "004",
+    "Sector": "Tb-Arra (c14)",
+    "Lote": "Tb.c14P",
+    "Total Horas": "05:00",
+    "Observaciones": "Fertilizar",
+    "Kc": "1.6",
+    "Total m3Dia": "6.8",
+    "Ha": "0.12",
+    "m3Ha Hora": "11.3",
+    "Nitr Calcio (Kgr)": "12.0",
+    "Molizan (Kgr)": "0.10",
+    "N": "16",
+    "K": "26"
+  }
+]
 
 Image with the tables:
 {{media url=photoDataUri}}`,
 });
+
 
 const digitizeIrrigationTableFlow = ai.defineFlow(
   {

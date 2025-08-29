@@ -31,13 +31,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { renameAndMergeHeader } from "./actions";
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
-type ParsedTable = ParsedRow[];
-interface ParsedMultiTableData {
-    tabla1: ParsedTable;
-    tabla2: ParsedTable;
-    tabla3: ParsedTable;
-    tabla4: ParsedTable;
-}
 
 const editRecordSchema = z.object({
   id: z.string().optional(),
@@ -101,7 +94,8 @@ const parseSpanishDate = (dateString: string): Date => {
 export default function RegisterIrrigationPage() {
   const { toast } = useToast();
 
-  const [multiTableData, setMultiTableData] = useState<ParsedMultiTableData | null>(null);
+  const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
+  const [tableHeaders, setTableHeaders] = useState<string[]>([]);
   
   const [isDigitizing, setIsDigitizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -180,7 +174,8 @@ export default function RegisterIrrigationPage() {
       reader.onloadend = () => {
         setSourceImage(reader.result as string);
         setCroppedImage(null);
-        setMultiTableData(null);
+        setParsedData([]);
+        setTableHeaders([]);
         setCrop(undefined);
       };
       reader.readAsDataURL(file);
@@ -217,24 +212,28 @@ export default function RegisterIrrigationPage() {
     }
     
     setIsDigitizing(true);
-    setMultiTableData(null);
+    setParsedData([]);
+    setTableHeaders([]);
 
     try {
       const result = await digitizeIrrigationTable({ photoDataUri: croppedImage });
       
       try {
-        const data: ParsedMultiTableData = JSON.parse(result.tableContent);
-        
-        if (data && (data.tabla1?.length || data.tabla2?.length || data.tabla3?.length || data.tabla4?.length)) {
-          const addInternalIds = (table: ParsedTable, prefix: string) => 
-              table.map((row, index) => ({...row, internalId: `${prefix}-${index}`}));
+        const data = JSON.parse(result.tableContent);
+        if (Array.isArray(data) && data.length > 0) {
+            const allHeaders = new Set<string>();
+            data.forEach(row => {
+                Object.keys(row).forEach(key => allHeaders.add(key));
+            });
 
-          setMultiTableData({
-              tabla1: addInternalIds(data.tabla1 || [], 't1'),
-              tabla2: addInternalIds(data.tabla2 || [], 't2'),
-              tabla3: addInternalIds(data.tabla3 || [], 't3'),
-              tabla4: addInternalIds(data.tabla4 || [], 't4'),
-          });
+            setTableHeaders(['Campaña', 'Etapa', ...Array.from(allHeaders)]);
+            const enrichedData = data.map((row, index) => ({
+                internalId: `preview-${index}`,
+                Campaña: campaign,
+                Etapa: stage,
+                ...row
+            }));
+            setParsedData(enrichedData);
         } else {
              toast({
                 variant: "destructive",
@@ -263,7 +262,7 @@ export default function RegisterIrrigationPage() {
   };
   
   const handleSave = async () => {
-    if (!multiTableData || (multiTableData.tabla1.length === 0 && multiTableData.tabla2.length === 0 && multiTableData.tabla3.length === 0 && multiTableData.tabla4.length === 0)) {
+    if (parsedData.length === 0) {
         toast({ variant: "destructive", title: "Error", description: "No hay datos para guardar." });
         return;
     }
@@ -271,30 +270,19 @@ export default function RegisterIrrigationPage() {
     setIsSaving(true);
     try {
         const batch = writeBatch(db);
-        const allTables = [
-            ...multiTableData.tabla1, 
-            ...multiTableData.tabla2, 
-            ...multiTableData.tabla3, 
-            ...multiTableData.tabla4
-        ];
-
-        allTables.forEach(row => {
+        parsedData.forEach(row => {
             const { internalId, ...rowData } = row;
             const docRef = doc(collection(db, "registros-riego"));
-            const finalData = {
-                Campaña: campaign,
-                Etapa: stage,
-                ...rowData
-            };
-            batch.set(docRef, finalData);
+            batch.set(docRef, rowData);
         });
         await batch.commit();
         
-        toast({ title: "Éxito", description: `${allTables.length} registros han sido guardados.` });
+        toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados.` });
         
         setSourceImage(null);
         setCroppedImage(null);
-        setMultiTableData(null);
+        setParsedData([]);
+        setTableHeaders([]);
         setCampaign('');
         setStage('');
         if(fileInputRef.current) fileInputRef.current.value = '';
@@ -307,14 +295,8 @@ export default function RegisterIrrigationPage() {
     }
   };
 
-  const handleDeletePreview = (tableKey: keyof ParsedMultiTableData, internalId: string) => {
-    setMultiTableData(prev => {
-        if (!prev) return null;
-        return {
-            ...prev,
-            [tableKey]: prev[tableKey].filter(row => row.internalId !== internalId)
-        };
-    });
+  const handleDeletePreview = (internalId: string) => {
+    setParsedData(prev => prev.filter(row => row.internalId !== internalId));
   };
   
   const handleDeleteSaved = async (id: string) => {
@@ -330,19 +312,12 @@ export default function RegisterIrrigationPage() {
   const onUpdateSubmit = async (values: { [key: string]: any }) => {
     if (!editingRecord) return;
   
-    const { id, internalId, tableKey, ...dataFromForm } = values;
+    const { id, internalId, ...dataFromForm } = values;
 
-    if (internalId && tableKey) {
-      setMultiTableData(prev => {
-        if (!prev) return null;
-        const key = tableKey as keyof ParsedMultiTableData;
-        return {
-            ...prev,
-            [key]: prev[key].map(row => 
-                row.internalId === internalId ? { ...row, ...dataFromForm } : row
-            )
-        };
-      });
+    if (internalId) {
+        setParsedData(prev => prev.map(row => 
+            row.internalId === internalId ? { ...row, ...dataFromForm } : row
+        ));
       toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
       try {
@@ -367,7 +342,7 @@ export default function RegisterIrrigationPage() {
   
   const renderEditFormFields = () => {
     if (!editingRecord) return null;
-    const fieldsToRender = Object.keys(editingRecord).filter(key => key !== 'id' && key !== 'internalId' && key !== 'tableKey');
+    const fieldsToRender = Object.keys(editingRecord).filter(key => key !== 'id' && key !== 'internalId');
     
     return fieldsToRender.map(key => (
         <FormField
@@ -442,44 +417,6 @@ export default function RegisterIrrigationPage() {
     }
     setIsHeaderSubmitting(false);
   };
-  
-  const renderPreviewTable = (tableData: ParsedTable, tableKey: keyof ParsedMultiTableData) => {
-    if (!tableData || tableData.length === 0) return null;
-    const headers = Object.keys(tableData[0]).filter(h => h !== 'internalId');
-    return (
-      <div className="space-y-2">
-        <h4 className="font-semibold text-lg">{`Tabla ${tableKey.replace('tabla', '')}`}</h4>
-        <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
-          <Table className="bg-background">
-            <TableHeader><TableRow>{[...headers, 'Acciones'].map(header => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader>
-            <TableBody>
-              {tableData.map((row) => (
-                <TableRow key={row.internalId}>
-                  {headers.map(header => (
-                    <TableCell key={`${row.internalId}-${header}`} className='whitespace-nowrap'>
-                      {String(row[header] ?? '')}
-                    </TableCell>
-                  ))}
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord({...row, tableKey })}><Pencil className="h-4 w-4"/></Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará la fila de la vista previa.</AlertDialogDescription></AlertDialogHeader>
-                          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePreview(tableKey, row.internalId!)}>Eliminar</AlertDialogAction></AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <>
@@ -534,14 +471,36 @@ export default function RegisterIrrigationPage() {
 
             {isDigitizing && ( <div className="space-y-2"><Label htmlFor="digitized-result">Resultado</Label><div className="space-y-2 rounded-md border p-4"><div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-1/2 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-5/6 animate-pulse"></div></div></div> )}
             
-            {!isDigitizing && multiTableData && (
+            {!isDigitizing && parsedData.length > 0 && (
                 <div className="space-y-4">
                     <Label>Resultado (Vista Previa)</Label>
-                    <div className="space-y-6">
-                        {renderPreviewTable(multiTableData.tabla1, 'tabla1')}
-                        {renderPreviewTable(multiTableData.tabla2, 'tabla2')}
-                        {renderPreviewTable(multiTableData.tabla3, 'tabla3')}
-                        {renderPreviewTable(multiTableData.tabla4, 'tabla4')}
+                    <div className="overflow-x-auto rounded-md border bg-muted/50 p-4">
+                        <Table className="bg-background">
+                            <TableHeader><TableRow>{tableHeaders.map(header => <TableHead key={header}>{header}</TableHead>)}<TableHead>Acciones</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {parsedData.map((row) => (
+                                    <TableRow key={row.internalId}>
+                                        {tableHeaders.map(header => (
+                                            <TableCell key={`${row.internalId}-${header}`} className='whitespace-nowrap'>
+                                                {String(row[header] ?? '')}
+                                            </TableCell>
+                                        ))}
+                                        <TableCell>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord(row)}><Pencil className="h-4 w-4"/></Button>
+                                                <AlertDialog>
+                                                <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará la fila de la vista previa.</AlertDialogDescription></AlertDialogHeader>
+                                                    <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePreview(row.internalId!)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                                                </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
                     <Button onClick={handleSave} disabled={isSaving}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
