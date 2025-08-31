@@ -96,7 +96,7 @@ const parseSpanishDate = (dateString: string): Date => {
 };
 
 const headerGroups = {
-  main: ['Campaña', 'Etapa', 'Fecha', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones'],
+  main: ['Campaña', 'Etapa', 'Fundo', 'Fecha', 'Dia', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones'],
   metrics: ['ETo', 'Kc', 'Total m3Dia', 'Ha', 'm3Ha Hora', 'Lps Ideal', 'Lps adicional 10%'],
   units: ['N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn', 'B', 'Fe', 'S']
 };
@@ -105,8 +105,12 @@ const getHeaderGroupColor = (header: string) => {
   if (headerGroups.main.includes(header)) return 'bg-blue-100';
   if (headerGroups.metrics.includes(header)) return 'bg-green-100';
   if (headerGroups.units.includes(header)) return 'bg-gray-100';
-  // Default for dynamic inputs table
-  return 'bg-yellow-100';
+  
+  // Anything not in the fixed groups is considered an 'insumo'
+  const allFixed = [...headerGroups.main, ...headerGroups.metrics, ...headerGroups.units];
+  if (!allFixed.includes(header)) return 'bg-yellow-100';
+
+  return '';
 };
 
 
@@ -236,7 +240,9 @@ export default function RegisterIrrigationPage() {
       
       try {
         const data = JSON.parse(result.tableContent);
+        const extractedFundo = result.fundo;
         const extractedDate = result.fecha;
+        const extractedDia = result.dia;
         const extractedEto = result.eto;
         
         if (Array.isArray(data) && data.length > 0) {
@@ -244,7 +250,9 @@ export default function RegisterIrrigationPage() {
                 internalId: `preview-${index}`,
                 Campaña: campaign,
                 Etapa: stage,
+                Fundo: extractedFundo,
                 Fecha: extractedDate,
+                Dia: extractedDia,
                 ETo: extractedEto,
                 ...row,
             }));
