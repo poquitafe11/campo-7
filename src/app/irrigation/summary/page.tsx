@@ -407,29 +407,29 @@ export default function IrrigationSummaryPage() {
                             <table className="w-full text-sm border-collapse">
                                 <thead>
                                     <tr className="bg-blue-100">
-                                        <th className="border p-1 text-left font-semibold" colSpan={summaryData.columns.length + 1}>
+                                        <th className="border px-1 py-0.5 text-left font-semibold" colSpan={summaryData.columns.length + 1}>
                                             Unds Acumulado hasta: {summaryData.date}
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th className="border p-1 bg-lime-400 font-semibold">DDC</th>
+                                        <th className="border px-1 py-0.5 bg-lime-400 font-semibold">DDC</th>
                                         {summaryData.columns.map(({lote, ddc}) => (
-                                            <th key={lote} className="border p-1 bg-lime-400 font-semibold">{ddc}</th>
+                                            <th key={lote} className="border px-1 py-0.5 bg-lime-400 font-semibold">{ddc}</th>
                                         ))}
                                     </tr>
                                      <tr>
-                                        <th className="border p-1 bg-blue-200 font-semibold">Lote</th>
+                                        <th className="border px-1 py-0.5 bg-blue-200 font-semibold">Lote</th>
                                         {summaryData.columns.map(({lote}) => (
-                                            <th key={lote} className="border p-1 bg-blue-200 font-semibold">{lote}</th>
+                                            <th key={lote} className="border px-1 py-0.5 bg-blue-200 font-semibold">{lote}</th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {NUTRIENTS.map(nutrient => (
                                         <tr key={nutrient}>
-                                            <th className="border p-1 bg-blue-200 font-semibold text-left">{nutrient}</th>
+                                            <th className="border px-1 py-0.5 bg-blue-200 font-semibold text-left">{nutrient}</th>
                                             {summaryData.columns.map(({lote, ...data}) => (
-                                                <td key={`${lote}-${nutrient}`} className="border p-1 text-center">
+                                                <td key={`${lote}-${nutrient}`} className="border px-1 py-0.5 text-center">
                                                     {(data[nutrient] || 0).toFixed(1)}
                                                 </td>
                                             ))}
