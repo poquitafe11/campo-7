@@ -8,6 +8,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   skipWaiting: true,
   extendDefaultRuntimeCaching: true,
   cacheOnFrontEndNav: true,
+  orientation: 'any', // Allow landscape and portrait orientation
   runtimeCaching: [
     {
       urlPattern: /^https?:\/\/firestore\.googleapis\.com\/.*/,
