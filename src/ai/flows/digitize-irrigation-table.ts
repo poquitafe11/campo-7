@@ -21,7 +21,6 @@ const DigitizeIrrigationTableInputSchema = z.object({
 export type DigitizeIrrigationTableInput = z.infer<typeof DigitizeIrrigationTableInputSchema>;
 
 const DigitizeIrrigationTableOutputSchema = z.object({
-  // The output is now a single array of objects, where each object represents a full row across all 4 sections.
   tableContent: z.string().describe('A JSON string representing a single array of objects. Each object is a complete row containing data from all four sections of the irrigation program, merged together. If the table cannot be extracted, return an empty array string "[]".'),
 });
 export type DigitizeIrrigationTableOutput = z.infer<typeof DigitizeIrrigationTableOutputSchema>;
@@ -67,4 +66,3 @@ const digitizeIrrigationTableFlow = ai.defineFlow(
     return output!;
   }
 );
-
