@@ -407,29 +407,29 @@ export default function IrrigationSummaryPage() {
                             <table className="w-full text-sm border-collapse">
                                 <thead>
                                     <tr className="bg-blue-100">
-                                        <th className="border p-2 text-left font-semibold" colSpan={summaryData.columns.length + 1}>
+                                        <th className="border p-1 text-left font-semibold" colSpan={summaryData.columns.length + 1}>
                                             Unds Acumulado hasta: {summaryData.date}
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th className="border p-2 bg-lime-400 font-semibold">DDC</th>
+                                        <th className="border p-1 bg-lime-400 font-semibold">DDC</th>
                                         {summaryData.columns.map(({lote, ddc}) => (
-                                            <th key={lote} className="border p-2 bg-lime-400 font-semibold">{ddc}</th>
+                                            <th key={lote} className="border p-1 bg-lime-400 font-semibold">{ddc}</th>
                                         ))}
                                     </tr>
                                      <tr>
-                                        <th className="border p-2 bg-blue-200 font-semibold">Lote</th>
+                                        <th className="border p-1 bg-blue-200 font-semibold">Lote</th>
                                         {summaryData.columns.map(({lote}) => (
-                                            <th key={lote} className="border p-2 bg-blue-200 font-semibold">{lote}</th>
+                                            <th key={lote} className="border p-1 bg-blue-200 font-semibold">{lote}</th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {NUTRIENTS.map(nutrient => (
                                         <tr key={nutrient}>
-                                            <th className="border p-2 bg-blue-200 font-semibold text-left">{nutrient}</th>
+                                            <th className="border p-1 bg-blue-200 font-semibold text-left">{nutrient}</th>
                                             {summaryData.columns.map(({lote, ...data}) => (
-                                                <td key={`${lote}-${nutrient}`} className="border p-2 text-center">
+                                                <td key={`${lote}-${nutrient}`} className="border p-1 text-center">
                                                     {(data[nutrient] || 0).toFixed(1)}
                                                 </td>
                                             ))}
@@ -453,20 +453,20 @@ export default function IrrigationSummaryPage() {
                            <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="font-bold py-2 px-3">Lote</TableHead>
-                                        <TableHead className="font-bold text-center py-2 px-3">Días sin Riego</TableHead>
-                                        <TableHead className="text-center py-2 px-3">Riego 1 (Reciente)</TableHead>
-                                        <TableHead className="text-center py-2 px-3">Riego 2</TableHead>
-                                        <TableHead className="text-center py-2 px-3">Riego 3</TableHead>
+                                        <TableHead className="font-bold py-1 px-2">Lote</TableHead>
+                                        <TableHead className="font-bold text-center py-1 px-2">Días sin Riego</TableHead>
+                                        <TableHead className="text-center py-1 px-2">Riego 1 (Reciente)</TableHead>
+                                        <TableHead className="text-center py-1 px-2">Riego 2</TableHead>
+                                        <TableHead className="text-center py-1 px-2">Riego 3</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {recentIrrigationData.map((data, index) => (
                                         <TableRow key={`${data.lote}-${index}`}>
-                                            <TableCell className="font-semibold py-2 px-3">{data.lote}</TableCell>
-                                            <TableCell className="text-center py-2 px-3">{data.daysSinceLastIrrigation}</TableCell>
+                                            <TableCell className="font-semibold py-1 px-2">{data.lote}</TableCell>
+                                            <TableCell className="text-center py-1 px-2">{data.daysSinceLastIrrigation}</TableCell>
                                             {data.recentIrrigations.map((irrigation, i) => (
-                                                 <TableCell key={i} className="text-center py-2 px-3">
+                                                 <TableCell key={i} className="text-center py-1 px-2">
                                                     <div>{irrigation.date}</div>
                                                     <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
                                                 </TableCell>
@@ -491,11 +491,11 @@ export default function IrrigationSummaryPage() {
                            <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="font-bold py-2 px-3">Lote</TableHead>
-                                        <TableHead className="font-bold text-center py-2 px-3">Días sin Lavado</TableHead>
-                                        <TableHead className="text-center py-2 px-3">Lavado 1 (Reciente)</TableHead>
-                                        <TableHead className="text-center py-2 px-3">Lavado 2</TableHead>
-                                        <TableHead className="text-center py-2 px-3">Lavado 3</TableHead>
+                                        <TableHead className="font-bold py-1 px-2">Lote</TableHead>
+                                        <TableHead className="font-bold text-center py-1 px-2">Días sin Lavado</TableHead>
+                                        <TableHead className="text-center py-1 px-2">Lavado 1 (Reciente)</TableHead>
+                                        <TableHead className="text-center py-1 px-2">Lavado 2</TableHead>
+                                        <TableHead className="text-center py-1 px-2">Lavado 3</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -504,15 +504,15 @@ export default function IrrigationSummaryPage() {
                                         const needsAttention = typeof daysSince === 'number' && daysSince >= 15;
                                         return (
                                             <TableRow key={`${data.lote}-${index}`}>
-                                                <TableCell className="font-semibold py-2 px-3">{data.lote}</TableCell>
+                                                <TableCell className="font-semibold py-1 px-2">{data.lote}</TableCell>
                                                 <TableCell className={cn(
-                                                    "text-center py-2 px-3",
+                                                    "text-center py-1 px-2",
                                                     needsAttention && "bg-red-200 text-red-900 font-bold"
                                                 )}>
                                                     {daysSince}
                                                 </TableCell>
                                                 {data.recentIrrigations.map((irrigation, i) => (
-                                                     <TableCell key={i} className="text-center py-2 px-3">
+                                                     <TableCell key={i} className="text-center py-1 px-2">
                                                         <div>{irrigation.date}</div>
                                                         <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
                                                     </TableCell>
