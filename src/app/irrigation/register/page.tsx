@@ -95,27 +95,19 @@ const parseSpanishDate = (dateString: string): Date => {
     return new Date('invalid');
 };
 
-const headerGroups: { [key: string]: string[] } = {
-  blue: ['Fecha', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones'],
-  green: ['Kc', 'ETo', 'ETc', 'Coef Uniformidad', 'Total m3Dia'],
-  yellow: ['Ha', 'm3Ha Hora', 'Distancia', 'Entre', 'Goteros', 'Lps Ideal', 'Lps medido', 'Lps adicional 10%'],
-  gray: ['Nitr Calcio (Kgr)', 'Molizan (Kgr)', 'Sulf Mag (Kgr)', 'Acido Nitrico (Ltr)', 'Acido Fosforico (Ltr)', 'N', 'P', 'K', 'Ca', 'Mg']
+const headerGroups = {
+  main: ['Campaña', 'Etapa', 'Fecha', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones'],
+  metrics: ['ETo', 'Kc', 'Total m3Dia', 'Ha', 'm3Ha Hora', 'Lps Ideal', 'Lps adicional 10%'],
+  units: ['N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn', 'B', 'Fe', 'S']
 };
 
 const getHeaderGroupColor = (header: string) => {
-  if (headerGroups.blue.includes(header)) return 'bg-blue-100';
-  if (headerGroups.green.includes(header)) return 'bg-green-100';
-  if (headerGroups.yellow.includes(header)) return 'bg-yellow-100';
-  if (headerGroups.gray.includes(header)) return 'bg-gray-100';
-  return 'bg-background';
+  if (headerGroups.main.includes(header)) return 'bg-blue-100';
+  if (headerGroups.metrics.includes(header)) return 'bg-green-100';
+  if (headerGroups.units.includes(header)) return 'bg-gray-100';
+  // Default for dynamic inputs table
+  return 'bg-yellow-100';
 };
-
-const headerOrder = [
-  ...headerGroups.blue,
-  ...headerGroups.green,
-  ...headerGroups.yellow,
-  ...headerGroups.gray
-];
 
 
 export default function RegisterIrrigationPage() {
@@ -245,13 +237,15 @@ export default function RegisterIrrigationPage() {
       try {
         const data = JSON.parse(result.tableContent);
         const extractedDate = result.fecha;
+        const extractedEto = result.eto;
         
         if (Array.isArray(data) && data.length > 0) {
             const enrichedData = data.map((row, index) => ({
                 internalId: `preview-${index}`,
-                Fecha: extractedDate,
                 Campaña: campaign,
                 Etapa: stage,
+                Fecha: extractedDate,
+                ETo: extractedEto,
                 ...row,
             }));
             setParsedData(enrichedData);
@@ -380,41 +374,31 @@ export default function RegisterIrrigationPage() {
         />
     ));
   };
-
-  const savedRecordsHeaders = useMemo(() => {
-    const headers = new Set<string>();
-    filteredRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
-    // Ensure Fecha is always present if any records exist
-    if (filteredRecords.length > 0) {
-      headers.add('Fecha');
-    }
-    const headersArray = Array.from(headers);
-    // Sort based on the predefined order
-    headersArray.sort((a,b) => {
-        const indexA = headerOrder.indexOf(a);
-        const indexB = headerOrder.indexOf(b);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
+  
+  const getSortedHeaders = (records: ParsedRow[]): string[] => {
+    const allHeaders = new Set<string>();
+    records.forEach(record => {
+      Object.keys(record).forEach(key => {
+        if (key !== 'id' && key !== 'internalId') {
+          allHeaders.add(key);
+        }
+      });
     });
-    return headersArray;
-  }, [filteredRecords]);
 
-  const previewHeaders = useMemo(() => {
-    if (parsedData.length === 0) return [];
-    const headers = new Set<string>();
-    parsedData.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'internalId') headers.add(key); }); });
-    const headersArray = Array.from(headers);
-    headersArray.sort((a,b) => {
-        const indexA = headerOrder.indexOf(a);
-        const indexB = headerOrder.indexOf(b);
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-    });
-    return headersArray;
-  }, [parsedData]);
+    const fixedHeaders1 = headerGroups.main.filter(h => allHeaders.has(h));
+    const fixedHeaders2 = headerGroups.metrics.filter(h => allHeaders.has(h));
+    const fixedHeaders4 = headerGroups.units.filter(h => allHeaders.has(h));
+    
+    const allFixedHeaders = new Set([...fixedHeaders1, ...fixedHeaders2, ...fixedHeaders4]);
+    
+    const dynamicHeaders = [...allHeaders].filter(h => !allFixedHeaders.has(h)).sort();
+
+    return [...fixedHeaders1, ...fixedHeaders2, ...dynamicHeaders, ...fixedHeaders4];
+  };
+
+  const savedRecordsHeaders = useMemo(() => getSortedHeaders(filteredRecords), [filteredRecords]);
+  const previewHeaders = useMemo(() => getSortedHeaders(parsedData), [parsedData]);
+
 
   const handleDownloadExcel = () => {
     const dataToExport = filteredRecords.map(record => {
