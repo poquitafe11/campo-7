@@ -436,7 +436,7 @@ export default function RegisterIrrigationPage() {
     editHeaderForm.reset({ newName: header, mergeWith: '' });
   };
 
-  const onEditHeaderSubmit = async (values: z.infer<typeof editHeaderSchema>>) => {
+  const onEditHeaderSubmit = async (values: z.infer<typeof editHeaderSchema>) => {
     if (!editingHeader) return;
     setIsHeaderSubmitting(true);
     const { newName, mergeWith } = values;
