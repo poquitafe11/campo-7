@@ -42,6 +42,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   minimumScale: 1,
   maximumScale: 1,
+  // orientation: 'any', // By not specifying, we allow both portrait and landscape
 };
 
 export default function RootLayout({

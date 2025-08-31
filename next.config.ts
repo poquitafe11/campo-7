@@ -8,6 +8,22 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   skipWaiting: true,
   extendDefaultRuntimeCaching: true,
   cacheOnFrontEndNav: true,
+  runtimeCaching: [
+    {
+      urlPattern: /^https?:\/\/firestore\.googleapis\.com\/.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'firestore-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+  ],
 });
 
 const nextConfig = {

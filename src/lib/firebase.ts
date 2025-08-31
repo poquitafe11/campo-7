@@ -29,9 +29,7 @@ if (typeof window !== 'undefined') {
     }
 
     try {
-        db = initializeFirestore(app, {
-            cacheSizeBytes: CACHE_SIZE_UNLIMITED
-        });
+        db = getFirestore(app);
         enableIndexedDbPersistence(db).catch((err) => {
             if (err.code == 'failed-precondition') {
                 console.warn("Firestore persistence failed: Multiple tabs open.");
