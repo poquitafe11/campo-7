@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 const protectedRoutes = [
     '/dashboard',
