@@ -384,14 +384,19 @@ export default function RegisterIrrigationPage() {
   const savedRecordsHeaders = useMemo(() => {
     const headers = new Set<string>();
     filteredRecords.forEach(record => { Object.keys(record).forEach(key => { if (key !== 'id') headers.add(key); }); });
+    // Ensure Fecha is always present if any records exist
+    if (filteredRecords.length > 0) {
+      headers.add('Fecha');
+    }
     const headersArray = Array.from(headers);
     // Sort based on the predefined order
     headersArray.sort((a,b) => {
         const indexA = headerOrder.indexOf(a);
         const indexB = headerOrder.indexOf(b);
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
     });
     return headersArray;
   }, [filteredRecords]);
