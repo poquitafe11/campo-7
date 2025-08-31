@@ -36,11 +36,8 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const { user, profile, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const onlineStatus = useOnlineStatus(); // We only use this to trigger re-renders, not for its value here.
-
+  
   useEffect(() => {
-    // This effect now runs only when these specific dependencies change,
-    // not on every online/offline status flicker.
     if (loading) return;
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
