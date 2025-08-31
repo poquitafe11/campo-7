@@ -21,7 +21,7 @@ const DigitizeIrrigationTableInputSchema = z.object({
 export type DigitizeIrrigationTableInput = z.infer<typeof DigitizeIrrigationTableInputSchema>;
 
 const DigitizeIrrigationTableOutputSchema = z.object({
-  fundo: z.string().describe("The 'Fundo' value extracted from the image header (e.g., 'FUNDO LOS BRUJOS DE CACHICHE'). If not found, return an empty string."),
+  fundo: z.string().describe("The 'Fundo' value extracted from the image header (e.g., 'Los Brujos' from 'Programa de riego \"Los Brujos\"'). If not found, return an empty string."),
   fecha: z.string().describe("The date extracted from the top of the image, formatted as 'dd de MMMM de yyyy' in Spanish (e.g., '29 de Agosto de 2025'). If no date is found, return an empty string."),
   dia: z.string().describe("The day of the week extracted from the image header (e.g., 'VIERNES'). If not found, return an empty string."),
   eto: z.string().describe("The 'ETo' value extracted from the image header (e.g., '5.8'). If not found, return an empty string."),
@@ -40,7 +40,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert data entry specialist. Your task is to accurately extract information from an image containing a multi-section irrigation program and consolidate it into a SINGLE JSON array, and also extract the Fundo, date, day of the week, and ETo value from the top of the image.
 
 TASK 1: Extract Header Data
-- Find the "Fundo" at the top of the document. Extract the name. Place this string in the "fundo" output field.
+- Find the "Fundo" at the top of the document. Extract the name. If the text is like "Programa de riego 'Los Brujos'", extract only the name inside the quotes. Place this string in the "fundo" output field.
 - Find the date at the top of the document. Format it as a string: "dd de MMMM de yyyy" in Spanish. Example: "29 de Agosto de 2025". Place this in the "fecha" output field.
 - Find the day of the week next to the date. Extract the name (e.g., 'VIERNES'). Place this string in the "dia" output field.
 - Find the "ETo" value at the top of the document. Extract only the numeric value (e.g., "5.8"). Place this string in the "eto" output field.
@@ -57,7 +57,7 @@ IMPORTANT RULES FOR TABLE EXTRACTION:
 
 Example Output Format:
 {
-  "fundo": "FUNDO LOS BRUJOS DE CACHICHE",
+  "fundo": "LOS BRUJOS DE CACHICHE",
   "fecha": "29 de Agosto de 2025",
   "dia": "VIERNES",
   "eto": "5.8",
