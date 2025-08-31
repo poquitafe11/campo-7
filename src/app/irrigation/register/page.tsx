@@ -29,6 +29,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { renameAndMergeHeader } from "./actions";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from 'lucide-react';
+
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
 
@@ -128,6 +131,7 @@ export default function RegisterIrrigationPage() {
 
   const [campaign, setCampaign] = useState('');
   const [stage, setStage] = useState('');
+  const [date, setDate] = useState<Date>(new Date());
   
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
 
@@ -245,6 +249,7 @@ export default function RegisterIrrigationPage() {
         if (Array.isArray(data) && data.length > 0) {
             const enrichedData = data.map((row, index) => ({
                 internalId: `preview-${index}`,
+                Fecha: format(date, "d 'de' MMMM 'de' yyyy", { locale: es }),
                 Campaña: campaign,
                 Etapa: stage,
                 ...row,
@@ -303,6 +308,7 @@ export default function RegisterIrrigationPage() {
         setParsedData([]);
         setCampaign('');
         setStage('');
+        setDate(new Date());
         if(fileInputRef.current) fileInputRef.current.value = '';
 
     } catch(error) {
@@ -476,6 +482,17 @@ export default function RegisterIrrigationPage() {
                     Seleccionar Imagen
                 </Button>
                 <div className="flex gap-4 w-full sm:w-auto">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full sm:w-[240px] justify-start text-left font-normal">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {format(date, "PPP", { locale: es })}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={date} onSelect={(d) => setDate(d || new Date())} initialFocus />
+                        </PopoverContent>
+                    </Popover>
                     <Select value={campaign} onValueChange={setCampaign}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select>
                     <Select value={stage} onValueChange={setStage}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger><SelectContent><SelectItem value="Habilitacion">Habilitacion</SelectItem><SelectItem value="Formacion">Formacion</SelectItem><SelectItem value="Produccion">Produccion</SelectItem></SelectContent></Select>
                 </div>
@@ -688,4 +705,3 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
-
