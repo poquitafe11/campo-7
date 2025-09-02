@@ -25,19 +25,20 @@ type HealthRecord = {
 const parseCustomDate = (dateString: string): Date | null => {
     if (!dateString || typeof dateString !== 'string') return null;
 
+    const normalizedDateString = dateString.toLowerCase().replace(/\./g, '').replace('setiembre', 'septiembre');
     const months: { [key: string]: number } = {
         ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5,
         jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11
     };
     
-    const parts = dateString.toLowerCase().replace(/\./g, '').split(/[\/-]/);
-    if (parts.length !== 3) return null;
+    const parts = normalizedDateString.split(/[\s\/-]/).filter(p => p);
+    if (parts.length < 3) return null;
 
     const day = parseInt(parts[0], 10);
-    const monthAbbr = parts[1].substring(0, 3);
-    const year = parseInt(parts[2], 10);
+    const monthStr = parts[1].substring(0, 3);
+    const year = parseInt(parts.find(p => p.length === 4) || parts[2], 10);
     
-    const month = months[monthAbbr];
+    const month = months[monthStr];
     if (month === undefined || isNaN(day) || isNaN(year)) return null;
 
     // Handle two-digit year, assume 20xx
