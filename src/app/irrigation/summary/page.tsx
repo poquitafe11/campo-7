@@ -30,7 +30,7 @@ type IrrigationRecord = { [key: string]: any; id: string; };
 
 const NUTRIENTS = ['N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
 
-// Function to parse Spanish dates like "15 de Julio de 2025"
+// Function to parse Spanish dates like "1 de setiembre de 2025"
 const parseSpanishDate = (dateString: string): Date | null => {
     if (!dateString || typeof dateString !== 'string') return null;
 
@@ -456,20 +456,20 @@ export default function IrrigationSummaryPage() {
                            <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="font-bold py-1 px-2">Lote</TableHead>
-                                        <TableHead className="font-bold text-center py-1 px-2">Días sin Riego</TableHead>
-                                        <TableHead className="text-center py-1 px-2">Riego 1 (Reciente)</TableHead>
-                                        <TableHead className="text-center py-1 px-2">Riego 2</TableHead>
-                                        <TableHead className="text-center py-1 px-2">Riego 3</TableHead>
+                                        <TableHead className="font-bold py-1 px-1">Lote</TableHead>
+                                        <TableHead className="font-bold text-center py-1 px-1">Días sin Riego</TableHead>
+                                        <TableHead className="text-center py-1 px-1">Riego 1 (Reciente)</TableHead>
+                                        <TableHead className="text-center py-1 px-1">Riego 2</TableHead>
+                                        <TableHead className="text-center py-1 px-1">Riego 3</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {recentIrrigationData.map((data, index) => (
                                         <TableRow key={`${data.lote}-${index}`}>
-                                            <TableCell className="font-semibold py-1 px-2">{data.lote}</TableCell>
-                                            <TableCell className="text-center py-1 px-2">{data.daysSinceLastIrrigation}</TableCell>
+                                            <TableCell className="font-semibold py-1 px-1">{data.lote}</TableCell>
+                                            <TableCell className="text-center py-1 px-1">{data.daysSinceLastIrrigation}</TableCell>
                                             {data.recentIrrigations.map((irrigation, i) => (
-                                                 <TableCell key={i} className="text-center py-1 px-2">
+                                                 <TableCell key={i} className="text-center py-1 px-1">
                                                     <div>{irrigation.date}</div>
                                                     <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
                                                 </TableCell>
@@ -494,11 +494,11 @@ export default function IrrigationSummaryPage() {
                            <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="font-bold py-1 px-2">Lote</TableHead>
-                                        <TableHead className="font-bold text-center py-1 px-2">Días sin Lavado</TableHead>
-                                        <TableHead className="text-center py-1 px-2">Lavado 1 (Reciente)</TableHead>
-                                        <TableHead className="text-center py-1 px-2">Lavado 2</TableHead>
-                                        <TableHead className="text-center py-1 px-2">Lavado 3</TableHead>
+                                        <TableHead className="font-bold py-1 px-1">Lote</TableHead>
+                                        <TableHead className="font-bold text-center py-1 px-1">Días sin Lavado</TableHead>
+                                        <TableHead className="text-center py-1 px-1">Lavado 1 (Reciente)</TableHead>
+                                        <TableHead className="text-center py-1 px-1">Lavado 2</TableHead>
+                                        <TableHead className="text-center py-1 px-1">Lavado 3</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -507,15 +507,15 @@ export default function IrrigationSummaryPage() {
                                         const needsAttention = typeof daysSince === 'number' && daysSince >= 15;
                                         return (
                                             <TableRow key={`${data.lote}-${index}`}>
-                                                <TableCell className="font-semibold py-1 px-2">{data.lote}</TableCell>
+                                                <TableCell className="font-semibold py-1 px-1">{data.lote}</TableCell>
                                                 <TableCell className={cn(
-                                                    "text-center py-1 px-2",
+                                                    "text-center py-1 px-1",
                                                     needsAttention && "bg-red-200 text-red-900 font-bold"
                                                 )}>
                                                     {daysSince}
                                                 </TableCell>
                                                 {data.recentIrrigations.map((irrigation, i) => (
-                                                     <TableCell key={i} className="text-center py-1 px-2">
+                                                     <TableCell key={i} className="text-center py-1 px-1">
                                                         <div>{irrigation.date}</div>
                                                         <div className="text-xs text-muted-foreground">{irrigation.hours}</div>
                                                     </TableCell>
