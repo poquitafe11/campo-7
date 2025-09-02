@@ -33,11 +33,14 @@ const NUTRIENTS = ['N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn'];
 // Function to parse Spanish dates like "15 de Julio de 2025"
 const parseSpanishDate = (dateString: string): Date | null => {
     if (!dateString || typeof dateString !== 'string') return null;
+
+    const normalizedDateString = dateString.toLowerCase().replace('setiembre', 'septiembre');
+    
     const months: { [key: string]: number } = {
         'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
         'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
     };
-    const parts = dateString.toLowerCase().split(' de ');
+    const parts = normalizedDateString.split(' de ');
     if (parts.length === 3) {
         const day = parseInt(parts[0], 10);
         const month = months[parts[1]];
@@ -404,7 +407,7 @@ export default function IrrigationSummaryPage() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm border-collapse">
+                            <table className="w-full text-xs border-collapse">
                                 <thead>
                                     <tr className="bg-blue-100">
                                         <th className="border px-1 py-0.5 text-left font-semibold" colSpan={summaryData.columns.length + 1}>
@@ -529,3 +532,5 @@ export default function IrrigationSummaryPage() {
         </div>
     );
 }
+
+    
