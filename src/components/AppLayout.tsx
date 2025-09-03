@@ -1,30 +1,75 @@
-"use client";
+import type { Metadata, Viewport } from 'next';
+import Head from 'next/head';
+import Script from 'next/script';
+import './globals.css';
+import { AppDataProvider } from '@/context/AppDataContext';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/hooks/useAuth';
+import AuthWrapper from '@/components/AuthWrapper';
+import { MasterDataProvider } from '@/context/MasterDataContext';
+import AppLayout from './AppLayout';
 
-import React from 'react';
-import { Sidebar } from '@/components/ui/sidebar';
-import { usePathname } from 'next/navigation';
+const APP_NAME = "Campo 7";
+const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo.";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+export const metadata: Metadata = {
+  applicationName: APP_NAME,
+  title: {
+    default: APP_NAME,
+    template: `%s - ${APP_NAME}`,
+  },
+  description: APP_DESCRIPTION,
+  formatDetection: {
+    telephone: false,
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_NAME,
+  },
+  icons: [
+    { rel: "icon", url: "/icon-7.svg" },
+    { rel: "apple-touch-icon", url: "/icon-7.svg" },
+  ],
+};
 
-  // Special layout for the daily attendance entry page to match the reference image
-  if (pathname === '/production/attendance/daily-entry') {
-    return <div className="min-h-screen bg-background">{children}</div>;
-  }
-  
-  // No sidebar for login page
-  if (pathname === '/login') {
-      return <>{children}</>;
-  }
+export const viewport: Viewport = {
+  themeColor: "#6d28d9",
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+};
 
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <div className="w-full bg-background">
-      <Sidebar />
-      <main className="sm:ml-14">
-        <div className="overflow-x-auto p-4 md:p-8">
-            {children}
-        </div>
-      </main>
-    </div>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+      </head>
+      <body>
+        <AuthProvider>
+          <AuthWrapper>
+            <MasterDataProvider>
+              <AppDataProvider>
+                  <AppLayout>
+                    {children}
+                  </AppLayout>
+                <Toaster />
+              </AppDataProvider>
+            </MasterDataProvider>
+          </AuthWrapper>
+        </AuthProvider>
+        <Script src="https://docs.opencv.org/4.9.0/opencv.js" strategy="lazyOnload" />
+      </body>
+    </html>
   );
 }

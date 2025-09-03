@@ -1,56 +1,75 @@
+import type { Metadata, Viewport } from 'next';
+import Head from 'next/head';
+import Script from 'next/script';
+import './globals.css';
+import { AppDataProvider } from '@/context/AppDataContext';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/hooks/useAuth';
+import AuthWrapper from '@/components/AuthWrapper';
+import { MasterDataProvider } from '@/context/MasterDataContext';
+import AppLayout from './AppLayout';
 
-"use client";
+const APP_NAME = "Campo 7";
+const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo.";
 
-import { FeatureCard } from "@/components/FeatureCard";
-import { Layers, Box, Users, Thermometer, ScrollText, Shield } from "lucide-react";
+export const metadata: Metadata = {
+  applicationName: APP_NAME,
+  title: {
+    default: APP_NAME,
+    template: `%s - ${APP_NAME}`,
+  },
+  description: APP_DESCRIPTION,
+  formatDetection: {
+    telephone: false,
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_NAME,
+  },
+  icons: [
+    { rel: "icon", url: "/icon-7.svg" },
+    { rel: "apple-touch-icon", url: "/icon-7.svg" },
+  ],
+};
 
-const masterFeatures = [
-  {
-    icon: <Box className="h-8 w-8" />,
-    title: "Lotes",
-    description: "Gestiona los lotes y cuarteles de tu campo.",
-    href: "/maestro-lotes",
-  },
-  {
-    icon: <Layers className="h-8 w-8" />,
-    title: "Labores",
-    description: "Administra las diferentes labores del campo.",
-    href: "/maestro-labores",
-  },
-   {
-    icon: <Users className="h-8 w-8" />,
-    title: "Trabajadores",
-    description: "Administra la lista de trabajadores de la empresa.",
-    href: "/maestro-trabajadores",
-  },
-  {
-    icon: <Users className="h-8 w-8" />,
-    title: "Asistentes",
-    description: "Gestiona la lista de asistentes y encargados.",
-    href: "/asistentes",
-  },
-  {
-    icon: <Thermometer className="h-8 w-8" />,
-    title: "Mínimos y Máximos",
-    description: "Establece los rangos de tolerancia para las labores.",
-    href: "/min-max",
-  },
-  {
-    icon: <ScrollText className="h-8 w-8" />,
-    title: "Presupuesto",
-    description: "Configura el presupuesto para las labores.",
-    href: "/presupuesto",
-  },
-];
+export const viewport: Viewport = {
+  themeColor: "#6d28d9",
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+};
 
-export default function MaestrosPage() {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {masterFeatures.map((feature) => (
-          <FeatureCard key={feature.title} {...feature} />
-        ))}
-      </div>
-    </>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+      </head>
+      <body>
+        <AuthProvider>
+          <AuthWrapper>
+            <MasterDataProvider>
+              <AppDataProvider>
+                  <AppLayout>
+                    {children}
+                  </AppLayout>
+                <Toaster />
+              </AppDataProvider>
+            </MasterDataProvider>
+          </AuthWrapper>
+        </AuthProvider>
+        <Script src="https://docs.opencv.org/4.9.0/opencv.js" strategy="lazyOnload" />
+      </body>
+    </html>
   );
 }

@@ -9,7 +9,6 @@ import { AuthProvider } from '@/hooks/useAuth';
 import AuthWrapper from '@/components/AuthWrapper';
 import { MasterDataProvider } from '@/context/MasterDataContext';
 import AppLayout from './AppLayout';
-import { HeaderActionsProvider } from '@/contexts/HeaderActionsContext';
 
 const APP_NAME = "Campo 7";
 const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo.";
@@ -42,7 +41,6 @@ export const viewport: Viewport = {
   initialScale: 1,
   minimumScale: 1,
   maximumScale: 1,
-  // orientation: 'any', // By not specifying, we allow both portrait and landscape
 };
 
 export default function RootLayout({
@@ -63,11 +61,9 @@ export default function RootLayout({
           <AuthWrapper>
             <MasterDataProvider>
               <AppDataProvider>
-                <HeaderActionsProvider>
                   <AppLayout>
                     {children}
                   </AppLayout>
-                </HeaderActionsProvider>
                 <Toaster />
               </AppDataProvider>
             </MasterDataProvider>
