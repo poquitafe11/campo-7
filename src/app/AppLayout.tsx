@@ -14,7 +14,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <HeaderActionsProvider>
       <div className="w-full bg-background">
         <Sidebar />
         <main className="pt-16">
@@ -23,6 +22,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
-    </HeaderActionsProvider>
   );
 }
