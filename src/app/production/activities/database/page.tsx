@@ -385,32 +385,34 @@ export default function ActivityDatabasePage() {
     } },
     { header: 'costo por planta', cell: ({ row }) => {
         const cost = row.original.cost || 0;
-        let costoLabor = 0;
         const specialLabors = ['46', '67'];
         const isSpecial = specialLabors.includes(row.original.code || '');
+        
         const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
+        const divisor = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
 
+        let costoLabor = 0;
         if (cost === 0) {
             costoLabor = (row.original.workdayCount || 0) * 60;
         } else {
             costoLabor = numerator * cost;
         }
 
-        const divisor = row.original.performance || 0; // Cost is always per plant
-
-        let costoPorPlanta = 0;
+        let costoPorUnidad = 0;
         if (divisor > 0) {
-            costoPorPlanta = costoLabor / divisor;
+            costoPorUnidad = costoLabor / divisor;
         }
-        return `S/ ${costoPorPlanta.toFixed(2)}`;
+        return `S/ ${costoPorUnidad.toFixed(2)}`;
     } },
     { header: 'costo plta emp.', cell: ({ row }) => {
         const cost = row.original.cost || 0;
-        let costoLabor = 0;
         const specialLabors = ['46', '67'];
         const isSpecial = specialLabors.includes(row.original.code || '');
-        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
 
+        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
+        const divisor = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
+        
+        let costoLabor = 0;
         if (cost === 0) {
             costoLabor = (row.original.workdayCount || 0) * 60;
         } else {
@@ -418,13 +420,11 @@ export default function ActivityDatabasePage() {
         }
         const costoEmpresa = costoLabor * 1.30;
         
-        const divisor = row.original.performance || 0; // Cost is always per plant
-        
-        let costoPltaEmp = 0;
+        let costoUnidadEmp = 0;
         if (divisor > 0) {
-            costoPltaEmp = costoEmpresa / divisor;
+            costoUnidadEmp = costoEmpresa / divisor;
         }
-        return `S/ ${costoPltaEmp.toFixed(2)}`;
+        return `S/ ${costoUnidadEmp.toFixed(2)}`;
     } },
     { header: 'Pago Neto Prom. / JHU', cell: ({ row }) => {
         const cost = row.original.cost || 0;
@@ -443,11 +443,11 @@ export default function ActivityDatabasePage() {
     } },
     { header: 'Costo Labor', cell: ({ row }) => {
         const cost = row.original.cost || 0;
-        let costoLabor = 0;
-         const specialLabors = ['46', '67'];
+        const specialLabors = ['46', '67'];
         const isSpecial = specialLabors.includes(row.original.code || '');
         const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
 
+        let costoLabor = 0;
         if (cost === 0) {
             costoLabor = (row.original.workdayCount || 0) * 60;
         } else {
@@ -457,11 +457,11 @@ export default function ActivityDatabasePage() {
     } },
     { header: 'Costo Empresa', cell: ({ row }) => {
         const cost = row.original.cost || 0;
-        let costoLabor = 0;
-         const specialLabors = ['46', '67'];
+        const specialLabors = ['46', '67'];
         const isSpecial = specialLabors.includes(row.original.code || '');
         const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
 
+        let costoLabor = 0;
         if (cost === 0) {
             costoLabor = (row.original.workdayCount || 0) * 60;
         } else {
