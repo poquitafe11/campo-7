@@ -26,8 +26,10 @@ interface SummaryValues {
     fecha: string;
     personas: number;
     plantas: number;
+    clustersOrJabas: number;
     jhu: number;
     promedio: number;
+    promedioRacimos: number;
     plantasHora: number;
     has: number;
     avance: string;
@@ -107,16 +109,17 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        const dateMap = new Map<string, { personas: number; plantas: number; jhu: number; minRanges: number[]; maxRanges: number[] }>();
+        const dateMap = new Map<string, { personas: number; plantas: number; clustersOrJabas: number; jhu: number; minRanges: number[]; maxRanges: number[] }>();
         
         filteredActivities.forEach(activity => {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
             if (!dateMap.has(dateKey)) {
-                dateMap.set(dateKey, { personas: 0, plantas: 0, jhu: 0, minRanges: [], maxRanges: [] });
+                dateMap.set(dateKey, { personas: 0, plantas: 0, clustersOrJabas: 0, jhu: 0, minRanges: [], maxRanges: [] });
             }
             const dayData = dateMap.get(dateKey)!;
             dayData.personas += activity.personnelCount;
             dayData.plantas += (activity.performance || 0);
+            dayData.clustersOrJabas += (activity.clustersOrJabas || 0);
             dayData.jhu += activity.workdayCount;
             if (activity.minRange) dayData.minRanges.push(activity.minRange);
             if (activity.maxRange) dayData.maxRanges.push(activity.maxRange);
@@ -136,8 +139,10 @@ export default function ActivitySummaryPage() {
                     fecha: format(parseISO(dateStr), 'dd-MMM', { locale: es }),
                     personas: data.personas,
                     plantas: data.plantas,
+                    clustersOrJabas: data.clustersOrJabas,
                     jhu: data.jhu,
                     promedio: data.jhu > 0 ? data.plantas / data.jhu : 0,
+                    promedioRacimos: data.jhu > 0 ? data.clustersOrJabas / data.jhu : 0,
                     plantasHora: data.jhu > 0 ? data.plantas / (data.jhu * 8) : 0,
                     has: Number(hasDia.toFixed(2)),
                     avance: haProd > 0 ? (hasDia / haProd) * 100 : 0,
@@ -184,12 +189,27 @@ export default function ActivitySummaryPage() {
         return { min: 'N/A', max: 'N/A' };
     }, [activeFilters, allMinMax, masterLoading]);
 
+    const isSpecialLabor = useMemo(() => {
+        const laborCode = allLabors.find(l => l.descripcion === activeFilters.labor)?.codigo;
+        return ['46', '67'].includes(laborCode || '');
+    }, [activeFilters.labor, allLabors]);
 
-    const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number }[] = [
+    const specialLaborName = useMemo(() => {
+        if (!isSpecialLabor) return '';
+        const laborCode = allLabors.find(l => l.descripcion === activeFilters.labor)?.codigo;
+        if (laborCode === '46') return 'RACIMOS';
+        if (laborCode === '67') return 'JABAS';
+        return '';
+    }, [isSpecialLabor, activeFilters.labor, allLabors]);
+
+
+    const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
         { label: "N° PERS.", key: "personas" },
         { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-ES') },
+        { label: specialLaborName, key: "clustersOrJabas", special: true, format: (v) => v.toLocaleString('es-ES') },
         { label: "JHU", key: "jhu", format: (v) => v.toFixed(2) },
         { label: "PROMEDIO", key: "promedio", format: (v) => Math.round(v) },
+        { label: `PROM. ${specialLaborName ? specialLaborName.substring(0,3) : ''}`, key: "promedioRacimos", special: true, format: (v) => Math.round(v) },
         { label: "Pltas./H", key: "plantasHora", bgClass: "bg-[#f8cbad]", format: (v) => Math.round(v) },
         { label: "Has.", key: "has" },
         { label: "% Avance", key: "avance", format: (v) => `${Math.round(v)}%` },
@@ -317,19 +337,22 @@ export default function ActivitySummaryPage() {
                                 </tr>
                             </thead> 
                             <tbody className="bg-[#dbe5f1]">
-                                {summaryRows.map(row => (
-                                    <tr key={String(row.key)}>
-                                        <td className={`border border-black p-1 font-bold w-24 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
-                                        {multiDaySummary.map((day, index) => {
-                                            const value = day.summary[row.key];
-                                            return (
-                                                <td key={index} className={`border border-black p-1 text-center ${row.bgClass || ''}`}>
-                                                    {row.format ? row.format(value) : value}
-                                                </td>
-                                            )
-                                        })}
-                                    </tr>
-                                ))}
+                                {summaryRows.map(row => {
+                                    if (row.special && !isSpecialLabor) return null;
+                                    return (
+                                        <tr key={String(row.key)}>
+                                            <td className={`border border-black p-1 font-bold w-24 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
+                                            {multiDaySummary.map((day, index) => {
+                                                const value = day.summary[row.key];
+                                                return (
+                                                    <td key={index} className={`border border-black p-1 text-center ${row.bgClass || ''}`}>
+                                                        {row.format ? row.format(value) : value}
+                                                    </td>
+                                                )
+                                            })}
+                                        </tr>
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </div>
