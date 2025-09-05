@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useTransition } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,6 +23,8 @@ import {
   Calculator,
   TrendingUp,
   Loader2,
+  Boxes,
+  Grape,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -74,20 +76,21 @@ export default function CreateActivityPage() {
       lote: '',
       code: '',
       labor: '',
-      performance: "",
-      personnelCount: "",
-      workdayCount: "",
-      cost: "",
+      performance: 0,
+      clustersOrJabas: 0,
+      personnelCount: 1,
+      workdayCount: 0,
+      cost: 0,
       shift: '',
-      minRange: "",
-      maxRange: "",
-      pass: "",
+      minRange: 0,
+      maxRange: 0,
+      pass: 0,
       observations: '',
       createdBy: '',
     },
   });
 
-  const codeValue = form.watch('code');
+  const codeValue = useWatch({ control: form.control, name: 'code' });
   
   const uniqueLotes = useMemo(() => {
     const lotesMap = new Map<string, LoteData>();
@@ -113,6 +116,12 @@ export default function CreateActivityPage() {
       form.setValue('createdBy', user.email);
     }
   }, [user, form]);
+  
+  const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(codeValue || ''), [codeValue]);
+  const performanceLabel = showExtraPerformanceField ? "Rendimiento (Plantas)" : "Rendimiento";
+  const extraPerformanceLabel = codeValue === '46' ? "Rendimiento (Racimos)" : "Rendimiento (Jabas)";
+  const ExtraPerformanceIcon = codeValue === '46' ? Grape : Boxes;
+
 
   const onSubmit = (data: ActivityFormValues) => {
     startTransition(async () => {
@@ -122,7 +131,6 @@ export default function CreateActivityPage() {
                 title: 'Éxito',
                 description: 'Ficha de actividad guardada correctamente.',
             });
-            // Explicitly reset all form fields to their initial empty/default state
             form.reset({
               registerDate: new Date(),
               campaign: '',
@@ -131,6 +139,7 @@ export default function CreateActivityPage() {
               code: '',
               labor: '',
               performance: 0,
+              clustersOrJabas: 0,
               personnelCount: 1,
               workdayCount: 0,
               cost: 0,
@@ -242,7 +251,10 @@ export default function CreateActivityPage() {
                 </div>
                 
                 <div className="grid grid-cols-3 gap-6">
-                    <FormField control={form.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> Rendimiento</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                     {showExtraPerformanceField && (
+                        <FormField control={form.control} name="clustersOrJabas" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" /> {extraPerformanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                     )}
                     <FormField control={form.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users className="h-4 w-4" /> # Personas</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="1" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                     <FormField control={form.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList className="h-4 w-4" /> # Jornadas (JHU)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 </div>

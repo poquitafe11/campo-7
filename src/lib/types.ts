@@ -162,6 +162,7 @@ export const ActivityRecordSchema = z.object({
     code: z.string().optional(),
     labor: z.string().optional(),
     performance: z.coerce.number(),
+    clustersOrJabas: z.coerce.number().optional(),
     personnelCount: z.coerce.number().int().min(1, "Debe haber al menos una persona."),
     workdayCount: z.coerce.number(),
     cost: z.coerce.number(),

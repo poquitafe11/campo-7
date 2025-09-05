@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
@@ -32,7 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ActivityRecordData, ActivityRecordSchema, LoteData } from '@/lib/types';
 import { useMasterData } from '@/context/MasterDataContext';
 import { updateActivity } from '@/app/production/activities/database/actions';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Grape, Boxes, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
@@ -70,7 +70,7 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
     return Array.from(lotesMap.values());
   }, [lotes]);
   
-  const codeValue = form.watch('code');
+  const codeValue = useWatch({ control: form.control, name: 'code' });
   
   useEffect(() => {
     if (codeValue) {
@@ -120,6 +120,12 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
         }
     });
   };
+
+  const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(codeValue || ''), [codeValue]);
+  const performanceLabel = showExtraPerformanceField ? "Rendimiento (Plantas)" : "Rendimiento";
+  const extraPerformanceLabel = codeValue === '46' ? "Rendimiento (Racimos)" : "Rendimiento (Jabas)";
+  const ExtraPerformanceIcon = codeValue === '46' ? Grape : Boxes;
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -217,7 +223,10 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField control={form.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel>Rendimiento</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel>{performanceLabel}</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                {showExtraPerformanceField && (
+                    <FormField control={form.control} name="clustersOrJabas" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2"><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                )}
                 <FormField control={form.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel># Personas</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel># Jornadas</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
             </div>
