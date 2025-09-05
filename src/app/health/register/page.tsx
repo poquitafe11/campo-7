@@ -28,7 +28,11 @@ import { Input } from "@/components/ui/input";
 import { renameAndMergeHeader } from "./actions";
 
 
-type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
+interface ParsedRow {
+  [key: string]: any;
+  internalId?: string;
+  id?: string;
+}
 
 const editRecordSchema = z.object({
   id: z.string(),
@@ -410,7 +414,7 @@ export default function RegisterHealthPage() {
     editHeaderForm.reset({ newName: header, mergeWith: '' });
   };
 
-  const onEditHeaderSubmit = async (values: z.infer<typeof editHeaderSchema>>) => {
+  const onEditHeaderSubmit = async (values: z.infer<typeof editHeaderSchema>) => {
     if (!editingHeader) return;
     setIsHeaderSubmitting(true);
     const { newName, mergeWith } = values;
