@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useRef } from 'react';
@@ -700,21 +699,3 @@ export default function ActivityDatabasePage() {
     
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
