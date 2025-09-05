@@ -349,7 +349,7 @@ export default function ActivityDatabasePage() {
       }
       return '0.00';
     }},
-    { header: 'Racimo o jabas', cell: () => '0' },
+    { header: 'Racimo o jabas', cell: ({ row }) => row.original.clustersOrJabas?.toLocaleString('en-US') || '0' },
     { header: 'Min Estab.', cell: ({ row }) => {
         const { campaign, lote, code, pass } = row.original;
         const key = `${campaign}-${lote}-${code}-${pass}`;
@@ -693,6 +693,7 @@ export default function ActivityDatabasePage() {
     
 
     
+
 
 
 
