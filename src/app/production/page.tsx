@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ClipboardList, Users, PenSquare, LineChart, Settings } from "lucide-react";
+import { ClipboardList, Users, PenSquare, LineChart, Settings, Grape } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,12 @@ const allProductionFeatures = [
     title: "Análisis y Reportes",
     description: "Visualiza análisis y reportes de producción.",
     href: "/production/analysis",
+  },
+  {
+    icon: <Grape className="h-8 w-8 text-primary" />,
+    title: "Cosecha",
+    description: "Gestiona y visualiza los datos de la cosecha.",
+    href: "/production/harvest",
   },
 ];
 
