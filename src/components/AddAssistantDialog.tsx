@@ -141,72 +141,71 @@ export default function AddAssistantDialog({
         <DialogHeader>
           <DialogTitle>Agregar Asistente y su Personal</DialogTitle>
         </DialogHeader>
+        <div className="space-y-4 py-4">
+            <div className="space-y-2">
+                <Label>Paso 1: Seleccionar Asistente/Encargado</Label>
+                <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
+                <SelectTrigger>
+                    <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
+                </SelectTrigger>
+                <SelectContent>
+                    {availableAssistants.map((assistant) => (
+                        <SelectItem key={assistant.id} value={assistant.id}>
+                            {assistant.assistantName}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+            </div>
 
-          <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                  <Label>Paso 1: Seleccionar Asistente/Encargado</Label>
-                  <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
-                  <SelectTrigger>
-                      <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                      {availableAssistants.map((assistant) => (
-                          <SelectItem key={assistant.id} value={assistant.id}>
-                              {assistant.assistantName}
-                          </SelectItem>
-                      ))}
-                  </SelectContent>
-                  </Select>
-              </div>
+            {selectedAssistantDni && (
+                <div className="space-y-4 pt-4 border-t">
+                    <Label>Paso 2: Agregar Jaladores y Personal</Label>
+                    <Form {...jaladorForm}>
+                      <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)} className="flex items-end gap-2">
+                          <FormField
+                              control={jaladorForm.control}
+                              name="jaladorId"
+                              render={({ field }) => (
+                              <FormItem className="flex-1">
+                                  <FormLabel>Jalador</FormLabel>
+                                  <JaladorCombobox
+                                      jaladores={availableJaladores}
+                                      value={field.value}
+                                      onChange={field.onChange}
+                                      onCreate={handleCreateJalador}
+                                      disabled={loading || isCreatingJalador}
+                                  />
+                                  <FormMessage />
+                              </FormItem>
+                              )}
+                          />
+                          <FormField control={jaladorForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel>Personal</FormLabel><FormControl><Input type="number" {...field} className="w-20"/></FormControl><FormMessage /></FormItem>)}/>
+                          <FormField control={jaladorForm.control} name="absentCount" render={({ field }) => (<FormItem><FormLabel>Faltos</FormLabel><FormControl><Input type="number" {...field} className="w-20"/></FormControl><FormMessage /></FormItem>)}/>
+                          <Button type="submit" size="icon"><PlusCircle className="h-4 w-4"/></Button>
+                      </form>
+                    </Form>
 
-              {selectedAssistantDni && (
-                  <div className="space-y-4 pt-4 border-t">
-                      <h4 className="font-medium">Paso 2: Agregar Jaladores y Personal</h4>
-                      <Form {...jaladorForm}>
-                        <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)} className="flex items-end gap-2">
-                            <FormField
-                                control={jaladorForm.control}
-                                name="jaladorId"
-                                render={({ field }) => (
-                                <FormItem className="flex-1">
-                                    <FormLabel>Jalador</FormLabel>
-                                    <JaladorCombobox
-                                        jaladores={availableJaladores}
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        onCreate={handleCreateJalador}
-                                        disabled={loading || isCreatingJalador}
-                                    />
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField control={jaladorForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel>Personal</FormLabel><FormControl><Input type="number" {...field} className="w-20"/></FormControl></FormItem>)}/>
-                            <FormField control={jaladorForm.control} name="absentCount" render={({ field }) => (<FormItem><FormLabel>Faltos</FormLabel><FormControl><Input type="number" {...field} className="w-20"/></FormControl></FormItem>)}/>
-                            <Button type="submit" size="icon"><PlusCircle className="h-4 w-4"/></Button>
-                        </form>
-                      </Form>
-
-                       {jaladoresList.length > 0 && (
-                          <div className="border rounded-md max-h-48 overflow-y-auto">
-                              <Table>
-                                  <TableHeader><TableRow><TableHead>Jalador</TableHead><TableHead>Personal</TableHead><TableHead>Faltos</TableHead><TableHead></TableHead></TableRow></TableHeader>
-                                  <TableBody>
-                                      {jaladoresList.map(j => (
-                                          <TableRow key={j.id}>
-                                              <TableCell>{j.jaladorAlias}</TableCell>
-                                              <TableCell>{j.personnelCount}</TableCell>
-                                              <TableCell>{j.absentCount}</TableCell>
-                                              <TableCell><Button variant="ghost" size="icon" onClick={() => handleRemoveJalador(j.id)}><Trash2 className="h-4 w-4"/></Button></TableCell>
-                                          </TableRow>
-                                      ))}
-                                  </TableBody>
-                              </Table>
-                          </div>
-                      )}
-                  </div>
-              )}
-          </div>
+                     {jaladoresList.length > 0 && (
+                        <div className="border rounded-md max-h-48 overflow-y-auto">
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Jalador</TableHead><TableHead>Personal</TableHead><TableHead>Faltos</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {jaladoresList.map(j => (
+                                        <TableRow key={j.id}>
+                                            <TableCell>{j.jaladorAlias}</TableCell>
+                                            <TableCell>{j.personnelCount}</TableCell>
+                                            <TableCell>{j.absentCount}</TableCell>
+                                            <TableCell><Button variant="ghost" size="icon" onClick={() => handleRemoveJalador(j.id)}><Trash2 className="h-4 w-4"/></Button></TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
         <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
             <Button type="button" onClick={handleConfirm} disabled={jaladoresList.length === 0}>
