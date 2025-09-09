@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -12,6 +13,7 @@ import {
   ScrollText,
   Shield,
   Map,
+  Truck,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemo, useState } from 'react';
@@ -29,6 +31,7 @@ const masterLinks = [
   { href: '/maestro-labores', label: 'Labores', icon: Layers },
   { href: '/maestro-trabajadores', label: 'Trabajadores', icon: Users },
   { href: '/asistentes', label: 'Asistentes', icon: Users },
+  { href: '/maestro-jaladores', label: 'Jaladores', icon: Truck },
   { href: '/min-max', label: 'Mínimos y Máximos', icon: Thermometer },
   { href: '/presupuesto', label: 'Presupuesto', icon: ScrollText },
 ];
