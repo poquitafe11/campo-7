@@ -76,13 +76,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, addDoc } from "firebase/firestore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMasterData } from "@/context/MasterDataContext";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const jaladorSchema = z.object({
-    dni: z.string().length(8, "El DNI debe tener 8 dígitos."),
+    dni: z.string().optional().refine(val => !val || val.length === 8, {
+        message: "El DNI debe tener 8 dígitos si se ingresa."
+    }),
     nombre: z.string().optional(),
     alias: z.string().min(1, "El alias es requerido."),
     celular: z.string().optional().refine(val => !val || val.length === 9, {
@@ -92,7 +94,7 @@ const jaladorSchema = z.object({
 
 type Jalador = {
   id: string;
-  dni: string;
+  dni?: string;
   nombre?: string;
   alias: string;
   celular?: string;
@@ -126,31 +128,29 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const aliasKey = header.find(key => normalizeKey(key).includes('alias'));
                 const celularKey = header.find(key => normalizeKey(key).includes('celular'));
 
-
-                if (!dniKey || !aliasKey) {
-                  return reject(new Error("El archivo debe contener al menos columnas para 'DNI' y 'Alias'."));
+                if (!aliasKey) {
+                  return reject(new Error("El archivo debe contener al menos una columna para 'Alias'."));
                 }
 
                 const normalizedData = json.map(row => {
-                  const dni = String(row[dniKey] || '').trim();
                   const alias = String(row[aliasKey] || '').trim();
+                  if (!alias) return null; // Alias is mandatory
+
+                  const dni = dniKey ? String(row[dniKey] || '').trim() : undefined;
                   const nombre = nombreKey ? String(row[nombreKey] || '').trim() : undefined;
                   const celular = celularKey ? String(row[celularKey] || '').trim() : undefined;
+                  
                   return { dni, nombre, alias, celular };
-                }).filter(item => item.dni && item.alias);
-
+                }).filter(item => item !== null);
 
                 if (normalizedData.length === 0) {
-                    return reject(new Error("No se encontraron datos válidos con DNI y Alias en el archivo."));
+                    return reject(new Error("No se encontraron datos válidos con Alias en el archivo."));
                 }
 
                 const batch = writeBatch(db);
                 normalizedData.forEach((jalador) => {
-                    const docRef = doc(db, 'maestro-jaladores', jalador.dni);
-                    const dataToSet: any = { alias: jalador.alias };
-                    if(jalador.nombre) dataToSet.nombre = jalador.nombre;
-                    if(jalador.celular) dataToSet.celular = jalador.celular;
-                    batch.set(docRef, dataToSet, { merge: true });
+                    const docRef = doc(collection(db, 'maestro-jaladores')); // Firestore generates ID
+                    batch.set(docRef, jalador);
                 });
 
                 await batch.commit();
@@ -187,7 +187,7 @@ export default function MaestroJaladoresPage() {
   }, [setActions]);
 
   useEffect(() => {
-    setData(jaladores.sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '')));
+    setData(jaladores.sort((a,b) => (a.alias || '').localeCompare(b.alias || '')));
   }, [jaladores]);
 
 
@@ -204,7 +204,10 @@ export default function MaestroJaladoresPage() {
   };
   
   const handleDownload = () => {
-    const dataToExport = table.getFilteredRowModel().rows.map(row => row.original);
+    const dataToExport = table.getFilteredRowModel().rows.map(row => {
+        const { id, ...rest } = row.original;
+        return rest;
+    });
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, "Maestro de Jaladores");
@@ -228,9 +231,9 @@ export default function MaestroJaladoresPage() {
     }
   };
 
-  const handleDelete = async (dni: string) => {
+  const handleDelete = async (id: string) => {
     try {
-        await deleteDoc(doc(db, "maestro-jaladores", dni));
+        await deleteDoc(doc(db, "maestro-jaladores", id));
         toast({ title: "Éxito", description: "Registro eliminado correctamente." });
     } catch (error) {
         toast({ title: "Error", description: "No se pudo eliminar el registro.", variant: "destructive" });
@@ -261,17 +264,15 @@ export default function MaestroJaladoresPage() {
 
   const onSubmit = async (values: z.infer<typeof jaladorSchema>) => {
     try {
-        const docRef = doc(db, "maestro-jaladores", values.dni);
-        
-        await setDoc(docRef, { nombre: values.nombre, alias: values.alias, celular: values.celular }, { merge: true });
-
         if (editingJalador) {
-            if (editingJalador.dni !== values.dni) {
-                await deleteDoc(doc(db, "maestro-jaladores", editingJalador.dni!));
-            }
+            // Update existing document
+            const docRef = doc(db, "maestro-jaladores", editingJalador.id);
+            await setDoc(docRef, values, { merge: true });
             toast({ title: "Éxito", description: "Registro actualizado correctamente." });
             setEditingJalador(null);
         } else {
+            // Create new document
+            await addDoc(collection(db, "maestro-jaladores"), values);
             toast({ title: "Éxito", description: "Registro creado correctamente." });
             setCreateDialogOpen(false);
         }
@@ -336,7 +337,7 @@ export default function MaestroJaladoresPage() {
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel>DNI</FormLabel><FormControl><Input {...field} disabled={!!editingJalador} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel>DNI</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="alias" render={({ field }) => ( <FormItem><FormLabel>Alias</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="celular" render={({ field }) => ( <FormItem><FormLabel>Celular</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -348,10 +349,10 @@ export default function MaestroJaladoresPage() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <Input
-                placeholder="Buscar por DNI..."
-                value={(table.getColumn('dni')?.getFilterValue() as string) ?? ''}
+                placeholder="Buscar por alias..."
+                value={(table.getColumn('alias')?.getFilterValue() as string) ?? ''}
                 onChange={(event) =>
-                  table.getColumn('dni')?.setFilterValue(event.target.value)
+                  table.getColumn('alias')?.setFilterValue(event.target.value)
                 }
                 className="max-w-sm w-full h-9"
             />
