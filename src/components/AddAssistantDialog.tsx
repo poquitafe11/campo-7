@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMasterData } from '@/context/MasterDataContext';
 import { PlusCircle, Trash2, ChevronsUpDown, Check, Loader2 } from 'lucide-react';
