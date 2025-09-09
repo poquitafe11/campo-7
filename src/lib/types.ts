@@ -64,13 +64,22 @@ export interface AppState {
 }
 
 // Asistencia
-export type Assistant = {
-  id: string;
-  assistantDni: string;
-  assistantName: string;
-  personnelCount: number;
-  absentCount: number;
-};
+export const JaladorAttendanceSchema = z.object({
+  id: z.string(),
+  jaladorId: z.string(),
+  jaladorAlias: z.string(),
+  personnelCount: z.number().int().min(0),
+  absentCount: z.number().int().min(0),
+});
+export type JaladorAttendance = z.infer<typeof JaladorAttendanceSchema>;
+
+export const AssistantSchema = z.object({
+  id: z.string(),
+  assistantDni: z.string(),
+  assistantName: z.string(),
+  jaladores: z.array(JaladorAttendanceSchema),
+});
+export type Assistant = z.infer<typeof AssistantSchema>;
 
 export type Labor = {
   codigo: string;
