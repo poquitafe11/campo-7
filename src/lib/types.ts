@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 // Production Tracking
@@ -77,6 +78,8 @@ export const AssistantSchema = z.object({
   id: z.string(),
   assistantDni: z.string(),
   assistantName: z.string(),
+  personnelCount: z.number().int().min(0),
+  absentCount: z.number().int().min(0),
   jaladores: z.array(JaladorAttendanceSchema),
 });
 export type Assistant = z.infer<typeof AssistantSchema>;
@@ -141,10 +144,10 @@ export type MinMax = {
 // Jaladores
 export const JaladorSchema = z.object({
   id: z.string(),
-  dni: z.string().optional(),
+  dni: z.string().length(8, 'El DNI debe tener 8 digitos').optional().or(z.literal('')),
   nombre: z.string().optional(),
   alias: z.string().min(1, "El alias es requerido."),
-  celular: z.string().optional(),
+  celular: z.string().length(9, 'El celular debe tener 9 digitos').optional().or(z.literal('')),
 });
 export type Jalador = z.infer<typeof JaladorSchema>;
 
