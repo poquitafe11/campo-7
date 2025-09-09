@@ -83,8 +83,8 @@ import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const jaladorSchema = z.object({
     dni: z.string().length(8, "El DNI debe tener 8 dígitos."),
-    nombre: z.string().min(3, "El nombre es requerido."),
-    alias: z.string().optional(),
+    nombre: z.string().optional(),
+    alias: z.string().min(1, "El alias es requerido."),
     celular: z.string().optional().refine(val => !val || val.length === 9, {
         message: "El celular debe tener 9 dígitos si se ingresa."
     }),
@@ -92,7 +92,11 @@ const jaladorSchema = z.object({
 
 type Jalador = {
   id: string;
-} & z.infer<typeof jaladorSchema>;
+  dni: string;
+  nombre?: string;
+  alias: string;
+  celular?: string;
+};
 
 
 function normalizeKey(key: string): string {
@@ -123,28 +127,28 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const celularKey = header.find(key => normalizeKey(key).includes('celular'));
 
 
-                if (!dniKey || !nombreKey) {
-                  return reject(new Error("El archivo debe contener al menos columnas para 'DNI' y 'Nombre'."));
+                if (!dniKey || !aliasKey) {
+                  return reject(new Error("El archivo debe contener al menos columnas para 'DNI' y 'Alias'."));
                 }
 
                 const normalizedData = json.map(row => {
                   const dni = String(row[dniKey] || '').trim();
-                  const nombre = String(row[nombreKey] || '').trim();
-                  const alias = aliasKey ? String(row[aliasKey] || '').trim() : undefined;
+                  const alias = String(row[aliasKey] || '').trim();
+                  const nombre = nombreKey ? String(row[nombreKey] || '').trim() : undefined;
                   const celular = celularKey ? String(row[celularKey] || '').trim() : undefined;
                   return { dni, nombre, alias, celular };
-                }).filter(item => item.dni && item.nombre);
+                }).filter(item => item.dni && item.alias);
 
 
                 if (normalizedData.length === 0) {
-                    return reject(new Error("No se encontraron datos válidos con DNI y Nombre en el archivo."));
+                    return reject(new Error("No se encontraron datos válidos con DNI y Alias en el archivo."));
                 }
 
                 const batch = writeBatch(db);
                 normalizedData.forEach((jalador) => {
                     const docRef = doc(db, 'maestro-jaladores', jalador.dni);
-                    const dataToSet: any = { nombre: jalador.nombre };
-                    if(jalador.alias) dataToSet.alias = jalador.alias;
+                    const dataToSet: any = { alias: jalador.alias };
+                    if(jalador.nombre) dataToSet.nombre = jalador.nombre;
                     if(jalador.celular) dataToSet.celular = jalador.celular;
                     batch.set(docRef, dataToSet, { merge: true });
                 });
@@ -183,7 +187,7 @@ export default function MaestroJaladoresPage() {
   }, [setActions]);
 
   useEffect(() => {
-    setData(jaladores.sort((a,b) => a.nombre.localeCompare(b.nombre)));
+    setData(jaladores.sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '')));
   }, [jaladores]);
 
 
