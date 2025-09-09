@@ -142,14 +142,12 @@ export default function AddAssistantDialog({
         </DialogHeader>
 
           <div className="space-y-4 py-4">
-              <FormItem>
-                  <FormLabel>Paso 1: Seleccionar Asistente/Encargado</FormLabel>
+              <div className="space-y-2">
+                  <Label>Paso 1: Seleccionar Asistente/Encargado</Label>
                   <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
-                  <FormControl>
-                      <SelectTrigger>
+                  <SelectTrigger>
                       <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
-                      </SelectTrigger>
-                  </FormControl>
+                  </SelectTrigger>
                   <SelectContent>
                       {availableAssistants.map((assistant) => (
                           <SelectItem key={assistant.id} value={assistant.id}>
@@ -158,7 +156,7 @@ export default function AddAssistantDialog({
                       ))}
                   </SelectContent>
                   </Select>
-              </FormItem>
+              </div>
 
               {selectedAssistantDni && (
                   <div className="space-y-4 pt-4 border-t">
