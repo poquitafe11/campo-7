@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -56,7 +57,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
       const minMaxData = minMaxSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MinMax));
       
       const jaladoresSnapshot = await getDocs(collection(db, 'maestro-jaladores'));
-      const jaladoresData = jaladoresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Jalador));
+      const jaladoresData = jaladoresSnapshot.docs.map(doc => ({ id: doc.id, dni: doc.id, ...doc.data() } as Jalador));
 
 
       setData({ lotes: lotesData, labors: laborsData, asistentes: asistentesData, minMax: minMaxData, jaladores: jaladoresData });

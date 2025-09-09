@@ -82,10 +82,12 @@ import { useMasterData } from "@/context/MasterDataContext";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const jaladorSchema = z.object({
-    dni: z.string().min(8, "El DNI debe tener 8 dígitos.").max(8, "El DNI debe tener 8 dígitos."),
+    dni: z.string().length(8, "El DNI debe tener 8 dígitos."),
     nombre: z.string().min(3, "El nombre es requerido."),
     alias: z.string().optional(),
-    celular: z.string().min(9, "El celular debe tener 9 dígitos.").max(9, "El celular debe tener 9 dígitos.").optional(),
+    celular: z.string().optional().refine(val => !val || val.length === 9, {
+        message: "El celular debe tener 9 dígitos si se ingresa."
+    }),
 });
 
 type Jalador = {
@@ -200,6 +202,7 @@ export default function MaestroJaladoresPage() {
   const handleDownload = () => {
     const dataToExport = table.getFilteredRowModel().rows.map(row => row.original);
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
+    const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, "Maestro de Jaladores");
     xlsx.writeFile(workbook, "MaestroDeJaladores.xlsx");
   };
