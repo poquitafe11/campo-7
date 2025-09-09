@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { LoteData, Labor, Assistant, MinMax } from '@/lib/types';
+import type { LoteData, Labor, Assistant, MinMax, Jalador } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
 
@@ -12,6 +12,7 @@ interface MasterData {
   labors: Labor[];
   asistentes: (Assistant & { id: string, assistantName: string, cargo: string })[];
   minMax: MinMax[];
+  jaladores: Jalador[];
 }
 
 interface MasterDataContextType extends MasterData {
@@ -23,7 +24,7 @@ interface MasterDataContextType extends MasterData {
 const MasterDataContext = createContext<MasterDataContextType | undefined>(undefined);
 
 export function MasterDataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<MasterData>({ lotes: [], labors: [], asistentes: [], minMax: [] });
+  const [data, setData] = useState<MasterData>({ lotes: [], labors: [], asistentes: [], minMax: [], jaladores: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
@@ -53,8 +54,12 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
       
       const minMaxSnapshot = await getDocs(collection(db, 'min-max'));
       const minMaxData = minMaxSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MinMax));
+      
+      const jaladoresSnapshot = await getDocs(collection(db, 'maestro-jaladores'));
+      const jaladoresData = jaladoresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Jalador));
 
-      setData({ lotes: lotesData, labors: laborsData, asistentes: asistentesData, minMax: minMaxData });
+
+      setData({ lotes: lotesData, labors: laborsData, asistentes: asistentesData, minMax: minMaxData, jaladores: jaladoresData });
 
     } catch (err) {
       console.error('Error loading master data:', err);
@@ -77,12 +82,14 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     const laboresUnsub = onSnapshot(collection(db, 'maestro-labores'), () => loadMasterData());
     const asistentesUnsub = onSnapshot(collection(db, 'asistentes'), () => loadMasterData());
     const minMaxUnsub = onSnapshot(collection(db, 'min-max'), () => loadMasterData());
+    const jaladoresUnsub = onSnapshot(collection(db, 'maestro-jaladores'), () => loadMasterData());
     
     return () => {
         lotesUnsub();
         laboresUnsub();
         asistentesUnsub();
         minMaxUnsub();
+        jaladoresUnsub();
     }
 
   }, [loadMasterData]);

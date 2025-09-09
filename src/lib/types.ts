@@ -129,6 +129,16 @@ export type MinMax = {
   max: number;
 };
 
+// Jaladores
+export const JaladorSchema = z.object({
+  id: z.string(),
+  dni: z.string().min(8, "El DNI debe tener 8 dígitos.").max(8, "El DNI debe tener 8 dígitos."),
+  nombre: z.string().min(3, "El nombre es requerido."),
+  alias: z.string().optional(),
+  celular: z.string().min(9, "El celular debe tener 9 dígitos.").max(9, "El celular debe tener 9 dígitos.").optional(),
+});
+export type Jalador = z.infer<typeof JaladorSchema>;
+
 
 // Usuarios del sistema
 export const UserRole = z.enum(["Admin", "Jefe", "Supervisor", "Asistente", "Apoyo", "Invitado"]);

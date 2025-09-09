@@ -1,8 +1,7 @@
-
 "use client";
 
 import { FeatureCard } from "@/components/FeatureCard";
-import { Layers, Box, Users, Thermometer, ScrollText } from "lucide-react";
+import { Layers, Box, Users, Thermometer, ScrollText, Truck } from "lucide-react";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import { useEffect } from "react";
 
@@ -30,6 +29,12 @@ const masterFeatures = [
     title: "Asistentes",
     description: "Gestiona la lista de asistentes y encargados.",
     href: "/asistentes",
+  },
+  {
+    icon: <Truck className="h-8 w-8" />,
+    title: "Jaladores",
+    description: "Gestiona la lista de jaladores.",
+    href: "/maestro-jaladores",
   },
   {
     icon: <Thermometer className="h-8 w-8" />,
