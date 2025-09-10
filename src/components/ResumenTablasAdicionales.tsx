@@ -81,6 +81,8 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
             record.assistants.forEach(assistant => {
                 let assignedToJalador = false;
+                const assistantPersonnelCount = (assistant.jaladores || []).reduce((sum, j) => sum + (j.personnelCount || 0), 0);
+
                 if (assistant.jaladores && assistant.jaladores.length > 0) {
                      assistant.jaladores.forEach(jalador => {
                         const aliasUpper = jalador.jaladorAlias.toUpperCase();
@@ -92,12 +94,12 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 }
                 
                 if (!assignedToJalador) {
-                   data[rowKey]['EMPRESA'] = (data[rowKey]['EMPRESA'] || 0) + (assistant.totals.personnelCount || 0);
+                   data[rowKey]['EMPRESA'] = (data[rowKey]['EMPRESA'] || 0) + assistantPersonnelCount;
                 }
 
                 const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
                 if(isAsistente) {
-                    data[rowKey][ASISTENTE_COLUMN] += assistant.totals.personnelCount || 0;
+                    data[rowKey][ASISTENTE_COLUMN] += assistantPersonnelCount;
                 }
             });
         });
@@ -144,6 +146,8 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
             record.assistants.forEach(assistant => {
                  let assignedToJalador = false;
+                 const assistantPersonnelCount = (assistant.jaladores || []).reduce((sum, j) => sum + (j.personnelCount || 0), 0);
+
                 if (assistant.jaladores && assistant.jaladores.length > 0) {
                      assistant.jaladores.forEach(jalador => {
                         const aliasUpper = jalador.jaladorAlias.toUpperCase();
@@ -155,12 +159,12 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 }
                 
                 if (!assignedToJalador) {
-                   data[rowKey]['EMPRESA'] = (data[rowKey]['EMPRESA'] || 0) + (assistant.totals.personnelCount || 0);
+                   data[rowKey]['EMPRESA'] = (data[rowKey]['EMPRESA'] || 0) + assistantPersonnelCount;
                 }
                 
                 const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
                  if(isAsistente) {
-                    data[rowKey][ASISTENTE_COLUMN] += assistant.totals.personnelCount || 0;
+                    data[rowKey][ASISTENTE_COLUMN] += assistantPersonnelCount;
                 }
             });
         });
@@ -265,7 +269,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                            <thead>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={2}></th>
-                                    <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLabor.columnTotals.length}>JALADORES</th>
+                                    <th className="p-1 border border-black bg-orange-300" colSpan={JALADOR_COLUMNS.length}>JALADORES</th>
                                     <th className="p-1 border border-black bg-red-300" rowSpan={2}>ASISTENTE</th>
                                     <th className="p-1 border border-black bg-blue-300" rowSpan={2}>TOTAL</th>
                                 </tr>
