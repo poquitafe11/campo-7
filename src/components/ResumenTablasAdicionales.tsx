@@ -19,7 +19,7 @@ interface ResumenTablasProps {
 }
 
 export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }: ResumenTablasProps) {
-    const { jaladores: jaladoresMaster } = useMasterData();
+    const { jaladores: jaladoresMaster, asistentes: assistantsMaster } = useMasterData();
     const [filters, setFilters] = useState({ campaign: '', lote: '' });
     const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '' });
 
@@ -80,25 +80,25 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
         Object.values(data).forEach(row => {
-            row.total = jaladorColumns.reduce((sum, j) => sum + row[j], 0) + row.asistente;
+            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row.asistente || 0);
         });
 
-        const sortedData = Object.values(data).sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}) || a.codLabor.localeCompare(b.codLabor, undefined, {numeric: true}));
+        const sortedData = Object.values(data).sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}) || (a.codLabor || '').localeCompare(b.codLabor || '', undefined, {numeric: true}));
         const columnTotals = {
             ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
             asistente: 0,
             total: 0
         };
         sortedData.forEach(row => {
-            jaladorColumns.forEach(j => columnTotals[j] += row[j]);
-            columnTotals.asistente += row.asistente;
-            columnTotals.total += row.total;
+            jaladorColumns.forEach(j => columnTotals[j] += (row[j] || 0));
+            columnTotals.asistente += (row.asistente || 0);
+            columnTotals.total += (row.total || 0);
         });
 
 
         return { data: sortedData, jaladorColumns, columnTotals };
 
-    }, [allRecords, jaladoresMaster, allLotes, filters, selectedDate]);
+    }, [allRecords, jaladoresMaster, allLotes, filters, selectedDate, assistantsMaster]);
     
      const resumenPorLabor = useMemo(() => {
         const data: { [key: string]: any } = {};
@@ -138,26 +138,24 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
          Object.values(data).forEach(row => {
-            row.total = jaladorColumns.reduce((sum, j) => sum + row[j], 0) + row.asistente;
+            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row.asistente || 0);
         });
 
-        const sortedData = Object.values(data).sort((a,b) => a.codLabor.localeCompare(b.codLabor, undefined, {numeric: true}));
+        const sortedData = Object.values(data).sort((a,b) => (a.codLabor || '').localeCompare(b.codLabor || '', undefined, {numeric: true}));
         const columnTotals = {
             ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
             asistente: 0,
             total: 0
         };
         sortedData.forEach(row => {
-            jaladorColumns.forEach(j => columnTotals[j] += row[j]);
-            columnTotals.asistente += row.asistente;
-            columnTotals.total += row.total;
+            jaladorColumns.forEach(j => columnTotals[j] += (row[j] || 0));
+            columnTotals.asistente += (row.asistente || 0);
+            columnTotals.total += (row.total || 0);
         });
 
         return { data: sortedData, jaladorColumns, columnTotals };
 
     }, [allRecords, jaladoresMaster, assistantsMaster, filters]);
-
-    const assistantsMaster = useMasterData().asistentes;
 
     return (
         <Card className="mt-6">
@@ -275,4 +273,3 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         </Card>
     );
 }
-
