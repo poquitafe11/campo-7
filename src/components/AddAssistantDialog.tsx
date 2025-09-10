@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -103,9 +104,14 @@ export default function AddAssistantDialog({
     const selectedAssistant = assistantsMaster.find(a => a.id === selectedAssistantDni);
     if (!selectedAssistant) return;
 
+    const totalPersonnel = jaladoresList.reduce((sum, j) => sum + j.personnelCount, 0);
+    const totalAbsent = jaladoresList.reduce((sum, j) => sum + j.absentCount, 0);
+
     onAddAssistant({
       assistantDni: selectedAssistant.id,
       assistantName: selectedAssistant.assistantName,
+      personnelCount: totalPersonnel,
+      absentCount: totalAbsent,
       jaladores: jaladoresList,
     });
     
@@ -127,7 +133,7 @@ export default function AddAssistantDialog({
     const result = await addJalador({ alias });
     if(result.success) {
         toast({ title: 'Éxito', description: `Jalador "${alias}" creado.` });
-        await refreshData();
+        await refreshData(); // Refresh master data to include the new jalador
         if (result.id) {
             jaladorForm.setValue('jaladorId', result.id);
         }
@@ -143,72 +149,70 @@ export default function AddAssistantDialog({
           <DialogTitle>Agregar Asistente y su Personal</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-            <div className="space-y-2">
-                <p className="text-sm font-medium">Paso 1: Seleccionar Asistente/Encargado</p>
-                <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
-                <SelectTrigger>
-                    <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
-                </SelectTrigger>
-                <SelectContent>
-                    {availableAssistants.map((assistant) => (
-                        <SelectItem key={assistant.id} value={assistant.id}>
-                            {assistant.assistantName}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-                </Select>
-            </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Paso 1: Seleccionar Asistente/Encargado</p>
+            <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
+              <SelectTrigger>
+                  <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
+              </SelectTrigger>
+              <SelectContent>
+                  {availableAssistants.map((assistant) => (
+                      <SelectItem key={assistant.id} value={assistant.id}>
+                          {assistant.assistantName}
+                      </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {selectedAssistantDni && (
-                <div className="space-y-4 pt-4 border-t">
-                    <p className="text-sm font-medium">Paso 2: Agregar Jaladores y Personal</p>
-                    
-                    <Form {...jaladorForm}>
-                      <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)}>
-                        <div className="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2">
-                          <FormField
-                              control={jaladorForm.control}
-                              name="jaladorId"
-                              render={({ field }) => (
-                              <FormItem>
-                                  <Label>Jalador</Label>
-                                  <JaladorCombobox
-                                      jaladores={availableJaladores}
-                                      value={field.value}
-                                      onChange={field.onChange}
-                                      onCreate={handleCreateJalador}
-                                      disabled={loading}
-                                  />
-                                  <FormMessage />
-                              </FormItem>
-                              )}
+          {selectedAssistantDni && (
+            <div className="space-y-4 pt-4 border-t">
+              <p className="text-sm font-medium">Paso 2: Agregar Jaladores y Personal</p>
+              
+              <Form {...jaladorForm}>
+                <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)} className="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2">
+                  <FormField
+                      control={jaladorForm.control}
+                      name="jaladorId"
+                      render={({ field }) => (
+                      <FormItem>
+                          <Label>Jalador</Label>
+                          <JaladorCombobox
+                              jaladores={availableJaladores}
+                              value={field.value}
+                              onChange={field.onChange}
+                              onCreate={handleCreateJalador}
+                              disabled={loading}
                           />
-                          <FormField control={jaladorForm.control} name="personnelCount" render={({ field }) => (<FormItem><Label>Personal</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                          <FormField control={jaladorForm.control} name="absentCount" render={({ field }) => (<FormItem><Label>Faltos</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                          <Button type="submit" size="icon"><PlusCircle className="h-4 w-4"/></Button>
-                        </div>
-                      </form>
-                    </Form>
-                     
-                     {jaladoresList.length > 0 && (
-                        <div className="border rounded-md max-h-40 overflow-y-auto">
-                            <Table>
-                                <TableHeader><TableRow><TableHead>Jalador</TableHead><TableHead>Personal</TableHead><TableHead>Faltos</TableHead><TableHead className="w-[50px]"></TableHead></TableRow></TableHeader>
-                                <TableBody>
-                                    {jaladoresList.map(j => (
-                                        <TableRow key={j.id}>
-                                            <TableCell>{j.jaladorAlias}</TableCell>
-                                            <TableCell>{j.personnelCount}</TableCell>
-                                            <TableCell>{j.absentCount}</TableCell>
-                                            <TableCell><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveJalador(j.id)}><Trash2 className="h-4 w-4"/></Button></TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    )}
-                </div>
-            )}
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField control={jaladorForm.control} name="personnelCount" render={({ field }) => (<FormItem><Label>Personal</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                  <FormField control={jaladorForm.control} name="absentCount" render={({ field }) => (<FormItem><Label>Faltos</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                  <Button type="submit" size="icon"><PlusCircle className="h-4 w-4"/></Button>
+                </form>
+              </Form>
+                 
+                 {jaladoresList.length > 0 && (
+                    <div className="border rounded-md max-h-40 overflow-y-auto">
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Jalador</TableHead><TableHead>Personal</TableHead><TableHead>Faltos</TableHead><TableHead className="w-[50px]"></TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {jaladoresList.map(j => (
+                                    <TableRow key={j.id}>
+                                        <TableCell>{j.jaladorAlias}</TableCell>
+                                        <TableCell>{j.personnelCount}</TableCell>
+                                        <TableCell>{j.absentCount}</TableCell>
+                                        <TableCell><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveJalador(j.id)}><Trash2 className="h-4 w-4"/></Button></TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
+            </div>
+          )}
         </div>
         <DialogFooter className="flex flex-col gap-2">
             <Button type="button" className="w-full" onClick={handleConfirm} disabled={!selectedAssistantDni || jaladoresList.length === 0}>
@@ -257,7 +261,7 @@ function JaladorCombobox({
     ? jaladores.filter(j => j.alias.toLowerCase().includes(search.toLowerCase()))
     : jaladores;
   
-  const showCreateOption = search && !jaladores.some(j => j.alias.toLowerCase() === search.toLowerCase());
+  const showCreateOption = search && !filteredJaladores.some(j => j.alias.toLowerCase() === search.toLowerCase());
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
