@@ -19,14 +19,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useMasterData } from '@/context/MasterDataContext';
-import { PlusCircle, Trash2, ChevronsUpDown, Check, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { type Assistant, type Jalador, type JaladorAttendance } from '@/lib/types';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
-import { cn } from '@/lib/utils';
 import { addJalador } from '@/app/maestro-jaladores/actions';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from './ui/scroll-area';
 
 interface AddAssistantDialogProps {
   isOpen: boolean;
@@ -46,26 +44,67 @@ export default function AddAssistantDialog({
 
   const [selectedAssistantDni, setSelectedAssistantDni] = useState<string>('');
   const [jaladoresList, setJaladoresList] = useState<JaladorAttendance[]>([]);
-
-  // State for the "add jalador" inputs
+  
+  // State for the new, simplified jalador selection
   const [selectedJalador, setSelectedJalador] = useState<Jalador | null>(null);
-  const [personnelCount, setPersonnelCount] = useState<number>(0);
-  const [absentCount, setAbsentCount] = useState<number>(0);
+  const [jaladorSearch, setJaladorSearch] = useState('');
+  const [showJaladorResults, setShowJaladorResults] = useState(false);
+  
+  const [personnelCount, setPersonnelCount] = useState<number | string>(0);
+  const [absentCount, setAbsentCount] = useState<number | string>(0);
+  const [isCreatingJalador, setIsCreatingJalador] = useState(false);
+
 
   const availableJaladores = useMemo(() => {
     return jaladoresMaster.filter(j => !jaladoresList.some(jl => jl.jaladorId === j.id));
   }, [jaladoresMaster, jaladoresList]);
+
+  const filteredJaladores = useMemo(() => {
+    if (!jaladorSearch) return [];
+    return availableJaladores.filter(j => 
+        j.alias.toLowerCase().includes(jaladorSearch.toLowerCase())
+    );
+  }, [jaladorSearch, availableJaladores]);
+
+  const canCreateNewJalador = jaladorSearch.trim().length > 0 && !filteredJaladores.some(j => j.alias.toLowerCase() === jaladorSearch.toLowerCase().trim());
+
+  const handleSelectJalador = (jalador: Jalador) => {
+    setSelectedJalador(jalador);
+    setJaladorSearch(jalador.alias);
+    setShowJaladorResults(false);
+  };
+  
+  const handleCreateJalador = async () => {
+      if (!canCreateNewJalador || isCreatingJalador) return;
+      setIsCreatingJalador(true);
+      
+      const newAlias = jaladorSearch.trim();
+      const result = await addJalador({ alias: newAlias });
+      
+      if(result.success && result.id) {
+          toast({ title: 'Éxito', description: `Jalador "${newAlias}" creado.` });
+          await refreshData(); // Refresh master data to include the new jalador
+          const newJalador: Jalador = { id: result.id, alias: newAlias };
+          handleSelectJalador(newJalador);
+      } else {
+          toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      }
+      setIsCreatingJalador(false);
+  }
 
   const handleAddJaladorToList = () => {
     if (!selectedJalador) {
       toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un jalador.' });
       return;
     }
-    if (personnelCount < 0 || absentCount < 0) {
+    const numPersonnel = Number(personnelCount);
+    const numAbsent = Number(absentCount);
+
+    if (isNaN(numPersonnel) || numPersonnel < 0 || isNaN(numAbsent) || numAbsent < 0) {
       toast({ variant: 'destructive', title: 'Error de validación', description: 'Las cantidades no pueden ser negativas.' });
       return;
     }
-    if (personnelCount < absentCount) {
+     if (numPersonnel < numAbsent) {
       toast({ variant: 'destructive', title: 'Error de validación', description: 'El número de faltos no puede ser mayor al de personal.' });
       return;
     }
@@ -74,14 +113,15 @@ export default function AddAssistantDialog({
       id: crypto.randomUUID(),
       jaladorId: selectedJalador.id,
       jaladorAlias: selectedJalador.alias,
-      personnelCount: personnelCount,
-      absentCount: absentCount,
+      personnelCount: numPersonnel,
+      absentCount: numAbsent,
     };
 
     setJaladoresList(prev => [...prev, newJaladorAttendance]);
 
     // Reset inputs
     setSelectedJalador(null);
+    setJaladorSearch('');
     setPersonnelCount(0);
     setAbsentCount(0);
   };
@@ -103,9 +143,6 @@ export default function AddAssistantDialog({
     const selectedAssistant = assistantsMaster.find(a => a.id === selectedAssistantDni);
     if (!selectedAssistant) return;
 
-    const totalPersonnel = jaladoresList.reduce((sum, j) => sum + j.personnelCount, 0);
-    const totalAbsent = jaladoresList.reduce((sum, j) => sum + j.absentCount, 0);
-
     onAddAssistant({
       assistantDni: selectedAssistant.id,
       assistantName: selectedAssistant.assistantName,
@@ -119,28 +156,16 @@ export default function AddAssistantDialog({
     setSelectedAssistantDni('');
     setJaladoresList([]);
     setSelectedJalador(null);
+    setJaladorSearch('');
     setPersonnelCount(0);
     setAbsentCount(0);
+    setShowJaladorResults(false);
     setIsOpen(false);
   };
 
   const availableAssistants = useMemo(() => {
     return assistantsMaster.filter(a => !currentAssistantsDnis.includes(a.id));
   }, [assistantsMaster, currentAssistantsDnis]);
-
-  const handleCreateJalador = async (alias: string): Promise<Jalador | null> => {
-    if (!alias.trim()) return null;
-    const result = await addJalador({ alias: alias.trim() });
-    if (result.success && result.id) {
-      toast({ title: 'Éxito', description: `Jalador "${alias}" creado.` });
-      await refreshData();
-      const newJalador = { id: result.id, alias: alias.trim(), dni: '', celular: '', nombre: '' };
-      return newJalador;
-    } else {
-      toast({ title: 'Error', description: result.message, variant: 'destructive' });
-      return null;
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -169,23 +194,52 @@ export default function AddAssistantDialog({
             <div className="space-y-4 pt-4 border-t">
               <Label>Paso 2: Agregar Jaladores y Personal</Label>
               <div className="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Jalador</Label>
-                  <JaladorCombobox
-                    jaladores={availableJaladores}
-                    value={selectedJalador}
-                    onSelect={setSelectedJalador}
-                    onCreate={handleCreateJalador}
-                    disabled={loading}
-                  />
+                <div className="relative space-y-1">
+                  <Label htmlFor="jalador-search" className="text-xs">Jalador</Label>
+                   <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                      <Input
+                        id="jalador-search"
+                        placeholder="Buscar o crear..."
+                        value={jaladorSearch}
+                        onChange={(e) => {
+                          setJaladorSearch(e.target.value);
+                          setShowJaladorResults(true);
+                          setSelectedJalador(null);
+                        }}
+                        onFocus={() => setShowJaladorResults(true)}
+                        onBlur={() => setTimeout(() => setShowJaladorResults(false), 150)}
+                        className="pl-8"
+                      />
+                   </div>
+                  {showJaladorResults && (
+                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
+                      <ScrollArea className="max-h-48">
+                        {filteredJaladores.map(j => (
+                          <div key={j.id} onMouseDown={() => handleSelectJalador(j)} className="p-2 hover:bg-muted cursor-pointer text-sm">
+                            {j.alias}
+                          </div>
+                        ))}
+                        {canCreateNewJalador && (
+                           <div onMouseDown={handleCreateJalador} className="p-2 text-sm text-primary hover:bg-primary/10 cursor-pointer flex items-center gap-2">
+                             {isCreatingJalador ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4"/>}
+                             Crear "{jaladorSearch}"
+                           </div>
+                        )}
+                        {jaladorSearch && filteredJaladores.length === 0 && !canCreateNewJalador && (
+                            <div className="p-2 text-sm text-muted-foreground">No hay resultados.</div>
+                        )}
+                      </ScrollArea>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Personal</Label>
-                  <Input type="number" min="0" value={personnelCount} onChange={(e) => setPersonnelCount(parseInt(e.target.value, 10) || 0)} />
+                  <Label htmlFor='personnel-count' className="text-xs">Personal</Label>
+                  <Input id='personnel-count' type="number" min="0" value={personnelCount} onChange={(e) => setPersonnelCount(e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Faltos</Label>
-                  <Input type="number" min="0" value={absentCount} onChange={(e) => setAbsentCount(parseInt(e.target.value, 10) || 0)} />
+                  <Label htmlFor='absent-count' className="text-xs">Faltos</Label>
+                  <Input id='absent-count' type="number" min="0" value={absentCount} onChange={(e) => setAbsentCount(e.target.value)} />
                 </div>
                 <Button type="button" size="icon" onClick={handleAddJaladorToList}>
                   <PlusCircle className="h-4 w-4" />
@@ -213,102 +267,12 @@ export default function AddAssistantDialog({
           )}
         </div>
         <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-          <Button type="button" className="w-full sm:w-auto" onClick={handleConfirm} disabled={!selectedAssistantDni || jaladoresList.length === 0}>
+           <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={handleClose}>Cancelar</Button>
+           <Button type="button" className="w-full sm:w-auto" onClick={handleConfirm} disabled={!selectedAssistantDni || jaladoresList.length === 0}>
             Confirmar y Agregar a Lista
           </Button>
-          <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={handleClose}>Cancelar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function JaladorCombobox({
-  jaladores,
-  value,
-  onSelect,
-  onCreate,
-  disabled,
-}: {
-  jaladores: Jalador[];
-  value: Jalador | null;
-  onSelect: (jalador: Jalador | null) => void;
-  onCreate: (alias: string) => Promise<Jalador | null>;
-  disabled: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-
-  const handleCreate = async () => {
-    if (search.trim() && !isCreating) {
-      setIsCreating(true);
-      const newJalador = await onCreate(search.trim());
-      if (newJalador) {
-        onSelect(newJalador);
-      }
-      setSearch('');
-      setOpen(false);
-      setIsCreating(false);
-    }
-  };
-  
-  const filteredJaladores = useMemo(() => {
-    if (!search) return jaladores;
-    return jaladores.filter(j => j.alias.toLowerCase().includes(search.toLowerCase()));
-  }, [search, jaladores]);
-  
-  const showCreateOption = search && !filteredJaladores.some(j => j.alias.toLowerCase() === search.toLowerCase());
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between"
-          disabled={disabled}
-        >
-          {value ? value.alias : "Seleccionar"}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command shouldFilter={false}>
-          <CommandInput placeholder="Buscar o crear jalador..." value={search} onValueChange={setSearch} />
-          <CommandList>
-            <CommandEmpty>
-                No se encontró el jalador.
-            </CommandEmpty>
-            <CommandGroup>
-              {filteredJaladores.map(jalador => (
-                <CommandItem
-                  key={jalador.id}
-                  value={jalador.alias}
-                  onSelect={() => {
-                    onSelect(jalador);
-                    setOpen(false);
-                    setSearch('');
-                  }}
-                >
-                  <Check className={cn("mr-2 h-4 w-4", value?.id === jalador.id ? "opacity-100" : "opacity-0")} />
-                  {jalador.alias}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            {showCreateOption && (
-                <CommandItem
-                  onSelect={handleCreate}
-                  className="text-primary hover:!bg-primary/10 cursor-pointer"
-                >
-                  {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
-                  Crear nuevo jalador: "{search}"
-                </CommandItem>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
   );
 }
