@@ -117,7 +117,7 @@ export default function AttendanceDatabasePage() {
         }
 
         const loteGroup = groups[dateKey][laborKey][loteKey];
-        record.assistants.forEach(assistant => {
+        (record.assistants || []).forEach(assistant => {
             let existingAssistant = loteGroup.assistants.find(a => a.assistantName === assistant.assistantName);
             if (!existingAssistant) {
                 existingAssistant = {
@@ -130,14 +130,14 @@ export default function AttendanceDatabasePage() {
                 loteGroup.assistants.push(existingAssistant);
             }
             
-            assistant.jaladores.forEach(jalador => {
+            (assistant.jaladores || []).forEach(jalador => {
                 if(!existingAssistant!.jaladores[jalador.jaladorAlias]) {
                     existingAssistant!.jaladores[jalador.jaladorAlias] = [];
                 }
                 existingAssistant!.jaladores[jalador.jaladorAlias].push(jalador);
             });
 
-            const assistantTotals = assistant.jaladores.reduce((acc, j) => {
+            const assistantTotals = (assistant.jaladores || []).reduce((acc, j) => {
               acc.personnelCount += j.personnelCount;
               acc.absentCount += j.absentCount;
               return acc;
@@ -173,7 +173,7 @@ export default function AttendanceDatabasePage() {
         );
         
         const newTotals = updatedAssistants.reduce((acc, a) => {
-            const jaladorTotals = a.jaladores.reduce((jAcc, j) => {
+            const jaladorTotals = (a.jaladores || []).reduce((jAcc, j) => {
               jAcc.personnelCount += j.personnelCount;
               jAcc.absentCount += j.absentCount;
               return jAcc;
