@@ -79,7 +79,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 };
             }
 
-            record.assistants.forEach(assistant => {
+            (record.assistants || []).forEach(assistant => {
                 let assignedToJalador = false;
                 const assistantPersonnelCount = (assistant.jaladores || []).reduce((sum, j) => sum + (j.personnelCount || 0), 0);
 
@@ -94,7 +94,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 }
                 
                 if (!assignedToJalador) {
-                   data[rowKey]['EMPRESA'] = (data[rowKey]['EMPRESA'] || 0) + assistantPersonnelCount;
+                   data[rowKey]['EMPRESA'] += assistantPersonnelCount;
                 }
 
                 const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
@@ -144,7 +144,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 };
             }
 
-            record.assistants.forEach(assistant => {
+            (record.assistants || []).forEach(assistant => {
                  let assignedToJalador = false;
                  const assistantPersonnelCount = (assistant.jaladores || []).reduce((sum, j) => sum + (j.personnelCount || 0), 0);
 
@@ -159,7 +159,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 }
                 
                 if (!assignedToJalador) {
-                   data[rowKey]['EMPRESA'] = (data[rowKey]['EMPRESA'] || 0) + assistantPersonnelCount;
+                   data[rowKey]['EMPRESA'] += assistantPersonnelCount;
                 }
                 
                 const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
@@ -188,6 +188,16 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         return { data: sortedData, columnTotals };
 
     }, [recordsForSelectedDate, assistantsMaster, filters]);
+
+    const verticalHeaderStyle: React.CSSProperties = {
+        writingMode: 'vertical-rl',
+        transform: 'rotate(180deg)',
+        height: '100px',
+        textAlign: 'center',
+        padding: '2px',
+        minWidth: '30px',
+        whiteSpace: 'nowrap',
+    };
 
     return (
         <Card className="mt-6">
@@ -227,15 +237,15 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={4}></th>
                                     <th className="p-1 border border-black bg-orange-300" colSpan={JALADOR_COLUMNS.length}>JALADORES</th>
-                                    <th className="p-1 border border-black bg-red-300" rowSpan={2}>ASISTENTE</th>
-                                    <th className="p-1 border border-black bg-blue-300" rowSpan={2}>TOTAL</th>
+                                    <th className="p-1 border border-black bg-red-300" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
+                                    <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
                                 </tr>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200">DDC</th>
                                     <th className="p-1 border border-black bg-gray-200">LOTE</th>
                                     <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
                                     <th className="p-1 border border-black bg-gray-200">LABOR</th>
-                                    {JALADOR_COLUMNS.map(j => <th key={j} className="p-1 border border-black bg-orange-200 min-w-[70px]">{j}</th>)}
+                                    {JALADOR_COLUMNS.map(j => <th key={j} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
@@ -244,7 +254,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                                         <td className="p-1 border border-black text-center">{row.ddc}</td>
                                         <td className="p-1 border border-black text-center">{row.lote}</td>
                                         <td className="p-1 border border-black text-center">{row.codLabor}</td>
-                                        <td className="p-1 border border-black text-left">{row.labor}</td>
+                                        <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
                                         {JALADOR_COLUMNS.map(j => <td key={`${idx}-${j}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
                                         <td className="p-1 border border-black text-center">{row[ASISTENTE_COLUMN] || ''}</td>
                                         <td className="p-1 border border-black text-center font-bold">{row.total || ''}</td>
@@ -270,20 +280,20 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={2}></th>
                                     <th className="p-1 border border-black bg-orange-300" colSpan={JALADOR_COLUMNS.length}>JALADORES</th>
-                                    <th className="p-1 border border-black bg-red-300" rowSpan={2}>ASISTENTE</th>
-                                    <th className="p-1 border border-black bg-blue-300" rowSpan={2}>TOTAL</th>
+                                    <th className="p-1 border border-black bg-red-300" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
+                                    <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
                                 </tr>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
                                     <th className="p-1 border border-black bg-gray-200">LABOR</th>
-                                    {JALADOR_COLUMNS.map(j => <th key={j} className="p-1 border border-black bg-orange-200 min-w-[70px]">{j}</th>)}
+                                    {JALADOR_COLUMNS.map(j => <th key={j} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
                                 </tr>
                             </thead>
                              <tbody>
                                 {resumenPorLabor.data.map((row, idx) => (
                                     <tr key={idx}>
                                         <td className="p-1 border border-black text-center">{row.codLabor}</td>
-                                        <td className="p-1 border border-black text-left">{row.labor}</td>
+                                        <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
                                         {JALADOR_COLUMNS.map(j => <td key={`${idx}-${j}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
                                         <td className="p-1 border border-black text-center">{row[ASISTENTE_COLUMN] || ''}</td>
                                         <td className="p-1 border border-black text-center font-bold">{row.total || ''}</td>
