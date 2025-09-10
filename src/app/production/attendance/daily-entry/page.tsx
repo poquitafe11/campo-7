@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -425,50 +426,47 @@ export default function DailyEntryPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {assistants.map((assistant) => {
-                        const assistantTotals = assistant.jaladores.reduce((acc, j) => {
-                            acc.personnelCount += j.personnelCount;
-                            acc.absentCount += j.absentCount;
-                            return acc;
-                        }, { personnelCount: 0, absentCount: 0 });
+                        {assistants.map((assistant) => {
+                            const assistantTotals = assistant.jaladores.reduce((acc, j) => {
+                                acc.personnelCount += j.personnelCount;
+                                acc.absentCount += j.absentCount;
+                                return acc;
+                            }, { personnelCount: 0, absentCount: 0 });
 
-                        return(
-                        <Collapsible asChild key={assistant.id}>
-                          <>
-                            <TableRow>
-                              <TableCell className="font-medium truncate">
-                                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
-                                  {assistant.assistantName}
-                                  <ChevronDown className="h-4 w-4" />
-                                </CollapsibleTrigger>
-                              </TableCell>
-                              <TableCell>{assistantTotals.personnelCount}</TableCell>
-                              <TableCell>{assistantTotals.absentCount}</TableCell>
-                              <TableCell className="text-right">
-                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteAssistant(assistant.id)}>
-                                  <Trash2 className="h-4 w-4" /><span className="sr-only">Eliminar</span>
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                            <CollapsibleContent asChild>
-                              <tr className="bg-muted/50">
-                                <td colSpan={4} className="p-0">
-                                  <div className="p-2">
-                                     <Table>
-                                        <TableHeader><TableRow><TableHead className="h-8">Jalador</TableHead><TableHead className="h-8">Personal</TableHead><TableHead className="h-8">Faltos</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                          {assistant.jaladores.map(j => (
-                                            <TableRow key={j.id}><TableCell>{j.jaladorAlias}</TableCell><TableCell>{j.personnelCount}</TableCell><TableCell>{j.absentCount}</TableCell></TableRow>
-                                          ))}
-                                        </TableBody>
-                                     </Table>
-                                  </div>
-                                </td>
-                              </tr>
-                            </CollapsibleContent>
-                           </>
-                        </Collapsible>
-                      )})}
+                            return (
+                                <Collapsible asChild key={assistant.id}>
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="p-0">
+                                            <div className="flex items-center w-full">
+                                                <CollapsibleTrigger className="flex flex-1 items-center gap-2 w-full text-left p-4">
+                                                    <span className="font-medium truncate">{assistant.assistantName}</span>
+                                                    <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                                                </CollapsibleTrigger>
+                                                <div className="px-4 text-center">{assistantTotals.personnelCount}</div>
+                                                <div className="px-4 text-center">{assistantTotals.absentCount}</div>
+                                                <div className="px-4">
+                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteAssistant(assistant.id)}>
+                                                        <Trash2 className="h-4 w-4" /><span className="sr-only">Eliminar</span>
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <CollapsibleContent>
+                                                <div className="bg-muted/50 p-2 border-t">
+                                                    <Table>
+                                                        <TableHeader><TableRow><TableHead className="h-8">Jalador</TableHead><TableHead className="h-8">Personal</TableHead><TableHead className="h-8">Faltos</TableHead></TableRow></TableHeader>
+                                                        <TableBody>
+                                                            {assistant.jaladores.map(j => (
+                                                                <TableRow key={j.id}><TableCell>{j.jaladorAlias}</TableCell><TableCell>{j.personnelCount}</TableCell><TableCell>{j.absentCount}</TableCell></TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </CollapsibleContent>
+                                        </TableCell>
+                                    </TableRow>
+                                </Collapsible>
+                            )
+                        })}
                     </TableBody>
                     <TableFooter>
                       <TableRow>
