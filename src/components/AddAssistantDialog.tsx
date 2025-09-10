@@ -1,9 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -11,13 +8,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,16 +21,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { addJalador } from '@/app/maestro-jaladores/actions';
 import { useToast } from '@/hooks/use-toast';
-
-const addJaladorFormSchema = z.object({
-  personnelCount: z.coerce.number().int().min(0, 'Debe ser un número no negativo.'),
-  absentCount: z.coerce.number().int().min(0, 'Debe ser un número no negativo.'),
-}).refine(data => data.personnelCount >= data.absentCount, {
-    message: "Faltos no puede ser mayor que personal.",
-    path: ["absentCount"],
-});
-type AddJaladorFormValues = z.infer<typeof addJaladorFormSchema>;
-
 
 interface AddAssistantDialogProps {
   isOpen: boolean;
@@ -57,35 +37,46 @@ export default function AddAssistantDialog({
 }: AddAssistantDialogProps) {
   
   const { asistentes: assistantsMaster, jaladores: jaladoresMaster, loading, refreshData } = useMasterData();
-  const [selectedAssistantDni, setSelectedAssistantDni] = useState<string>('');
-  const [jaladoresList, setJaladoresList] = useState<JaladorAttendance[]>([]);
-  const [selectedJalador, setSelectedJalador] = useState<Jalador | null>(null);
   const { toast } = useToast();
 
-  const jaladorForm = useForm<AddJaladorFormValues>({
-    resolver: zodResolver(addJaladorFormSchema),
-    defaultValues: { personnelCount: 0, absentCount: 0 },
-  });
+  // State for the main dialog
+  const [selectedAssistantDni, setSelectedAssistantDni] = useState<string>('');
+  const [jaladoresList, setJaladoresList] = useState<JaladorAttendance[]>([]);
+  
+  // Local state for the "add jalador" sub-form
+  const [selectedJalador, setSelectedJalador] = useState<Jalador | null>(null);
+  const [personnelCount, setPersonnelCount] = useState<number>(0);
+  const [absentCount, setAbsentCount] = useState<number>(0);
 
   const availableJaladores = useMemo(() => {
     return jaladoresMaster.filter(j => !jaladoresList.some(jl => jl.jaladorId === j.id));
   }, [jaladoresMaster, jaladoresList]);
 
-  const handleAddJaladorToList = (data: AddJaladorFormValues) => {
+  const handleAddJaladorToList = () => {
+    // Manual validation
     if (!selectedJalador) {
         toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un jalador.' });
         return;
     }
+    if (personnelCount < absentCount) {
+        toast({ variant: 'destructive', title: 'Error de validación', description: 'El número de faltos no puede ser mayor al de personal.' });
+        return;
+    }
+
     const newJaladorAttendance: JaladorAttendance = {
       id: crypto.randomUUID(),
       jaladorId: selectedJalador.id,
       jaladorAlias: selectedJalador.alias,
-      personnelCount: data.personnelCount,
-      absentCount: data.absentCount,
+      personnelCount: personnelCount,
+      absentCount: absentCount,
     };
+    
     setJaladoresList(prev => [...prev, newJaladorAttendance]);
-    jaladorForm.reset({ personnelCount: 0, absentCount: 0 });
+    
+    // Reset sub-form fields
     setSelectedJalador(null);
+    setPersonnelCount(0);
+    setAbsentCount(0);
   };
   
   const handleRemoveJalador = (id: string) => {
@@ -123,7 +114,8 @@ export default function AddAssistantDialog({
     setSelectedAssistantDni('');
     setJaladoresList([]);
     setSelectedJalador(null);
-    jaladorForm.reset();
+    setPersonnelCount(0);
+    setAbsentCount(0);
     setIsOpen(false);
   }
 
@@ -136,7 +128,7 @@ export default function AddAssistantDialog({
     const result = await addJalador({ alias: alias.trim() });
     if(result.success && result.id) {
         toast({ title: 'Éxito', description: `Jalador "${alias}" creado.` });
-        await refreshData();
+        await refreshData(); // Refresh master data to include the new jalador
         const newJalador = { id: result.id, alias: alias.trim() };
         return newJalador;
     } else {
@@ -172,8 +164,7 @@ export default function AddAssistantDialog({
             <div className="space-y-4 pt-4 border-t">
               <Label>Paso 2: Agregar Jaladores y Personal</Label>
               
-              <Form {...jaladorForm}>
-                <form onSubmit={jaladorForm.handleSubmit(handleAddJaladorToList)} className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
+                <div className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
                   <div className="space-y-1">
                       <Label className="text-xs">Jalador</Label>
                       <JaladorCombobox
@@ -184,34 +175,21 @@ export default function AddAssistantDialog({
                           disabled={loading}
                       />
                   </div>
-
-                  <FormField
-                    control={jaladorForm.control}
-                    name="personnelCount"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <Label className="text-xs">Personal</Label>
-                        <FormControl><Input type="number" {...field} /></FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={jaladorForm.control}
-                    name="absentCount"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <Label className="text-xs">Faltos</Label>
-                        <FormControl><Input type="number" {...field} /></FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="self-end">
-                    <Button type="submit" size="icon"><PlusCircle className="h-4 w-4"/></Button>
+                  <div className="space-y-1">
+                      <Label className="text-xs">Personal</Label>
+                      <Input type="number" value={personnelCount} onChange={(e) => setPersonnelCount(Number(e.target.value))} />
                   </div>
-                </form>
-              </Form>
+                  <div className="space-y-1">
+                      <Label className="text-xs">Faltos</Label>
+                      <Input type="number" value={absentCount} onChange={(e) => setAbsentCount(Number(e.target.value))} />
+                  </div>
+
+                  <div className="self-end">
+                    <Button type="button" size="icon" onClick={handleAddJaladorToList}>
+                        <PlusCircle className="h-4 w-4"/>
+                    </Button>
+                  </div>
+                </div>
                  
                  {jaladoresList.length > 0 && (
                     <div className="border rounded-md max-h-40 overflow-y-auto">
@@ -309,8 +287,9 @@ function JaladorCombobox({
                   key={jalador.id}
                   value={jalador.alias}
                   onSelect={() => {
-                    onSelect(jalador.id === value?.id ? null : jalador);
+                    onSelect(jalador);
                     setOpen(false);
+                    setSearch('');
                   }}
                 >
                   <Check className={cn("mr-2 h-4 w-4", value?.id === jalador.id ? "opacity-100" : "opacity-0")} />
