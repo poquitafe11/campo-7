@@ -69,6 +69,8 @@ const assistantInFormSchema = z.object({
   id: z.string(),
   assistantDni: z.string(),
   assistantName: z.string(),
+  personnelCount: z.number(),
+  absentCount: z.number(),
   jaladores: z.array(z.object({
     id: z.string(),
     jaladorId: z.string(),
@@ -132,14 +134,8 @@ export default function DailyEntryPage() {
   const totals = useMemo(() => {
     return assistants.reduce(
       (acc, assistant) => {
-        const assistantTotals = assistant.jaladores.reduce((asistAcc, jalador) => {
-            asistAcc.personnelCount += jalador.personnelCount;
-            asistAcc.absentCount += jalador.absentCount;
-            return asistAcc;
-        }, { personnelCount: 0, absentCount: 0 });
-        
-        acc.personnelCount += assistantTotals.personnelCount;
-        acc.absentCount += assistantTotals.absentCount;
+        acc.personnelCount += assistant.personnelCount || 0;
+        acc.absentCount += assistant.absentCount || 0;
         return acc;
       },
       { personnelCount: 0, absentCount: 0 }
@@ -188,11 +184,17 @@ export default function DailyEntryPage() {
   const handleAddAssistant = (newAssistant: Omit<Assistant, 'id'>) => {
     if (!selectedLoteData || !laborValue) return;
 
+    // Ensure numeric values to prevent NaN issues
+    const personnelCount = Number(newAssistant.personnelCount) || 0;
+    const absentCount = Number(newAssistant.absentCount) || 0;
+
     setAssistants((prev) => [
       ...prev,
       { 
         ...newAssistant, 
         id: new Date().toISOString() + Math.random(),
+        personnelCount,
+        absentCount
       },
     ]);
   };
