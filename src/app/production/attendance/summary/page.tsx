@@ -16,22 +16,16 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter } from 'lucide-react';
+import { ResumenTablasAdicionales } from '@/components/ResumenTablasAdicionales';
 
-
-interface LoteHeaderInfo {
-  lote: string; 
-  ddc: number | string;
-  variedadAbreviada: string;
-  campana: string;
-}
 
 interface PivotData {
-  loteHeaders: LoteHeaderInfo[];
+  loteHeaders: {
+    lote: string; 
+    ddc: number | string;
+    variedadAbreviada: string;
+    campana: string;
+  }[];
   labors: {
     [labor: string]: {
       code?: string;
@@ -57,8 +51,6 @@ function AttendanceSummaryContent() {
   const selectedDateParam = searchParams.get('date');
   const refreshParam = searchParams.get('refresh'); 
   
-  const [secondaryFilters, setSecondaryFilters] = useState({ campaign: '', lote: '' });
-
   const selectedDate = useMemo(() => {
     if (selectedDateParam && isValid(parseISO(selectedDateParam))) {
       return parseISO(selectedDateParam);
@@ -171,7 +163,7 @@ function AttendanceSummaryContent() {
     const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    const loteHeaders: LoteHeaderInfo[] = uniqueLotesInRecords
+    const loteHeaders: PivotData['loteHeaders'] = uniqueLotesInRecords
       .map(loteNum => {
         const loteDataFromMaestro = lotesMaestro.find(l => l.lote === loteNum);
         const variedad = loteDataFromMaestro?.variedad || 'N/A';
@@ -231,53 +223,6 @@ function AttendanceSummaryContent() {
 
     return { loteHeaders, labors, columnTotals, absentTotalsByLote, grandTotalPersonnel, grandTotalAbsent };
   }, [allRecords, selectedDate, lotesMaestro]);
-
-  const secondaryTablesData = useMemo(() => {
-    let recordsToProcess = allRecords;
-    
-    if (secondaryFilters.campaign) {
-        recordsToProcess = recordsToProcess.filter(r => r.campana === secondaryFilters.campaign);
-    }
-    if (secondaryFilters.lote) {
-        recordsToProcess = recordsToProcess.filter(r => r.lotName === secondaryFilters.lote);
-    }
-
-    const jaladores: { [key: string]: number } = {};
-    const labors: { [key: string]: { [jalador: string]: number } } = {};
-    const lotes: { [key: string]: { [jalador: string]: number } } = {};
-
-    recordsToProcess.forEach(record => {
-        record.assistants.forEach(assistant => {
-            (assistant.jaladores || []).forEach(jalador => {
-                const jaladorAlias = jalador.jaladorAlias;
-                const personnel = jalador.personnelCount;
-
-                jaladores[jaladorAlias] = (jaladores[jaladorAlias] || 0) + personnel;
-
-                // For Resumen por Labor
-                const laborKey = record.labor;
-                if (!labors[laborKey]) labors[laborKey] = {};
-                labors[laborKey][jaladorAlias] = (labors[laborKey][jaladorAlias] || 0) + personnel;
-
-                // For Resumen por Lote
-                const loteKey = record.lotName;
-                if (!lotes[loteKey]) lotes[loteKey] = {};
-                lotes[loteKey][jaladorAlias] = (lotes[loteKey][jaladorAlias] || 0) + personnel;
-            });
-        });
-    });
-
-    const sortedJaladores = Object.keys(jaladores).sort();
-    
-    return { sortedJaladores, labors, lotes };
-
-  }, [allRecords, secondaryFilters]);
-
-  const filterOptions = useMemo(() => {
-        const campaigns = [...new Set(allRecords.map(r => r.campana).filter(Boolean))].sort();
-        const lotes = [...new Set(allRecords.map(r => r.lotName).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
-        return { campaigns, lotes };
-  }, [allRecords]);
   
   if (isLoading) {
       return (
@@ -395,90 +340,10 @@ function AttendanceSummaryContent() {
           </div>
         )}
       </div>
-
-      {/* Tablas 2 y 3 */}
-      <div className="space-y-6">
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>Resúmenes Adicionales</CardTitle>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline"><Filter className="mr-2 h-4 w-4" />Filtros</Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80">
-                            <div className="grid gap-4">
-                                <Label>Campaña</Label>
-                                <Select value={secondaryFilters.campaign} onValueChange={v => setSecondaryFilters(f => ({...f, campaign: v === 'all' ? '' : v}))}>
-                                    <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-                                    <SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <Label>Lote</Label>
-                                <Select value={secondaryFilters.lote} onValueChange={v => setSecondaryFilters(f => ({...f, lote: v === 'all' ? '' : v}))}>
-                                    <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-                                    <SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                {/* Tabla 2: Resumen por Lote */}
-                <div>
-                    <h3 className="font-semibold mb-2">Resumen por Lote</h3>
-                    {Object.keys(secondaryTablesData.lotes).length > 0 ? (
-                        <div className="overflow-x-auto border rounded-lg">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Labor</TableHead>
-                                        {secondaryTablesData.sortedJaladores.map(j => <TableHead key={j} className="text-center">{j}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(secondaryTablesData.labors).map(([labor, jaladorData]) => (
-                                        <TableRow key={labor}>
-                                            <TableCell className="font-medium">{labor}</TableCell>
-                                            {secondaryTablesData.sortedJaladores.map(jalador => (
-                                                <TableCell key={`${labor}-${jalador}`} className="text-center">{jaladorData[jalador] || ''}</TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    ) : <p className="text-sm text-muted-foreground text-center py-4">No hay datos para los filtros seleccionados.</p>}
-                </div>
-                {/* Tabla 3: Resumen por Labor */}
-                <div>
-                    <h3 className="font-semibold mb-2">Resumen por Labor</h3>
-                    {Object.keys(secondaryTablesData.labors).length > 0 ? (
-                         <div className="overflow-x-auto border rounded-lg">
-                           <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Lote</TableHead>
-                                        {secondaryTablesData.sortedJaladores.map(j => <TableHead key={j} className="text-center">{j}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                     {Object.entries(secondaryTablesData.lotes).map(([lote, jaladorData]) => (
-                                        <TableRow key={lote}>
-                                            <TableCell className="font-medium">{lote}</TableCell>
-                                            {secondaryTablesData.sortedJaladores.map(jalador => (
-                                                <TableCell key={`${lote}-${jalador}`} className="text-center">{jaladorData[jalador] || ''}</TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    ) : <p className="text-sm text-muted-foreground text-center py-4">No hay datos para los filtros seleccionados.</p>}
-                </div>
-            </CardContent>
-        </Card>
-      </div>
+      
+      <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary" />}>
+        <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} selectedDate={selectedDate}/>
+      </Suspense>
     </div>
   );
 }
