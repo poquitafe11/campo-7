@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useState, useEffect, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -33,16 +32,15 @@ import { cn } from '@/lib/utils';
 import { addJalador } from '@/app/maestro-jaladores/actions';
 import { useToast } from '@/hooks/use-toast';
 
-
-const addJaladorSchema = z.object({
-  jaladorId: z.string().min(1, "Debe seleccionar un jalador."),
-  personnelCount: z.coerce.number().int().min(0, 'El número no puede ser negativo.'),
-  absentCount: z.coerce.number().int().min(0, 'El número no puede ser negativo.'),
+const addJaladorFormSchema = z.object({
+  personnelCount: z.coerce.number().int().min(0, 'Debe ser un número no negativo.'),
+  absentCount: z.coerce.number().int().min(0, 'Debe ser un número no negativo.'),
 }).refine(data => data.personnelCount >= data.absentCount, {
     message: "Faltos no puede ser mayor que personal.",
     path: ["absentCount"],
 });
-type AddJaladorFormValues = z.infer<typeof addJaladorSchema>;
+type AddJaladorFormValues = z.infer<typeof addJaladorFormSchema>;
+
 
 interface AddAssistantDialogProps {
   isOpen: boolean;
@@ -61,21 +59,23 @@ export default function AddAssistantDialog({
   const { asistentes: assistantsMaster, jaladores: jaladoresMaster, loading, refreshData } = useMasterData();
   const [selectedAssistantDni, setSelectedAssistantDni] = useState<string>('');
   const [jaladoresList, setJaladoresList] = useState<JaladorAttendance[]>([]);
+  const [selectedJalador, setSelectedJalador] = useState<Jalador | null>(null);
   const { toast } = useToast();
 
   const jaladorForm = useForm<AddJaladorFormValues>({
-    resolver: zodResolver(addJaladorSchema),
-    defaultValues: { jaladorId: '', personnelCount: 0, absentCount: 0 },
+    resolver: zodResolver(addJaladorFormSchema),
+    defaultValues: { personnelCount: 0, absentCount: 0 },
   });
 
   const availableJaladores = useMemo(() => {
     return jaladoresMaster.filter(j => !jaladoresList.some(jl => jl.jaladorId === j.id));
   }, [jaladoresMaster, jaladoresList]);
 
-  const handleAddJalador = (data: AddJaladorFormValues) => {
-    const selectedJalador = jaladoresMaster.find(j => j.id === data.jaladorId);
-    if (!selectedJalador) return;
-
+  const handleAddJaladorToList = (data: AddJaladorFormValues) => {
+    if (!selectedJalador) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un jalador.' });
+        return;
+    }
     const newJaladorAttendance: JaladorAttendance = {
       id: crypto.randomUUID(),
       jaladorId: selectedJalador.id,
@@ -84,9 +84,10 @@ export default function AddAssistantDialog({
       absentCount: data.absentCount,
     };
     setJaladoresList(prev => [...prev, newJaladorAttendance]);
-    jaladorForm.reset({ jaladorId: '', personnelCount: 0, absentCount: 0 });
+    jaladorForm.reset({ personnelCount: 0, absentCount: 0 });
+    setSelectedJalador(null);
   };
-
+  
   const handleRemoveJalador = (id: string) => {
     setJaladoresList(prev => prev.filter(j => j.id !== id));
   };
@@ -121,6 +122,7 @@ export default function AddAssistantDialog({
   const handleClose = () => {
     setSelectedAssistantDni('');
     setJaladoresList([]);
+    setSelectedJalador(null);
     jaladorForm.reset();
     setIsOpen(false);
   }
@@ -129,17 +131,17 @@ export default function AddAssistantDialog({
     return assistantsMaster.filter(a => !currentAssistantsDnis.includes(a.id));
   }, [assistantsMaster, currentAssistantsDnis]);
   
-  const handleCreateJalador = async (alias: string) => {
-    if (!alias.trim()) return;
+  const handleCreateJalador = async (alias: string): Promise<Jalador | null> => {
+    if (!alias.trim()) return null;
     const result = await addJalador({ alias: alias.trim() });
-    if(result.success) {
+    if(result.success && result.id) {
         toast({ title: 'Éxito', description: `Jalador "${alias}" creado.` });
         await refreshData();
-        if (result.id) {
-            jaladorForm.setValue('jaladorId', result.id, { shouldValidate: true });
-        }
+        const newJalador = { id: result.id, alias: alias.trim() };
+        return newJalador;
     } else {
         toast({ title: 'Error', description: result.message, variant: 'destructive' });
+        return null;
     }
   };
   
@@ -171,27 +173,17 @@ export default function AddAssistantDialog({
               <Label>Paso 2: Agregar Jaladores y Personal</Label>
               
               <Form {...jaladorForm}>
-                <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)} className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
-                  
-                  <FormField
-                      control={jaladorForm.control}
-                      name="jaladorId"
-                      render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <Label className="text-xs">Jalador</Label>
-                              <FormControl>
-                                  <JaladorCombobox
-                                      jaladores={availableJaladores}
-                                      value={field.value}
-                                      onChange={(value) => field.onChange(value)}
-                                      onCreate={handleCreateJalador}
-                                      disabled={loading}
-                                  />
-                              </FormControl>
-                              <FormMessage className="text-xs"/>
-                          </FormItem>
-                      )}
-                  />
+                <form onSubmit={jaladorForm.handleSubmit(handleAddJaladorToList)} className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
+                  <div className="space-y-1">
+                      <Label className="text-xs">Jalador</Label>
+                      <JaladorCombobox
+                          jaladores={availableJaladores}
+                          value={selectedJalador}
+                          onSelect={setSelectedJalador}
+                          onCreate={handleCreateJalador}
+                          disabled={loading}
+                      />
+                  </div>
 
                   <FormField
                     control={jaladorForm.control}
@@ -256,28 +248,27 @@ export default function AddAssistantDialog({
 function JaladorCombobox({
   jaladores,
   value,
-  onChange,
+  onSelect,
   onCreate,
   disabled
 }: {
   jaladores: Jalador[];
-  value: string;
-  onChange: (value: string) => void;
-  onCreate: (alias: string) => Promise<void>;
+  value: Jalador | null;
+  onSelect: (jalador: Jalador | null) => void;
+  onCreate: (alias: string) => Promise<Jalador | null>;
   disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
-  const selectedAlias = useMemo(() => {
-    return jaladores.find(j => j.id === value)?.alias || '';
-  }, [value, jaladores]);
-  
   const handleCreate = async () => {
     if (search.trim() && !isCreating) {
         setIsCreating(true);
-        await onCreate(search.trim());
+        const newJalador = await onCreate(search.trim());
+        if (newJalador) {
+            onSelect(newJalador);
+        }
         setSearch('');
         setOpen(false);
         setIsCreating(false);
@@ -301,7 +292,7 @@ function JaladorCombobox({
           className="w-full justify-between"
           disabled={disabled}
         >
-          {value ? selectedAlias : "Seleccionar"}
+          {value ? value.alias : "Seleccionar"}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -318,11 +309,11 @@ function JaladorCombobox({
                   key={jalador.id}
                   value={jalador.alias}
                   onSelect={() => {
-                    onChange(jalador.id === value ? "" : jalador.id);
+                    onSelect(jalador.id === value?.id ? null : jalador);
                     setOpen(false);
                   }}
                 >
-                  <Check className={cn("mr-2 h-4 w-4", value === jalador.id ? "opacity-100" : "opacity-0")} />
+                  <Check className={cn("mr-2 h-4 w-4", value?.id === jalador.id ? "opacity-100" : "opacity-0")} />
                   {jalador.alias}
                 </CommandItem>
               ))}
