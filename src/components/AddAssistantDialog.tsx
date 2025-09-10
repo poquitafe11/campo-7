@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -130,12 +130,13 @@ export default function AddAssistantDialog({
   }, [assistantsMaster, currentAssistantsDnis]);
   
   const handleCreateJalador = async (alias: string) => {
-    const result = await addJalador({ alias });
+    if (!alias.trim()) return;
+    const result = await addJalador({ alias: alias.trim() });
     if(result.success) {
         toast({ title: 'Éxito', description: `Jalador "${alias}" creado.` });
-        await refreshData(); // Refresh master data to include the new jalador
+        await refreshData();
         if (result.id) {
-            jaladorForm.setValue('jaladorId', result.id);
+            jaladorForm.setValue('jaladorId', result.id, { shouldValidate: true });
         }
     } else {
         toast({ title: 'Error', description: result.message, variant: 'destructive' });
@@ -171,27 +172,27 @@ export default function AddAssistantDialog({
               
               <Form {...jaladorForm}>
                 <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)} className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Jalador</Label>
-                     <FormField
-                        control={jaladorForm.control}
-                        name="jaladorId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <JaladorCombobox
-                                        jaladores={availableJaladores}
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        onCreate={handleCreateJalador}
-                                        disabled={loading}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                  </div>
+                  
+                  <FormField
+                      control={jaladorForm.control}
+                      name="jaladorId"
+                      render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <Label className="text-xs">Jalador</Label>
+                              <FormControl>
+                                  <JaladorCombobox
+                                      jaladores={availableJaladores}
+                                      value={field.value}
+                                      onChange={(value) => field.onChange(value)}
+                                      onCreate={handleCreateJalador}
+                                      disabled={loading}
+                                  />
+                              </FormControl>
+                              <FormMessage className="text-xs"/>
+                          </FormItem>
+                      )}
+                  />
+
                   <FormField
                     control={jaladorForm.control}
                     name="personnelCount"
@@ -240,11 +241,11 @@ export default function AddAssistantDialog({
             </div>
           )}
         </div>
-        <DialogFooter className="flex flex-col gap-2">
-            <Button type="button" className="w-full" onClick={handleConfirm} disabled={!selectedAssistantDni || jaladoresList.length === 0}>
+        <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button type="button" className="w-full sm:w-auto" onClick={handleConfirm} disabled={!selectedAssistantDni || jaladoresList.length === 0}>
               Confirmar y Agregar a Lista
             </Button>
-            <Button type="button" className="w-full" variant="outline" onClick={handleClose}>Cancelar</Button>
+            <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={handleClose}>Cancelar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -274,7 +275,7 @@ function JaladorCombobox({
   }, [value, jaladores]);
   
   const handleCreate = async () => {
-    if (search.trim()) {
+    if (search.trim() && !isCreating) {
         setIsCreating(true);
         await onCreate(search.trim());
         setSearch('');
@@ -283,9 +284,10 @@ function JaladorCombobox({
     }
   };
 
-  const filteredJaladores = search
-    ? jaladores.filter(j => j.alias.toLowerCase().includes(search.toLowerCase()))
-    : jaladores;
+  const filteredJaladores = useMemo(() => {
+    if (!search) return jaladores;
+    return jaladores.filter(j => j.alias.toLowerCase().includes(search.toLowerCase()));
+  }, [search, jaladores]);
   
   const showCreateOption = search && !filteredJaladores.some(j => j.alias.toLowerCase() === search.toLowerCase());
 
@@ -308,24 +310,15 @@ function JaladorCombobox({
           <CommandInput placeholder="Buscar o crear jalador..." value={search} onValueChange={setSearch} />
           <CommandList>
             <CommandEmpty>
-                {showCreateOption ? (
-                    <div className="p-1">
-                        <Button variant="ghost" className="w-full justify-start" onClick={handleCreate} disabled={isCreating}>
-                            {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
-                            Crear "{search}"
-                        </Button>
-                    </div>
-                ) : (
-                    "No se encontró el jalador."
-                )}
+                No se encontró el jalador.
             </CommandEmpty>
             <CommandGroup>
               {filteredJaladores.map(jalador => (
                 <CommandItem
                   key={jalador.id}
-                  value={jalador.id}
-                  onSelect={(currentValue) => {
-                    onChange(currentValue === value ? "" : currentValue);
+                  value={jalador.alias}
+                  onSelect={() => {
+                    onChange(jalador.id === value ? "" : jalador.id);
                     setOpen(false);
                   }}
                 >
@@ -333,16 +326,16 @@ function JaladorCombobox({
                   {jalador.alias}
                 </CommandItem>
               ))}
-              {showCreateOption && (
-                 <CommandItem
-                    onSelect={handleCreate}
-                    className="text-primary hover:!bg-primary/10 cursor-pointer"
-                 >
-                    {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
-                     Crear nuevo jalador: "{search}"
-                 </CommandItem>
-              )}
             </CommandGroup>
+            {showCreateOption && (
+                <CommandItem
+                  onSelect={handleCreate}
+                  className="text-primary hover:!bg-primary/10 cursor-pointer"
+                >
+                  {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
+                  Crear nuevo jalador: "{search}"
+                </CommandItem>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
