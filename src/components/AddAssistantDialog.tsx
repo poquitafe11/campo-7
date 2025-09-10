@@ -11,7 +11,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useMasterData } from '@/context/MasterDataContext';
 import { PlusCircle, Trash2, ChevronsUpDown, Check, Loader2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -35,15 +41,13 @@ export default function AddAssistantDialog({
   onAddAssistant,
   currentAssistantsDnis,
 }: AddAssistantDialogProps) {
-  
   const { asistentes: assistantsMaster, jaladores: jaladoresMaster, loading, refreshData } = useMasterData();
   const { toast } = useToast();
 
-  // State for the main dialog
   const [selectedAssistantDni, setSelectedAssistantDni] = useState<string>('');
   const [jaladoresList, setJaladoresList] = useState<JaladorAttendance[]>([]);
-  
-  // Local state for the "add jalador" sub-form
+
+  // State for the "add jalador" inputs
   const [selectedJalador, setSelectedJalador] = useState<Jalador | null>(null);
   const [personnelCount, setPersonnelCount] = useState<number>(0);
   const [absentCount, setAbsentCount] = useState<number>(0);
@@ -53,14 +57,17 @@ export default function AddAssistantDialog({
   }, [jaladoresMaster, jaladoresList]);
 
   const handleAddJaladorToList = () => {
-    // Manual validation
     if (!selectedJalador) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un jalador.' });
-        return;
+      toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un jalador.' });
+      return;
+    }
+    if (personnelCount < 0 || absentCount < 0) {
+      toast({ variant: 'destructive', title: 'Error de validación', description: 'Las cantidades no pueden ser negativas.' });
+      return;
     }
     if (personnelCount < absentCount) {
-        toast({ variant: 'destructive', title: 'Error de validación', description: 'El número de faltos no puede ser mayor al de personal.' });
-        return;
+      toast({ variant: 'destructive', title: 'Error de validación', description: 'El número de faltos no puede ser mayor al de personal.' });
+      return;
     }
 
     const newJaladorAttendance: JaladorAttendance = {
@@ -70,29 +77,29 @@ export default function AddAssistantDialog({
       personnelCount: personnelCount,
       absentCount: absentCount,
     };
-    
+
     setJaladoresList(prev => [...prev, newJaladorAttendance]);
-    
-    // Reset sub-form fields
+
+    // Reset inputs
     setSelectedJalador(null);
     setPersonnelCount(0);
     setAbsentCount(0);
   };
-  
+
   const handleRemoveJalador = (id: string) => {
     setJaladoresList(prev => prev.filter(j => j.id !== id));
   };
-  
+
   const handleConfirm = () => {
-    if (!selectedAssistantDni || jaladoresList.length === 0) {
-        toast({
-            variant: 'destructive',
-            title: 'Faltan datos',
-            description: 'Debe seleccionar un asistente y agregar al menos un jalador con su personal.'
-        });
-        return;
+    if (!selectedAssistantDni) {
+      toast({ variant: 'destructive', title: 'Faltan datos', description: 'Debe seleccionar un asistente.' });
+      return;
     }
-    
+     if (jaladoresList.length === 0) {
+      toast({ variant: 'destructive', title: 'Lista Vacía', description: 'Debe agregar al menos un jalador con su personal.' });
+      return;
+    }
+
     const selectedAssistant = assistantsMaster.find(a => a.id === selectedAssistantDni);
     if (!selectedAssistant) return;
 
@@ -106,7 +113,7 @@ export default function AddAssistantDialog({
       absentCount: totalAbsent,
       jaladores: jaladoresList,
     });
-    
+
     handleClose();
   };
 
@@ -117,45 +124,45 @@ export default function AddAssistantDialog({
     setPersonnelCount(0);
     setAbsentCount(0);
     setIsOpen(false);
-  }
+  };
 
   const availableAssistants = useMemo(() => {
     return assistantsMaster.filter(a => !currentAssistantsDnis.includes(a.id));
   }, [assistantsMaster, currentAssistantsDnis]);
-  
+
   const handleCreateJalador = async (alias: string): Promise<Jalador | null> => {
     if (!alias.trim()) return null;
     const result = await addJalador({ alias: alias.trim() });
-    if(result.success && result.id) {
-        toast({ title: 'Éxito', description: `Jalador "${alias}" creado.` });
-        await refreshData(); // Refresh master data to include the new jalador
-        const newJalador = { id: result.id, alias: alias.trim() };
-        return newJalador;
+    if (result.success && result.id) {
+      toast({ title: 'Éxito', description: `Jalador "${alias}" creado.` });
+      await refreshData();
+      const newJalador = { id: result.id, alias: alias.trim(), dni: '', celular: '', nombre: '' };
+      return newJalador;
     } else {
-        toast({ title: 'Error', description: result.message, variant: 'destructive' });
-        return null;
+      toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      return null;
     }
   };
-  
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Agregar Asistente y su Personal</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Paso 1: Seleccionar Asistente/Encargado</Label>
+            <Label htmlFor="assistant-select">Paso 1: Seleccionar Asistente/Encargado</Label>
             <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
-              <SelectTrigger>
-                  <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
+              <SelectTrigger id="assistant-select">
+                <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
               </SelectTrigger>
               <SelectContent>
-                  {availableAssistants.map((assistant) => (
-                      <SelectItem key={assistant.id} value={assistant.id}>
-                          {assistant.assistantName}
-                      </SelectItem>
-                  ))}
+                {availableAssistants.map((assistant) => (
+                  <SelectItem key={assistant.id} value={assistant.id}>
+                    {assistant.assistantName}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -163,72 +170,67 @@ export default function AddAssistantDialog({
           {selectedAssistantDni && (
             <div className="space-y-4 pt-4 border-t">
               <Label>Paso 2: Agregar Jaladores y Personal</Label>
-              
-                <div className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
-                  <div className="space-y-1">
-                      <Label className="text-xs">Jalador</Label>
-                      <JaladorCombobox
-                          jaladores={availableJaladores}
-                          value={selectedJalador}
-                          onSelect={setSelectedJalador}
-                          onCreate={handleCreateJalador}
-                          disabled={loading}
-                      />
-                  </div>
-                  <div className="space-y-1">
-                      <Label className="text-xs">Personal</Label>
-                      <Input type="number" value={personnelCount} onChange={(e) => setPersonnelCount(Number(e.target.value))} />
-                  </div>
-                  <div className="space-y-1">
-                      <Label className="text-xs">Faltos</Label>
-                      <Input type="number" value={absentCount} onChange={(e) => setAbsentCount(Number(e.target.value))} />
-                  </div>
-
-                  <div className="self-end">
-                    <Button type="button" size="icon" onClick={handleAddJaladorToList}>
-                        <PlusCircle className="h-4 w-4"/>
-                    </Button>
-                  </div>
+              <div className="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Jalador</Label>
+                  <JaladorCombobox
+                    jaladores={availableJaladores}
+                    value={selectedJalador}
+                    onSelect={setSelectedJalador}
+                    onCreate={handleCreateJalador}
+                    disabled={loading}
+                  />
                 </div>
-                 
-                 {jaladoresList.length > 0 && (
-                    <div className="border rounded-md max-h-40 overflow-y-auto">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Jalador</TableHead><TableHead>Personal</TableHead><TableHead>Faltos</TableHead><TableHead className="w-[50px]"></TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {jaladoresList.map(j => (
-                                    <TableRow key={j.id}>
-                                        <TableCell>{j.jaladorAlias}</TableCell>
-                                        <TableCell>{j.personnelCount}</TableCell>
-                                        <TableCell>{j.absentCount}</TableCell>
-                                        <TableCell><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveJalador(j.id)}><Trash2 className="h-4 w-4"/></Button></TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
+                <div className="space-y-1">
+                  <Label className="text-xs">Personal</Label>
+                  <Input type="number" min="0" value={personnelCount} onChange={(e) => setPersonnelCount(parseInt(e.target.value, 10) || 0)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Faltos</Label>
+                  <Input type="number" min="0" value={absentCount} onChange={(e) => setAbsentCount(parseInt(e.target.value, 10) || 0)} />
+                </div>
+                <Button type="button" size="icon" onClick={handleAddJaladorToList}>
+                  <PlusCircle className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {jaladoresList.length > 0 && (
+                <div className="border rounded-md max-h-40 overflow-y-auto">
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Jalador</TableHead><TableHead>Personal</TableHead><TableHead>Faltos</TableHead><TableHead className="w-[50px]"></TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {jaladoresList.map(j => (
+                        <TableRow key={j.id}>
+                          <TableCell>{j.jaladorAlias}</TableCell>
+                          <TableCell>{j.personnelCount}</TableCell>
+                          <TableCell>{j.absentCount}</TableCell>
+                          <TableCell><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveJalador(j.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           )}
         </div>
         <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button type="button" className="w-full sm:w-auto" onClick={handleConfirm} disabled={!selectedAssistantDni || jaladoresList.length === 0}>
-              Confirmar y Agregar a Lista
-            </Button>
-            <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={handleClose}>Cancelar</Button>
+          <Button type="button" className="w-full sm:w-auto" onClick={handleConfirm} disabled={!selectedAssistantDni || jaladoresList.length === 0}>
+            Confirmar y Agregar a Lista
+          </Button>
+          <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={handleClose}>Cancelar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-
 function JaladorCombobox({
   jaladores,
   value,
   onSelect,
   onCreate,
-  disabled
+  disabled,
 }: {
   jaladores: Jalador[];
   value: Jalador | null;
@@ -242,17 +244,17 @@ function JaladorCombobox({
 
   const handleCreate = async () => {
     if (search.trim() && !isCreating) {
-        setIsCreating(true);
-        const newJalador = await onCreate(search.trim());
-        if (newJalador) {
-            onSelect(newJalador);
-        }
-        setSearch('');
-        setOpen(false);
-        setIsCreating(false);
+      setIsCreating(true);
+      const newJalador = await onCreate(search.trim());
+      if (newJalador) {
+        onSelect(newJalador);
+      }
+      setSearch('');
+      setOpen(false);
+      setIsCreating(false);
     }
   };
-
+  
   const filteredJaladores = useMemo(() => {
     if (!search) return jaladores;
     return jaladores.filter(j => j.alias.toLowerCase().includes(search.toLowerCase()));
