@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -64,6 +64,7 @@ import { db, auth } from '@/lib/firebase';
 import { collection, doc, runTransaction, getDoc } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useAuth } from '@/hooks/useAuth';
 
 const assistantInFormSchema = z.object({
   id: z.string(),
@@ -96,11 +97,11 @@ type AttendanceFormValues = z.infer<typeof attendanceFormSchema>;
 export default function DailyEntryPage() {
   const { setActions } = useHeaderActions();
   const { toast } = useToast();
+  const { user, profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddAssistantDialogOpen, setIsAddAssistantDialogOpen] = useState(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
-  const { labors, lotes, loading: masterLoading } = useMasterData();
-  const [userProfile, setUserProfile] = useState<{ nombre: string } | null>(null);
+  const { labors, lotes, asistentes: masterAssistants, loading: masterLoading } = useMasterData();
   
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceFormSchema),
@@ -113,9 +114,9 @@ export default function DailyEntryPage() {
     },
   });
 
-  const codeValue = form.watch('code');
-  const loteIdValue = form.watch('lote');
-  const laborValue = form.watch('labor');
+  const codeValue = useWatch({ control: form.control, name: 'code' });
+  const loteIdValue = useWatch({ control: form.control, name: 'lote' });
+  const laborValue = useWatch({ control: form.control, name: 'labor' });
 
   const selectedLoteData = useMemo(() => {
     return lotes.find(l => l.id === loteIdValue);
@@ -134,8 +135,13 @@ export default function DailyEntryPage() {
   const totals = useMemo(() => {
     return assistants.reduce(
       (acc, assistant) => {
-        acc.personnelCount += assistant.personnelCount || 0;
-        acc.absentCount += assistant.absentCount || 0;
+        const jaladorTotals = assistant.jaladores.reduce((jAcc, j) => {
+            jAcc.personnelCount += j.personnelCount;
+            jAcc.absentCount += j.absentCount;
+            return jAcc;
+        }, { personnelCount: 0, absentCount: 0 });
+        acc.personnelCount += jaladorTotals.personnelCount;
+        acc.absentCount += jaladorTotals.absentCount;
         return acc;
       },
       { personnelCount: 0, absentCount: 0 }
@@ -146,22 +152,7 @@ export default function DailyEntryPage() {
     setActions({ title: "Registro de Asistencia" });
     return () => setActions({});
   }, [setActions]);
-  
-  useEffect(() => {
-     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-        if (currentUser && db) {
-            const userDocRef = doc(db, 'usuarios', currentUser.email!);
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-                setUserProfile(userDocSnap.data() as { nombre: string });
-            } else {
-                setUserProfile({ nombre: currentUser.email || 'Usuario' });
-            }
-        }
-    });
-    return () => unsubscribe();
-  }, [toast]);
-  
+
   useEffect(() => {
     if (codeValue) {
       const matchedLabor = labors.find(l => l.codigo === codeValue);
@@ -178,23 +169,56 @@ export default function DailyEntryPage() {
   }, [codeValue, labors, form]);
 
   useEffect(() => {
+    const handleAutoSubmitForCode902 = async () => {
+        if (codeValue === '902' && loteIdValue && profile && user) {
+            
+            const currentUserAssistant = masterAssistants.find(a => a.id === profile.dni);
+
+            if (!currentUserAssistant) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Tu usuario no está registrado como asistente. No se puede autocompletar.' });
+                return;
+            }
+
+            const autoAssistant: Assistant = {
+                id: currentUserAssistant.id,
+                assistantDni: currentUserAssistant.id,
+                assistantName: currentUserAssistant.assistantName,
+                jaladores: [{
+                    id: crypto.randomUUID(),
+                    jaladorId: 'empresa',
+                    jaladorAlias: 'Empresa',
+                    personnelCount: 1,
+                    absentCount: 0
+                }],
+            };
+
+            const formData: AttendanceFormValues = {
+                date: form.getValues('date'),
+                lote: form.getValues('lote'),
+                code: '902',
+                labor: labors.find(l => l.codigo === '902')?.descripcion || 'ASISTENCIA',
+                assistants: [autoAssistant]
+            };
+            
+            await onSubmit(formData, true);
+        }
+    };
+    handleAutoSubmitForCode902();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codeValue, loteIdValue, profile, user]);
+
+  useEffect(() => {
     form.setValue('assistants', assistants, { shouldValidate: true });
   }, [assistants, form]);
 
-  const handleAddAssistant = (newAssistant: Omit<Assistant, 'id'>) => {
+  const handleAddAssistant = (newAssistant: Assistant) => {
     if (!selectedLoteData || !laborValue) return;
-
-    // Ensure numeric values to prevent NaN issues
-    const personnelCount = Number(newAssistant.personnelCount) || 0;
-    const absentCount = Number(newAssistant.absentCount) || 0;
-
+    
     setAssistants((prev) => [
       ...prev,
       { 
         ...newAssistant, 
         id: new Date().toISOString() + Math.random(),
-        personnelCount,
-        absentCount
       },
     ]);
   };
@@ -203,30 +227,31 @@ export default function DailyEntryPage() {
     setAssistants((prev) => prev.filter((a) => a.id !== id));
   };
   
-  async function onSubmit(data: AttendanceFormValues) {
+  async function onSubmit(data: AttendanceFormValues, isAutoSubmit = false) {
     setIsSubmitting(true);
     if (!db || !auth?.currentUser) {
         toast({ variant: 'destructive', title: 'Error', description: 'No estás autenticado o no hay conexión.' });
         setIsSubmitting(false);
         return;
     }
-    if (assistants.length === 0) {
+    
+    const assistantsToSave = isAutoSubmit ? data.assistants : assistants;
+    
+    if (assistantsToSave.length === 0) {
         toast({ variant: 'destructive', title: 'Lista Vacía', description: 'Añade al menos un asistente a la lista antes de guardar.' });
         setIsSubmitting(false);
         return;
     }
 
     const attendanceCollectionRef = collection(db, 'asistencia');
-    let successfulSaves = 0;
-    const failedSaves: string[] = [];
-
+    
     const loteMasterData = lotes.find(l => l.id === data.lote);
     if (!loteMasterData) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se encontró el lote maestro seleccionado.' });
         setIsSubmitting(false);
         return;
     }
-    const laborMasterData = labors.find(l => l.descripcion === data.labor);
+    const laborMasterData = labors.find(l => l.descripcion === data.labor || l.codigo === data.code);
     const laborCode = laborMasterData?.codigo || '';
 
     const docId = `${format(data.date, 'yyyy-MM-dd')}-${loteMasterData.lote}-${data.labor}`.replace(/\s+/g, '-');
@@ -235,24 +260,27 @@ export default function DailyEntryPage() {
     try {
         await runTransaction(db, async (transaction) => {
             const docSnap = await transaction.get(docRef);
+            
+            const assistantsPayload = assistantsToSave.map(a => ({
+                id: a.id,
+                assistantDni: a.assistantDni,
+                assistantName: a.assistantName,
+                jaladores: a.jaladores,
+            }));
 
             if (docSnap.exists()) {
-                // Document exists, update it by adding new assistants
                 const existingData = docSnap.data() as AttendanceRecord;
                 const existingAssistants = existingData.assistants || [];
                 
-                const newAssistantsToAdd = assistants.filter(newA => 
-                    !existingAssistants.some(existA => existA.assistantDni === newA.assistantDni)
-                );
-                
-                if (newAssistantsToAdd.length === 0) {
-                    failedSaves.push(`Todos los asistentes para este lote y labor ya fueron registrados hoy.`);
-                    return; // Exit transaction
-                }
+                const combinedAssistants = [...existingAssistants];
+                assistantsPayload.forEach(newAssistant => {
+                    if (!combinedAssistants.some(ea => ea.assistantDni === newAssistant.assistantDni)) {
+                        combinedAssistants.push(newAssistant);
+                    }
+                });
 
-                const combinedAssistants = [...existingAssistants, ...newAssistantsToAdd];
                 const newTotals = combinedAssistants.reduce((acc, a) => {
-                    const assistantTotals = a.jaladores.reduce((jAcc, j) => {
+                    const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
                         jAcc.personnelCount += j.personnelCount;
                         jAcc.absentCount += j.absentCount;
                         return jAcc;
@@ -268,7 +296,17 @@ export default function DailyEntryPage() {
                 });
 
             } else {
-                // Document doesn't exist, create it
+                const recordTotals = assistantsPayload.reduce((acc, a) => {
+                    const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
+                        jAcc.personnelCount += j.personnelCount;
+                        jAcc.absentCount += j.absentCount;
+                        return jAcc;
+                    }, {personnelCount: 0, absentCount: 0});
+                    acc.personnelCount += assistantTotals.personnelCount;
+                    acc.absentCount += assistantTotals.absentCount;
+                    return acc;
+                }, { personnelCount: 0, absentCount: 0 });
+
                 const record: Omit<AttendanceRecord, 'id'> = {
                     date: format(data.date, 'yyyy-MM-dd'),
                     lote: data.lote,
@@ -278,39 +316,19 @@ export default function DailyEntryPage() {
                     campana: loteMasterData.campana,
                     code: laborCode,
                     labor: data.labor || '',
-                    assistants: assistants,
-                    totals: totals,
+                    assistants: assistantsPayload,
+                    totals: recordTotals,
                     registeredBy: auth.currentUser?.email,
                 };
                 transaction.set(docRef, record);
             }
         });
         
-        if (failedSaves.length === 0) {
-            successfulSaves++;
-        }
-
-    } catch (error: any) {
-         console.error("Error en transacción de guardado:", error);
-         failedSaves.push(error.message || `No se pudo guardar el registro.`);
-    }
-
-    if (successfulSaves > 0) {
-         toast({
+        toast({
             title: "Operación Completada",
             description: `Registro guardado/actualizado con éxito.`,
         });
-    }
 
-    if (failedSaves.length > 0) {
-        toast({
-            variant: "destructive",
-            title: "Algunos Registros Fallaron",
-            description: failedSaves.join(' '),
-        });
-    }
-
-    if (successfulSaves > 0) {
         form.reset({
           date: new Date(),
           lote: '',
@@ -319,9 +337,13 @@ export default function DailyEntryPage() {
           assistants: [],
         });
         setAssistants([]);
+
+    } catch (error: any) {
+         console.error("Error en transacción de guardado:", error);
+         toast({ variant: 'destructive', title: "Error", description: error.message || `No se pudo guardar el registro.` });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   }
 
   const canAddAssistant = !!loteIdValue && !!laborValue;
@@ -330,7 +352,7 @@ export default function DailyEntryPage() {
   return (
     <div className="p-4 space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
           <FormField
             control={form.control}
             name="date"
