@@ -61,7 +61,6 @@ export default function AddAssistantDialog({
   const [selectedAssistantDni, setSelectedAssistantDni] = useState<string>('');
   const [jaladoresList, setJaladoresList] = useState<JaladorAttendance[]>([]);
   const { toast } = useToast();
-  const [isCreatingJalador, setIsCreatingJalador] = useState(false);
 
   const jaladorForm = useForm<AddJaladorFormValues>({
     resolver: zodResolver(addJaladorSchema),
@@ -125,7 +124,6 @@ export default function AddAssistantDialog({
   }, [assistantsMaster, currentAssistantsDnis]);
   
   const handleCreateJalador = async (alias: string) => {
-    setIsCreatingJalador(true);
     const result = await addJalador({ alias });
     if(result.success) {
         toast({ title: 'Éxito', description: `Jalador "${alias}" creado.` });
@@ -136,7 +134,6 @@ export default function AddAssistantDialog({
     } else {
         toast({ title: 'Error', description: result.message, variant: 'destructive' });
     }
-    setIsCreatingJalador(false);
   };
   
   return (
@@ -180,7 +177,7 @@ export default function AddAssistantDialog({
                                       value={field.value}
                                       onChange={field.onChange}
                                       onCreate={handleCreateJalador}
-                                      disabled={loading || isCreatingJalador}
+                                      disabled={loading}
                                   />
                                   <FormMessage />
                               </FormItem>
@@ -280,7 +277,18 @@ function JaladorCombobox({
         <Command shouldFilter={false}>
           <CommandInput placeholder="Buscar o crear jalador..." value={search} onValueChange={setSearch} />
           <CommandList>
-            <CommandEmpty>No se encontró el jalador.</CommandEmpty>
+            <CommandEmpty>
+                {showCreateOption ? (
+                    <div className="p-1">
+                        <Button variant="ghost" className="w-full justify-start" onClick={handleCreate}>
+                            {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
+                            Crear "{search}"
+                        </Button>
+                    </div>
+                ) : (
+                    "No se encontró el jalador."
+                )}
+            </CommandEmpty>
             <CommandGroup>
               {filteredJaladores.map(jalador => (
                 <CommandItem
