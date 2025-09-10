@@ -150,7 +150,7 @@ export default function AddAssistantDialog({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <p className="text-sm font-medium">Paso 1: Seleccionar Asistente/Encargado</p>
+            <Label>Paso 1: Seleccionar Asistente/Encargado</Label>
             <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
               <SelectTrigger>
                   <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
@@ -167,16 +167,16 @@ export default function AddAssistantDialog({
 
           {selectedAssistantDni && (
             <div className="space-y-4 pt-4 border-t">
-              <p className="text-sm font-medium">Paso 2: Agregar Jaladores y Personal</p>
+              <Label>Paso 2: Agregar Jaladores y Personal</Label>
               
               <Form {...jaladorForm}>
-                <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)} className="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2">
-                  <FormField
+                <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)} className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Jalador</Label>
+                    <FormField
                       control={jaladorForm.control}
                       name="jaladorId"
                       render={({ field }) => (
-                      <FormItem>
-                          <Label>Jalador</Label>
                           <JaladorCombobox
                               jaladores={availableJaladores}
                               value={field.value}
@@ -184,13 +184,23 @@ export default function AddAssistantDialog({
                               onCreate={handleCreateJalador}
                               disabled={loading}
                           />
-                          <FormMessage />
-                      </FormItem>
                       )}
-                  />
-                  <FormField control={jaladorForm.control} name="personnelCount" render={({ field }) => (<FormItem><Label>Personal</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                  <FormField control={jaladorForm.control} name="absentCount" render={({ field }) => (<FormItem><Label>Faltos</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                  <Button type="submit" size="icon"><PlusCircle className="h-4 w-4"/></Button>
+                    />
+                     <FormMessage>{jaladorForm.formState.errors.jaladorId?.message}</FormMessage>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Personal</Label>
+                    <FormField control={jaladorForm.control} name="personnelCount" render={({ field }) => (<FormControl><Input type="number" {...field} /></FormControl>)}/>
+                     <FormMessage className="text-xs">{jaladorForm.formState.errors.personnelCount?.message}</FormMessage>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Faltos</Label>
+                    <FormField control={jaladorForm.control} name="absentCount" render={({ field }) => (<FormControl><Input type="number" {...field} /></FormControl>)}/>
+                     <FormMessage className="text-xs">{jaladorForm.formState.errors.absentCount?.message}</FormMessage>
+                  </div>
+                  <div className="self-end">
+                    <Button type="submit" size="icon"><PlusCircle className="h-4 w-4"/></Button>
+                  </div>
                 </form>
               </Form>
                  
@@ -284,7 +294,7 @@ function JaladorCombobox({
             <CommandEmpty>
                 {showCreateOption ? (
                     <div className="p-1">
-                        <Button variant="ghost" className="w-full justify-start" onClick={handleCreate}>
+                        <Button variant="ghost" className="w-full justify-start" onClick={handleCreate} disabled={isCreating}>
                             {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
                             Crear "{search}"
                         </Button>
