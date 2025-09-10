@@ -50,8 +50,8 @@ export default function AddAssistantDialog({
   const [jaladorSearch, setJaladorSearch] = useState('');
   const [showJaladorResults, setShowJaladorResults] = useState(false);
   
-  const [personnelCount, setPersonnelCount] = useState<number | string>(0);
-  const [absentCount, setAbsentCount] = useState<number | string>(0);
+  const [personnelCount, setPersonnelCount] = useState<string>('0');
+  const [absentCount, setAbsentCount] = useState<string>('0');
   const [isCreatingJalador, setIsCreatingJalador] = useState(false);
 
 
@@ -97,8 +97,8 @@ export default function AddAssistantDialog({
       toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un jalador.' });
       return;
     }
-    const numPersonnel = Number(personnelCount);
-    const numAbsent = Number(absentCount);
+    const numPersonnel = parseInt(personnelCount, 10);
+    const numAbsent = parseInt(absentCount, 10);
 
     if (isNaN(numPersonnel) || numPersonnel < 0 || isNaN(numAbsent) || numAbsent < 0) {
       toast({ variant: 'destructive', title: 'Error de validación', description: 'Las cantidades deben ser números válidos y no negativos.' });
@@ -122,8 +122,8 @@ export default function AddAssistantDialog({
     // Reset inputs
     setSelectedJalador(null);
     setJaladorSearch('');
-    setPersonnelCount(0);
-    setAbsentCount(0);
+    setPersonnelCount('0');
+    setAbsentCount('0');
   };
 
   const handleRemoveJalador = (id: string) => {
@@ -162,8 +162,8 @@ export default function AddAssistantDialog({
     setJaladoresList([]);
     setSelectedJalador(null);
     setJaladorSearch('');
-    setPersonnelCount(0);
-    setAbsentCount(0);
+    setPersonnelCount('0');
+    setAbsentCount('0');
     setShowJaladorResults(false);
     setIsOpen(false);
   };
@@ -281,4 +281,3 @@ export default function AddAssistantDialog({
     </Dialog>
   );
 }
-
