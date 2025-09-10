@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -45,7 +46,6 @@ export default function AddAssistantDialog({
   const [selectedAssistantDni, setSelectedAssistantDni] = useState<string>('');
   const [jaladoresList, setJaladoresList] = useState<JaladorAttendance[]>([]);
   
-  // State for the new, simplified jalador selection
   const [selectedJalador, setSelectedJalador] = useState<Jalador | null>(null);
   const [jaladorSearch, setJaladorSearch] = useState('');
   const [showJaladorResults, setShowJaladorResults] = useState(false);
@@ -84,7 +84,7 @@ export default function AddAssistantDialog({
       if(result.success && result.id) {
           toast({ title: 'Éxito', description: `Jalador "${newAlias}" creado.` });
           await refreshData(); // Refresh master data to include the new jalador
-          const newJalador: Jalador = { id: result.id, alias: newAlias };
+          const newJalador: Jalador = { id: result.id, alias: newAlias, dni: '', celular: '', nombre: '' };
           handleSelectJalador(newJalador);
       } else {
           toast({ title: 'Error', description: result.message, variant: 'destructive' });
@@ -101,7 +101,7 @@ export default function AddAssistantDialog({
     const numAbsent = Number(absentCount);
 
     if (isNaN(numPersonnel) || numPersonnel < 0 || isNaN(numAbsent) || numAbsent < 0) {
-      toast({ variant: 'destructive', title: 'Error de validación', description: 'Las cantidades no pueden ser negativas.' });
+      toast({ variant: 'destructive', title: 'Error de validación', description: 'Las cantidades deben ser números válidos y no negativos.' });
       return;
     }
      if (numPersonnel < numAbsent) {
@@ -143,10 +143,15 @@ export default function AddAssistantDialog({
     const selectedAssistant = assistantsMaster.find(a => a.id === selectedAssistantDni);
     if (!selectedAssistant) return;
 
+    const totalPersonnel = jaladoresList.reduce((sum, j) => sum + j.personnelCount, 0);
+    const totalAbsent = jaladoresList.reduce((sum, j) => sum + j.absentCount, 0);
+
     onAddAssistant({
       assistantDni: selectedAssistant.id,
       assistantName: selectedAssistant.assistantName,
       jaladores: jaladoresList,
+      personnelCount: totalPersonnel,
+      absentCount: totalAbsent,
     });
 
     handleClose();
@@ -276,3 +281,4 @@ export default function AddAssistantDialog({
     </Dialog>
   );
 }
+
