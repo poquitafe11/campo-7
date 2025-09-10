@@ -173,31 +173,47 @@ export default function AddAssistantDialog({
                 <form onSubmit={jaladorForm.handleSubmit(handleAddJalador)} className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
                   <div className="space-y-1">
                     <Label className="text-xs">Jalador</Label>
-                    <FormField
-                      control={jaladorForm.control}
-                      name="jaladorId"
-                      render={({ field }) => (
-                          <JaladorCombobox
-                              jaladores={availableJaladores}
-                              value={field.value}
-                              onChange={field.onChange}
-                              onCreate={handleCreateJalador}
-                              disabled={loading}
-                          />
-                      )}
+                     <FormField
+                        control={jaladorForm.control}
+                        name="jaladorId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <JaladorCombobox
+                                        jaladores={availableJaladores}
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        onCreate={handleCreateJalador}
+                                        disabled={loading}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                     <FormMessage>{jaladorForm.formState.errors.jaladorId?.message}</FormMessage>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Personal</Label>
-                    <FormField control={jaladorForm.control} name="personnelCount" render={({ field }) => (<FormControl><Input type="number" {...field} /></FormControl>)}/>
-                     <FormMessage className="text-xs">{jaladorForm.formState.errors.personnelCount?.message}</FormMessage>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Faltos</Label>
-                    <FormField control={jaladorForm.control} name="absentCount" render={({ field }) => (<FormControl><Input type="number" {...field} /></FormControl>)}/>
-                     <FormMessage className="text-xs">{jaladorForm.formState.errors.absentCount?.message}</FormMessage>
-                  </div>
+                  <FormField
+                    control={jaladorForm.control}
+                    name="personnelCount"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <Label className="text-xs">Personal</Label>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={jaladorForm.control}
+                    name="absentCount"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <Label className="text-xs">Faltos</Label>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
                   <div className="self-end">
                     <Button type="submit" size="icon"><PlusCircle className="h-4 w-4"/></Button>
                   </div>
