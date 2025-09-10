@@ -41,7 +41,7 @@ interface EditAssistantDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   editingData: { record: AttendanceRecord; assistant: Assistant } | null;
-  onSave: (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id'>) => void;
+  onSave: (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id' | 'jaladores'>) => void;
 }
 
 export default function EditAssistantDialog({ isOpen, setIsOpen, editingData, onSave }: EditAssistantDialogProps) {
@@ -58,8 +58,8 @@ export default function EditAssistantDialog({ isOpen, setIsOpen, editingData, on
     if (editingData) {
       form.reset({
         assistantName: editingData.assistant.assistantName,
-        personnelCount: editingData.assistant.personnelCount,
-        absentCount: editingData.assistant.absentCount,
+        personnelCount: editingData.assistant.personnelCount || 0,
+        absentCount: editingData.assistant.absentCount || 0,
       });
     }
   }, [editingData, form]);
