@@ -21,7 +21,7 @@ import {
 import { useMasterData } from '@/context/MasterDataContext';
 import { PlusCircle, Trash2, ChevronsUpDown, Check, Loader2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Assistant, Jalador, JaladorAttendance } from '@/lib/types';
+import { type Assistant, type Jalador, type JaladorAttendance } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { cn } from '@/lib/utils';
@@ -109,8 +109,6 @@ export default function AddAssistantDialog({
     onAddAssistant({
       assistantDni: selectedAssistant.id,
       assistantName: selectedAssistant.assistantName,
-      personnelCount: totalPersonnel,
-      absentCount: totalAbsent,
       jaladores: jaladoresList,
     });
 
@@ -152,9 +150,9 @@ export default function AddAssistantDialog({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="assistant-select">Paso 1: Seleccionar Asistente/Encargado</Label>
+            <Label>Paso 1: Seleccionar Asistente/Encargado</Label>
             <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
-              <SelectTrigger id="assistant-select">
+              <SelectTrigger>
                 <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
               </SelectTrigger>
               <SelectContent>
