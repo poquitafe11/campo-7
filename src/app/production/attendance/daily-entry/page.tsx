@@ -70,16 +70,17 @@ const assistantInFormSchema = z.object({
   id: z.string(),
   assistantDni: z.string(),
   assistantName: z.string(),
-  personnelCount: z.number(),
-  absentCount: z.number(),
   jaladores: z.array(z.object({
     id: z.string(),
     jaladorId: z.string(),
     jaladorAlias: z.string(),
     personnelCount: z.number(),
     absentCount: z.number(),
-  }))
+  })),
+  personnelCount: z.number().optional(), // Make optional as it will be derived from jaladores
+  absentCount: z.number().optional(), // Make optional as it will be derived from jaladores
 });
+
 
 const attendanceFormSchema = z.object({
   date: z.date({
@@ -136,8 +137,8 @@ export default function DailyEntryPage() {
     return assistants.reduce(
       (acc, assistant) => {
         const jaladorTotals = assistant.jaladores.reduce((jAcc, j) => {
-            jAcc.personnelCount += j.personnelCount;
-            jAcc.absentCount += j.absentCount;
+            jAcc.personnelCount += Number(j.personnelCount) || 0;
+            jAcc.absentCount += Number(j.absentCount) || 0;
             return jAcc;
         }, { personnelCount: 0, absentCount: 0 });
         acc.personnelCount += jaladorTotals.personnelCount;
@@ -172,17 +173,11 @@ export default function DailyEntryPage() {
     const handleAutoSubmitForCode902 = async () => {
         if (codeValue === '902' && loteIdValue && profile && user) {
             
-            const currentUserAssistant = masterAssistants.find(a => a.id === profile.dni);
-
-            if (!currentUserAssistant) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Tu usuario no está registrado como asistente. No se puede autocompletar.' });
-                return;
-            }
-
+            // Use current logged-in user's data directly
             const autoAssistant: Assistant = {
-                id: currentUserAssistant.id,
-                assistantDni: currentUserAssistant.id,
-                assistantName: currentUserAssistant.assistantName,
+                id: profile.dni,
+                assistantDni: profile.dni,
+                assistantName: profile.nombre,
                 jaladores: [{
                     id: crypto.randomUUID(),
                     jaladorId: 'empresa',
@@ -211,17 +206,23 @@ export default function DailyEntryPage() {
     form.setValue('assistants', assistants, { shouldValidate: true });
   }, [assistants, form]);
 
-  const handleAddAssistant = (newAssistant: Assistant) => {
+  const handleAddAssistant = (newAssistant: Omit<Assistant, 'id'>) => {
     if (!selectedLoteData || !laborValue) return;
+
+    const personnelCount = newAssistant.jaladores.reduce((sum, j) => sum + (Number(j.personnelCount) || 0), 0);
+    const absentCount = newAssistant.jaladores.reduce((sum, j) => sum + (Number(j.absentCount) || 0), 0);
     
     setAssistants((prev) => [
       ...prev,
       { 
         ...newAssistant, 
-        id: new Date().toISOString() + Math.random(),
+        id: crypto.randomUUID(),
+        personnelCount,
+        absentCount
       },
     ]);
   };
+
 
   const handleDeleteAssistant = (id: string) => {
     setAssistants((prev) => prev.filter((a) => a.id !== id));
@@ -444,16 +445,16 @@ export default function DailyEntryPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Asistente</TableHead>
-                        <TableHead>Personas</TableHead>
-                        <TableHead>Faltos</TableHead>
+                        <TableHead className="text-center">Personal</TableHead>
+                        <TableHead className="text-center">Faltos</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                         {assistants.map((assistant) => {
                             const assistantTotals = assistant.jaladores.reduce((acc, j) => {
-                                acc.personnelCount += j.personnelCount;
-                                acc.absentCount += j.absentCount;
+                                acc.personnelCount += Number(j.personnelCount) || 0;
+                                acc.absentCount += Number(j.absentCount) || 0;
                                 return acc;
                             }, { personnelCount: 0, absentCount: 0 });
 
@@ -462,13 +463,17 @@ export default function DailyEntryPage() {
                                     <TableRow>
                                         <TableCell colSpan={4} className="p-0">
                                             <div className="flex items-center w-full">
-                                                <CollapsibleTrigger className="flex flex-1 items-center gap-2 w-full text-left p-4">
-                                                    <span className="font-medium truncate">{assistant.assistantName}</span>
-                                                    <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                                                <CollapsibleTrigger asChild>
+                                                  <div className="flex-1 p-4 cursor-pointer hover:bg-muted/50">
+                                                    <div className="flex items-center gap-2 w-full text-left">
+                                                      <span className="font-medium truncate">{assistant.assistantName}</span>
+                                                      <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                                                    </div>
+                                                  </div>
                                                 </CollapsibleTrigger>
-                                                <div className="px-4 text-center">{assistantTotals.personnelCount}</div>
-                                                <div className="px-4 text-center">{assistantTotals.absentCount}</div>
-                                                <div className="px-4">
+                                                <div className="w-24 text-center">{assistantTotals.personnelCount}</div>
+                                                <div className="w-24 text-center">{assistantTotals.absentCount}</div>
+                                                <div className="w-24 text-right pr-4">
                                                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteAssistant(assistant.id)}>
                                                         <Trash2 className="h-4 w-4" /><span className="sr-only">Eliminar</span>
                                                     </Button>
@@ -477,10 +482,10 @@ export default function DailyEntryPage() {
                                             <CollapsibleContent>
                                                 <div className="bg-muted/50 p-2 border-t">
                                                     <Table>
-                                                        <TableHeader><TableRow><TableHead className="h-8">Jalador</TableHead><TableHead className="h-8">Personal</TableHead><TableHead className="h-8">Faltos</TableHead></TableRow></TableHeader>
+                                                        <TableHeader><TableRow><TableHead className="h-8">Jalador</TableHead><TableHead className="h-8 text-center">Personal</TableHead><TableHead className="h-8 text-center">Faltos</TableHead></TableRow></TableHeader>
                                                         <TableBody>
                                                             {assistant.jaladores.map(j => (
-                                                                <TableRow key={j.id}><TableCell>{j.jaladorAlias}</TableCell><TableCell>{j.personnelCount}</TableCell><TableCell>{j.absentCount}</TableCell></TableRow>
+                                                                <TableRow key={j.id}><TableCell>{j.jaladorAlias}</TableCell><TableCell className="text-center">{j.personnelCount}</TableCell><TableCell className="text-center">{j.absentCount}</TableCell></TableRow>
                                                             ))}
                                                         </TableBody>
                                                     </Table>
@@ -495,8 +500,8 @@ export default function DailyEntryPage() {
                     <TableFooter>
                       <TableRow>
                         <TableCell className="text-right font-bold">Total</TableCell>
-                        <TableCell className="font-bold">{totals.personnelCount}</TableCell>
-                        <TableCell className="font-bold">{totals.absentCount}</TableCell>
+                        <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
+                        <TableCell className="font-bold text-center">{totals.absentCount}</TableCell>
                         <TableCell></TableCell>
                       </TableRow>
                     </TableFooter>
