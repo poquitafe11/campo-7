@@ -27,8 +27,6 @@ const ASISTENTE_COLUMN = 'ASISTENTE';
 
 export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }: ResumenTablasProps) {
     const { asistentes: assistantsMaster } = useMasterData();
-    const [filters, setFilters] = useState({ campaign: '', lote: '' });
-    const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '' });
 
     const recordsForSelectedDate = useMemo(() => {
         if (!selectedDate) return [];
@@ -40,29 +38,10 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
     }, [allRecords, selectedDate]);
     
-    const filterOptions = useMemo(() => {
-        const recordsToUse = recordsForSelectedDate;
-        const campaigns = [...new Set(recordsToUse.map(r => r.campana).filter(Boolean))].sort();
-        const lotes = [...new Set(recordsToUse.map(r => r.lotName).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
-        return { campaigns, lotes };
-    }, [recordsForSelectedDate]);
-    
-    const handleApplyFilters = () => {
-        setFilters(popoverFilters);
-    };
-
-    const handleClearFilters = () => {
-        setPopoverFilters({ campaign: '', lote: '' });
-        setFilters({ campaign: '', lote: '' });
-    };
-    
     const resumenPorLote = useMemo(() => {
         const data: { [key: string]: any } = {};
         
         recordsForSelectedDate.forEach(record => {
-            const campanaMatch = !filters.campaign || record.campana === filters.campaign;
-            if (!campanaMatch) return;
-            
             const rowKey = `${record.lotName}-${record.labor}`;
             if (!data[rowKey]) {
                 const loteData = allLotes.find(l => l.lote === record.lotName);
@@ -81,7 +60,10 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
             (record.assistants || []).forEach(assistant => {
                 let assignedToJalador = false;
-                const assistantPersonnelCount = (assistant.jaladores || []).reduce((sum, j) => sum + (j.personnelCount || 0), 0);
+                
+                const assistantPersonnelCount = (assistant.jaladores && assistant.jaladores.length > 0)
+                  ? assistant.jaladores.reduce((sum, j) => sum + (j.personnelCount || 0), 0)
+                  : (assistant.personnelCount || 0);
 
                 if (assistant.jaladores && assistant.jaladores.length > 0) {
                      assistant.jaladores.forEach(jalador => {
@@ -123,16 +105,12 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
         return { data: sortedData, columnTotals };
 
-    }, [recordsForSelectedDate, allLotes, filters, selectedDate, assistantsMaster]);
+    }, [recordsForSelectedDate, allLotes, selectedDate, assistantsMaster]);
     
      const resumenPorLabor = useMemo(() => {
         const data: { [key: string]: any } = {};
 
         recordsForSelectedDate.forEach(record => {
-             const campanaMatch = !filters.campaign || record.campana === filters.campaign;
-             const loteMatch = !filters.lote || record.lotName === filters.lote;
-             if (!campanaMatch || !loteMatch) return;
-
             const rowKey = record.labor;
             if (!data[rowKey]) {
                 data[rowKey] = {
@@ -146,7 +124,9 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
             (record.assistants || []).forEach(assistant => {
                  let assignedToJalador = false;
-                 const assistantPersonnelCount = (assistant.jaladores || []).reduce((sum, j) => sum + (j.personnelCount || 0), 0);
+                 const assistantPersonnelCount = (assistant.jaladores && assistant.jaladores.length > 0)
+                  ? assistant.jaladores.reduce((sum, j) => sum + (j.personnelCount || 0), 0)
+                  : (assistant.personnelCount || 0);
 
                 if (assistant.jaladores && assistant.jaladores.length > 0) {
                      assistant.jaladores.forEach(jalador => {
@@ -187,7 +167,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
         return { data: sortedData, columnTotals };
 
-    }, [recordsForSelectedDate, assistantsMaster, filters]);
+    }, [recordsForSelectedDate, assistantsMaster]);
 
     const verticalHeaderStyle: React.CSSProperties = {
         writingMode: 'vertical-rl',
@@ -202,37 +182,13 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
     return (
         <Card className="mt-6">
             <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>Resúmenes Adicionales</CardTitle>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline"><Filter className="mr-2 h-4 w-4" />Filtros</Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80" align="end">
-                             <div className="grid gap-4">
-                               <div className="space-y-2">
-                                  <h4 className="font-medium leading-none">Filtros (Tablas Adicionales)</h4>
-                               </div>
-                               <div className="grid gap-2">
-                                    <Label>Campaña</Label>
-                                    <Select value={popoverFilters.campaign} onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v }))}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                                    <Label>Lote</Label>
-                                    <Select value={popoverFilters.lote} onValueChange={(v) => setPopoverFilters(p => ({ ...p, lote: v === 'all' ? '' : v }))}><SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
-                               </div>
-                               <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
-                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
-                               </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                </div>
+                <CardTitle>Resúmenes Adicionales</CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
                  <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Lote</h3>
-                     <div className="overflow-x-auto border rounded-lg bg-white p-1">
-                        <table className="text-xs w-full">
+                     <div className="border rounded-lg bg-white p-1">
+                        <table className="text-xs w-full table-auto">
                            <thead>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={4}></th>
@@ -274,8 +230,8 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 </div>
                  <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Labor</h3>
-                    <div className="overflow-x-auto border rounded-lg bg-white p-1">
-                       <table className="text-xs w-full">
+                    <div className="border rounded-lg bg-white p-1">
+                       <table className="text-xs w-full table-auto">
                            <thead>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={2}></th>
