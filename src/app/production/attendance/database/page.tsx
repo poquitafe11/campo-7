@@ -30,6 +30,7 @@ interface JaladorGroup {
 interface AssistantGroup {
     id: string;
     assistantName: string;
+    assistantDni: string;
     jaladores: JaladorGroup;
     totalPersonnel: number;
     totalAbsent: number;
@@ -118,11 +119,12 @@ export default function AttendanceDatabasePage() {
 
         const loteGroup = groups[dateKey][laborKey][loteKey];
         (record.assistants || []).forEach(assistant => {
-            let existingAssistant = loteGroup.assistants.find(a => a.assistantName === assistant.assistantName);
+            let existingAssistant = loteGroup.assistants.find(a => a.assistantDni === assistant.assistantDni);
             if (!existingAssistant) {
                 existingAssistant = {
                     id: assistant.id,
                     assistantName: assistant.assistantName,
+                    assistantDni: assistant.assistantDni,
                     jaladores: {},
                     totalPersonnel: 0,
                     totalAbsent: 0,
@@ -130,16 +132,33 @@ export default function AttendanceDatabasePage() {
                 loteGroup.assistants.push(existingAssistant);
             }
             
-            (assistant.jaladores || []).forEach(jalador => {
-                if(!existingAssistant!.jaladores[jalador.jaladorAlias]) {
-                    existingAssistant!.jaladores[jalador.jaladorAlias] = [];
+            const jaladores = assistant.jaladores || [];
+            
+            if (jaladores.length > 0) {
+                 jaladores.forEach(jalador => {
+                    if(!existingAssistant!.jaladores[jalador.jaladorAlias]) {
+                        existingAssistant!.jaladores[jalador.jaladorAlias] = [];
+                    }
+                    existingAssistant!.jaladores[jalador.jaladorAlias].push(jalador);
+                });
+            } else {
+                // Handle old records without jaladores array
+                const placeholderJalador = {
+                    id: `empresa-${assistant.id}`,
+                    jaladorId: 'empresa',
+                    jaladorAlias: 'Jalador Empresa',
+                    personnelCount: assistant.personnelCount || 0,
+                    absentCount: assistant.absentCount || 0,
+                };
+                if (!existingAssistant.jaladores['Jalador Empresa']) {
+                    existingAssistant.jaladores['Jalador Empresa'] = [];
                 }
-                existingAssistant!.jaladores[jalador.jaladorAlias].push(jalador);
-            });
+                existingAssistant.jaladores['Jalador Empresa'].push(placeholderJalador);
+            }
 
-            const assistantTotals = (assistant.jaladores || []).reduce((acc, j) => {
-              acc.personnelCount += j.personnelCount;
-              acc.absentCount += j.absentCount;
+            const assistantTotals = (assistant.jaladores || [ {personnelCount: assistant.personnelCount || 0, absentCount: assistant.absentCount || 0 }]).reduce((acc, j) => {
+              acc.personnelCount += j.personnelCount || 0;
+              acc.absentCount += j.absentCount || 0;
               return acc;
             }, { personnelCount: 0, absentCount: 0 });
 
@@ -158,7 +177,7 @@ export default function AttendanceDatabasePage() {
     }
   };
   
-  const handleSaveAssistantUpdate = async (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id' | 'assistantDni'>) => {
+  const handleSaveAssistantUpdate = async (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id'>) => {
     startTransition(async () => {
         const recordRef = doc(db, 'asistencia', recordId);
         const recordToUpdate = records.find(r => r.id === recordId);
@@ -326,8 +345,8 @@ export default function AttendanceDatabasePage() {
                                                                                                     </TableHeader>
                                                                                                     <TableBody>
                                                                                                         {Object.entries(assistant.jaladores).map(([jaladorAlias, jaladorRecords]) => {
-                                                                                                            const totalP = jaladorRecords.reduce((s, j) => s + j.personnelCount, 0);
-                                                                                                            const totalA = jaladorRecords.reduce((s, j) => s + j.absentCount, 0);
+                                                                                                            const totalP = jaladorRecords.reduce((s, j) => s + (j.personnelCount || 0), 0);
+                                                                                                            const totalA = jaladorRecords.reduce((s, j) => s + (j.absentCount || 0), 0);
                                                                                                             return (
                                                                                                                 <TableRow key={jaladorAlias}>
                                                                                                                     <TableCell>{jaladorAlias}</TableCell>
@@ -374,3 +393,4 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
+
