@@ -18,12 +18,8 @@ interface ResumenTablasProps {
     selectedDate: Date;
 }
 
-const JALADOR_COLUMNS = [
-    'EMPRESA', 'CASAVILCA', 'CINTHYA', 'HUARCAYA', 'MIRELLA', 'CHATI', 'MARINA', 
-    'DELIA', 'CLERY', 'NOE', 'KARINA', 'ESPERANZA', 'CECILIA', 'ANGELICA', 
-    'PASCUAL', 'YOVANA', 'ANA', 'MARIBEL'
-];
 const ASISTENTE_COLUMN = 'ASISTENTE';
+const EMPRESA_COLUMN = 'EMPRESA';
 
 export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }: ResumenTablasProps) {
     const { asistentes: assistantsMaster } = useMasterData();
@@ -38,6 +34,22 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
     }, [allRecords, selectedDate]);
     
+    const jaladorColumns = useMemo(() => {
+        const jaladores = new Set<string>();
+        recordsForSelectedDate.forEach(record => {
+            (record.assistants || []).forEach(assistant => {
+                (assistant.jaladores || []).forEach(jalador => {
+                    if (jalador.jaladorAlias) {
+                       jaladores.add(jalador.jaladorAlias.toUpperCase());
+                    }
+                });
+            });
+        });
+        const sortedJaladores = Array.from(jaladores).sort();
+        return [EMPRESA_COLUMN, ...sortedJaladores];
+    }, [recordsForSelectedDate]);
+
+
     const resumenPorLote = useMemo(() => {
         const data: { [key: string]: any } = {};
         
@@ -52,7 +64,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                     lote: record.lotName,
                     codLabor: record.code,
                     labor: record.labor,
-                    ...Object.fromEntries(JALADOR_COLUMNS.map(j => [j, 0])),
+                    ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
                     [ASISTENTE_COLUMN]: 0,
                     total: 0,
                 };
@@ -60,7 +72,6 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
             (record.assistants || []).forEach(assistant => {
                 let assignedToJalador = false;
-                
                 const assistantPersonnelCount = (assistant.jaladores && assistant.jaladores.length > 0)
                   ? assistant.jaladores.reduce((sum, j) => sum + (j.personnelCount || 0), 0)
                   : (assistant.personnelCount || 0);
@@ -68,7 +79,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 if (assistant.jaladores && assistant.jaladores.length > 0) {
                      assistant.jaladores.forEach(jalador => {
                         const aliasUpper = jalador.jaladorAlias.toUpperCase();
-                        if (JALADOR_COLUMNS.includes(aliasUpper)) {
+                        if (jaladorColumns.includes(aliasUpper)) {
                             data[rowKey][aliasUpper] += jalador.personnelCount;
                             assignedToJalador = true;
                         }
@@ -76,7 +87,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 }
                 
                 if (!assignedToJalador) {
-                   data[rowKey]['EMPRESA'] += assistantPersonnelCount;
+                   data[rowKey][EMPRESA_COLUMN] += assistantPersonnelCount;
                 }
 
                 const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
@@ -87,25 +98,31 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
         Object.values(data).forEach(row => {
-            row.total = JALADOR_COLUMNS.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
+            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
         });
-
-        const sortedData = Object.values(data).sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}) || (a.codLabor || '').localeCompare(b.codLabor || '', undefined, {numeric: true}));
+        
+        const getSortPriority = (code?: string) => {
+            if (code === '902') return 1;
+            const num = Number(code);
+            return isNaN(num) ? 9999 : num + 2;
+        };
+        const sortedData = Object.values(data).sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}) || getSortPriority(a.codLabor) - getSortPriority(b.codLabor));
+        
         const columnTotals = {
-            ...Object.fromEntries(JALADOR_COLUMNS.map(j => [j, 0])),
+            ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
             [ASISTENTE_COLUMN]: 0,
             total: 0
         };
         sortedData.forEach(row => {
-            JALADOR_COLUMNS.forEach(j => columnTotals[j] += (row[j] || 0));
+            jaladorColumns.forEach(j => columnTotals[j] += (row[j] || 0));
             columnTotals[ASISTENTE_COLUMN] += (row[ASISTENTE_COLUMN] || 0);
             columnTotals.total += (row.total || 0);
         });
 
 
-        return { data: sortedData, columnTotals };
+        return { data: sortedData, columnTotals, dynamicJaladores: jaladorColumns };
 
-    }, [recordsForSelectedDate, allLotes, selectedDate, assistantsMaster]);
+    }, [recordsForSelectedDate, allLotes, selectedDate, assistantsMaster, jaladorColumns]);
     
      const resumenPorLabor = useMemo(() => {
         const data: { [key: string]: any } = {};
@@ -116,7 +133,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 data[rowKey] = {
                     codLabor: record.code,
                     labor: record.labor,
-                     ...Object.fromEntries(JALADOR_COLUMNS.map(j => [j, 0])),
+                     ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
                     [ASISTENTE_COLUMN]: 0,
                     total: 0,
                 };
@@ -131,7 +148,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 if (assistant.jaladores && assistant.jaladores.length > 0) {
                      assistant.jaladores.forEach(jalador => {
                         const aliasUpper = jalador.jaladorAlias.toUpperCase();
-                        if (JALADOR_COLUMNS.includes(aliasUpper)) {
+                        if (jaladorColumns.includes(aliasUpper)) {
                             data[rowKey][aliasUpper] += jalador.personnelCount;
                             assignedToJalador = true;
                         }
@@ -139,7 +156,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 }
                 
                 if (!assignedToJalador) {
-                   data[rowKey]['EMPRESA'] += assistantPersonnelCount;
+                   data[rowKey][EMPRESA_COLUMN] += assistantPersonnelCount;
                 }
                 
                 const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
@@ -150,24 +167,31 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
          Object.values(data).forEach(row => {
-            row.total = JALADOR_COLUMNS.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
+            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
         });
 
-        const sortedData = Object.values(data).sort((a,b) => (a.codLabor || '').localeCompare(b.codLabor || '', undefined, {numeric: true}));
+        const getSortPriority = (code?: string) => {
+            if (code === '902') return 1;
+            const num = Number(code);
+            return isNaN(num) ? 9999 : num + 2;
+        };
+
+        const sortedData = Object.values(data).sort((a, b) => getSortPriority(a.codLabor) - getSortPriority(b.codLabor));
+        
         const columnTotals = {
-            ...Object.fromEntries(JALADOR_COLUMNS.map(j => [j, 0])),
+            ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
             [ASISTENTE_COLUMN]: 0,
             total: 0
         };
         sortedData.forEach(row => {
-            JALADOR_COLUMNS.forEach(j => columnTotals[j] += (row[j] || 0));
+            jaladorColumns.forEach(j => columnTotals[j] += (row[j] || 0));
             columnTotals[ASISTENTE_COLUMN] += (row[ASISTENTE_COLUMN] || 0);
             columnTotals.total += (row.total || 0);
         });
 
-        return { data: sortedData, columnTotals };
+        return { data: sortedData, columnTotals, dynamicJaladores: jaladorColumns };
 
-    }, [recordsForSelectedDate, assistantsMaster]);
+    }, [recordsForSelectedDate, assistantsMaster, jaladorColumns]);
 
     const verticalHeaderStyle: React.CSSProperties = {
         writingMode: 'vertical-rl',
@@ -192,7 +216,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                            <thead>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={4}></th>
-                                    <th className="p-1 border border-black bg-orange-300" colSpan={JALADOR_COLUMNS.length}>JALADORES</th>
+                                    <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLote.dynamicJaladores.length}>JALADORES</th>
                                     <th className="p-1 border border-black bg-red-300" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
                                     <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
                                 </tr>
@@ -201,7 +225,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                                     <th className="p-1 border border-black bg-gray-200">LOTE</th>
                                     <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
                                     <th className="p-1 border border-black bg-gray-200">LABOR</th>
-                                    {JALADOR_COLUMNS.map(j => <th key={j} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
+                                    {resumenPorLote.dynamicJaladores.map(j => <th key={j} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
@@ -211,7 +235,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                                         <td className="p-1 border border-black text-center">{row.lote}</td>
                                         <td className="p-1 border border-black text-center">{row.codLabor}</td>
                                         <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
-                                        {JALADOR_COLUMNS.map(j => <td key={`${idx}-${j}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
+                                        {resumenPorLote.dynamicJaladores.map(j => <td key={`${idx}-${j}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
                                         <td className="p-1 border border-black text-center">{row[ASISTENTE_COLUMN] || ''}</td>
                                         <td className="p-1 border border-black text-center font-bold">{row.total || ''}</td>
                                     </tr>
@@ -220,7 +244,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                             <tfoot>
                                 <tr>
                                     <td colSpan={4} className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
-                                     {JALADOR_COLUMNS.map(j => <td key={`total-${j}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals[j] || ''}</td>)}
+                                     {resumenPorLote.dynamicJaladores.map(j => <td key={`total-${j}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals[j] || ''}</td>)}
                                     <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals[ASISTENTE_COLUMN] || ''}</td>
                                     <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals.total || ''}</td>
                                 </tr>
@@ -235,14 +259,14 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                            <thead>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={2}></th>
-                                    <th className="p-1 border border-black bg-orange-300" colSpan={JALADOR_COLUMNS.length}>JALADORES</th>
+                                    <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLabor.dynamicJaladores.length}>JALADORES</th>
                                     <th className="p-1 border border-black bg-red-300" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
                                     <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
                                 </tr>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
                                     <th className="p-1 border border-black bg-gray-200">LABOR</th>
-                                    {JALADOR_COLUMNS.map(j => <th key={j} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
+                                    {resumenPorLabor.dynamicJaladores.map(j => <th key={j} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
                                 </tr>
                             </thead>
                              <tbody>
@@ -250,7 +274,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                                     <tr key={idx}>
                                         <td className="p-1 border border-black text-center">{row.codLabor}</td>
                                         <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
-                                        {JALADOR_COLUMNS.map(j => <td key={`${idx}-${j}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
+                                        {resumenPorLabor.dynamicJaladores.map(j => <td key={`${idx}-${j}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
                                         <td className="p-1 border border-black text-center">{row[ASISTENTE_COLUMN] || ''}</td>
                                         <td className="p-1 border border-black text-center font-bold">{row.total || ''}</td>
                                     </tr>
@@ -259,7 +283,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                             <tfoot>
                                 <tr>
                                     <td colSpan={2} className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
-                                    {JALADOR_COLUMNS.map(j => <td key={`total-labor-${j}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals[j] || ''}</td>)}
+                                    {resumenPorLabor.dynamicJaladores.map(j => <td key={`total-labor-${j}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals[j] || ''}</td>)}
                                     <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals[ASISTENTE_COLUMN] || ''}</td>
                                     <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals.total || ''}</td>
                                 </tr>
