@@ -3,20 +3,21 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { type AttendanceRecord, type LoteData } from '@/lib/types';
+import { type AttendanceRecord, type LoteData, type Labor } from '@/lib/types';
 import { useMasterData } from '@/context/MasterDataContext';
 import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 
 interface ResumenTablasProps {
     allRecords: AttendanceRecord[];
     allLotes: LoteData[];
+    allLabors: Labor[];
     selectedDate: Date;
 }
 
 const ASISTENTE_COLUMN = 'ASISTENTE';
 const EMPRESA_COLUMN = 'EMPRESA';
 
-export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }: ResumenTablasProps) {
+export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, selectedDate }: ResumenTablasProps) {
     const { asistentes: assistantsMaster } = useMasterData();
 
     const recordsForSelectedDate = useMemo(() => {
@@ -43,7 +44,14 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         
         const uniqueJaladores = Array.from(jaladores).filter(j => j !== EMPRESA_COLUMN).sort();
         
-        return [EMPRESA_COLUMN, ...uniqueJaladores];
+        if (uniqueJaladores.length > 0 || recordsForSelectedDate.some(r => r.totals.personnelCount > 0)) {
+             const finalColumns = [...uniqueJaladores];
+             if (!finalColumns.includes(EMPRESA_COLUMN)) {
+                finalColumns.unshift(EMPRESA_COLUMN);
+             }
+             return finalColumns;
+        }
+        return [];
 
     }, [recordsForSelectedDate]);
 
@@ -53,6 +61,41 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         
         recordsForSelectedDate.forEach(record => {
             (record.assistants || []).forEach(assistant => {
+
+                // Handle old records without jaladores structure
+                if (!assistant.jaladores || assistant.jaladores.length === 0) {
+                     const isAssistantLabor = record.code === '903';
+                     const targetLabor = record.labor;
+                     const rowKey = `${record.lotName}-${targetLabor}`;
+                     
+                     if (!data[rowKey]) {
+                         const loteData = allLotes.find(l => l.lote === record.lotName);
+                         const ddc = loteData?.fechaCianamida ? differenceInDays(selectedDate, loteData.fechaCianamida) : 'N/A';
+                         const targetLaborCode = allLabors.find(l => l.descripcion === targetLabor)?.codigo || record.code;
+
+                        data[rowKey] = {
+                            ddc,
+                            lote: record.lotName,
+                            codLabor: targetLaborCode,
+                            labor: targetLabor,
+                            ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
+                            [ASISTENTE_COLUMN]: 0,
+                            total: 0,
+                        };
+                    }
+                    const personnelCount = assistant.personnelCount || 0;
+                    data[rowKey][EMPRESA_COLUMN] = (data[rowKey][EMPRESA_COLUMN] || 0) + personnelCount;
+                    
+                    const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
+                    if(isAsistente) {
+                        data[rowKey][ASISTENTE_COLUMN] += personnelCount;
+                    }
+
+                    return; // End processing for this assistant
+                }
+
+                
+                let assignedToJalador = false;
                 (assistant.jaladores || []).forEach(jalador => {
                     const isAssistantLabor = record.code === '903';
                     const targetLabor = (isAssistantLabor && jalador.supportedLabor) ? jalador.supportedLabor : record.labor;
@@ -62,7 +105,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                     if (!data[rowKey]) {
                          const loteData = allLotes.find(l => l.lote === record.lotName);
                          const ddc = loteData?.fechaCianamida ? differenceInDays(selectedDate, loteData.fechaCianamida) : 'N/A';
-                         const targetLaborCode = labors.find(l => l.descripcion === targetLabor)?.codigo || record.code;
+                         const targetLaborCode = allLabors.find(l => l.descripcion === targetLabor)?.codigo || record.code;
 
                         data[rowKey] = {
                             ddc,
@@ -78,15 +121,22 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                     const aliasUpper = jalador.jaladorAlias.toUpperCase();
                     if (jaladorColumns.includes(aliasUpper)) {
                         data[rowKey][aliasUpper] = (data[rowKey][aliasUpper] || 0) + (jalador.personnelCount || 0);
-                    } else {
-                        data[rowKey][EMPRESA_COLUMN] = (data[rowKey][EMPRESA_COLUMN] || 0) + (jalador.personnelCount || 0);
+                        assignedToJalador = true;
                     }
-
+                    
                     const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
                     if(isAsistente) {
                         data[rowKey][ASISTENTE_COLUMN] += jalador.personnelCount || 0;
                     }
                 });
+                
+                if (!assignedToJalador) {
+                    const totalPersonnelForAssistant = (assistant.jaladores || []).reduce((sum, j) => sum + (j.personnelCount || 0), 0);
+                    const rowKey = `${record.lotName}-${record.labor}`; // Fallback to record's labor
+                    if(data[rowKey]) {
+                       data[rowKey][EMPRESA_COLUMN] = (data[rowKey][EMPRESA_COLUMN] || 0) + totalPersonnelForAssistant;
+                    }
+                }
             });
         });
         
@@ -95,16 +145,16 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
         const sortedData = Object.values(data).sort((a, b) => {
-             const isA902 = a.codLabor === '902';
-             const isB902 = b.codLabor === '902';
-             if (isA902 !== isB902) return isA902 ? -1 : 1;
+            const isA902 = a.codLabor === '902';
+            const isB902 = b.codLabor === '902';
+            if (isA902 !== isB902) return isA902 ? -1 : 1;
 
-             const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
-             if (loteComparison !== 0) return loteComparison;
-             
-             const codeA = Number(a.codLabor) || Infinity;
-             const codeB = Number(b.codLabor) || Infinity;
-             return codeA - codeB;
+            const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
+            if (loteComparison !== 0) return loteComparison;
+            
+            const codeA = Number(a.codLabor) || Infinity;
+            const codeB = Number(b.codLabor) || Infinity;
+            return codeA - codeB;
         });
         
         const columnTotals = {
@@ -121,21 +171,45 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
         return { data: sortedData, columnTotals, dynamicJaladores: jaladorColumns };
 
-    }, [recordsForSelectedDate, allLotes, selectedDate, assistantsMaster, jaladorColumns]);
+    }, [recordsForSelectedDate, allLotes, selectedDate, assistantsMaster, jaladorColumns, allLabors]);
     
-     const { labors } = useMasterData();
      const resumenPorLabor = useMemo(() => {
         const data: { [key: string]: any } = {};
 
         recordsForSelectedDate.forEach(record => {
             (record.assistants || []).forEach(assistant => {
+
+                if (!assistant.jaladores || assistant.jaladores.length === 0) {
+                     const targetLabor = record.labor;
+                     const rowKey = targetLabor;
+                     if (!data[rowKey]) {
+                        const targetLaborCode = allLabors.find(l => l.descripcion === targetLabor)?.codigo || record.code;
+                        data[rowKey] = {
+                            codLabor: targetLaborCode,
+                            labor: targetLabor,
+                            ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
+                            [ASISTENTE_COLUMN]: 0,
+                            total: 0,
+                        };
+                    }
+                    const personnelCount = assistant.personnelCount || 0;
+                    data[rowKey][EMPRESA_COLUMN] = (data[rowKey][EMPRESA_COLUMN] || 0) + personnelCount;
+                    
+                    const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
+                    if(isAsistente) {
+                        data[rowKey][ASISTENTE_COLUMN] += personnelCount;
+                    }
+                    return;
+                }
+                
+                let assignedToJalador = false;
                  (assistant.jaladores || []).forEach(jalador => {
                     const isAssistantLabor = record.code === '903';
                     const targetLabor = (isAssistantLabor && jalador.supportedLabor) ? jalador.supportedLabor : record.labor;
 
                     const rowKey = targetLabor;
                      if (!data[rowKey]) {
-                        const targetLaborCode = labors.find(l => l.descripcion === targetLabor)?.codigo || record.code;
+                        const targetLaborCode = allLabors.find(l => l.descripcion === targetLabor)?.codigo || record.code;
                         data[rowKey] = {
                             codLabor: targetLaborCode,
                             labor: targetLabor,
@@ -148,8 +222,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                     const aliasUpper = jalador.jaladorAlias.toUpperCase();
                     if (jaladorColumns.includes(aliasUpper)) {
                          data[rowKey][aliasUpper] = (data[rowKey][aliasUpper] || 0) + (jalador.personnelCount || 0);
-                    } else {
-                        data[rowKey][EMPRESA_COLUMN] = (data[rowKey][EMPRESA_COLUMN] || 0) + (jalador.personnelCount || 0);
+                         assignedToJalador = true;
                     }
                     
                     const isAsistente = assistantsMaster.some(a => a.id === assistant.assistantDni);
@@ -157,6 +230,14 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                         data[rowKey][ASISTENTE_COLUMN] += jalador.personnelCount || 0;
                     }
                  });
+
+                 if (!assignedToJalador) {
+                    const totalPersonnelForAssistant = (assistant.jaladores || []).reduce((sum, j) => sum + (j.personnelCount || 0), 0);
+                    const rowKey = record.labor; // Fallback to record's labor
+                    if(data[rowKey]) {
+                       data[rowKey][EMPRESA_COLUMN] = (data[rowKey][EMPRESA_COLUMN] || 0) + totalPersonnelForAssistant;
+                    }
+                }
             });
         });
         
@@ -187,7 +268,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
         return { data: sortedData, columnTotals, dynamicJaladores: jaladorColumns };
 
-    }, [recordsForSelectedDate, assistantsMaster, jaladorColumns, labors]);
+    }, [recordsForSelectedDate, assistantsMaster, jaladorColumns, allLabors]);
 
     const verticalHeaderStyle: React.CSSProperties = {
         writingMode: 'vertical-rl',
@@ -211,7 +292,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
             <CardContent className="space-y-8">
                  <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Lote</h3>
-                     <div className="border rounded-lg bg-white p-1 overflow-x-auto">
+                     <div className="border rounded-lg bg-white p-1">
                         <table className="text-xs w-full table-auto">
                            <thead>
                                 <tr>
@@ -254,7 +335,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 </div>
                  <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Labor</h3>
-                    <div className="border rounded-lg bg-white p-1 overflow-x-auto">
+                    <div className="border rounded-lg bg-white p-1">
                        <table className="text-xs w-full table-auto">
                            <thead>
                                 <tr>
@@ -295,3 +376,5 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         </Card>
     );
 }
+
+    

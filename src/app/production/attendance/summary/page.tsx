@@ -47,6 +47,7 @@ function AttendanceSummaryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { setActions } = useHeaderActions();
+  const { labors } = useMasterData();
   
   const selectedDateParam = searchParams.get('date');
   const refreshParam = searchParams.get('refresh'); 
@@ -342,7 +343,7 @@ function AttendanceSummaryContent() {
       </div>
       
       <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary" />}>
-        <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} selectedDate={selectedDate}/>
+        <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} allLabors={labors} selectedDate={selectedDate}/>
       </Suspense>
     </div>
   );
@@ -356,3 +357,5 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
+
+    
