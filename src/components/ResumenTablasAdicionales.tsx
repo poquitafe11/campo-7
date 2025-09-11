@@ -101,18 +101,14 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
             row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
         });
         
-        const getSortPriorityForLabor = (code?: string) => {
-          if (code === '902') return 1;
-          const num = Number(code);
-          return isNaN(num) ? 9999 : num + 2;
-        };
-
         const sortedData = Object.values(data).sort((a, b) => {
             const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
             if (loteComparison !== 0) {
                 return loteComparison;
             }
-            return getSortPriorityForLabor(a.codLabor) - getSortPriorityForLabor(b.codLabor);
+            const codeA = Number(a.codLabor) || 9999;
+            const codeB = Number(b.codLabor) || 9999;
+            return codeA - codeB;
         });
         
         const columnTotals = {
