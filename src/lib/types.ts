@@ -71,6 +71,7 @@ export const JaladorAttendanceSchema = z.object({
   jaladorAlias: z.string(),
   personnelCount: z.number().int().min(0),
   absentCount: z.number().int().min(0),
+  supportedLabor: z.string().optional(),
 });
 export type JaladorAttendance = z.infer<typeof JaladorAttendanceSchema>;
 
@@ -79,6 +80,8 @@ export const AssistantSchema = z.object({
   assistantDni: z.string(),
   assistantName: z.string(),
   jaladores: z.array(JaladorAttendanceSchema),
+  personnelCount: z.number().optional(),
+  absentCount: z.number().optional(),
 });
 export type Assistant = z.infer<typeof AssistantSchema>;
 

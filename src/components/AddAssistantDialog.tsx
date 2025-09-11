@@ -22,7 +22,7 @@ import {
 import { useMasterData } from '@/context/MasterDataContext';
 import { PlusCircle, Trash2, Loader2, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { type Assistant, type Jalador, type JaladorAttendance } from '@/lib/types';
+import { type Assistant, type Jalador, type JaladorAttendance, type Labor } from '@/lib/types';
 import { addJalador } from '@/app/maestro-jaladores/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
@@ -32,6 +32,8 @@ interface AddAssistantDialogProps {
   setIsOpen: (isOpen: boolean) => void;
   onAddAssistant: (assistant: Omit<Assistant, 'id'>) => void;
   currentAssistantsDnis: string[];
+  isAssistantLabor: boolean;
+  laborsOnSameDay: Labor[];
 }
 
 export default function AddAssistantDialog({
@@ -39,6 +41,8 @@ export default function AddAssistantDialog({
   setIsOpen,
   onAddAssistant,
   currentAssistantsDnis,
+  isAssistantLabor,
+  laborsOnSameDay,
 }: AddAssistantDialogProps) {
   const { asistentes: assistantsMaster, jaladores: jaladoresMaster, loading, refreshData } = useMasterData();
   const { toast } = useToast();
@@ -53,6 +57,7 @@ export default function AddAssistantDialog({
   const [personnelCount, setPersonnelCount] = useState<string>('0');
   const [absentCount, setAbsentCount] = useState<string>('0');
   const [isCreatingJalador, setIsCreatingJalador] = useState(false);
+  const [supportedLabor, setSupportedLabor] = useState('');
 
 
   const availableJaladores = useMemo(() => {
@@ -115,6 +120,7 @@ export default function AddAssistantDialog({
       jaladorAlias: selectedJalador.alias,
       personnelCount: numPersonnel,
       absentCount: numAbsent,
+      supportedLabor: isAssistantLabor && supportedLabor ? supportedLabor : undefined,
     };
 
     setJaladoresList(prev => [...prev, newJaladorAttendance]);
@@ -124,6 +130,7 @@ export default function AddAssistantDialog({
     setJaladorSearch('');
     setPersonnelCount('0');
     setAbsentCount('0');
+    setSupportedLabor('');
   };
 
   const handleRemoveJalador = (id: string) => {
@@ -164,6 +171,7 @@ export default function AddAssistantDialog({
     setJaladorSearch('');
     setPersonnelCount('0');
     setAbsentCount('0');
+    setSupportedLabor('');
     setShowJaladorResults(false);
     setIsOpen(false);
   };
@@ -198,6 +206,24 @@ export default function AddAssistantDialog({
           {selectedAssistantDni && (
             <div className="space-y-4 pt-4 border-t">
               <Label>Paso 2: Agregar Jaladores y Personal</Label>
+              {isAssistantLabor && (
+                 <div className="space-y-1">
+                    <Label htmlFor="supported-labor" className="text-xs">Labor Apoyada (Opcional)</Label>
+                    <Select onValueChange={setSupportedLabor} value={supportedLabor}>
+                        <SelectTrigger id="supported-labor">
+                            <SelectValue placeholder="Seleccionar labor que apoya..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="">Ninguna (Asistencia General)</SelectItem>
+                            {laborsOnSameDay.map(labor => (
+                                <SelectItem key={labor.codigo} value={labor.descripcion}>
+                                    {labor.descripcion}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
+              )}
               <div className="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2">
                 <div className="relative space-y-1">
                   <Label htmlFor="jalador-search" className="text-xs">Jalador</Label>
@@ -258,7 +284,10 @@ export default function AddAssistantDialog({
                     <TableBody>
                       {jaladoresList.map(j => (
                         <TableRow key={j.id}>
-                          <TableCell>{j.jaladorAlias}</TableCell>
+                          <TableCell>
+                            {j.jaladorAlias}
+                            {j.supportedLabor && <span className="text-xs text-muted-foreground ml-2">({j.supportedLabor})</span>}
+                          </TableCell>
                           <TableCell>{j.personnelCount}</TableCell>
                           <TableCell>{j.absentCount}</TableCell>
                           <TableCell><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveJalador(j.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>

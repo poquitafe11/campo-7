@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
@@ -61,7 +61,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, runTransaction, getDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
@@ -76,6 +76,7 @@ const assistantInFormSchema = z.object({
     jaladorAlias: z.string(),
     personnelCount: z.number(),
     absentCount: z.number(),
+    supportedLabor: z.string().optional(),
   })),
   personnelCount: z.number().optional(), // Make optional as it will be derived from jaladores
   absentCount: z.number().optional(), // Make optional as it will be derived from jaladores
@@ -103,6 +104,7 @@ export default function DailyEntryPage() {
   const [isAddAssistantDialogOpen, setIsAddAssistantDialogOpen] = useState(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const { labors, lotes, asistentes: masterAssistants, loading: masterLoading } = useMasterData();
+  const [laborsOnSameDay, setLaborsOnSameDay] = useState<Labor[]>([]);
   
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceFormSchema),
@@ -118,6 +120,8 @@ export default function DailyEntryPage() {
   const codeValue = useWatch({ control: form.control, name: 'code' });
   const loteIdValue = useWatch({ control: form.control, name: 'lote' });
   const laborValue = useWatch({ control: form.control, name: 'labor' });
+  const dateValue = useWatch({ control: form.control, name: 'date' });
+
 
   const selectedLoteData = useMemo(() => {
     return lotes.find(l => l.id === loteIdValue);
@@ -168,6 +172,34 @@ export default function DailyEntryPage() {
         }
     }
   }, [codeValue, labors, form]);
+
+  const fetchLaborsOnSameDay = useCallback(async () => {
+    if (!loteIdValue || !dateValue) {
+      setLaborsOnSameDay([]);
+      return;
+    }
+    const dateStr = format(dateValue, 'yyyy-MM-dd');
+    const q = query(
+      collection(db, 'asistencia'),
+      where('date', '==', dateStr),
+      where('lote', '==', loteIdValue)
+    );
+    const querySnapshot = await getDocs(q);
+    const laborsSet = new Set<string>();
+    querySnapshot.forEach(doc => {
+      const data = doc.data();
+      if(data.labor && data.code !== '903') { // Exclude assistants labor itself
+        laborsSet.add(data.labor);
+      }
+    });
+    const laborsData = labors.filter(l => laborsSet.has(l.descripcion));
+    setLaborsOnSameDay(laborsData);
+  }, [dateValue, loteIdValue, labors]);
+  
+  useEffect(() => {
+    fetchLaborsOnSameDay();
+  }, [fetchLaborsOnSameDay]);
+
 
   useEffect(() => {
     const handleAutoSubmitForCode902 = async () => {
@@ -329,6 +361,9 @@ export default function DailyEntryPage() {
             title: "Operación Completada",
             description: `Registro guardado/actualizado con éxito.`,
         });
+
+        // Refetch labors for the day in case this new record adds one
+        fetchLaborsOnSameDay();
 
         form.reset({
           date: new Date(),
@@ -533,6 +568,8 @@ export default function DailyEntryPage() {
         setIsOpen={setIsAddAssistantDialogOpen}
         onAddAssistant={handleAddAssistant}
         currentAssistantsDnis={assistants.map(a => a.assistantDni)}
+        isAssistantLabor={codeValue === '903'}
+        laborsOnSameDay={laborsOnSameDay}
       />
     </div>
   );
