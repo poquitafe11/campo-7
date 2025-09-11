@@ -98,14 +98,23 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
         Object.values(data).forEach(row => {
-            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
+            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0);
+            if(row[ASISTENTE_COLUMN]) {
+                row.total += row[ASISTENTE_COLUMN];
+            }
         });
         
         const sortedData = Object.values(data).sort((a, b) => {
+            const isA902 = a.codLabor === '902';
+            const isB902 = b.codLabor === '902';
+
+            if (isA902 && !isB902) return -1;
+            if (!isA902 && isB902) return 1;
+
+            // Both are 902 or both are not 902, sort by lote then code
             const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
-            if (loteComparison !== 0) {
-                return loteComparison;
-            }
+            if (loteComparison !== 0) return loteComparison;
+
             const codeA = Number(a.codLabor) || 9999;
             const codeB = Number(b.codLabor) || 9999;
             return codeA - codeB;
@@ -170,16 +179,23 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
          Object.values(data).forEach(row => {
-            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
+            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0);
+             if(row[ASISTENTE_COLUMN]) {
+                row.total += row[ASISTENTE_COLUMN];
+            }
         });
 
         const getSortPriority = (code?: string) => {
-            if (code === '902') return 1;
+            if (code === '902') return -1;
             const num = Number(code);
-            return isNaN(num) ? 9999 : num + 2;
+            return isNaN(num) ? 9999 : num;
         };
 
-        const sortedData = Object.values(data).sort((a, b) => getSortPriority(a.codLabor) - getSortPriority(b.codLabor));
+        const sortedData = Object.values(data).sort((a, b) => {
+            const priorityA = getSortPriority(a.codLabor);
+            const priorityB = getSortPriority(b.codLabor);
+            return priorityA - priorityB;
+        });
         
         const columnTotals = {
             ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
@@ -201,10 +217,14 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         transform: 'rotate(180deg)',
         height: '100px',
         textAlign: 'center',
-        padding: '2px',
-        minWidth: '20px',
+        padding: '4px 2px',
+        minWidth: '24px',
         whiteSpace: 'nowrap',
     };
+
+    if (recordsForSelectedDate.length === 0) {
+        return null; // Don't render anything if there's no data for the day
+    }
 
     return (
         <Card className="mt-6">
@@ -214,7 +234,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
             <CardContent className="space-y-8">
                  <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Lote</h3>
-                     <div className="border rounded-lg bg-white p-1">
+                     <div className="border rounded-lg bg-white p-1 overflow-x-auto">
                         <table className="text-xs w-full table-auto">
                            <thead>
                                 <tr>
@@ -257,7 +277,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 </div>
                  <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Labor</h3>
-                    <div className="border rounded-lg bg-white p-1">
+                    <div className="border rounded-lg bg-white p-1 overflow-x-auto">
                        <table className="text-xs w-full table-auto">
                            <thead>
                                 <tr>
