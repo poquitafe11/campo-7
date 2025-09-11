@@ -120,7 +120,7 @@ export default function AddAssistantDialog({
       jaladorAlias: selectedJalador.alias,
       personnelCount: numPersonnel,
       absentCount: numAbsent,
-      supportedLabor: isAssistantLabor && supportedLabor ? supportedLabor : undefined,
+      ...(isAssistantLabor && supportedLabor && { supportedLabor }),
     };
 
     setJaladoresList(prev => [...prev, newJaladorAttendance]);

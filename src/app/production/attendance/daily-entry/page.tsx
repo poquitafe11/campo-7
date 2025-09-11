@@ -298,7 +298,14 @@ export default function DailyEntryPage() {
                 id: a.id,
                 assistantDni: a.assistantDni,
                 assistantName: a.assistantName,
-                jaladores: a.jaladores,
+                jaladores: a.jaladores.map(j => ({
+                  id: j.id,
+                  jaladorId: j.jaladorId,
+                  jaladorAlias: j.jaladorAlias,
+                  personnelCount: j.personnelCount,
+                  absentCount: j.absentCount,
+                  ...(j.supportedLabor && { supportedLabor: j.supportedLabor }),
+                })),
             }));
 
             if (docSnap.exists()) {
