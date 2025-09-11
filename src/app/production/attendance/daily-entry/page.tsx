@@ -286,8 +286,9 @@ export default function DailyEntryPage() {
     }
     const laborMasterData = labors.find(l => l.descripcion === data.labor || l.codigo === data.code);
     const laborCode = laborMasterData?.codigo || '';
+    const laborDesc = laborMasterData?.descripcion || data.labor || '';
 
-    const docId = `${format(data.date, 'yyyy-MM-dd')}-${loteMasterData.lote}-${data.labor}`.replace(/\s+/g, '-');
+    const docId = `${format(data.date, 'yyyy-MM-dd')}-${loteMasterData.lote}-${laborDesc}`.replace(/\s+/g, '-');
     const docRef = doc(attendanceCollectionRef, docId);
 
     try {
@@ -360,7 +361,7 @@ export default function DailyEntryPage() {
                     fechaCianamida: loteMasterData.fechaCianamida,
                     campana: loteMasterData.campana,
                     code: laborCode,
-                    labor: data.labor || '',
+                    labor: laborDesc,
                     assistants: assistantsPayload,
                     totals: recordTotals,
                     registeredBy: auth.currentUser?.email,
