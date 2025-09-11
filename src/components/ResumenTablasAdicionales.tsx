@@ -22,7 +22,7 @@ const ASISTENTE_COLUMN = 'ASISTENTE';
 const EMPRESA_COLUMN = 'EMPRESA';
 
 export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }: ResumenTablasProps) {
-    const { asistentes: assistantsMaster } = useMasterData();
+    const { asistentes: assistantsMaster, jaladores: jaladoresMaster } = useMasterData();
 
     const recordsForSelectedDate = useMemo(() => {
         if (!selectedDate) return [];
@@ -101,12 +101,19 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
             row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
         });
         
-        const getSortPriority = (code?: string) => {
-            if (code === '902') return 1;
-            const num = Number(code);
-            return isNaN(num) ? 9999 : num + 2;
+        const getSortPriorityForLabor = (code?: string) => {
+          if (code === '902') return 1;
+          const num = Number(code);
+          return isNaN(num) ? 9999 : num + 2;
         };
-        const sortedData = Object.values(data).sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}) || getSortPriority(a.codLabor) - getSortPriority(b.codLabor));
+
+        const sortedData = Object.values(data).sort((a, b) => {
+            const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
+            if (loteComparison !== 0) {
+                return loteComparison;
+            }
+            return getSortPriorityForLabor(a.codLabor) - getSortPriorityForLabor(b.codLabor);
+        });
         
         const columnTotals = {
             ...Object.fromEntries(jaladorColumns.map(j => [j, 0])),
@@ -199,7 +206,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         height: '100px',
         textAlign: 'center',
         padding: '2px',
-        minWidth: '30px',
+        minWidth: '20px',
         whiteSpace: 'nowrap',
     };
 
