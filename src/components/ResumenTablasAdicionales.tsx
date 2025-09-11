@@ -22,7 +22,7 @@ const ASISTENTE_COLUMN = 'ASISTENTE';
 const EMPRESA_COLUMN = 'EMPRESA';
 
 export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }: ResumenTablasProps) {
-    const { asistentes: assistantsMaster, jaladores: jaladoresMaster } = useMasterData();
+    const { asistentes: assistantsMaster } = useMasterData();
 
     const recordsForSelectedDate = useMemo(() => {
         if (!selectedDate) return [];
@@ -45,8 +45,12 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                 });
             });
         });
-        const sortedJaladores = Array.from(jaladores).sort();
-        return [EMPRESA_COLUMN, ...sortedJaladores];
+        
+        // Ensure "EMPRESA" is not duplicated if it exists in the data
+        const uniqueJaladores = Array.from(jaladores).filter(j => j !== EMPRESA_COLUMN).sort();
+        
+        return [EMPRESA_COLUMN, ...uniqueJaladores];
+
     }, [recordsForSelectedDate]);
 
 
@@ -72,7 +76,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
 
             (record.assistants || []).forEach(assistant => {
                 let assignedToJalador = false;
-                const assistantPersonnelCount = (assistant.jaladores && assistant.jaladores.length > 0)
+                 const assistantPersonnelCount = (assistant.jaladores && assistant.jaladores.length > 0)
                   ? assistant.jaladores.reduce((sum, j) => sum + (j.personnelCount || 0), 0)
                   : (assistant.personnelCount || 0);
 
@@ -80,7 +84,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                      assistant.jaladores.forEach(jalador => {
                         const aliasUpper = jalador.jaladorAlias.toUpperCase();
                         if (jaladorColumns.includes(aliasUpper)) {
-                            data[rowKey][aliasUpper] += jalador.personnelCount;
+                            data[rowKey][aliasUpper] = (data[rowKey][aliasUpper] || 0) + (jalador.personnelCount || 0);
                             assignedToJalador = true;
                         }
                     });
@@ -98,26 +102,23 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
         Object.values(data).forEach(row => {
-            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0);
-            if(row[ASISTENTE_COLUMN]) {
-                row.total += row[ASISTENTE_COLUMN];
-            }
+            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
         });
         
         const sortedData = Object.values(data).sort((a, b) => {
-            const isA902 = a.codLabor === '902';
-            const isB902 = b.codLabor === '902';
+             const isA902 = a.codLabor === '902';
+             const isB902 = b.codLabor === '902';
 
-            if (isA902 && !isB902) return -1;
-            if (!isA902 && isB902) return 1;
+             if (isA902 !== isB902) {
+                 return isA902 ? -1 : 1;
+             }
 
-            // Both are 902 or both are not 902, sort by lote then code
-            const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
-            if (loteComparison !== 0) return loteComparison;
-
-            const codeA = Number(a.codLabor) || 9999;
-            const codeB = Number(b.codLabor) || 9999;
-            return codeA - codeB;
+             const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
+             if (loteComparison !== 0) return loteComparison;
+             
+             const codeA = Number(a.codLabor) || Infinity;
+             const codeB = Number(b.codLabor) || Infinity;
+             return codeA - codeB;
         });
         
         const columnTotals = {
@@ -161,7 +162,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
                      assistant.jaladores.forEach(jalador => {
                         const aliasUpper = jalador.jaladorAlias.toUpperCase();
                         if (jaladorColumns.includes(aliasUpper)) {
-                            data[rowKey][aliasUpper] += jalador.personnelCount;
+                            data[rowKey][aliasUpper] = (data[rowKey][aliasUpper] || 0) + (jalador.personnelCount || 0);
                             assignedToJalador = true;
                         }
                     });
@@ -179,22 +180,20 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, selectedDate }:
         });
         
          Object.values(data).forEach(row => {
-            row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0);
-             if(row[ASISTENTE_COLUMN]) {
-                row.total += row[ASISTENTE_COLUMN];
-            }
+             row.total = jaladorColumns.reduce((sum, j) => sum + (row[j] || 0), 0) + (row[ASISTENTE_COLUMN] || 0);
         });
-
-        const getSortPriority = (code?: string) => {
-            if (code === '902') return -1;
-            const num = Number(code);
-            return isNaN(num) ? 9999 : num;
-        };
-
+        
         const sortedData = Object.values(data).sort((a, b) => {
-            const priorityA = getSortPriority(a.codLabor);
-            const priorityB = getSortPriority(b.codLabor);
-            return priorityA - priorityB;
+            const isA902 = a.codLabor === '902';
+            const isB902 = b.codLabor === '902';
+
+            if (isA902 !== isB902) {
+                return isA902 ? -1 : 1;
+            }
+             
+            const codeA = Number(a.codLabor) || Infinity;
+            const codeB = Number(b.codLabor) || Infinity;
+            return codeA - codeB;
         });
         
         const columnTotals = {
