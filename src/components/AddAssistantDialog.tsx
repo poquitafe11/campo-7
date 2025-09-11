@@ -120,7 +120,7 @@ export default function AddAssistantDialog({
       jaladorAlias: selectedJalador.alias,
       personnelCount: numPersonnel,
       absentCount: numAbsent,
-      ...(isAssistantLabor && supportedLabor && { supportedLabor }),
+      ...(isAssistantLabor && supportedLabor && supportedLabor !== 'ninguna' && { supportedLabor }),
     };
 
     setJaladoresList(prev => [...prev, newJaladorAttendance]);
@@ -214,7 +214,7 @@ export default function AddAssistantDialog({
                             <SelectValue placeholder="Seleccionar labor que apoya..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">Ninguna (Asistencia General)</SelectItem>
+                            <SelectItem value="ninguna">Ninguna (Asistencia General)</SelectItem>
                             {laborsOnSameDay.map(labor => (
                                 <SelectItem key={labor.codigo} value={labor.descripcion}>
                                     {labor.descripcion}
