@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import Link from 'next/link';
 import { ResumenTablasAdicionales } from '@/components/ResumenTablasAdicionales';
+import { useMasterData } from '@/context/MasterDataContext';
 
 
 interface PivotData {
