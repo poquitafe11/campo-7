@@ -236,7 +236,8 @@ function AttendanceSummaryContent() {
 
   return (
     <div className="space-y-6">
-        <div className="overflow-x-auto bg-white p-2 rounded-lg shadow-sm border">
+      <div className="max-w-full overflow-x-auto">
+        <div className="bg-white p-2 rounded-lg shadow-sm border inline-block">
             {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
                 <table className="table-auto border-collapse text-xs">
                     <thead className="text-center font-bold text-black">
@@ -339,10 +340,11 @@ function AttendanceSummaryContent() {
             </div>
             )}
         </div>
+      </div>
       
-        <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary" />}>
-          <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} allLabors={labors} selectedDate={selectedDate}/>
-        </Suspense>
+      <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary" />}>
+        <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} allLabors={labors} selectedDate={selectedDate}/>
+      </Suspense>
     </div>
   );
 }
