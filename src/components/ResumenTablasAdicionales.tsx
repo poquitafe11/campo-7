@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
@@ -112,8 +113,9 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
         const sortedData = Object.values(data).sort((a, b) => {
             const isA902 = a.codLabor === '902';
             const isB902 = b.codLabor === '902';
-            if (isA902 && !isB902) return -1;
-            if (!isA902 && isB902) return 1;
+            if (isA902 !== isB902) {
+                return isA902 ? -1 : 1;
+            }
 
             const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
             if (loteComparison !== 0) return loteComparison;
@@ -215,7 +217,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
 
         return { data: sortedData, columnTotals, dynamicJaladores: jaladorColumns };
 
-    }, [recordsForSelectedDate, jaladorColumns, allLabors, selectedDate]);
+    }, [recordsForSelectedDate, jaladorColumns, allLabors]);
 
     const verticalHeaderStyle: React.CSSProperties = {
         writingMode: 'vertical-rl',
@@ -245,15 +247,15 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={4}></th>
                                     <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLote.dynamicJaladores.length}>JALADORES</th>
-                                    <th className="p-1 border border-black" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
-                                    <th className="p-1 border border-black" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
+                                    <th className="p-1 border border-black bg-red-200" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
+                                    <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
                                 </tr>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200">DDC</th>
                                     <th className="p-1 border border-black bg-gray-200">LOTE</th>
                                     <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
                                     <th className="p-1 border border-black bg-gray-200">LABOR</th>
-                                    {resumenPorLote.dynamicJaladores.map(j => <th key={`lote-h-${j}`} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
+                                    {resumenPorLote.dynamicJaladores.map((j, index) => <th key={`lote-h-${j}-${index}`} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
@@ -263,16 +265,16 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                                         <td className="p-1 border border-black text-center">{row.lote}</td>
                                         <td className="p-1 border border-black text-center">{row.codLabor}</td>
                                         <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
-                                        {resumenPorLote.dynamicJaladores.map(j => <td key={`${idx}-lote-${j}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
-                                        <td className="p-1 border border-black text-center">{row.ASISTENTE || ''}</td>
-                                        <td className="p-1 border border-black text-center font-bold">{row.TOTAL || ''}</td>
+                                        {resumenPorLote.dynamicJaladores.map((j, index) => <td key={`${idx}-lote-${j}-${index}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
+                                        <td className="p-1 border border-black text-center bg-red-200">{row.ASISTENTE || ''}</td>
+                                        <td className="p-1 border border-black text-center font-bold bg-blue-300">{row.TOTAL || ''}</td>
                                     </tr>
                                 ))}
                             </tbody>
                             <tfoot>
                                 <tr>
                                     <td colSpan={4} className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
-                                     {resumenPorLote.dynamicJaladores.map(j => <td key={`total-lote-${j}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals[j] || ''}</td>)}
+                                     {resumenPorLote.dynamicJaladores.map((j, index) => <td key={`total-lote-${j}-${index}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals[j] || ''}</td>)}
                                     <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals.ASISTENTE || ''}</td>
                                     <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals.TOTAL || ''}</td>
                                 </tr>
@@ -288,13 +290,13 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={2}></th>
                                     <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLabor.dynamicJaladores.length}>JALADORES</th>
-                                    <th className="p-1 border border-black" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
-                                    <th className="p-1 border border-black" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
+                                    <th className="p-1 border border-black bg-red-200" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
+                                    <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
                                 </tr>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
                                     <th className="p-1 border border-black bg-gray-200">LABOR</th>
-                                    {resumenPorLabor.dynamicJaladores.map(j => <th key={`labor-h-${j}`} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
+                                    {resumenPorLabor.dynamicJaladores.map((j, index) => <th key={`labor-h-${j}-${index}`} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
                                 </tr>
                             </thead>
                              <tbody>
@@ -302,16 +304,16 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                                     <tr key={idx}>
                                         <td className="p-1 border border-black text-center">{row.codLabor}</td>
                                         <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
-                                        {resumenPorLabor.dynamicJaladores.map(j => <td key={`${idx}-labor-${j}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
-                                        <td className="p-1 border border-black text-center">{row.ASISTENTE || ''}</td>
-                                        <td className="p-1 border border-black text-center font-bold">{row.TOTAL || ''}</td>
+                                        {resumenPorLabor.dynamicJaladores.map((j, index) => <td key={`${idx}-labor-${j}-${index}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
+                                        <td className="p-1 border border-black text-center bg-red-200">{row.ASISTENTE || ''}</td>
+                                        <td className="p-1 border border-black text-center font-bold bg-blue-300">{row.TOTAL || ''}</td>
                                     </tr>
                                 ))}
                             </tbody>
                             <tfoot>
                                 <tr>
                                     <td colSpan={2} className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
-                                    {resumenPorLabor.dynamicJaladores.map(j => <td key={`total-labor-${j}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals[j] || ''}</td>)}
+                                    {resumenPorLabor.dynamicJaladores.map((j, index) => <td key={`total-labor-${j}-${index}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals[j] || ''}</td>)}
                                     <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals.ASISTENTE || ''}</td>
                                     <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals.TOTAL || ''}</td>
                                 </tr>
