@@ -239,7 +239,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
     }
 
     return (
-        <Card className="mt-6 overflow-x-auto">
+        <Card className="mt-6">
             <CardContent className="p-4 space-y-6">
                  <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Lote</h3>
