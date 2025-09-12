@@ -234,89 +234,91 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
     }
 
     return (
-        <div className="space-y-8">
-             <div>
-                <h3 className="font-semibold text-lg mb-2">Resumen Por Lote</h3>
-                 <div className="border rounded-lg bg-white p-1 overflow-x-auto">
+        <Card className="mt-6">
+            <CardContent className="p-4 space-y-6">
+                <div>
+                    <h3 className="font-semibold text-lg mb-2">Resumen Por Lote</h3>
+                    <div className="border rounded-lg p-1 overflow-x-auto">
+                        <table className="text-xs w-full table-auto">
+                        <thead>
+                                <tr>
+                                    <th className="p-1 border border-black bg-gray-200" colSpan={4}></th>
+                                    <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLote.dynamicJaladores.length}>JALADORES</th>
+                                    <th className="p-1 border border-black bg-red-200" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
+                                    <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
+                                </tr>
+                                <tr>
+                                    <th className="p-1 border border-black bg-gray-200">DDC</th>
+                                    <th className="p-1 border border-black bg-gray-200">LOTE</th>
+                                    <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
+                                    <th className="p-1 border border-black bg-gray-200">LABOR</th>
+                                    {resumenPorLote.dynamicJaladores.map((j, index) => <th key={`lote-h-${j}-${index}`} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {resumenPorLote.data.map((row, idx) => (
+                                    <tr key={idx}>
+                                        <td className="p-1 border border-black text-center">{row.ddc}</td>
+                                        <td className="p-1 border border-black text-center">{row.lote}</td>
+                                        <td className="p-1 border border-black text-center">{row.codLabor}</td>
+                                        <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
+                                        {resumenPorLote.dynamicJaladores.map((j, index) => <td key={`${idx}-lote-${j}-${index}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
+                                        <td className="p-1 border border-black text-center">{row.ASISTENTE || ''}</td>
+                                        <td className="p-1 border border-black text-center font-bold">{row.TOTAL || ''}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colSpan={4} className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
+                                    {resumenPorLote.dynamicJaladores.map((j, index) => <td key={`total-lote-${j}-${index}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals[j] || ''}</td>)}
+                                    <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals.ASISTENTE || ''}</td>
+                                    <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals.TOTAL || ''}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <h3 className="font-semibold text-lg mb-2">Resumen Por Labor</h3>
+                    <div className="border rounded-lg p-1 overflow-x-auto">
                     <table className="text-xs w-full table-auto">
-                       <thead>
-                            <tr>
-                                <th className="p-1 border border-black bg-gray-200" colSpan={4}></th>
-                                <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLote.dynamicJaladores.length}>JALADORES</th>
-                                <th className="p-1 border border-black bg-red-200" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
-                                <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
-                            </tr>
-                            <tr>
-                                <th className="p-1 border border-black bg-gray-200">DDC</th>
-                                <th className="p-1 border border-black bg-gray-200">LOTE</th>
-                                <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
-                                <th className="p-1 border border-black bg-gray-200">LABOR</th>
-                                {resumenPorLote.dynamicJaladores.map((j, index) => <th key={`lote-h-${j}-${index}`} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {resumenPorLote.data.map((row, idx) => (
-                                <tr key={idx}>
-                                    <td className="p-1 border border-black text-center">{row.ddc}</td>
-                                    <td className="p-1 border border-black text-center">{row.lote}</td>
-                                    <td className="p-1 border border-black text-center">{row.codLabor}</td>
-                                    <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
-                                    {resumenPorLote.dynamicJaladores.map((j, index) => <td key={`${idx}-lote-${j}-${index}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
-                                    <td className="p-1 border border-black text-center">{row.ASISTENTE || ''}</td>
-                                    <td className="p-1 border border-black text-center font-bold">{row.TOTAL || ''}</td>
+                        <thead>
+                                <tr>
+                                    <th className="p-1 border border-black bg-gray-200" colSpan={2}></th>
+                                    <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLabor.dynamicJaladores.length}>JALADORES</th>
+                                    <th className="p-1 border border-black bg-red-200" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
+                                    <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colSpan={4} className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
-                                 {resumenPorLote.dynamicJaladores.map((j, index) => <td key={`total-lote-${j}-${index}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals[j] || ''}</td>)}
-                                <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals.ASISTENTE || ''}</td>
-                                <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLote.columnTotals.TOTAL || ''}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-             <div>
-                <h3 className="font-semibold text-lg mb-2">Resumen Por Labor</h3>
-                <div className="border rounded-lg bg-white p-1 overflow-x-auto">
-                   <table className="text-xs w-full table-auto">
-                       <thead>
-                            <tr>
-                                <th className="p-1 border border-black bg-gray-200" colSpan={2}></th>
-                                <th className="p-1 border border-black bg-orange-300" colSpan={resumenPorLabor.dynamicJaladores.length}>JALADORES</th>
-                                <th className="p-1 border border-black bg-red-200" rowSpan={2} style={verticalHeaderStyle}>ASISTENTE</th>
-                                <th className="p-1 border border-black bg-blue-300" rowSpan={2} style={verticalHeaderStyle}>TOTAL</th>
-                            </tr>
-                            <tr>
-                                <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
-                                <th className="p-1 border border-black bg-gray-200">LABOR</th>
-                                {resumenPorLabor.dynamicJaladores.map((j, index) => <th key={`labor-h-${j}-${index}`} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
-                            </tr>
-                        </thead>
-                         <tbody>
-                            {resumenPorLabor.data.map((row, idx) => (
-                                <tr key={idx}>
-                                    <td className="p-1 border border-black text-center">{row.codLabor}</td>
-                                    <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
-                                    {resumenPorLabor.dynamicJaladores.map((j, index) => <td key={`${idx}-labor-${j}-${index}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
-                                    <td className="p-1 border border-black text-center">{row.ASISTENTE || ''}</td>
-                                    <td className="p-1 border border-black text-center font-bold">{row.TOTAL || ''}</td>
+                                <tr>
+                                    <th className="p-1 border border-black bg-gray-200">Cod. Labor</th>
+                                    <th className="p-1 border border-black bg-gray-200">LABOR</th>
+                                    {resumenPorLabor.dynamicJaladores.map((j, index) => <th key={`labor-h-${j}-${index}`} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{j}</th>)}
                                 </tr>
-                            ))}
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colSpan={2} className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
-                                {resumenPorLabor.dynamicJaladores.map((j, index) => <td key={`total-labor-${j}-${index}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals[j] || ''}</td>)}
-                                <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals.ASISTENTE || ''}</td>
-                                <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals.TOTAL || ''}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {resumenPorLabor.data.map((row, idx) => (
+                                    <tr key={idx}>
+                                        <td className="p-1 border border-black text-center">{row.codLabor}</td>
+                                        <td className="p-1 border border-black text-left whitespace-nowrap">{row.labor}</td>
+                                        {resumenPorLabor.dynamicJaladores.map((j, index) => <td key={`${idx}-labor-${j}-${index}`} className="p-1 border border-black text-center">{row[j] || ''}</td>)}
+                                        <td className="p-1 border border-black text-center">{row.ASISTENTE || ''}</td>
+                                        <td className="p-1 border border-black text-center font-bold">{row.TOTAL || ''}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colSpan={2} className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
+                                    {resumenPorLabor.dynamicJaladores.map((j, index) => <td key={`total-labor-${j}-${index}`} className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals[j] || ''}</td>)}
+                                    <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals.ASISTENTE || ''}</td>
+                                    <td className="p-1 border border-black bg-blue-300 font-bold text-center">{resumenPorLabor.columnTotals.TOTAL || ''}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 }

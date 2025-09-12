@@ -18,7 +18,6 @@ import { Calendar } from '@/components/ui/calendar';
 import Link from 'next/link';
 import { ResumenTablasAdicionales } from '@/components/ResumenTablasAdicionales';
 import { useMasterData } from '@/context/MasterDataContext';
-import { Card, CardContent } from '@/components/ui/card';
 
 
 interface PivotData {
@@ -236,10 +235,9 @@ function AttendanceSummaryContent() {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-6">
+    <div className="space-y-6">
         {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-white p-2 rounded-lg shadow-sm border">
               <table className="table-auto border-collapse text-xs">
                   <thead className="text-center font-bold text-black">
                       <tr>
@@ -345,8 +343,7 @@ function AttendanceSummaryContent() {
         <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary" />}>
           <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} allLabors={labors} selectedDate={selectedDate}/>
         </Suspense>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
