@@ -238,8 +238,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
             <CardContent className="p-4 space-y-6">
                 <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Lote</h3>
-                    <div className="border rounded-lg p-1 overflow-x-auto">
-                        <table className="text-xs w-full table-auto">
+                    <table className="text-xs w-full table-auto border-collapse">
                         <thead>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={4}></th>
@@ -277,12 +276,10 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                                 </tr>
                             </tfoot>
                         </table>
-                    </div>
                 </div>
                 <div>
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Labor</h3>
-                    <div className="border rounded-lg p-1 overflow-x-auto">
-                    <table className="text-xs w-full table-auto">
+                    <table className="text-xs w-full table-auto border-collapse">
                         <thead>
                                 <tr>
                                     <th className="p-1 border border-black bg-gray-200" colSpan={2}></th>
@@ -316,7 +313,6 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                                 </tr>
                             </tfoot>
                         </table>
-                    </div>
                 </div>
             </CardContent>
         </Card>
