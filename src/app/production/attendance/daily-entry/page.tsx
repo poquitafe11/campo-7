@@ -61,7 +61,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, runTransaction, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, runTransaction, getDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
@@ -295,24 +295,27 @@ export default function DailyEntryPage() {
         await runTransaction(db, async (transaction) => {
             const docSnap = await transaction.get(docRef);
             
-            const assistantsPayload = assistantsToSave.map(a => ({
-                id: a.id,
-                assistantDni: a.assistantDni,
-                assistantName: a.assistantName,
-                jaladores: a.jaladores.map(j => {
-                    const jaladorData: any = {
-                      id: j.id,
-                      jaladorId: j.jaladorId,
-                      jaladorAlias: j.jaladorAlias,
-                      personnelCount: j.personnelCount,
-                      absentCount: j.absentCount,
+            const assistantsPayload = assistantsToSave.map(a => {
+                const jaladores = (a.jaladores || []).map(j => {
+                    const jaladorData: Partial<JaladorAttendance> = {
+                        id: j.id,
+                        jaladorId: j.jaladorId,
+                        jaladorAlias: j.jaladorAlias,
+                        personnelCount: j.personnelCount,
+                        absentCount: j.absentCount,
                     };
                     if (j.supportedLabor) {
                         jaladorData.supportedLabor = j.supportedLabor;
                     }
-                    return jaladorData;
-                }),
-            }));
+                    return jaladorData as JaladorAttendance;
+                });
+                return {
+                    id: a.id,
+                    assistantDni: a.assistantDni,
+                    assistantName: a.assistantName,
+                    jaladores: jaladores,
+                };
+            });
 
             if (docSnap.exists()) {
                 const existingData = docSnap.data() as AttendanceRecord;
@@ -338,7 +341,9 @@ export default function DailyEntryPage() {
 
                 transaction.update(docRef, {
                     assistants: combinedAssistants,
-                    totals: newTotals
+                    totals: newTotals,
+                    lastModifiedBy: auth.currentUser?.email,
+                    lastModifiedAt: serverTimestamp(),
                 });
 
             } else {
@@ -365,6 +370,9 @@ export default function DailyEntryPage() {
                     assistants: assistantsPayload,
                     totals: recordTotals,
                     registeredBy: auth.currentUser?.email,
+                    createdAt: serverTimestamp(),
+                    lastModifiedBy: auth.currentUser?.email,
+                    lastModifiedAt: serverTimestamp(),
                 };
                 transaction.set(docRef, record);
             }
@@ -375,7 +383,6 @@ export default function DailyEntryPage() {
             description: `Registro guardado/actualizado con éxito.`,
         });
 
-        // Refetch labors for the day in case this new record adds one
         fetchLaborsOnSameDay();
 
         form.reset({

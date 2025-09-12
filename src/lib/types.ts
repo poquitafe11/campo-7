@@ -121,7 +121,10 @@ export type AttendanceRecord = {
     personnelCount: number;
     absentCount: number;
   };
-  registeredBy: string | null;
+  registeredBy: string | null | undefined;
+  createdAt?: any;
+  lastModifiedBy?: string | null;
+  lastModifiedAt?: any;
 };
 
 export type SummaryData = {

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,6 +20,7 @@ import EditAssistantDialog from '@/components/edit-assistant-dialog';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useAuth } from '@/hooks/useAuth';
 
 
 type AttendanceRecordWithId = AttendanceRecord & { id: string };
@@ -56,6 +57,7 @@ export default function AttendanceDatabasePage() {
   const { toast } = useToast();
   const { setActions } = useHeaderActions();
   const router = useRouter();
+  const { user } = useAuth();
   const { lotes: masterLotes, loading: masterLoading } = useMasterData();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -75,7 +77,11 @@ export default function AttendanceDatabasePage() {
         } else {
             date = new Date();
         }
-        return { id: doc.id, ...data, date } as AttendanceRecordWithId;
+
+        const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+        const lastModifiedAt = data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : new Date();
+
+        return { id: doc.id, ...data, date, createdAt, lastModifiedAt } as AttendanceRecordWithId;
       });
       setRecords(recordsData);
       setLoading(false);
@@ -177,7 +183,7 @@ export default function AttendanceDatabasePage() {
     }
   };
   
-  const handleSaveAssistantUpdate = async (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id'>) => {
+  const handleSaveAssistantUpdate = async (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id' | 'jaladores'>) => {
     startTransition(async () => {
         const recordRef = doc(db, 'asistencia', recordId);
         const recordToUpdate = records.find(r => r.id === recordId);
@@ -206,7 +212,9 @@ export default function AttendanceDatabasePage() {
         try {
             await updateDoc(recordRef, { 
                 assistants: updatedAssistants,
-                totals: newTotals
+                totals: newTotals,
+                lastModifiedBy: user?.email,
+                lastModifiedAt: serverTimestamp(),
             });
             toast({ title: "Éxito", description: "Registro de asistente actualizado." });
         } catch (error) {
@@ -243,6 +251,7 @@ export default function AttendanceDatabasePage() {
                     const laborsForDay = groupedByDate[dateKey];
                     const dailyTotalPersonnel = Object.values(laborsForDay).flatMap(lotes => Object.values(lotes).flatMap(l => l.assistants)).reduce((sum, assistant) => sum + assistant.totalPersonnel, 0);
                     const dailyTotalAbsent = Object.values(laborsForDay).flatMap(lotes => Object.values(lotes).flatMap(l => l.assistants)).reduce((sum, assistant) => sum + assistant.totalAbsent, 0);
+                    const record = records.find(r => format(startOfDay(r.date), 'yyyy-MM-dd') === dateKey);
 
                     return (
                         <AccordionItem value={dateKey} key={dateKey} className="border rounded-lg shadow-sm bg-background">
@@ -258,6 +267,18 @@ export default function AttendanceDatabasePage() {
                                </div>
                            </AccordionTrigger>
                             <AccordionContent className="pt-0 px-4 pb-4 space-y-2">
+                                {record && (
+                                    <div className="text-xs text-muted-foreground space-y-1 text-right">
+                                        <p>Registrado por: {record.registeredBy || 'N/A'}</p>
+                                        <p>Fecha de creación: {record.createdAt ? format(record.createdAt, 'Pp', { locale: es }) : 'N/A'}</p>
+                                        {record.lastModifiedBy && (
+                                            <>
+                                                <p>Última mod. por: {record.lastModifiedBy}</p>
+                                                <p>Fecha de mod.: {record.lastModifiedAt ? format(record.lastModifiedAt, 'Pp', { locale: es }) : 'N/A'}</p>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                                 <Accordion type="multiple" className="w-full space-y-2">
                                     {Object.entries(laborsForDay).map(([labor, lotes]) => {
                                         const laborTotalPersonnel = Object.values(lotes).flatMap(l => l.assistants).reduce((sum, assistant) => sum + assistant.totalPersonnel, 0);
@@ -393,4 +414,3 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
-
