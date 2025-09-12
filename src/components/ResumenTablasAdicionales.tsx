@@ -38,6 +38,11 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                        jaladores.add(jalador.jaladorAlias.toUpperCase());
                     }
                 });
+                 if (!assistant.jaladores || assistant.jaladores.length === 0) {
+                    if(assistant.personnelCount && assistant.personnelCount > 0) {
+                        jaladores.add(EMPRESA_COLUMN);
+                    }
+                }
             });
         });
         
@@ -86,7 +91,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                 if (assistant.jaladores && assistant.jaladores.length > 0) {
                    assistant.jaladores.forEach(j => processJalador(j, record.labor));
                 } else if (assistant.personnelCount) {
-                    processJalador({ personnelCount: assistant.personnelCount }, record.labor);
+                    processJalador({ personnelCount: assistant.personnelCount, jaladorAlias: 'EMPRESA' }, record.labor);
                 }
             });
         });
@@ -170,7 +175,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                 if (assistant.jaladores && assistant.jaladores.length > 0) {
                     assistant.jaladores.forEach(j => processJalador(j, record.labor));
                 } else if(assistant.personnelCount) {
-                    processJalador({ personnelCount: assistant.personnelCount }, record.labor);
+                    processJalador({ personnelCount: assistant.personnelCount, jaladorAlias: 'EMPRESA' }, record.labor);
                 }
             });
         });
@@ -234,9 +239,9 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
     }
 
     return (
-        <Card className="mt-6">
+        <Card className="mt-6 overflow-x-auto">
             <CardContent className="p-4 space-y-6">
-                <div>
+                 <div className="inline-block min-w-full">
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Lote</h3>
                     <table className="text-xs w-full table-auto border-collapse">
                         <thead>
@@ -277,7 +282,7 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
                             </tfoot>
                         </table>
                 </div>
-                <div>
+                 <div className="inline-block min-w-full">
                     <h3 className="font-semibold text-lg mb-2">Resumen Por Labor</h3>
                     <table className="text-xs w-full table-auto border-collapse">
                         <thead>
