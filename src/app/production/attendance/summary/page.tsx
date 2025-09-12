@@ -18,6 +18,7 @@ import { Calendar } from '@/components/ui/calendar';
 import Link from 'next/link';
 import { ResumenTablasAdicionales } from '@/components/ResumenTablasAdicionales';
 import { useMasterData } from '@/context/MasterDataContext';
+import { Card, CardContent } from '@/components/ui/card';
 
 
 interface PivotData {
@@ -235,11 +236,10 @@ function AttendanceSummaryContent() {
   }
 
   return (
-    <div className="p-1 space-y-8">
-      {/* Tabla 1: Resumen Diario (INTOCABLE) */}
-      <div className="flex justify-center">
+    <Card>
+      <CardContent className="p-4 space-y-6">
         {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
-            <div className="inline-block bg-white p-2 shadow-md rounded-lg">
+            <div className="overflow-x-auto">
               <table className="table-auto border-collapse text-xs">
                   <thead className="text-center font-bold text-black">
                       <tr>
@@ -341,12 +341,12 @@ function AttendanceSummaryContent() {
             </p>
           </div>
         )}
-      </div>
       
-      <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary" />}>
-        <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} allLabors={labors} selectedDate={selectedDate}/>
-      </Suspense>
-    </div>
+        <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary" />}>
+          <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} allLabors={labors} selectedDate={selectedDate}/>
+        </Suspense>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -358,5 +358,3 @@ export default function AttendanceSummaryPage() {
         </Suspense>
     )
 }
-
-    
