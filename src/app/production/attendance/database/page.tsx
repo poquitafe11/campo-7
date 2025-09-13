@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
