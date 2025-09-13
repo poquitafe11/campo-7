@@ -221,7 +221,7 @@ export default function DailyEntryPage() {
                     {
                         id: crypto.randomUUID(),
                         jaladorId: 'empresa',
-                        jaladorAlias: 'Jalador Empresa',
+                        jaladorAlias: 'Empresa',
                         personnelCount: 1,
                         absentCount: 0,
                     }
