@@ -12,6 +12,7 @@ import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import { useRouter } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "./sheet";
+import { DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
 
 function SidebarContent() {
   const { profile, user, logout } = useAuth();
@@ -88,6 +89,10 @@ function Header() {
         </div>
       </header>
       <SheetContent side="left" className="p-0 w-64">
+        <DialogTitle className="sr-only">Menú Principal</DialogTitle>
+        <DialogDescription className="sr-only">
+          Navegación principal de la aplicación, perfil de usuario y estado de la conexión.
+        </DialogDescription>
         <SidebarContent />
       </SheetContent>
     </Sheet>
