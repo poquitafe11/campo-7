@@ -204,6 +204,27 @@ export default function DailyEntryPage() {
   useEffect(() => {
     form.setValue('assistants', assistants, { shouldValidate: true });
   }, [assistants, form]);
+  
+  useEffect(() => {
+    // Automatically add all assistants if code is 902 and a lot is selected
+    if (codeValue === '902' && selectedLoteData) {
+      const existingAssistants = new Set(assistants.map(a => a.assistantDni));
+      const allMasterAssistants = masterAssistants.filter(ma => !existingAssistants.has(ma.id));
+
+      if (allMasterAssistants.length > 0) {
+        const newAssistantsToAdd = allMasterAssistants.map(ma => ({
+          id: crypto.randomUUID(),
+          assistantDni: ma.id,
+          assistantName: ma.assistantName,
+          personnelCount: 0,
+          absentCount: 0,
+          jaladores: []
+        }));
+        setAssistants(prev => [...prev, ...newAssistantsToAdd]);
+        toast({ title: "Asistentes Cargados", description: `Se agregaron ${allMasterAssistants.length} asistentes a la lista.`});
+      }
+    }
+  }, [codeValue, selectedLoteData, masterAssistants, assistants, toast]);
 
   const handleAddAssistant = (newAssistant: Omit<Assistant, 'id'>) => {
     if (!selectedLoteData || !laborValue) return;
