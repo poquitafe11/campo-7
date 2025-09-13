@@ -206,7 +206,7 @@ export default function DailyEntryPage() {
   }, [assistants, form]);
   
   useEffect(() => {
-    if (codeValue === '902' && selectedLoteData && profile) {
+    if (codeValue === '902' && selectedLoteData && profile?.rol === 'Supervisor') {
         const currentUserDni = profile.dni;
         const currentUserName = profile.nombre;
         
@@ -228,7 +228,7 @@ export default function DailyEntryPage() {
                 ]
             };
             setAssistants(prev => [...prev, newUserAssistant]);
-            toast({ title: "Asistencia de Usuario", description: `Se agregó a ${currentUserName} con 1 persona.` });
+            toast({ title: "Asistencia de Supervisor", description: `Se agregó a ${currentUserName} con 1 persona.` });
         }
     }
   }, [codeValue, selectedLoteData, profile, assistants, toast]);
