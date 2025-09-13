@@ -202,39 +202,6 @@ export default function DailyEntryPage() {
 
 
   useEffect(() => {
-    const handleAutoSubmitForCode902 = async () => {
-        if (codeValue === '902' && loteIdValue && profile && user) {
-            
-            // Use current logged-in user's data directly
-            const autoAssistant: Assistant = {
-                id: profile.dni,
-                assistantDni: profile.dni,
-                assistantName: profile.nombre,
-                jaladores: [{
-                    id: crypto.randomUUID(),
-                    jaladorId: 'empresa',
-                    jaladorAlias: 'Empresa',
-                    personnelCount: 1,
-                    absentCount: 0
-                }],
-            };
-
-            const formData: AttendanceFormValues = {
-                date: form.getValues('date'),
-                lote: form.getValues('lote'),
-                code: '902',
-                labor: labors.find(l => l.codigo === '902')?.descripcion || 'ASISTENCIA',
-                assistants: [autoAssistant]
-            };
-            
-            await onSubmit(formData, true);
-        }
-    };
-    handleAutoSubmitForCode902();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [codeValue, loteIdValue, profile, user]);
-
-  useEffect(() => {
     form.setValue('assistants', assistants, { shouldValidate: true });
   }, [assistants, form]);
 
