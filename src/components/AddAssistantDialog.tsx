@@ -24,6 +24,7 @@ import { PlusCircle, Trash2, Loader2, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { type Assistant, type Jalador, type JaladorAttendance, type Labor } from '@/lib/types';
 import { addJalador } from '@/app/maestro-jaladores/actions';
+import { addAsistente } from '@/app/asistentes/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -47,7 +48,12 @@ export default function AddAssistantDialog({
   const { asistentes: assistantsMaster, jaladores: jaladoresMaster, loading, refreshData } = useMasterData();
   const { toast } = useToast();
 
-  const [selectedAssistantDni, setSelectedAssistantDni] = useState<string>('');
+  const [selectedAssistant, setSelectedAssistant] = useState<Omit<Assistant, 'id' | 'jaladores' | 'personnelCount' | 'absentCount'>>({ assistantDni: '', assistantName: '' });
+  const [assistantSearch, setAssistantSearch] = useState('');
+  const [showAssistantResults, setShowAssistantResults] = useState(false);
+  const [isCreatingAssistant, setIsCreatingAssistant] = useState(false);
+
+
   const [jaladoresList, setJaladoresList] = useState<JaladorAttendance[]>([]);
   
   const [selectedJalador, setSelectedJalador] = useState<Jalador | null>(null);
@@ -72,6 +78,20 @@ export default function AddAssistantDialog({
   }, [jaladorSearch, availableJaladores]);
 
   const canCreateNewJalador = jaladorSearch.trim().length > 0 && !filteredJaladores.some(j => j.alias.toLowerCase() === jaladorSearch.toLowerCase().trim());
+  
+  const availableAssistants = useMemo(() => {
+    return assistantsMaster.filter(a => !currentAssistantsDnis.includes(a.id));
+  }, [assistantsMaster, currentAssistantsDnis]);
+  
+  const filteredAssistants = useMemo(() => {
+    if (!assistantSearch) return [];
+    return availableAssistants.filter(a => 
+      a.assistantName.toLowerCase().includes(assistantSearch.toLowerCase()) ||
+      a.id.toLowerCase().includes(assistantSearch.toLowerCase())
+    );
+  }, [assistantSearch, availableAssistants]);
+
+  const canCreateNewAssistant = assistantSearch.trim().length > 0 && !filteredAssistants.some(a => a.assistantName.toLowerCase() === assistantSearch.toLowerCase().trim());
 
   const handleSelectJalador = (jalador: Jalador) => {
     setSelectedJalador(jalador);
@@ -79,6 +99,39 @@ export default function AddAssistantDialog({
     setShowJaladorResults(false);
   };
   
+  const handleSelectAssistant = (assistant: { id: string; assistantName: string }) => {
+    setSelectedAssistant({ assistantDni: assistant.id, assistantName: assistant.assistantName });
+    setAssistantSearch(assistant.assistantName);
+    setShowAssistantResults(false);
+  };
+  
+  const handleCreateAssistant = async () => {
+    if (!canCreateNewAssistant || isCreatingAssistant) return;
+    setIsCreatingAssistant(true);
+    const newName = assistantSearch.trim();
+
+    // A DNI is required, for this flow we can ask the user or generate a placeholder
+    // For now, let's prompt for it, although it complicates the flow. A better UX would be a small form.
+    // Let's create a simplified version: prompt for DNI.
+    const dni = prompt(`Por favor, ingrese el DNI para el nuevo asistente "${newName}":`);
+    if (!dni || dni.length !== 8 || isNaN(Number(dni))) {
+      toast({ title: 'DNI Inválido', description: 'Se requiere un DNI de 8 dígitos numéricos.', variant: 'destructive'});
+      setIsCreatingAssistant(false);
+      return;
+    }
+
+    const result = await addAsistente({ nombre: newName, dni: dni, cargo: "Asistente" });
+
+    if (result.success && result.id) {
+      toast({ title: 'Éxito', description: `Asistente "${newName}" creado.`});
+      await refreshData();
+      handleSelectAssistant({ id: result.id, assistantName: newName });
+    } else {
+      toast({ title: 'Error', description: result.message, variant: 'destructive'});
+    }
+    setIsCreatingAssistant(false);
+  }
+
   const handleCreateJalador = async () => {
       if (!canCreateNewJalador || isCreatingJalador) return;
       setIsCreatingJalador(true);
@@ -138,7 +191,7 @@ export default function AddAssistantDialog({
   };
 
   const handleConfirm = () => {
-    if (!selectedAssistantDni) {
+    if (!selectedAssistant.assistantDni) {
       toast({ variant: 'destructive', title: 'Faltan datos', description: 'Debe seleccionar un asistente.' });
       return;
     }
@@ -147,14 +200,11 @@ export default function AddAssistantDialog({
       return;
     }
 
-    const selectedAssistant = assistantsMaster.find(a => a.id === selectedAssistantDni);
-    if (!selectedAssistant) return;
-
     const totalPersonnel = jaladoresList.reduce((sum, j) => sum + j.personnelCount, 0);
     const totalAbsent = jaladoresList.reduce((sum, j) => sum + j.absentCount, 0);
 
     onAddAssistant({
-      assistantDni: selectedAssistant.id,
+      assistantDni: selectedAssistant.assistantDni,
       assistantName: selectedAssistant.assistantName,
       jaladores: jaladoresList,
       personnelCount: totalPersonnel,
@@ -165,7 +215,8 @@ export default function AddAssistantDialog({
   };
 
   const handleClose = () => {
-    setSelectedAssistantDni('');
+    setSelectedAssistant({ assistantDni: '', assistantName: '' });
+    setAssistantSearch('');
     setJaladoresList([]);
     setSelectedJalador(null);
     setJaladorSearch('');
@@ -173,12 +224,9 @@ export default function AddAssistantDialog({
     setAbsentCount('0');
     setSupportedLabor('');
     setShowJaladorResults(false);
+    setShowAssistantResults(false);
     setIsOpen(false);
   };
-
-  const availableAssistants = useMemo(() => {
-    return assistantsMaster.filter(a => !currentAssistantsDnis.includes(a.id));
-  }, [assistantsMaster, currentAssistantsDnis]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -189,21 +237,45 @@ export default function AddAssistantDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Paso 1: Seleccionar Asistente/Encargado</Label>
-            <Select onValueChange={setSelectedAssistantDni} value={selectedAssistantDni} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder={loading ? "Cargando..." : "Seleccione un asistente"} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableAssistants.map((assistant) => (
-                  <SelectItem key={assistant.id} value={assistant.id}>
-                    {assistant.assistantName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+              <Input
+                placeholder="Buscar por nombre o DNI..."
+                value={assistantSearch}
+                onChange={e => {
+                  setAssistantSearch(e.target.value);
+                  setShowAssistantResults(true);
+                  setSelectedAssistant({ assistantDni: '', assistantName: '' });
+                }}
+                onFocus={() => setShowAssistantResults(true)}
+                onBlur={() => setTimeout(() => setShowAssistantResults(false), 150)}
+                className="pl-8"
+                disabled={loading}
+              />
+              {showAssistantResults && (
+                <div className="absolute z-20 w-full mt-1 bg-background border rounded-md shadow-lg">
+                  <ScrollArea className="max-h-48">
+                    {filteredAssistants.map(a => (
+                      <div key={a.id} onMouseDown={() => handleSelectAssistant(a)} className="p-2 hover:bg-muted cursor-pointer text-sm">
+                        {a.assistantName} <span className="text-muted-foreground">({a.id})</span>
+                      </div>
+                    ))}
+                    {canCreateNewAssistant && (
+                      <div onMouseDown={handleCreateAssistant} className="p-2 text-sm text-primary hover:bg-primary/10 cursor-pointer flex items-center gap-2">
+                        {isCreatingAssistant ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4"/>}
+                        Crear "{assistantSearch.trim()}"
+                      </div>
+                    )}
+                    {assistantSearch && filteredAssistants.length === 0 && !canCreateNewAssistant && (
+                      <div className="p-2 text-sm text-muted-foreground">No hay resultados.</div>
+                    )}
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
           </div>
 
-          {selectedAssistantDni && (
+          {selectedAssistant.assistantDni && (
             <div className="space-y-4 pt-4 border-t">
               <Label>Paso 2: Agregar Jaladores y Personal</Label>
               {isAssistantLabor && (
@@ -302,7 +374,7 @@ export default function AddAssistantDialog({
         </div>
         <DialogFooter className="flex flex-col gap-2 sm:flex-row">
            <Button type="button" className="w-full sm:w-auto" variant="outline" onClick={handleClose}>Cancelar</Button>
-           <Button type="button" className="w-full sm:w-auto" onClick={handleConfirm} disabled={!selectedAssistantDni || jaladoresList.length === 0}>
+           <Button type="button" className="w-full sm:w-auto" onClick={handleConfirm} disabled={!selectedAssistant.assistantDni || jaladoresList.length === 0}>
             Confirmar y Agregar a Lista
           </Button>
         </DialogFooter>
