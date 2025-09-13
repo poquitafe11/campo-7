@@ -3,11 +3,12 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection } from 'firebase/firestore';
 
 const CreateAsistenteSchema = z.object({
     nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
-    dni: z.string().length(8, "El DNI debe tener 8 dígitos."),
+    // DNI is optional now
+    dni: z.string().optional(),
     cargo: z.string().min(3, "El cargo es requerido."),
 });
 
@@ -15,14 +16,17 @@ export async function addAsistente(values: z.infer<typeof CreateAsistenteSchema>
     try {
         const validatedData = CreateAsistenteSchema.parse(values);
         
-        const docRef = doc(db, "asistentes", validatedData.dni);
+        // If DNI is provided and valid, use it. Otherwise, generate a unique ID.
+        const docRef = validatedData.dni && validatedData.dni.length === 8 
+            ? doc(db, "asistentes", validatedData.dni)
+            : doc(collection(db, "asistentes"));
 
         await setDoc(docRef, { 
             nombre: validatedData.nombre,
             cargo: validatedData.cargo,
         });
 
-        return { success: true, message: "Asistente creado.", id: validatedData.dni };
+        return { success: true, message: "Asistente creado.", id: docRef.id };
 
     } catch(error) {
         if (error instanceof z.ZodError) {

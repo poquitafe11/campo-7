@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -110,17 +109,8 @@ export default function AddAssistantDialog({
     setIsCreatingAssistant(true);
     const newName = assistantSearch.trim();
 
-    // A DNI is required, for this flow we can ask the user or generate a placeholder
-    // For now, let's prompt for it, although it complicates the flow. A better UX would be a small form.
-    // Let's create a simplified version: prompt for DNI.
-    const dni = prompt(`Por favor, ingrese el DNI para el nuevo asistente "${newName}":`);
-    if (!dni || dni.length !== 8 || isNaN(Number(dni))) {
-      toast({ title: 'DNI Inválido', description: 'Se requiere un DNI de 8 dígitos numéricos.', variant: 'destructive'});
-      setIsCreatingAssistant(false);
-      return;
-    }
-
-    const result = await addAsistente({ nombre: newName, dni: dni, cargo: "Asistente" });
+    // The DNI is optional, we pass it as empty and a unique ID will be generated.
+    const result = await addAsistente({ nombre: newName, dni: '', cargo: "Asistente" });
 
     if (result.success && result.id) {
       toast({ title: 'Éxito', description: `Asistente "${newName}" creado.`});
