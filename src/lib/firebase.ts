@@ -16,7 +16,6 @@ let auth: Auth;
 let db: Firestore;
 
 if (typeof window !== 'undefined') {
-    // This code only runs on the client
     const apps = getApps();
     app = apps.length ? apps[0]! : initializeApp(firebaseConfig);
 
@@ -25,26 +24,24 @@ if (typeof window !== 'undefined') {
         persistence: indexedDBLocalPersistence
       });
     } catch (e) {
-      auth = getAuth(app); // Fallback for existing auth instance
+      auth = getAuth(app); 
     }
 
     try {
-        db = getFirestore(app);
-        enableIndexedDbPersistence(db).catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn("Firestore persistence failed: Multiple tabs open.");
-            } else if (err.code == 'unimplemented') {
-                console.warn("Firestore persistence failed: Browser does not support it.");
-            }
-        });
+      db = initializeFirestore(app, {
+        cacheSizeBytes: CACHE_SIZE_UNLIMITED
+      });
+      enableIndexedDbPersistence(db).catch((err) => {
+          if (err.code == 'failed-precondition') {
+              console.warn("Firestore persistence failed: Multiple tabs open.");
+          } else if (err.code == 'unimplemented') {
+              console.warn("Firestore persistence failed: Browser does not support it.");
+          }
+      });
     } catch (e) {
-        db = getFirestore(app); // Fallback for existing firestore instance
+        db = getFirestore(app);
     }
 } else {
-    // On the server, we need to handle the case where these might be undefined.
-    // However, the logic in AuthWrapper should prevent server-side execution
-    // that relies on Firebase client SDKs. We initialize with placeholders
-    // to satisfy TypeScript, but they won't be used.
     const apps = getApps();
     if (apps.length === 0) {
         app = initializeApp(firebaseConfig);
