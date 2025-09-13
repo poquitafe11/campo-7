@@ -206,25 +206,32 @@ export default function DailyEntryPage() {
   }, [assistants, form]);
   
   useEffect(() => {
-    // Automatically add all assistants if code is 902 and a lot is selected
-    if (codeValue === '902' && selectedLoteData) {
-      const existingAssistants = new Set(assistants.map(a => a.assistantDni));
-      const allMasterAssistants = masterAssistants.filter(ma => !existingAssistants.has(ma.id));
+    if (codeValue === '902' && selectedLoteData && profile) {
+        const currentUserDni = profile.dni;
+        const currentUserName = profile.nombre;
+        
+        const alreadyExists = assistants.some(a => a.assistantDni === currentUserDni);
 
-      if (allMasterAssistants.length > 0) {
-        const newAssistantsToAdd = allMasterAssistants.map(ma => ({
-          id: crypto.randomUUID(),
-          assistantDni: ma.id,
-          assistantName: ma.assistantName,
-          personnelCount: 0,
-          absentCount: 0,
-          jaladores: []
-        }));
-        setAssistants(prev => [...prev, ...newAssistantsToAdd]);
-        toast({ title: "Asistentes Cargados", description: `Se agregaron ${allMasterAssistants.length} asistentes a la lista.`});
-      }
+        if (!alreadyExists) {
+            const newUserAssistant: Assistant = {
+                id: crypto.randomUUID(),
+                assistantDni: currentUserDni,
+                assistantName: currentUserName,
+                jaladores: [
+                    {
+                        id: crypto.randomUUID(),
+                        jaladorId: 'empresa',
+                        jaladorAlias: 'Jalador Empresa',
+                        personnelCount: 1,
+                        absentCount: 0,
+                    }
+                ]
+            };
+            setAssistants(prev => [...prev, newUserAssistant]);
+            toast({ title: "Asistencia de Usuario", description: `Se agregó a ${currentUserName} con 1 persona.` });
+        }
     }
-  }, [codeValue, selectedLoteData, masterAssistants, assistants, toast]);
+  }, [codeValue, selectedLoteData, profile, assistants, toast]);
 
   const handleAddAssistant = (newAssistant: Omit<Assistant, 'id'>) => {
     if (!selectedLoteData || !laborValue) return;
