@@ -1,13 +1,13 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench, Briefcase, ChevronDown } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench, Briefcase, ChevronDown, Filter, Calendar as CalendarIcon, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteAttendanceRecord, deleteAssistantFromRecord } from './actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -15,15 +15,28 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useRouter } from 'next/navigation';
-import type { AttendanceRecord, Assistant, JaladorAttendance } from '@/lib/types';
+import type { AttendanceRecord, Assistant, JaladorAttendance, User } from '@/lib/types';
 import EditAssistantDialog from '@/components/edit-assistant-dialog';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
-
+import * as xlsx from "xlsx";
+import { DateRange } from 'react-day-picker';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 type AttendanceRecordWithId = AttendanceRecord & { id: string };
+
+interface Filters {
+    campaign: string;
+    lote: string;
+    labor: string;
+    dateRange?: DateRange;
+}
 
 interface JaladorGroup {
     [jaladorAlias: string]: JaladorAttendance[];
@@ -49,19 +62,47 @@ interface DayGroup {
   [dateKey: string]: LaborGroup;
 }
 
+const getInitialFilters = (): Filters => ({
+    campaign: '',
+    lote: '',
+    labor: '',
+    dateRange: { from: undefined, to: undefined },
+});
 
 export default function AttendanceDatabasePage() {
   const [records, setRecords] = useState<AttendanceRecordWithId[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { setActions } = useHeaderActions();
   const router = useRouter();
   const { user } = useAuth();
-  const { lotes: masterLotes, loading: masterLoading } = useMasterData();
+  const { lotes: masterLotes, loading: masterLoading, labors: masterLabors } = useMasterData();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingData, setEditingData] = useState<{ record: AttendanceRecordWithId; assistant: Assistant } | null>(null);
+
+  const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
+  const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  const userMap = useMemo(() => {
+    const map = new Map<string, User>();
+    users.forEach(user => {
+        map.set(user.email, user);
+    });
+    map.set('marcoromau@gmail.com', {
+        email: 'marcoromau@gmail.com',
+        nombre: 'Marco Romau',
+        rol: 'Admin',
+        active: true,
+        dni: '00000000',
+        celular: '000000000'
+    });
+    return map;
+  }, [users]);
+
 
   useEffect(() => {
     setLoading(true);
@@ -94,20 +135,35 @@ export default function AttendanceDatabasePage() {
       });
       setLoading(false);
     });
+    
+    getDocs(collection(db, "usuarios")).then(snapshot => {
+        setUsers(snapshot.docs.map(doc => doc.data() as User));
+    });
+
     return () => unsubscribe();
   }, [toast]);
-  
-  useEffect(() => {
-    setActions({
-      title: "Historial de Asistencia"
+
+  const filteredRecords = useMemo(() => {
+    return records.filter(record => {
+      const { campaign, lote, labor, dateRange } = activeFilters;
+      if (campaign && record.campana !== campaign) return false;
+      if (lote && record.lotName !== lote) return false;
+      if (labor && record.labor !== labor) return false;
+
+      if (dateRange?.from) {
+        if (!record.date || record.date < startOfDay(dateRange.from)) return false;
+      }
+      if (dateRange?.to) {
+        if (!record.date || record.date > startOfDay(dateRange.to)) return false;
+      }
+      return true;
     });
-    return () => setActions({});
-  }, [setActions, router]);
+  }, [records, activeFilters]);
 
   const groupedByDate = useMemo(() => {
     const groups: DayGroup = {};
 
-    for (const record of records) {
+    for (const record of filteredRecords) {
         if (!record.date || !isValid(record.date)) continue;
         
         const dateKey = format(startOfDay(record.date), 'yyyy-MM-dd');
@@ -148,7 +204,6 @@ export default function AttendanceDatabasePage() {
                     existingAssistant!.jaladores[jalador.jaladorAlias].push(jalador);
                 });
             } else {
-                // Handle old records without jaladores array
                 const placeholderJalador = {
                     id: `empresa-${assistant.id}`,
                     jaladorId: 'empresa',
@@ -173,8 +228,8 @@ export default function AttendanceDatabasePage() {
         });
     }
     return groups;
-  }, [records]);
-  
+  }, [filteredRecords]);
+
   const handleEditAssistant = (recordId: string, assistant: Assistant) => {
     const record = records.find(r => r.id === recordId);
     if(record) {
@@ -234,6 +289,119 @@ export default function AttendanceDatabasePage() {
       }
     });
   };
+
+  const handleDownload = useCallback(() => {
+    if (filteredRecords.length === 0) {
+      toast({ title: 'Sin Datos', description: 'No hay registros que coincidan con los filtros para descargar.' });
+      return;
+    }
+
+    const dataToExport = filteredRecords.flatMap(record =>
+      (record.assistants || []).flatMap(assistant => {
+        const base = {
+          Fecha: format(record.date, 'dd/MM/yyyy'),
+          Campaña: record.campana,
+          Lote: record.lotName,
+          Variedad: record.variedad,
+          Cod_Labor: record.code,
+          Labor: record.labor,
+          Asistente: assistant.assistantName,
+          RegistradoPor: userMap.get(record.registeredBy || '')?.nombre || record.registeredBy,
+          FechaRegistro: record.createdAt ? format(record.createdAt, 'dd/MM/yyyy HH:mm') : '',
+          ModificadoPor: userMap.get(record.lastModifiedBy || '')?.nombre || record.lastModifiedBy,
+          FechaMod: record.lastModifiedAt ? format(record.lastModifiedAt, 'dd/MM/yyyy HH:mm') : '',
+        };
+
+        if (assistant.jaladores && assistant.jaladores.length > 0) {
+          return assistant.jaladores.map(jalador => ({
+            ...base,
+            Jalador: jalador.jaladorAlias,
+            Personal: jalador.personnelCount,
+            Faltos: jalador.absentCount,
+            LaborApoyada: jalador.supportedLabor || '',
+          }));
+        }
+        
+        return [{ ...base, Jalador: 'N/A', Personal: assistant.personnelCount || 0, Faltos: assistant.absentCount || 0, LaborApoyada: '' }];
+      })
+    );
+
+    const worksheet = xlsx.utils.json_to_sheet(dataToExport);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Asistencia");
+    xlsx.writeFile(workbook, "BaseDeDatos_Asistencia.xlsx");
+    toast({ title: 'Descarga Iniciada', description: 'El archivo de Excel se está descargando.' });
+
+  }, [filteredRecords, userMap, toast]);
+
+  const filterOptions = useMemo(() => {
+      const campaigns = [...new Set(records.map(item => item.campana))].sort();
+      const lotes = [...new Set(records.map(item => item.lotName).filter(Boolean) as string[])].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+      const labors = [...new Set(records.map(item => item.labor).filter(Boolean) as string[])].sort();
+      return { campaigns, lotes, labors };
+  }, [records]);
+
+  const handleApplyFilters = useCallback(() => {
+    setActiveFilters(popoverFilters);
+    setIsFilterOpen(false);
+  }, [popoverFilters]);
+  
+  const handleClearFilters = useCallback(() => {
+    const cleared = getInitialFilters();
+    setPopoverFilters(cleared);
+    setActiveFilters(cleared);
+    setIsFilterOpen(false);
+  }, []);
+
+  useEffect(() => {
+    setActions({
+      title: "Historial de Asistencia",
+      right: (
+        <div className="flex items-center gap-1">
+           <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Filter className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                  <div className="grid gap-4">
+                      <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+                      <div className="grid gap-2">
+                          <Label>Campaña</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                          <Label>Lote</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                          <Label>Labor</Label>
+                          <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                          <Label>Rango de Fechas</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                                <Button id="date" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-9', !popoverFilters.dateRange?.from && 'text-muted-foreground' )}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es })} - {format(popoverFilters.dateRange.to, 'LLL dd, y', { locale: es })}</>) : (format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es }))) : (<span>Seleccione un rango</span>)}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar initialFocus mode="range" defaultMonth={popoverFilters.dateRange?.from} selected={popoverFilters.dateRange} onSelect={(range) => setPopoverFilters(p => ({...p, dateRange: range}))} numberOfMonths={1} locale={es} />
+                            </PopoverContent>
+                          </Popover>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                         <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar Filtros</Button>
+                         <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                      </div>
+                  </div>
+              </PopoverContent>
+            </Popover>
+           <Button variant="ghost" size="icon" onClick={handleDownload} disabled={filteredRecords.length === 0} className="h-9 w-9">
+              <FileDown className="h-5 w-5" />
+            </Button>
+        </div>
+      )
+    });
+    return () => setActions({});
+  }, [setActions, router, handleDownload, filteredRecords.length, popoverFilters, filterOptions, isFilterOpen, handleApplyFilters, handleClearFilters]);
   
   const sortedDateKeys = useMemo(() => {
     return Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
@@ -269,11 +437,11 @@ export default function AttendanceDatabasePage() {
                             <AccordionContent className="pt-0 px-4 pb-4 space-y-2">
                                 {record && (
                                     <div className="text-xs text-muted-foreground space-y-1 text-right">
-                                        <p>Registrado por: {record.registeredBy || 'N/A'}</p>
+                                        <p>Registrado por: {userMap.get(record.registeredBy || '')?.nombre || record.registeredBy || 'N/A'}</p>
                                         <p>Fecha de creación: {record.createdAt ? format(record.createdAt, 'Pp', { locale: es }) : 'N/A'}</p>
                                         {record.lastModifiedBy && (
                                             <>
-                                                <p>Última mod. por: {record.lastModifiedBy}</p>
+                                                <p>Última mod. por: {userMap.get(record.lastModifiedBy || '')?.nombre || record.lastModifiedBy}</p>
                                                 <p>Fecha de mod.: {record.lastModifiedAt ? format(record.lastModifiedAt, 'Pp', { locale: es }) : 'N/A'}</p>
                                             </>
                                         )}
@@ -402,7 +570,7 @@ export default function AttendanceDatabasePage() {
             </Accordion>
         ) : (
             <div className="flex h-64 items-center justify-center rounded-lg border border-dashed">
-                <p className="text-center text-muted-foreground">No se encontraron registros de asistencia.</p>
+                <p className="text-center text-muted-foreground">No se encontraron registros de asistencia para los filtros seleccionados.</p>
             </div>
         )}
         <EditAssistantDialog 
