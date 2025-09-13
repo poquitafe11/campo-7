@@ -206,7 +206,7 @@ export default function DailyEntryPage() {
   }, [assistants, form]);
   
   useEffect(() => {
-    if (codeValue === '902' && selectedLoteData && profile?.rol === 'Supervisor') {
+    if (codeValue === '902' && selectedLoteData && profile) {
         const currentUserDni = profile.dni;
         const currentUserName = profile.nombre;
         
