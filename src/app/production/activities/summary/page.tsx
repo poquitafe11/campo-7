@@ -213,26 +213,28 @@ export default function ActivitySummaryPage() {
             const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
             return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
-
+    
         const assistantData = new Map<string, { totalProm: number, count: number }>();
         const assistantNameMap = new Map<string, string>();
-
+    
         asistentes.forEach(a => {
             assistantNameMap.set(a.id, a.assistantName);
         });
-
+    
         filtered.forEach(activity => {
-            if (activity.createdBy) {
+            // Use assistantDni if available, fallback to createdBy for older records
+            const assistantId = activity.assistantDni || activity.createdBy;
+            if (assistantId) {
                 const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
-                if (!assistantData.has(activity.createdBy)) {
-                    assistantData.set(activity.createdBy, { totalProm: 0, count: 0 });
+                if (!assistantData.has(assistantId)) {
+                    assistantData.set(assistantId, { totalProm: 0, count: 0 });
                 }
-                const current = assistantData.get(activity.createdBy)!;
+                const current = assistantData.get(assistantId)!;
                 current.totalProm += promJHU;
                 current.count += 1;
             }
         });
-
+    
         return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
             name: assistantNameMap.get(assistantId) || assistantId,
             promedio: data.count > 0 ? data.totalProm / data.count : 0,
