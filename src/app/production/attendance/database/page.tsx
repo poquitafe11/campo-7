@@ -2,14 +2,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench, Briefcase, ChevronDown, Filter, Calendar as CalendarIcon, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteAttendanceRecord, deleteAssistantFromRecord } from './actions';
+import { deleteAssistantFromRecord } from './actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -335,7 +335,7 @@ export default function AttendanceDatabasePage() {
   }, [filteredRecords, userMap, toast]);
 
   const filterOptions = useMemo(() => {
-      const campaigns = [...new Set(records.map(item => item.campana))].sort();
+      const campaigns = [...new Set(records.map(item => item.campana).filter(Boolean))].sort();
       const lotes = [...new Set(records.map(item => item.lotName).filter(Boolean) as string[])].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
       const labors = [...new Set(records.map(item => item.labor).filter(Boolean) as string[])].sort();
       return { campaigns, lotes, labors };
@@ -582,3 +582,5 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
+
+    
