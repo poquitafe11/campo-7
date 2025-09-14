@@ -29,17 +29,20 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ActivityRecordData, ActivityRecordSchema, LoteData } from '@/lib/types';
+import { ActivityRecordData, ActivityRecordSchema, LoteData, User } from '@/lib/types';
 import { useMasterData } from '@/context/MasterDataContext';
 import { updateActivity } from '@/app/production/activities/database/actions';
-import { CalendarIcon, Grape, Boxes, Loader2 } from 'lucide-react';
+import { CalendarIcon, Grape, Boxes, Loader2, User as UserIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 const EditActivityFormSchema = ActivityRecordSchema.partial().extend({
   registerDate: z.date({required_error: "La fecha es requerida."}),
+  createdBy: z.string().email("Debe ser un email válido.").optional(),
 });
 
 type EditActivityFormValues = z.infer<typeof EditActivityFormSchema>;
@@ -55,6 +58,16 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const { labors, lotes, loading: masterLoading } = useMasterData();
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    const q = collection(db, "usuarios");
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const usersData = snapshot.docs.map(doc => doc.data() as User);
+      setUsers(usersData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const form = useForm<EditActivityFormValues>({
     resolver: zodResolver(EditActivityFormSchema),
@@ -126,6 +139,10 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
   const extraPerformanceLabel = codeValue === '46' ? "Rendimiento (Racimos)" : "Rendimiento (Jabas)";
   const ExtraPerformanceIcon = codeValue === '46' ? Grape : Boxes;
 
+  const availableAssistants = useMemo(() => {
+    return users.filter(u => u.rol === 'Asistente' || u.rol === 'Supervisor' || u.rol === 'Jefe');
+  }, [users]);
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -139,32 +156,58 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
             
-            <FormField
-              control={form.control}
-              name="registerDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fecha de Registro</FormLabel>
-                   <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={es} />
-                      </PopoverContent>
-                    </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="registerDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha de Registro</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={'outline'}
+                              className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={es} />
+                        </PopoverContent>
+                      </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="createdBy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2"><UserIcon className="h-4 w-4" />Asistente</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar asistente..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableAssistants.map(assistant => (
+                          <SelectItem key={assistant.email} value={assistant.email}>
+                            {assistant.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                <FormField control={form.control} name="campaign" render={({ field }) => (
@@ -276,3 +319,5 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
     </Dialog>
   );
 }
+
+    

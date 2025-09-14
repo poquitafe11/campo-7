@@ -197,7 +197,7 @@ export const ActivityRecordSchema = z.object({
     maxRange: z.coerce.number(),
     pass: z.coerce.number(),
     observations: z.string().optional(),
-    createdBy: z.string().email("Debe ser un email válido."),
+    createdBy: z.string().email("Debe ser un email válido.").optional(),
 });
 export type ActivityRecordData = z.infer<typeof ActivityRecordSchema>;
 
@@ -257,3 +257,5 @@ export const PhenologySchema = z.object({
   createdAt: z.date(),
 });
 export type PhenologyData = z.infer<typeof PhenologySchema>;
+
+    
