@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, Filter, RefreshCcw } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList } from 'recharts';
 
 import { type ActivityRecordData, type LoteData, Presupuesto, MinMax } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -47,7 +47,7 @@ export default function ActivitySummaryPage() {
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
     const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
     const [allMinMax, setAllMinMax] = useState<MinMax[]>([]);
-    const { lotes: allLotes, labors: allLabors, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+    const { lotes: allLotes, labors: allLabors, asistentes, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
     
     const [activeFilters, setActiveFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
     const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
@@ -204,33 +204,40 @@ export default function ActivitySummaryPage() {
         if (laborCode === '67') return 'JABAS';
         return '';
     }, [isSpecialLabor, activeFilters.labor, allLabors]);
-
-    const averagePerformanceByLabor = useMemo(() => {
-         const filtered = allActivities.filter(a => {
+    
+    const assistantPerformanceData = useMemo(() => {
+        const filtered = allActivities.filter(a => {
             const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
             const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
-            return campaignMatch && loteMatch;
+            const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
+            const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
+            return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
 
-        const laborData = new Map<string, { totalProm: number, count: number }>();
+        const assistantData = new Map<string, { totalProm: number, count: number }>();
+        const assistantNameMap = new Map<string, string>();
+
+        asistentes.forEach(a => {
+            assistantNameMap.set(a.id, a.assistantName);
+        });
 
         filtered.forEach(activity => {
-            if (activity.labor) {
+            if (activity.createdBy) {
                 const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
-                if (!laborData.has(activity.labor)) {
-                    laborData.set(activity.labor, { totalProm: 0, count: 0 });
+                if (!assistantData.has(activity.createdBy)) {
+                    assistantData.set(activity.createdBy, { totalProm: 0, count: 0 });
                 }
-                const current = laborData.get(activity.labor)!;
+                const current = assistantData.get(activity.createdBy)!;
                 current.totalProm += promJHU;
                 current.count += 1;
             }
         });
 
-        return Array.from(laborData.entries()).map(([labor, data]) => ({
-            name: labor,
+        return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
+            name: assistantNameMap.get(assistantId) || assistantId,
             promedio: data.count > 0 ? data.totalProm / data.count : 0,
         }));
-    }, [allActivities, activeFilters]);
+    }, [allActivities, asistentes, activeFilters]);
 
     const chartConfig: ChartConfig = {
         promedio: {
@@ -238,7 +245,6 @@ export default function ActivitySummaryPage() {
             color: "#3b82f6",
         },
     };
-
 
     const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
         { label: "N° PERS.", key: "personas" },
@@ -400,23 +406,25 @@ export default function ActivitySummaryPage() {
                 </div>
             )}
 
-            {averagePerformanceByLabor.length > 0 && (
+            {assistantPerformanceData.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Gráfico 1: Promedio de Rendimiento por Labor</CardTitle>
+                        <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
                         <CardDescription>
-                            Promedio de rendimiento (Prom./JHU) para cada labor, según los filtros activos.
+                            Promedio de rendimiento (Prom./JHU) para cada asistente, según los filtros activos.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                            <BarChart data={averagePerformanceByLabor} layout="vertical" margin={{ left: 100 }}>
-                                <CartesianGrid horizontal={false} />
-                                <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={200} />
-                                <XAxis type="number" />
+                            <BarChart data={assistantPerformanceData} margin={{ top: 20 }}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} />
+                                <YAxis />
                                 <ChartTooltip content={<ChartTooltipContent />} />
                                 <Legend />
-                                <Bar dataKey="promedio" fill="var(--color-promedio)" radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
+                                    <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} />
+                                </Bar>
                             </BarChart>
                         </ChartContainer>
                     </CardContent>
