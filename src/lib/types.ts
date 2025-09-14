@@ -197,7 +197,7 @@ export const ActivityRecordSchema = z.object({
     maxRange: z.coerce.number(),
     pass: z.coerce.number(),
     observations: z.string().optional(),
-    createdBy: z.string().email("Debe ser un email válido.").optional(),
+    createdBy: z.string().optional(),
 });
 export type ActivityRecordData = z.infer<typeof ActivityRecordSchema>;
 

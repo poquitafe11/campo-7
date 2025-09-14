@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useTransition, useState } from 'react';
+import { useEffect, useMemo, useTransition } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,7 +42,7 @@ import { db } from '@/lib/firebase';
 
 const EditActivityFormSchema = ActivityRecordSchema.partial().extend({
   registerDate: z.date({required_error: "La fecha es requerida."}),
-  createdBy: z.string().email("Debe ser un email válido.").optional(),
+  createdBy: z.string().optional(),
 });
 
 type EditActivityFormValues = z.infer<typeof EditActivityFormSchema>;
@@ -57,17 +57,7 @@ interface EditActivityDialogProps {
 export default function EditActivityDialog({ isOpen, onOpenChange, activity, onSuccess }: EditActivityDialogProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const { labors, lotes, loading: masterLoading } = useMasterData();
-  const [users, setUsers] = useState<User[]>([]);
-
-  useEffect(() => {
-    const q = collection(db, "usuarios");
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => doc.data() as User);
-      setUsers(usersData);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { labors, lotes, asistentes, loading: masterLoading } = useMasterData();
 
   const form = useForm<EditActivityFormValues>({
     resolver: zodResolver(EditActivityFormSchema),
@@ -139,11 +129,6 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
   const extraPerformanceLabel = codeValue === '46' ? "Rendimiento (Racimos)" : "Rendimiento (Jabas)";
   const ExtraPerformanceIcon = codeValue === '46' ? Grape : Boxes;
 
-  const availableAssistants = useMemo(() => {
-    return users.filter(u => u.rol === 'Asistente' || u.rol === 'Supervisor' || u.rol === 'Jefe');
-  }, [users]);
-
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
@@ -196,9 +181,9 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availableAssistants.map(assistant => (
-                          <SelectItem key={assistant.email} value={assistant.email}>
-                            {assistant.nombre}
+                        {asistentes.map(assistant => (
+                          <SelectItem key={assistant.id} value={assistant.id}>
+                            {assistant.assistantName}
                           </SelectItem>
                         ))}
                       </SelectContent>

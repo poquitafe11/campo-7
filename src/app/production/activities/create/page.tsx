@@ -57,7 +57,7 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
 
 export default function CreateActivityPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isPending, startTransition] = useTransition();
   const { labors, lotes, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
@@ -112,10 +112,10 @@ export default function CreateActivityPage() {
   }, [codeValue, labors, form]);
 
   useEffect(() => {
-    if (user?.email) {
-      form.setValue('createdBy', user.email);
+    if (profile?.dni) {
+      form.setValue('createdBy', profile.dni);
     }
-  }, [user, form]);
+  }, [profile, form]);
   
   const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(codeValue || ''), [codeValue]);
   const performanceLabel = showExtraPerformanceField ? "Rendimiento (Plantas)" : "Rendimiento";
@@ -148,7 +148,7 @@ export default function CreateActivityPage() {
               maxRange: 0,
               pass: 0,
               observations: '',
-              createdBy: user?.email || '',
+              createdBy: profile?.dni || '',
             });
         } else {
             toast({
