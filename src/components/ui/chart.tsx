@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -144,7 +145,7 @@ const ChartTooltipContent = React.forwardRef<
       const value =
         !labelKey && typeof label === "string"
           ? config[label as keyof typeof config]?.label || label
-          : itemConfig?.label
+          : itemConfig?.label || item.payload[labelKey as keyof typeof item.payload]
 
       if (labelFormatter) {
         return (

@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, Filter, RefreshCcw } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis } from 'recharts';
 
 import { type ActivityRecordData, type LoteData, Presupuesto, MinMax } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DetailedSummaryTable } from '@/components/DetailedSummaryTable';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 
 
 interface SummaryValues {
@@ -202,6 +205,40 @@ export default function ActivitySummaryPage() {
         return '';
     }, [isSpecialLabor, activeFilters.labor, allLabors]);
 
+    const averagePerformanceByLabor = useMemo(() => {
+         const filtered = allActivities.filter(a => {
+            const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
+            const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
+            return campaignMatch && loteMatch;
+        });
+
+        const laborData = new Map<string, { totalProm: number, count: number }>();
+
+        filtered.forEach(activity => {
+            if (activity.labor) {
+                const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
+                if (!laborData.has(activity.labor)) {
+                    laborData.set(activity.labor, { totalProm: 0, count: 0 });
+                }
+                const current = laborData.get(activity.labor)!;
+                current.totalProm += promJHU;
+                current.count += 1;
+            }
+        });
+
+        return Array.from(laborData.entries()).map(([labor, data]) => ({
+            name: labor,
+            promedio: data.count > 0 ? data.totalProm / data.count : 0,
+        }));
+    }, [allActivities, activeFilters]);
+
+    const chartConfig: ChartConfig = {
+        promedio: {
+            label: "Prom./JHU",
+            color: "#3b82f6",
+        },
+    };
+
 
     const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
         { label: "N° PERS.", key: "personas" },
@@ -361,6 +398,29 @@ export default function ActivitySummaryPage() {
                 <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
                     <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir Lote, Labor y Pasada.</p>
                 </div>
+            )}
+
+            {averagePerformanceByLabor.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Gráfico 1: Promedio de Rendimiento por Labor</CardTitle>
+                        <CardDescription>
+                            Promedio de rendimiento (Prom./JHU) para cada labor, según los filtros activos.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                            <BarChart data={averagePerformanceByLabor} layout="vertical" margin={{ left: 100 }}>
+                                <CartesianGrid horizontal={false} />
+                                <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={200} />
+                                <XAxis type="number" />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Legend />
+                                <Bar dataKey="promedio" fill="var(--color-promedio)" radius={[0, 4, 4, 0]} />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
             )}
 
             <DetailedSummaryTable 
