@@ -7,8 +7,7 @@ import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ActivityRecordSchema } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
-// Allow updating a subset of fields. The ID and creation date should not be changed.
-// We explicitly include `createdBy` to allow re-assigning the activity.
+// Allow updating a subset of fields.
 const UpdateActivityRecordSchema = ActivityRecordSchema.partial();
 type UpdateActivityRecordData = z.infer<typeof UpdateActivityRecordSchema>;
 

@@ -86,6 +86,7 @@ export default function CreateActivityPage() {
       maxRange: 0,
       pass: 0,
       observations: '',
+      assistantDni: '',
       createdBy: '',
     },
   });
@@ -113,9 +114,12 @@ export default function CreateActivityPage() {
 
   useEffect(() => {
     if (profile?.dni) {
-      form.setValue('createdBy', profile.dni);
+      form.setValue('assistantDni', profile.dni);
     }
-  }, [profile, form]);
+    if (user?.email) {
+      form.setValue('createdBy', user.email);
+    }
+  }, [profile, user, form]);
   
   const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(codeValue || ''), [codeValue]);
   const performanceLabel = showExtraPerformanceField ? "Rendimiento (Plantas)" : "Rendimiento";
@@ -148,7 +152,8 @@ export default function CreateActivityPage() {
               maxRange: 0,
               pass: 0,
               observations: '',
-              createdBy: profile?.dni || '',
+              assistantDni: profile?.dni || '',
+              createdBy: user?.email || '',
             });
         } else {
             toast({

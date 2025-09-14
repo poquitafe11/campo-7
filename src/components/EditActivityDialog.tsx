@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ActivityRecordData, ActivityRecordSchema, LoteData, User } from '@/lib/types';
+import { ActivityRecordData, ActivityRecordSchema, LoteData } from '@/lib/types';
 import { useMasterData } from '@/context/MasterDataContext';
 import { updateActivity } from '@/app/production/activities/database/actions';
 import { CalendarIcon, Grape, Boxes, Loader2, User as UserIcon } from 'lucide-react';
@@ -42,7 +42,7 @@ import { db } from '@/lib/firebase';
 
 const EditActivityFormSchema = ActivityRecordSchema.partial().extend({
   registerDate: z.date({required_error: "La fecha es requerida."}),
-  createdBy: z.string().optional(),
+  assistantDni: z.string().optional(),
 });
 
 type EditActivityFormValues = z.infer<typeof EditActivityFormSchema>;
@@ -170,7 +170,7 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
               />
                <FormField
                 control={form.control}
-                name="createdBy"
+                name="assistantDni"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2"><UserIcon className="h-4 w-4" />Asistente</FormLabel>

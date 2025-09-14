@@ -14,7 +14,7 @@ import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firest
 import { db } from '@/lib/firebase';
 import { format, getWeek, parseISO, differenceInDays, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ActivityRecordData, User, LoteData, Presupuesto, MinMax } from '@/lib/types';
+import { ActivityRecordData, User, LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +65,7 @@ export default function ActivityDatabasePage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   
-  const { lotes, loading: masterLoading } = useMasterData();
+  const { lotes, asistentes, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
 
   const [globalFilter, setGlobalFilter] = useState('');
@@ -89,6 +89,12 @@ export default function ActivityDatabasePage() {
     });
     return map;
   }, [users]);
+
+  const assistantMap = useMemo(() => {
+    const map = new Map<string, Assistant>();
+    asistentes.forEach(a => map.set(a.id, a));
+    return map;
+  }, [asistentes]);
   
   const lotesMap = useMemo(() => {
     const map = new Map<string, LoteData>();
@@ -239,7 +245,7 @@ export default function ActivityDatabasePage() {
         return 'N/A';
     }},
     { header: 'var', cell: ({row}) => lotesMap.get(row.original.lote)?.variedad || 'N/A' },
-    { header: 'Asistente', cell: ({ row }) => userMap.get(row.original.createdBy)?.nombre || row.original.createdBy },
+    { header: 'Asistente', cell: ({ row }) => assistantMap.get(row.original.assistantDni)?.assistantName || row.original.assistantDni },
     { header: 'Cod Lote', accessorKey: 'lote' },
     { header: 'COD. LABOR', accessorKey: 'code' },
     { header: 'Labor', accessorKey: 'labor' },
@@ -438,7 +444,7 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap, minMaxMap]);
+  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap, minMaxMap, assistantMap]);
 
   const filteredData = useMemo(() => {
     let filtered = data;
@@ -504,6 +510,7 @@ export default function ActivityDatabasePage() {
         Min: rest.minRange,
         Max: rest.maxRange,
         Observaciones: rest.observations,
+        Asistente: assistantMap.get(rest.assistantDni)?.assistantName || rest.assistantDni,
         Usuario: userMap.get(createdBy)?.nombre || createdBy,
       };
     });
