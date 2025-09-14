@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -12,13 +12,13 @@ import {
 } from '@tanstack/react-table';
 import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, getWeek, parseISO, differenceInDays, isValid } from 'date-fns';
+import { format, getWeek, parseISO, differenceInDays, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ActivityRecordData, User, LoteData, Presupuesto, MinMax } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, FileDown } from 'lucide-react';
+import { Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, FileDown, Filter, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteActivity } from './actions';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
@@ -26,9 +26,33 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import * as xlsx from "xlsx";
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { cn } from '@/lib/utils';
 
 
 type ActivityRecordWithId = ActivityRecordData & { id: string };
+
+interface Filters {
+    campaign: string;
+    stage: string;
+    lote: string;
+    labor: string;
+    pass: string;
+    dateRange?: DateRange;
+}
+
+const getInitialFilters = (): Filters => ({
+    campaign: '',
+    stage: '',
+    lote: '',
+    labor: '',
+    pass: '',
+    dateRange: { from: undefined, to: undefined },
+});
 
 export default function ActivityDatabasePage() {
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
@@ -40,10 +64,14 @@ export default function ActivityDatabasePage() {
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecordWithId | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const [globalFilter, setGlobalFilter] = useState('');
   
   const { lotes, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
+
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
+  const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const userMap = useMemo(() => {
     const map = new Map<string, User>();
@@ -413,23 +441,45 @@ export default function ActivityDatabasePage() {
   ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap, minMaxMap]);
 
   const filteredData = useMemo(() => {
-    return data.filter(item => {
-        const lowerGlobalFilter = globalFilter.toLowerCase();
-        return globalFilter ? 
-            (item.labor?.toLowerCase().includes(lowerGlobalFilter) || 
-             item.lote?.toLowerCase().includes(lowerGlobalFilter) ||
-             item.campaign?.toLowerCase().includes(lowerGlobalFilter))
-            : true;
-    });
-  }, [data, globalFilter]);
+    let filtered = data;
+
+    if (globalFilter) {
+      const lowerGlobalFilter = globalFilter.toLowerCase();
+      filtered = filtered.filter(item =>
+        item.labor?.toLowerCase().includes(lowerGlobalFilter) || 
+        item.lote?.toLowerCase().includes(lowerGlobalFilter) ||
+        item.campaign?.toLowerCase().includes(lowerGlobalFilter)
+      );
+    }
+    
+    if (activeFilters.campaign) {
+      filtered = filtered.filter(item => item.campaign === activeFilters.campaign);
+    }
+    if (activeFilters.stage) {
+      filtered = filtered.filter(item => item.stage === activeFilters.stage);
+    }
+    if (activeFilters.lote) {
+      filtered = filtered.filter(item => item.lote === activeFilters.lote);
+    }
+    if (activeFilters.labor) {
+      filtered = filtered.filter(item => item.labor === activeFilters.labor);
+    }
+    if (activeFilters.pass) {
+      filtered = filtered.filter(item => String(item.pass) === activeFilters.pass);
+    }
+    if (activeFilters.dateRange?.from) {
+        filtered = filtered.filter(item => item.registerDate >= startOfDay(activeFilters.dateRange!.from!));
+    }
+    if (activeFilters.dateRange?.to) {
+        filtered = filtered.filter(item => item.registerDate <= startOfDay(activeFilters.dateRange!.to!));
+    }
+
+    return filtered;
+  }, [data, globalFilter, activeFilters]);
 
   const table = useReactTable({
     data: filteredData,
     columns,
-    state: {
-        globalFilter,
-    },
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -462,6 +512,27 @@ export default function ActivityDatabasePage() {
     xlsx.utils.book_append_sheet(workbook, worksheet, "Actividades");
     xlsx.writeFile(workbook, "BaseDeActividades.xlsx");
   };
+
+  const filterOptions = useMemo(() => {
+    const campaigns = [...new Set(data.map(item => item.campaign).filter(Boolean))];
+    const stages = [...new Set(data.map(item => item.stage).filter(Boolean))];
+    const lotes = [...new Set(data.map(item => item.lote).filter(Boolean))];
+    const labors = [...new Set(data.map(item => item.labor).filter(Boolean))];
+    const passes = [...new Set(data.map(item => String(item.pass)))];
+    return { campaigns, stages, lotes, labors, passes };
+  }, [data]);
+  
+  const handleApplyFilters = useCallback(() => {
+    setActiveFilters(popoverFilters);
+    setIsFilterOpen(false);
+  }, [popoverFilters]);
+
+  const handleClearFilters = useCallback(() => {
+    const cleared = getInitialFilters();
+    setPopoverFilters(cleared);
+    setActiveFilters(cleared);
+    setIsFilterOpen(false);
+  }, []);
   
     return (
       <div className="flex flex-col h-full space-y-4">
@@ -472,10 +543,55 @@ export default function ActivityDatabasePage() {
                 onChange={(event) => setGlobalFilter(event.target.value)}
                 className="w-full sm:max-w-sm h-9"
             />
-            <Button onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} size="sm">
-                <FileDown className="h-4 w-4 mr-2" />
-                Descargar Excel
-            </Button>
+            <div className="flex items-center gap-2">
+                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-9">
+                            <Filter className="mr-2 h-4 w-4" />
+                            Filtros Avanzados
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                        <div className="grid gap-4">
+                            <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Filtros Avanzados</h4>
+                            </div>
+                             <div className="grid gap-2">
+                                <Label>Campaña</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v}))} value={popoverFilters.campaign}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Label>Etapa</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, stage: v === 'all' ? '' : v}))} value={popoverFilters.stage}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.stages.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Label>Lote</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Label>Labor</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Label>Pasada</Label>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pass: v === 'all' ? '' : v}))} value={popoverFilters.pass}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.passes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Label>Fecha</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button id="date" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-9', !popoverFilters.dateRange?.from && 'text-muted-foreground' )}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es })} - {format(popoverFilters.dateRange.to, 'LLL dd, y', { locale: es })}</>) : (format(popoverFilters.dateRange.from, 'LLL dd, y', { locale: es }))) : (<span>Seleccione un rango</span>)}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar initialFocus mode="range" defaultMonth={popoverFilters.dateRange?.from} selected={popoverFilters.dateRange} onSelect={(range) => setPopoverFilters(p => ({...p, dateRange: range}))} numberOfMonths={2} locale={es} />
+                                    </PopoverContent>
+                                </Popover>
+                             </div>
+                             <div className="flex justify-between items-center pt-2">
+                                <Button variant="ghost" size="sm" onClick={handleClearFilters}>Limpiar</Button>
+                                <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
+                             </div>
+                        </div>
+                    </PopoverContent>
+                </Popover>
+                <Button onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} size="sm" className="h-9">
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Descargar
+                </Button>
+            </div>
         </div>
         
         <div className="flex-1 rounded-lg border overflow-x-auto min-h-0">
