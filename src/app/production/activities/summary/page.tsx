@@ -212,7 +212,7 @@ export default function ActivitySummaryPage() {
         return '';
     }, [isSpecialLabor, activeFilters.labor, allLabors]);
     
-   const assistantPerformanceData = useMemo(() => {
+   const {data: assistantPerformanceData, maxRendimiento} = useMemo(() => {
         const filtered = allActivities.filter(a => {
             const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
             const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
@@ -242,12 +242,17 @@ export default function ActivitySummaryPage() {
             }
         });
         
-        return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
+        const chartData = Array.from(assistantData.entries()).map(([assistantId, data]) => ({
             name: assistantNameMap.get(assistantId) || assistantId,
             promedio: data.workdaySum > 0 ? data.performanceSum / data.workdaySum : 0,
             rendimiento: isSpecialLabor ? data.specialPerformanceSum : data.performanceSum,
             jornadas: data.workdaySum,
         }));
+
+        const maxRendimiento = Math.max(0, ...chartData.map(d => d.rendimiento));
+
+        return { data: chartData, maxRendimiento };
+
     }, [allActivities, asistentes, activeFilters, isSpecialLabor]);
 
     const chartConfig: ChartConfig = {
@@ -433,7 +438,7 @@ export default function ActivitySummaryPage() {
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} interval={0} />
                                         <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-rendimiento)" />
+                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-rendimiento)" domain={[0, maxRendimiento * 2]}/>
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend />
                                         <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
