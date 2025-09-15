@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, Filter, RefreshCcw, User as UserIcon } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip } from 'recharts';
 
 import { type ActivityRecordData, type LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -111,31 +111,27 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        const dateMap = new Map<string, { personas: number; plantas: number; clustersOrJabas: number; jhu: number; minRanges: number[], maxRanges: number[] }>();
+        const dateMap = new Map<string, { personas: number; plantas: number; clustersOrJabas: number; jhu: number; activities: ActivityRecordData[] }>();
         
         filteredActivities.forEach(activity => {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
             if (!dateMap.has(dateKey)) {
-                dateMap.set(dateKey, { personas: 0, plantas: 0, clustersOrJabas: 0, jhu: 0, minRanges: [], maxRanges: [] });
+                dateMap.set(dateKey, { personas: 0, plantas: 0, clustersOrJabas: 0, jhu: 0, activities: [] });
             }
             const dayData = dateMap.get(dateKey)!;
             dayData.personas += activity.personnelCount;
             dayData.plantas += (activity.performance || 0);
             dayData.clustersOrJabas += (activity.clustersOrJabas || 0);
             dayData.jhu += activity.workdayCount;
-
-            dayData.minRanges.push(activity.minRange || 0);
-            dayData.maxRanges.push(activity.maxRange || 0);
+            dayData.activities.push(activity);
         });
         
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
-            const min = data.minRanges.length > 0 ? Math.min(...data.minRanges) : 0;
-            const max = data.maxRanges.length > 0 ? Math.max(...data.maxRanges) : 0;
             
-            const individualPromedios = filteredActivities
-                .filter(a => format(a.registerDate, 'yyyy-MM-dd') === dateStr)
-                .map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
+            const individualPromedios = data.activities.map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
+            const min = data.activities.length > 0 ? Math.min(...data.activities.map(a => a.minRange || 0)) : 0;
+            const max = data.activities.length > 0 ? Math.max(...data.activities.map(a => a.maxRange || 0)) : 0;
 
             return {
                 date: parseISO(dateStr),
@@ -244,7 +240,7 @@ export default function ActivitySummaryPage() {
         return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
             name: assistantNameMap.get(assistantId) || assistantId,
             promedio: data.count > 0 ? data.totalProm / data.count : 0,
-            rendimientoEspecial: isSpecialLabor ? data.totalClustersOrJabas : data.totalPerformance,
+            rendimiento: isSpecialLabor ? data.totalClustersOrJabas : data.totalPerformance,
             jornadas: data.totalWorkdayCount,
         }));
     }, [allActivities, asistentes, activeFilters, isSpecialLabor]);
@@ -254,12 +250,12 @@ export default function ActivitySummaryPage() {
             label: "Prom./JHU",
             color: "#3b82f6",
         },
-        rendimientoEspecial: {
-            label: `Total ${specialLaborName || 'Rdto.'}`,
+        rendimiento: {
+            label: `Rendimiento`,
             color: "#ef4444",
         },
         jornadas: {
-            label: "Total Jornadas",
+            label: "Jornadas",
             color: "#22c55e",
         },
     };
@@ -417,6 +413,35 @@ export default function ActivitySummaryPage() {
                             </tbody>
                         </table>
                     </div>
+
+                    {assistantPerformanceData.length > 0 && (
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
+                                <CardDescription>
+                                    Comparativa del rendimiento promedio, rendimiento total y jornadas totales por asistente.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                        <CartesianGrid vertical={false} />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} interval={0} />
+                                        <YAxis yAxisId="left" orientation="left" stroke="#3b82f6" />
+                                        <YAxis yAxisId="right" orientation="right" stroke="#ef4444" />
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <Legend />
+                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
+                                            <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} />
+                                        </Bar>
+                                        <Line yAxisId="right" type="monotone" dataKey="rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={false} />
+                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={false} />
+                                    </ComposedChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+                    
                 </div>
             ) : (
                 <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
@@ -424,33 +449,6 @@ export default function ActivitySummaryPage() {
                 </div>
             )}
             
-            {assistantPerformanceData.length > 0 && (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
-                        <CardDescription>
-                            Comparativa del rendimiento promedio, rendimiento especial y jornadas totales por asistente.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                            <ComposedChart data={assistantPerformanceData} margin={{ top: 20 }}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} />
-                                <YAxis />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Legend />
-                                <Bar dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
-                                    <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} />
-                                </Bar>
-                                <Line type="monotone" dataKey="rendimientoEspecial" stroke="var(--color-rendimientoEspecial)" strokeWidth={2} dot={false} />
-                                <Line type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={false} />
-                            </ComposedChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-            )}
-
             <DetailedSummaryTable 
                 allActivities={allActivities} 
                 allLotes={allLotes} 
