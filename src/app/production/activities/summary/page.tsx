@@ -132,9 +132,11 @@ export default function ActivitySummaryPage() {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
             const min = data.minRanges.length > 0 ? Math.min(...data.minRanges) : 0;
             const max = data.maxRanges.length > 0 ? Math.max(...data.maxRanges) : 0;
-
-            const promJHU = data.jhu > 0 ? data.plantas / data.jhu : 0;
             
+            const individualPromedios = filteredActivities
+                .filter(a => format(a.registerDate, 'yyyy-MM-dd') === dateStr)
+                .map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
+
             return {
                 date: parseISO(dateStr),
                 hasDia,
@@ -146,7 +148,7 @@ export default function ActivitySummaryPage() {
                     plantas: data.plantas,
                     clustersOrJabas: data.clustersOrJabas,
                     jhu: data.jhu,
-                    promedio: promJHU,
+                    promedio: individualPromedios.length > 0 ? individualPromedios.reduce((s, p) => s + p, 0) / individualPromedios.length : 0,
                     promedioRacimos: data.jhu > 0 ? data.clustersOrJabas / data.jhu : 0,
                     plantasHora: data.jhu > 0 ? data.plantas / (data.jhu * 8) : 0,
                     has: Number(hasDia.toFixed(2)),
@@ -170,9 +172,9 @@ export default function ActivitySummaryPage() {
                 },
                 date: day.date
             };
-        });
+        }).sort((a, b) => b.date.getTime() - a.date.getTime());
 
-        return summariesWithCumulative.sort((a, b) => b.date.getTime() - a.date.getTime());
+        return summariesWithCumulative;
 
     }, [allActivities, allLotes, activeFilters]);
 
@@ -216,17 +218,18 @@ export default function ActivitySummaryPage() {
             return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
 
-        const assistantData = new Map<string, { totalProm: number, totalClustersOrJabas: number, totalWorkdayCount: number, count: number }>();
+        const assistantData = new Map<string, { totalProm: number, totalPerformance: number, totalClustersOrJabas: number, totalWorkdayCount: number, count: number }>();
 
         filtered.forEach(activity => {
             const assistantDni = activity.assistantDni;
             if (assistantDni) {
                 const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
                 if (!assistantData.has(assistantDni)) {
-                    assistantData.set(assistantDni, { totalProm: 0, totalClustersOrJabas: 0, totalWorkdayCount: 0, count: 0 });
+                    assistantData.set(assistantDni, { totalProm: 0, totalPerformance: 0, totalClustersOrJabas: 0, totalWorkdayCount: 0, count: 0 });
                 }
                 const current = assistantData.get(assistantDni)!;
                 current.totalProm += promJHU;
+                current.totalPerformance += activity.performance || 0;
                 current.totalClustersOrJabas += activity.clustersOrJabas || 0;
                 current.totalWorkdayCount += activity.workdayCount || 0;
                 current.count += 1;
@@ -241,10 +244,10 @@ export default function ActivitySummaryPage() {
         return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
             name: assistantNameMap.get(assistantId) || assistantId,
             promedio: data.count > 0 ? data.totalProm / data.count : 0,
-            rendimientoEspecial: data.count > 0 ? data.totalClustersOrJabas / data.count : 0,
+            rendimientoEspecial: isSpecialLabor ? data.totalClustersOrJabas : data.totalPerformance,
             jornadas: data.totalWorkdayCount,
         }));
-    }, [allActivities, asistentes, activeFilters]);
+    }, [allActivities, asistentes, activeFilters, isSpecialLabor]);
 
     const chartConfig: ChartConfig = {
         promedio: {
@@ -252,11 +255,11 @@ export default function ActivitySummaryPage() {
             color: "#3b82f6",
         },
         rendimientoEspecial: {
-            label: `Rdto. ${specialLaborName || 'Especial'}`,
+            label: `Total ${specialLaborName || 'Rdto.'}`,
             color: "#ef4444",
         },
         jornadas: {
-            label: "Jornadas",
+            label: "Total Jornadas",
             color: "#22c55e",
         },
     };
@@ -420,13 +423,13 @@ export default function ActivitySummaryPage() {
                     <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir Lote, Labor y Pasada.</p>
                 </div>
             )}
-
+            
             {assistantPerformanceData.length > 0 && (
-                <Card>
+                 <Card>
                     <CardHeader>
                         <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
                         <CardDescription>
-                            Promedio de rendimiento (Prom./JHU) para cada asistente, según los filtros activos.
+                            Comparativa del rendimiento promedio, rendimiento especial y jornadas totales por asistente.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
