@@ -3,12 +3,12 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, Filter, RefreshCcw } from 'lucide-react';
+import { Loader2, Filter, RefreshCcw, User as UserIcon } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList } from 'recharts';
 
-import { type ActivityRecordData, type LoteData, Presupuesto, MinMax } from '@/lib/types';
+import { type ActivityRecordData, type LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -112,26 +112,29 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        const dateMap = new Map<string, { personas: number; plantas: number; clustersOrJabas: number; jhu: number; minRanges: number[]; maxRanges: number[] }>();
+        const dateMap = new Map<string, { personas: number; plantas: number; clustersOrJabas: number; jhu: number; dailyAverages: number[] }>();
         
         filteredActivities.forEach(activity => {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
             if (!dateMap.has(dateKey)) {
-                dateMap.set(dateKey, { personas: 0, plantas: 0, clustersOrJabas: 0, jhu: 0, minRanges: [], maxRanges: [] });
+                dateMap.set(dateKey, { personas: 0, plantas: 0, clustersOrJabas: 0, jhu: 0, dailyAverages: [] });
             }
             const dayData = dateMap.get(dateKey)!;
             dayData.personas += activity.personnelCount;
             dayData.plantas += (activity.performance || 0);
             dayData.clustersOrJabas += (activity.clustersOrJabas || 0);
             dayData.jhu += activity.workdayCount;
-            if (activity.minRange) dayData.minRanges.push(activity.minRange);
-            if (activity.maxRange) dayData.maxRanges.push(activity.maxRange);
+
+            const activityAverage = (activity.workdayCount || 0) > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
+            if(activityAverage > 0) {
+              dayData.dailyAverages.push(activityAverage);
+            }
         });
         
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
-            const avgMinRange = data.minRanges.length > 0 ? data.minRanges.reduce((a, b) => a + b, 0) / data.minRanges.length : 0;
-            const avgMaxRange = data.maxRanges.length > 0 ? data.maxRanges.reduce((a, b) => a + b, 0) / data.maxRanges.length : 0;
+            const min = data.dailyAverages.length > 0 ? Math.min(...data.dailyAverages) : 0;
+            const max = data.dailyAverages.length > 0 ? Math.max(...data.dailyAverages) : 0;
 
             return {
                 date: parseISO(dateStr),
@@ -150,8 +153,8 @@ export default function ActivitySummaryPage() {
                     has: Number(hasDia.toFixed(2)),
                     avance: haProd > 0 ? (hasDia / haProd) * 100 : 0,
                     haPorTrabajar: 0,
-                    minimo: avgMinRange,
-                    maximo: avgMaxRange,
+                    minimo: min,
+                    maximo: max,
                 }
             };
         }).sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -206,39 +209,38 @@ export default function ActivitySummaryPage() {
     }, [isSpecialLabor, activeFilters.labor, allLabors]);
     
     const assistantPerformanceData = useMemo(() => {
-        const filtered = allActivities.filter(a => {
-            const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
-            const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
-            const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
-            const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
-            return campaignMatch && loteMatch && laborMatch && pasadaMatch;
-        });
-    
-        const assistantData = new Map<string, { totalProm: number, count: number }>();
-        const assistantNameMap = new Map<string, string>();
-    
-        asistentes.forEach(a => {
-            assistantNameMap.set(a.id, a.assistantName);
-        });
-    
-        filtered.forEach(activity => {
-            // Use assistantDni if available, fallback to createdBy for older records
-            const assistantId = activity.assistantDni || activity.createdBy;
-            if (assistantId) {
-                const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
-                if (!assistantData.has(assistantId)) {
-                    assistantData.set(assistantId, { totalProm: 0, count: 0 });
-                }
-                const current = assistantData.get(assistantId)!;
-                current.totalProm += promJHU;
-                current.count += 1;
-            }
-        });
-    
-        return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
-            name: assistantNameMap.get(assistantId) || assistantId,
-            promedio: data.count > 0 ? data.totalProm / data.count : 0,
-        }));
+      const filtered = allActivities.filter(a => {
+          const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
+          const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
+          const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
+          const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
+          return campaignMatch && loteMatch && laborMatch && pasadaMatch;
+      });
+  
+      const assistantData = new Map<string, { totalProm: number, count: number }>();
+  
+      filtered.forEach(activity => {
+          const assistantId = activity.assistantDni;
+          if (assistantId) {
+              const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
+              if (!assistantData.has(assistantId)) {
+                  assistantData.set(assistantId, { totalProm: 0, count: 0 });
+              }
+              const current = assistantData.get(assistantId)!;
+              current.totalProm += promJHU;
+              current.count += 1;
+          }
+      });
+      
+      const assistantNameMap = new Map<string, string>();
+      asistentes.forEach(a => {
+        assistantNameMap.set(a.id, a.assistantName);
+      });
+  
+      return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
+          name: assistantNameMap.get(assistantId) || assistantId,
+          promedio: data.count > 0 ? data.totalProm / data.count : 0,
+      }));
     }, [allActivities, asistentes, activeFilters]);
 
     const chartConfig: ChartConfig = {
