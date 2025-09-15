@@ -112,12 +112,12 @@ export default function ActivitySummaryPage() {
         const haProd = cuartelesDelLote.reduce((sum, cuartel) => sum + (cuartel.haProd || 0), 0);
         const densidad = cuartelesDelLote[0]?.densidad ?? 0;
         
-        const dateMap = new Map<string, { personas: number; plantas: number; clustersOrJabas: number; jhu: number; dailyAverages: number[] }>();
+        const dateMap = new Map<string, { personas: number; plantas: number; clustersOrJabas: number; jhu: number; minRanges: number[], maxRanges: number[] }>();
         
         filteredActivities.forEach(activity => {
             const dateKey = format(activity.registerDate, 'yyyy-MM-dd');
             if (!dateMap.has(dateKey)) {
-                dateMap.set(dateKey, { personas: 0, plantas: 0, clustersOrJabas: 0, jhu: 0, dailyAverages: [] });
+                dateMap.set(dateKey, { personas: 0, plantas: 0, clustersOrJabas: 0, jhu: 0, minRanges: [], maxRanges: [] });
             }
             const dayData = dateMap.get(dateKey)!;
             dayData.personas += activity.personnelCount;
@@ -125,16 +125,14 @@ export default function ActivitySummaryPage() {
             dayData.clustersOrJabas += (activity.clustersOrJabas || 0);
             dayData.jhu += activity.workdayCount;
 
-            const activityAverage = (activity.workdayCount || 0) > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
-            if(activityAverage > 0) {
-              dayData.dailyAverages.push(activityAverage);
-            }
+            dayData.minRanges.push(activity.minRange || 0);
+            dayData.maxRanges.push(activity.maxRange || 0);
         });
         
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
-            const min = data.dailyAverages.length > 0 ? Math.min(...data.dailyAverages) : 0;
-            const max = data.dailyAverages.length > 0 ? Math.max(...data.dailyAverages) : 0;
+            const min = data.minRanges.length > 0 ? Math.min(...data.minRanges) : 0;
+            const max = data.maxRanges.length > 0 ? Math.max(...data.maxRanges) : 0;
 
             return {
                 date: parseISO(dateStr),
@@ -220,13 +218,13 @@ export default function ActivitySummaryPage() {
       const assistantData = new Map<string, { totalProm: number, count: number }>();
   
       filtered.forEach(activity => {
-          const assistantId = activity.assistantDni;
-          if (assistantId) {
+          const assistantDni = activity.assistantDni;
+          if (assistantDni) {
               const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
-              if (!assistantData.has(assistantId)) {
-                  assistantData.set(assistantId, { totalProm: 0, count: 0 });
+              if (!assistantData.has(assistantDni)) {
+                  assistantData.set(assistantDni, { totalProm: 0, count: 0 });
               }
-              const current = assistantData.get(assistantId)!;
+              const current = assistantData.get(assistantDni)!;
               current.totalProm += promJHU;
               current.count += 1;
           }
@@ -445,3 +443,4 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
+
