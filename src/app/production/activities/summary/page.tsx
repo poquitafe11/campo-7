@@ -445,10 +445,10 @@ export default function ActivitySummaryPage() {
                                             <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Bar>
                                         <Line yAxisId="right" type="monotone" dataKey="rendimiento" name="Rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
-                                           <LabelList dataKey="rendimiento" position="top" formatter={(value: number) => value.toLocaleString('es-ES')} fontSize={12} />
+                                           <LabelList dataKey="rendimiento" position="top" formatter={(value: number) => value.toLocaleString('es-ES')} fontSize={12} style={{ fontWeight: 'bold', fill: 'rgba(255,255,255,0.85)' }} />
                                         </Line>
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
-                                           <LabelList dataKey="jornadas" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
+                                           <LabelList dataKey="jornadas" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} style={{ fontWeight: 'bold', fill: 'rgba(255,255,255,0.85)' }} />
                                         </Line>
                                     </ComposedChart>
                                 </ChartContainer>
