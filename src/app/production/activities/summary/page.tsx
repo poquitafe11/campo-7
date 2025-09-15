@@ -133,7 +133,6 @@ export default function ActivitySummaryPage() {
         
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
-            
             const individualPromedios = data.activities.map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
             
             const minRanges = data.activities.map(a => a.minRange || 0);
@@ -142,7 +141,6 @@ export default function ActivitySummaryPage() {
             const min = minRanges.length > 0 ? Math.min(...minRanges) : 0;
             const max = maxRanges.length > 0 ? Math.max(...maxRanges) : 0;
             
-
             return {
                 date: parseISO(dateStr),
                 hasDia,
@@ -224,35 +222,35 @@ export default function ActivitySummaryPage() {
             return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
 
-        const assistantData = new Map<string, { totalProm: number; totalPerformance: number; totalWorkdayCount: number; count: number; }>();
-
-        filtered.forEach(activity => {
-            const assistantDni = activity.assistantDni;
-            if (assistantDni) {
-                const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
-                if (!assistantData.has(assistantDni)) {
-                    assistantData.set(assistantDni, { totalProm: 0, totalPerformance: 0, totalWorkdayCount: 0, count: 0 });
-                }
-                const current = assistantData.get(assistantDni)!;
-                current.totalProm += promJHU;
-                current.count += 1;
-
-                const performanceValue = isSpecialLabor ? (activity.clustersOrJabas || 0) : (activity.performance || 0);
-                current.totalPerformance += performanceValue;
-                current.totalWorkdayCount += activity.workdayCount || 0;
-            }
-        });
+        const assistantData = new Map<string, { totalProm: number; count: number; performanceSum: number; workdaySum: number; }>();
         
         const assistantNameMap = new Map<string, string>();
         asistentes.forEach(a => {
             assistantNameMap.set(a.id, a.assistantName);
         });
 
+        filtered.forEach(activity => {
+            const assistantDni = activity.assistantDni;
+            if (assistantDni) {
+                const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
+                if (!assistantData.has(assistantDni)) {
+                    assistantData.set(assistantDni, { totalProm: 0, count: 0, performanceSum: 0, workdaySum: 0 });
+                }
+                const current = assistantData.get(assistantDni)!;
+                current.totalProm += promJHU;
+                current.count += 1;
+                
+                const performanceValue = isSpecialLabor ? (activity.clustersOrJabas || 0) : (activity.performance || 0);
+                current.performanceSum += performanceValue;
+                current.workdaySum += activity.workdayCount || 0;
+            }
+        });
+        
         return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
             name: assistantNameMap.get(assistantId) || assistantId,
             promedio: data.count > 0 ? data.totalProm / data.count : 0,
-            rendimiento: data.totalPerformance,
-            jornadas: data.totalWorkdayCount,
+            rendimiento: data.performanceSum,
+            jornadas: data.workdaySum,
         }));
     }, [allActivities, asistentes, activeFilters, isSpecialLabor]);
 
@@ -445,8 +443,12 @@ export default function ActivitySummaryPage() {
                                         <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
                                             <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Bar>
-                                        <Line yAxisId="right" type="monotone" dataKey="rendimiento" name="Rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={false} />
-                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={false} />
+                                        <Line yAxisId="right" type="monotone" dataKey="rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
+                                           <LabelList dataKey="rendimiento" position="top" offset={10} formatter={(value: number) => value.toFixed(0)} fontSize={12} />
+                                        </Line>
+                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
+                                           <LabelList dataKey="jornadas" position="top" offset={10} formatter={(value: number) => value.toFixed(0)} fontSize={12} />
+                                        </Line>
                                     </ComposedChart>
                                 </ChartContainer>
                             </CardContent>
