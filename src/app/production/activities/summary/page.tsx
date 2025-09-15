@@ -238,7 +238,7 @@ export default function ActivitySummaryPage() {
                 
                 current.performanceSum += (activity.performance || 0);
                 current.specialPerformanceSum += (activity.clustersOrJabas || 0);
-                current.workdaySum += activity.workdayCount || 0;
+                current.workdaySum += (activity.workdayCount || 0);
             }
         });
         
