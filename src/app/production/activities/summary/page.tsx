@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, Filter, RefreshCcw, User as UserIcon } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip } from 'recharts';
 
 import { type ActivityRecordData, type LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -135,9 +135,8 @@ export default function ActivitySummaryPage() {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
             
             const individualPromedios = data.activities.map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
-            const validRanges = data.activities.filter(a => a.minRange !== undefined && a.maxRange !== undefined);
-            const min = validRanges.length > 0 ? Math.min(...validRanges.map(a => a.minRange || 0)) : 0;
-            const max = validRanges.length > 0 ? Math.max(...validRanges.map(a => a.maxRange || 0)) : 0;
+            const min = data.activities.length > 0 ? Math.min(...data.activities.map(a => a.minRange || 0)) : 0;
+            const max = data.activities.length > 0 ? Math.max(...data.activities.map(a => a.maxRange || 0)) : 0;
             
 
             return {
@@ -221,21 +220,22 @@ export default function ActivitySummaryPage() {
             return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
 
-        const assistantData = new Map<string, { totalProm: number, totalPerformance: number, totalClustersOrJabas: number, totalWorkdayCount: number, count: number }>();
+        const assistantData = new Map<string, { totalProm: number; totalPerformance: number; totalWorkdayCount: number; count: number; }>();
 
         filtered.forEach(activity => {
             const assistantDni = activity.assistantDni;
             if (assistantDni) {
                 const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
                 if (!assistantData.has(assistantDni)) {
-                    assistantData.set(assistantDni, { totalProm: 0, totalPerformance: 0, totalClustersOrJabas: 0, totalWorkdayCount: 0, count: 0 });
+                    assistantData.set(assistantDni, { totalProm: 0, totalPerformance: 0, totalWorkdayCount: 0, count: 0 });
                 }
                 const current = assistantData.get(assistantDni)!;
                 current.totalProm += promJHU;
-                current.totalPerformance += activity.performance || 0;
-                current.totalClustersOrJabas += activity.clustersOrJabas || 0;
-                current.totalWorkdayCount += activity.workdayCount || 0;
                 current.count += 1;
+
+                const performanceValue = isSpecialLabor ? (activity.clustersOrJabas || 0) : (activity.performance || 0);
+                current.totalPerformance += performanceValue;
+                current.totalWorkdayCount += activity.workdayCount || 0;
             }
         });
         
@@ -247,7 +247,7 @@ export default function ActivitySummaryPage() {
         return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
             name: assistantNameMap.get(assistantId) || assistantId,
             promedio: data.count > 0 ? data.totalProm / data.count : 0,
-            rendimiento: isSpecialLabor ? data.totalClustersOrJabas : data.totalPerformance,
+            rendimiento: data.totalPerformance,
             jornadas: data.totalWorkdayCount,
         }));
     }, [allActivities, asistentes, activeFilters, isSpecialLabor]);
