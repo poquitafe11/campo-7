@@ -134,8 +134,6 @@ export default function ActivitySummaryPage() {
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
             
-            const individualPromedios = data.activities.map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
-            
             const minRanges = data.activities.map(a => a.minRange || 0);
             const maxRanges = data.activities.map(a => a.maxRange || 0);
             
@@ -223,7 +221,7 @@ export default function ActivitySummaryPage() {
             return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
 
-        const assistantData = new Map<string, { performanceSum: number; workdaySum: number; }>();
+        const assistantData = new Map<string, { performanceSum: number; workdaySum: number; specialPerformanceSum: number; }>();
         
         const assistantNameMap = new Map<string, string>();
         asistentes.forEach(a => {
@@ -234,12 +232,12 @@ export default function ActivitySummaryPage() {
             const assistantDni = activity.assistantDni;
             if (assistantDni) {
                 if (!assistantData.has(assistantDni)) {
-                    assistantData.set(assistantDni, { performanceSum: 0, workdaySum: 0 });
+                    assistantData.set(assistantDni, { performanceSum: 0, workdaySum: 0, specialPerformanceSum: 0 });
                 }
                 const current = assistantData.get(assistantDni)!;
                 
-                const performanceValue = isSpecialLabor ? (activity.clustersOrJabas || 0) : (activity.performance || 0);
-                current.performanceSum += performanceValue;
+                current.performanceSum += (activity.performance || 0);
+                current.specialPerformanceSum += (activity.clustersOrJabas || 0);
                 current.workdaySum += activity.workdayCount || 0;
             }
         });
@@ -247,7 +245,7 @@ export default function ActivitySummaryPage() {
         return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
             name: assistantNameMap.get(assistantId) || assistantId,
             promedio: data.workdaySum > 0 ? data.performanceSum / data.workdaySum : 0,
-            rendimiento: data.performanceSum,
+            rendimiento: isSpecialLabor ? data.specialPerformanceSum : data.performanceSum,
             jornadas: data.workdaySum,
         }));
     }, [allActivities, asistentes, activeFilters, isSpecialLabor]);
