@@ -342,7 +342,7 @@ export default function ActivitySummaryPage() {
                           <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">Todas</SelectItem>
-                            {filterOptions.labors.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                            {filterOptions.labors.map((l, i) => <SelectItem key={l+i} value={l}>{l}</SelectItem>)}
                           </SelectContent>
                         </Select>
                         <Label>Pasada</Label>
@@ -438,18 +438,14 @@ export default function ActivitySummaryPage() {
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} interval={0} />
                                         <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-rendimiento)" domain={[0, maxRendimiento * 2]}/>
+                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-rendimiento)" />
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend />
                                         <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
                                             <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Bar>
-                                        <Line yAxisId="right" type="monotone" dataKey="rendimiento" name="Rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
-                                           <LabelList dataKey="rendimiento" position="top" formatter={(value: number) => value.toLocaleString('es-ES')} fontSize={12} style={{ fontWeight: 'bold', fill: 'rgba(255,255,255,0.85)' }} />
-                                        </Line>
-                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
-                                           <LabelList dataKey="jornadas" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} style={{ fontWeight: 'bold', fill: 'rgba(255,255,255,0.85)' }} />
-                                        </Line>
+                                        <Line yAxisId="right" type="monotone" dataKey="rendimiento" name="Rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                     </ComposedChart>
                                 </ChartContainer>
                             </CardContent>
