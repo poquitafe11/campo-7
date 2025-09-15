@@ -9,6 +9,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import AuthWrapper from '@/components/AuthWrapper';
 import { MasterDataProvider } from '@/context/MasterDataContext';
 import AppLayout from './AppLayout';
+import { HeaderActionsProvider } from '@/contexts/HeaderActionsContext';
 
 const APP_NAME = "Campo 7";
 const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo.";
@@ -39,7 +40,7 @@ export const viewport: Viewport = {
   themeColor: "#6d28d9",
   width: 'device-width',
   initialScale: 1,
-  userScalable: true,
+  userScalable: false,
   orientation: 'any',
 };
 
@@ -61,9 +62,11 @@ export default function RootLayout({
           <AuthWrapper>
             <MasterDataProvider>
               <AppDataProvider>
+                <HeaderActionsProvider>
                   <AppLayout>
                     {children}
                   </AppLayout>
+                </HeaderActionsProvider>
                 <Toaster />
               </AppDataProvider>
             </MasterDataProvider>

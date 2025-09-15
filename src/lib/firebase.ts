@@ -42,12 +42,8 @@ if (typeof window !== 'undefined') {
         db = getFirestore(app);
     }
 } else {
-    const apps = getApps();
-    if (apps.length === 0) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = apps[0]!;
-    }
+    // Server-side initialization
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     db = getFirestore(app);
     auth = getAuth(app);
 }

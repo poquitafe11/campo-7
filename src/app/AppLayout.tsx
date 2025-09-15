@@ -4,7 +4,6 @@
 import React from 'react';
 import { Sidebar } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
-import { HeaderActionsProvider } from '@/contexts/HeaderActionsContext';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,7 +13,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <HeaderActionsProvider>
       <div className="w-full bg-background">
         <Sidebar />
         <main className="pt-16">
@@ -23,6 +21,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
-    </HeaderActionsProvider>
   );
 }

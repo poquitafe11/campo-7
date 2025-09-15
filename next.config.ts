@@ -10,17 +10,6 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   aggressiveFrontEndNavCaching: true,
   runtimeCaching: [
     {
-      urlPattern: /^https?.*/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'offlineCache',
-        expiration: {
-          maxEntries: 200
-        },
-        networkTimeoutSeconds: 10
-      }
-    },
-    {
       urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
       handler: 'CacheFirst',
       options: {
@@ -31,12 +20,12 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         },
       },
     },
-     {
+    {
       urlPattern: /\.(?:js)$/i,
       handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'js-cache',
-         expiration: {
+        expiration: {
           maxEntries: 50,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
         },
@@ -47,7 +36,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         const isSameOrigin = self.origin === url.origin;
         if (!isSameOrigin) return false;
         const pathname = url.pathname;
-        if (pathname.startsWith('/api/')) return false;
+        // Exclude API routes from this cache
+        if (pathname.startsWith('/api/')) return false; 
         return true;
       },
       handler: 'StaleWhileRevalidate',
@@ -59,41 +49,16 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         },
       },
     },
-    {
-      urlPattern: /^https?:\/\/fonts\.googleapis\.com\/.*/,
-      handler: "CacheFirst",
-      options: {
-        cacheName: "google-fonts-cache",
-        expiration: {
-          maxEntries: 10,
-          maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-        },
-      },
-    },
-    {
-      urlPattern: /^https?:\/\/fonts\.gstatic\.com\/.*/,
-      handler: "CacheFirst",
-      options: {
-        cacheName: "google-fonts-cache",
-        expiration: {
-          maxEntries: 10,
-          maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-        },
-      },
-    },
-    {
-      urlPattern: /^https?:\/\/(www\.)?google\.com\/.*/,
+     {
+      urlPattern: /^https?.*/,
       handler: 'StaleWhileRevalidate',
       options: {
-        cacheName: 'google-apis-cache',
-      },
-    },
-    {
-      urlPattern: /^https?:\/\/(www\.)?googleapis\.com\/.*/,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'google-apis-cache',
-      },
+        cacheName: 'offlineCache',
+        expiration: {
+          maxEntries: 200
+        },
+        networkTimeoutSeconds: 10
+      }
     },
   ],
 });
