@@ -133,14 +133,14 @@ export default function ActivitySummaryPage() {
         
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
+            
             const individualPromedios = data.activities.map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
-
+            
             const minRanges = data.activities.map(a => a.minRange || 0);
             const maxRanges = data.activities.map(a => a.maxRange || 0);
             
             const min = minRanges.length > 0 ? Math.min(...minRanges) : 0;
             const max = maxRanges.length > 0 ? Math.max(...maxRanges) : 0;
-
             
             return {
                 date: parseISO(dateStr),
@@ -153,7 +153,7 @@ export default function ActivitySummaryPage() {
                     plantas: data.plantas,
                     clustersOrJabas: data.clustersOrJabas,
                     jhu: data.jhu,
-                    promedio: individualPromedios.length > 0 ? individualPromedios.reduce((s, p) => s + p, 0) / individualPromedios.length : 0,
+                    promedio: data.jhu > 0 ? data.plantas / data.jhu : 0,
                     promedioRacimos: data.jhu > 0 ? data.clustersOrJabas / data.jhu : 0,
                     plantasHora: data.jhu > 0 ? data.plantas / (data.jhu * 8) : 0,
                     has: Number(hasDia.toFixed(2)),
@@ -223,7 +223,7 @@ export default function ActivitySummaryPage() {
             return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
 
-        const assistantData = new Map<string, { totalProm: number; count: number; performanceSum: number; workdaySum: number; }>();
+        const assistantData = new Map<string, { performanceSum: number; workdaySum: number; }>();
         
         const assistantNameMap = new Map<string, string>();
         asistentes.forEach(a => {
@@ -233,13 +233,10 @@ export default function ActivitySummaryPage() {
         filtered.forEach(activity => {
             const assistantDni = activity.assistantDni;
             if (assistantDni) {
-                const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
                 if (!assistantData.has(assistantDni)) {
-                    assistantData.set(assistantDni, { totalProm: 0, count: 0, performanceSum: 0, workdaySum: 0 });
+                    assistantData.set(assistantDni, { performanceSum: 0, workdaySum: 0 });
                 }
                 const current = assistantData.get(assistantDni)!;
-                current.totalProm += promJHU;
-                current.count += 1;
                 
                 const performanceValue = isSpecialLabor ? (activity.clustersOrJabas || 0) : (activity.performance || 0);
                 current.performanceSum += performanceValue;
@@ -249,7 +246,7 @@ export default function ActivitySummaryPage() {
         
         return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
             name: assistantNameMap.get(assistantId) || assistantId,
-            promedio: data.count > 0 ? data.totalProm / data.count : 0,
+            promedio: data.workdaySum > 0 ? data.performanceSum / data.workdaySum : 0,
             rendimiento: data.performanceSum,
             jornadas: data.workdaySum,
         }));
@@ -444,8 +441,8 @@ export default function ActivitySummaryPage() {
                                         <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
                                             <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Bar>
-                                        <Line yAxisId="right" type="monotone" dataKey="rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
-                                           <LabelList dataKey="rendimiento" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
+                                        <Line yAxisId="right" type="monotone" dataKey="rendimiento" name="Rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
+                                           <LabelList dataKey="rendimiento" position="top" formatter={(value: number) => value.toLocaleString('es-ES')} fontSize={12} />
                                         </Line>
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
                                            <LabelList dataKey="jornadas" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
