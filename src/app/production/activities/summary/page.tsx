@@ -5,12 +5,12 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, Filter, RefreshCcw, User as UserIcon } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart } from 'recharts';
 
 import { type ActivityRecordData, type LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -47,6 +47,7 @@ export default function ActivitySummaryPage() {
     const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
     const [allMinMax, setAllMinMax] = useState<MinMax[]>([]);
     const { lotes: allLotes, labors: allLabors, asistentes, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
+    const [users, setUsers] = useState<any[]>([]);
     
     const [activeFilters, setActiveFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
     const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
@@ -56,10 +57,11 @@ export default function ActivitySummaryPage() {
     const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
         try {
-            const [activitiesSnapshot, presupuestosSnapshot, minMaxSnapshot] = await Promise.all([
+            const [activitiesSnapshot, presupuestosSnapshot, minMaxSnapshot, usersSnapshot] = await Promise.all([
                 getDocs(collection(db, 'actividades')),
                 getDocs(collection(db, 'presupuesto')),
                 getDocs(collection(db, 'min-max')),
+                getDocs(collection(db, 'usuarios')),
             ]);
 
             const activitiesData = activitiesSnapshot.docs.map(doc => {
@@ -74,6 +76,9 @@ export default function ActivitySummaryPage() {
 
             const minMaxData = minMaxSnapshot.docs.map(doc => doc.data() as MinMax);
             setAllMinMax(minMaxData);
+
+            const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setUsers(usersData);
             
             await refreshMasterData();
 
@@ -130,8 +135,10 @@ export default function ActivitySummaryPage() {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
             
             const individualPromedios = data.activities.map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
-            const min = data.activities.length > 0 ? Math.min(...data.activities.map(a => a.minRange || 0)) : 0;
-            const max = data.activities.length > 0 ? Math.max(...data.activities.map(a => a.maxRange || 0)) : 0;
+            const validRanges = data.activities.filter(a => a.minRange !== undefined && a.maxRange !== undefined);
+            const min = validRanges.length > 0 ? Math.min(...validRanges.map(a => a.minRange || 0)) : 0;
+            const max = validRanges.length > 0 ? Math.max(...validRanges.map(a => a.maxRange || 0)) : 0;
+            
 
             return {
                 date: parseISO(dateStr),
@@ -251,7 +258,7 @@ export default function ActivitySummaryPage() {
             color: "#3b82f6",
         },
         rendimiento: {
-            label: `Rendimiento`,
+            label: "Rendimiento",
             color: "#ef4444",
         },
         jornadas: {
@@ -424,15 +431,15 @@ export default function ActivitySummaryPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                    <ComposedChart data={assistantPerformanceData}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} interval={0} />
-                                        <YAxis yAxisId="left" orientation="left" stroke="#3b82f6" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="#ef4444" />
+                                        <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
+                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-rendimiento)" />
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend />
                                         <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
-                                            <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} />
+                                            <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Bar>
                                         <Line yAxisId="right" type="monotone" dataKey="rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={false} />
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={false} />
