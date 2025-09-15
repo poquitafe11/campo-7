@@ -134,12 +134,13 @@ export default function ActivitySummaryPage() {
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
             const individualPromedios = data.activities.map(a => a.workdayCount > 0 ? (a.performance || 0) / a.workdayCount : 0);
-            
+
             const minRanges = data.activities.map(a => a.minRange || 0);
             const maxRanges = data.activities.map(a => a.maxRange || 0);
             
             const min = minRanges.length > 0 ? Math.min(...minRanges) : 0;
             const max = maxRanges.length > 0 ? Math.max(...maxRanges) : 0;
+
             
             return {
                 date: parseISO(dateStr),
@@ -256,7 +257,7 @@ export default function ActivitySummaryPage() {
 
     const chartConfig: ChartConfig = {
         promedio: {
-            label: "Prom./JHU",
+            label: "Promedio",
             color: "#3b82f6",
         },
         rendimiento: {
@@ -444,10 +445,10 @@ export default function ActivitySummaryPage() {
                                             <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Bar>
                                         <Line yAxisId="right" type="monotone" dataKey="rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
-                                           <LabelList dataKey="rendimiento" position="top" offset={10} formatter={(value: number) => value.toFixed(0)} fontSize={12} />
+                                           <LabelList dataKey="rendimiento" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Line>
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}>
-                                           <LabelList dataKey="jornadas" position="top" offset={10} formatter={(value: number) => value.toFixed(0)} fontSize={12} />
+                                           <LabelList dataKey="jornadas" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Line>
                                     </ComposedChart>
                                 </ChartContainer>
