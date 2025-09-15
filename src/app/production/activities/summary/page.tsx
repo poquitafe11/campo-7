@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, Filter, RefreshCcw, User as UserIcon } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart } from 'recharts';
 
 import { type ActivityRecordData, type LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -133,6 +133,8 @@ export default function ActivitySummaryPage() {
             const min = data.minRanges.length > 0 ? Math.min(...data.minRanges) : 0;
             const max = data.maxRanges.length > 0 ? Math.max(...data.maxRanges) : 0;
 
+            const promJHU = data.jhu > 0 ? data.plantas / data.jhu : 0;
+            
             return {
                 date: parseISO(dateStr),
                 hasDia,
@@ -144,7 +146,7 @@ export default function ActivitySummaryPage() {
                     plantas: data.plantas,
                     clustersOrJabas: data.clustersOrJabas,
                     jhu: data.jhu,
-                    promedio: data.jhu > 0 ? data.plantas / data.jhu : 0,
+                    promedio: promJHU,
                     promedioRacimos: data.jhu > 0 ? data.clustersOrJabas / data.jhu : 0,
                     plantasHora: data.jhu > 0 ? data.plantas / (data.jhu * 8) : 0,
                     has: Number(hasDia.toFixed(2)),
@@ -206,44 +208,56 @@ export default function ActivitySummaryPage() {
     }, [isSpecialLabor, activeFilters.labor, allLabors]);
     
     const assistantPerformanceData = useMemo(() => {
-      const filtered = allActivities.filter(a => {
-          const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
-          const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
-          const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
-          const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
-          return campaignMatch && loteMatch && laborMatch && pasadaMatch;
-      });
-  
-      const assistantData = new Map<string, { totalProm: number, count: number }>();
-  
-      filtered.forEach(activity => {
-          const assistantDni = activity.assistantDni;
-          if (assistantDni) {
-              const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
-              if (!assistantData.has(assistantDni)) {
-                  assistantData.set(assistantDni, { totalProm: 0, count: 0 });
-              }
-              const current = assistantData.get(assistantDni)!;
-              current.totalProm += promJHU;
-              current.count += 1;
-          }
-      });
-      
-      const assistantNameMap = new Map<string, string>();
-      asistentes.forEach(a => {
-        assistantNameMap.set(a.id, a.assistantName);
-      });
-  
-      return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
-          name: assistantNameMap.get(assistantId) || assistantId,
-          promedio: data.count > 0 ? data.totalProm / data.count : 0,
-      }));
+        const filtered = allActivities.filter(a => {
+            const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
+            const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
+            const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
+            const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
+            return campaignMatch && loteMatch && laborMatch && pasadaMatch;
+        });
+
+        const assistantData = new Map<string, { totalProm: number, totalClustersOrJabas: number, totalWorkdayCount: number, count: number }>();
+
+        filtered.forEach(activity => {
+            const assistantDni = activity.assistantDni;
+            if (assistantDni) {
+                const promJHU = activity.workdayCount > 0 ? (activity.performance || 0) / activity.workdayCount : 0;
+                if (!assistantData.has(assistantDni)) {
+                    assistantData.set(assistantDni, { totalProm: 0, totalClustersOrJabas: 0, totalWorkdayCount: 0, count: 0 });
+                }
+                const current = assistantData.get(assistantDni)!;
+                current.totalProm += promJHU;
+                current.totalClustersOrJabas += activity.clustersOrJabas || 0;
+                current.totalWorkdayCount += activity.workdayCount || 0;
+                current.count += 1;
+            }
+        });
+        
+        const assistantNameMap = new Map<string, string>();
+        asistentes.forEach(a => {
+            assistantNameMap.set(a.id, a.assistantName);
+        });
+
+        return Array.from(assistantData.entries()).map(([assistantId, data]) => ({
+            name: assistantNameMap.get(assistantId) || assistantId,
+            promedio: data.count > 0 ? data.totalProm / data.count : 0,
+            rendimientoEspecial: data.count > 0 ? data.totalClustersOrJabas / data.count : 0,
+            jornadas: data.totalWorkdayCount,
+        }));
     }, [allActivities, asistentes, activeFilters]);
 
     const chartConfig: ChartConfig = {
         promedio: {
             label: "Prom./JHU",
             color: "#3b82f6",
+        },
+        rendimientoEspecial: {
+            label: `Rdto. ${specialLaborName || 'Especial'}`,
+            color: "#ef4444",
+        },
+        jornadas: {
+            label: "Jornadas",
+            color: "#22c55e",
         },
     };
 
@@ -417,7 +431,7 @@ export default function ActivitySummaryPage() {
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                            <BarChart data={assistantPerformanceData} margin={{ top: 20 }}>
+                            <ComposedChart data={assistantPerformanceData} margin={{ top: 20 }}>
                                 <CartesianGrid vertical={false} />
                                 <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} />
                                 <YAxis />
@@ -426,7 +440,9 @@ export default function ActivitySummaryPage() {
                                 <Bar dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
                                     <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} />
                                 </Bar>
-                            </BarChart>
+                                <Line type="monotone" dataKey="rendimientoEspecial" stroke="var(--color-rendimientoEspecial)" strokeWidth={2} dot={false} />
+                                <Line type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={false} />
+                            </ComposedChart>
                         </ChartContainer>
                     </CardContent>
                 </Card>
@@ -442,4 +458,3 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
-
