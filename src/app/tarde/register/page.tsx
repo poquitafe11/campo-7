@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
@@ -19,7 +20,7 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Loader2, QrCode, UserPlus, Sprout, Wrench } from 'lucide-react';
+import { CalendarIcon, Loader2, QrCode, User, Sprout, Wrench, Code } from 'lucide-react';
 import type { LoteData } from '@/lib/types';
 
 
@@ -27,7 +28,8 @@ import type { LoteData } from '@/lib/types';
 const afternoonRegisterSchema = z.object({
   date: z.date({ required_error: "La fecha es requerida." }),
   lote: z.string().min(1, "El lote es requerido."),
-  labor: z.string().min(1, "La labor es requerida."),
+  code: z.string().min(1, "El código de labor es requerido."),
+  labor: z.string().optional(),
   assistant: z.string().min(1, "El asistente es requerido."),
 });
 
@@ -46,10 +48,14 @@ export default function RegisterTardePage() {
     defaultValues: {
       date: new Date(),
       lote: '',
+      code: '',
       labor: '',
       assistant: profile?.dni || '',
     },
   });
+  
+  const codeValue = useWatch({ control: form.control, name: 'code' });
+
 
   useEffect(() => {
     setActions({ title: "Registro de Tarde" });
@@ -63,6 +69,8 @@ export default function RegisterTardePage() {
   }, [profile, form]);
 
   useEffect(() => {
+    if (!videoRef.current) return;
+
     const getCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -83,7 +91,16 @@ export default function RegisterTardePage() {
     };
 
     getCameraPermission();
-  }, [toast]);
+  }, [toast, videoRef]);
+  
+  useEffect(() => {
+    if (codeValue) {
+      const matchedLabor = labors.find(l => l.codigo === codeValue);
+      form.setValue('labor', matchedLabor?.descripcion || '', { shouldValidate: true });
+    } else {
+      form.setValue('labor', '', { shouldValidate: true });
+    }
+  }, [codeValue, labors, form]);
 
   const uniqueLotes = useMemo(() => {
     const lotesMap = new Map<string, LoteData>();
@@ -122,9 +139,16 @@ export default function RegisterTardePage() {
                     <FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="assistant" render={({ field }) => (
-                     <FormItem><FormLabel>Asistente</FormLabel><FormControl>
-                        <Input {...field} readOnly disabled value={profile?.nombre || field.value}/>
-                     </FormControl><FormMessage /></FormItem>
+                     <FormItem><FormLabel className="flex items-center gap-2"><User className="h-4 w-4"/>Asistente</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "Seleccionar asistente"}/></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                     <FormMessage /></FormItem>
                 )}/>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -135,13 +159,22 @@ export default function RegisterTardePage() {
                         </FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.lote}>{l.lote}</SelectItem>)}</SelectContent></Select>
                     <FormMessage /></FormItem>
                 )}/>
-                 <FormField control={form.control} name="labor" render={({ field }) => (
-                    <FormItem><FormLabel className="flex items-center gap-2"><Wrench className="h-4 w-4"/>Labor</FormLabel>
-                         <Select onValueChange={field.onChange} value={field.value}><FormControl>
-                            <SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "Seleccionar labor"} /></SelectTrigger>
-                         </FormControl><SelectContent>{labors.map(l => <SelectItem key={l.codigo} value={l.descripcion}>{l.descripcion}</SelectItem>)}</SelectContent></Select>
-                    <FormMessage /></FormItem>
-                )}/>
+                 <div className="grid grid-cols-3 gap-2 items-end">
+                    <FormField control={form.control} name="code" render={({ field }) => (
+                        <FormItem className="col-span-1">
+                            <FormLabel className="flex items-center gap-2"><Code className="h-4 w-4"/>Cód.</FormLabel>
+                            <FormControl><Input {...field}/></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                     <FormField control={form.control} name="labor" render={({ field }) => (
+                        <FormItem className="col-span-2">
+                           <FormLabel className="flex items-center gap-2"><Wrench className="h-4 w-4"/>Labor</FormLabel>
+                           <FormControl><Input {...field} readOnly disabled/></FormControl>
+                           <FormMessage />
+                        </FormItem>
+                    )}/>
+                 </div>
                </div>
             </form>
           </Form>
@@ -190,3 +223,5 @@ export default function RegisterTardePage() {
     </div>
   );
 }
+
+    
