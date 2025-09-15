@@ -25,6 +25,7 @@ const protectedRoutes = [
     '/queries',
     '/summary',
     '/maps',
+    '/tarde',
 ];
 
 const adminRoutes = [

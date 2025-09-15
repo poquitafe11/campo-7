@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -12,6 +11,7 @@ import {
   Lightbulb,
   PieChart,
   Settings,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState, useEffect } from "react";
@@ -45,6 +45,11 @@ const allFeatures = [
     title: "C. Biologico",
     href: "/biological-control",
     icon: <Bug className="h-10 w-10 text-primary" />,
+  },
+  {
+    title: "Tarde",
+    href: "/tarde",
+    icon: <Clock className="h-10 w-10 text-primary" />,
   },
   {
     title: "Consultas",
