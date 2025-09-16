@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon, Loader2, QrCode, User, Sprout, Wrench, Code, UserPlus, Trash2 } from 'lucide-react';
 import type { LoteData } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import type { WorkerMasterItem } from '@/lib/types';
 
 // Schema for the main form
 const afternoonRegisterSchema = z.object({
@@ -114,7 +115,7 @@ export default function RegisterTardePage() {
     return Array.from(lotesMap.values());
   }, [lotes]);
 
-  const handleManualAdd = () => {
+  const handleManualAdd = (trabajadores: WorkerMasterItem[]) => {
     if (manualDni.length !== 8) {
         toast({ variant: 'destructive', title: 'DNI Inválido', description: 'El DNI debe tener 8 dígitos.' });
         return;
@@ -246,7 +247,7 @@ export default function RegisterTardePage() {
                     maxLength={8}
                     className="h-10"
                 />
-                <Button type="button" onClick={handleManualAdd} className="h-10 w-full sm:w-auto">
+                <Button type="button" onClick={() => handleManualAdd(trabajadores)} className="h-10 w-full sm:w-auto">
                     <UserPlus className="mr-2 h-4 w-4" />
                     Agregar
                 </Button>
