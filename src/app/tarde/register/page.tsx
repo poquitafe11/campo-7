@@ -116,7 +116,7 @@ export default function RegisterTardePage() {
     return Array.from(lotesMap.values());
   }, [lotes]);
 
-  const handleManualAdd = (trabajadores: WorkerMasterItem[]) => {
+  const handleManualAdd = (trabajadoresList: WorkerMasterItem[]) => {
     if (manualDni.length !== 8) {
         toast({ variant: 'destructive', title: 'DNI Inválido', description: 'El DNI debe tener 8 dígitos.' });
         return;
@@ -127,7 +127,7 @@ export default function RegisterTardePage() {
         return;
     }
 
-    const worker = trabajadores.find(t => t.dni === manualDni);
+    const worker = trabajadoresList.find(t => t.dni === manualDni);
     if (!worker) {
         setRegisteredPersonnel(prev => [...prev, { dni: manualDni, name: 'Pendiente de actualizar' }]);
         toast({ title: 'Agregado (Pendiente)', description: `DNI ${manualDni} añadido. Actualice el maestro más tarde.` });
@@ -300,5 +300,3 @@ export default function RegisterTardePage() {
     </div>
   );
 }
-
-    
