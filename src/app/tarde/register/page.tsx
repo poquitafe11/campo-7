@@ -93,8 +93,10 @@ export default function RegisterTardePage() {
       }
     };
 
-    getCameraPermission();
-  }, [toast]);
+    if (isOpen) {
+      getCameraPermission();
+    }
+  }, [toast, isOpen]);
   
   useEffect(() => {
     if (codeValue) {
@@ -122,18 +124,20 @@ export default function RegisterTardePage() {
     }
     if (registeredPersonnel.some(p => p.dni === manualDni)) {
         toast({ variant: 'destructive', title: 'DNI Repetido', description: 'Esta persona ya ha sido registrada.' });
+        setManualDni('');
         return;
     }
 
     const worker = trabajadores.find(t => t.dni === manualDni);
     if (!worker) {
-        toast({ variant: 'destructive', title: 'No Encontrado', description: 'No se encontró un trabajador con ese DNI en el maestro.' });
-        return;
+        setRegisteredPersonnel(prev => [...prev, { dni: manualDni, name: 'Pendiente de actualizar' }]);
+        toast({ title: 'Agregado (Pendiente)', description: `DNI ${manualDni} añadido. Actualice el maestro más tarde.` });
+    } else {
+        setRegisteredPersonnel(prev => [...prev, { dni: worker.dni, name: worker.name }]);
+        toast({ title: 'Agregado', description: `${worker.name} ha sido añadido a la lista.` });
     }
 
-    setRegisteredPersonnel(prev => [...prev, { dni: worker.dni, name: worker.name }]);
     setManualDni('');
-    toast({ title: 'Agregado', description: `${worker.name} ha sido añadido a la lista.` });
   };
   
   const handleRemovePersonnel = (dni: string) => {
