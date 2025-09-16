@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, RefreshCcw, Calendar as CalendarIcon, ArrowLeft, LayoutGrid } from 'lucide-react';
+import { Loader2, RefreshCcw, Calendar as CalendarIcon, ArrowLeft, LayoutGrid, Clock } from 'lucide-react';
 import { format, parseISO, isValid, differenceInDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -18,6 +18,8 @@ import { Calendar } from '@/components/ui/calendar';
 import Link from 'next/link';
 import { ResumenTablasAdicionales } from '@/components/ResumenTablasAdicionales';
 import { useMasterData } from '@/context/MasterDataContext';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 
 interface PivotData {
@@ -60,6 +62,7 @@ function AttendanceSummaryContent() {
   const router = useRouter();
   const { setActions } = useHeaderActions();
   const { labors } = useMasterData();
+  const [turnoFilter, setTurnoFilter] = useState('todos');
   
   const selectedDateParam = searchParams.get('date');
   const refreshParam = searchParams.get('refresh'); 
@@ -150,6 +153,27 @@ function AttendanceSummaryContent() {
                     />
                 </PopoverContent>
             </Popover>
+             <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="ghost" className="gap-1 px-2 h-8">
+                        <Clock className="h-5 w-5" />
+                        <span className="text-sm capitalize">{turnoFilter === 'todos' ? 'Todos' : turnoFilter}</span>
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-0" align="end">
+                    <Select value={turnoFilter} onValueChange={setTurnoFilter}>
+                        <SelectTrigger className="border-0 focus:ring-0">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="todos">Todos los Turnos</SelectItem>
+                            <SelectItem value="Mañana">Mañana</SelectItem>
+                            <SelectItem value="Tarde">Tarde</SelectItem>
+                            <SelectItem value="Noche">Noche</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </PopoverContent>
+            </Popover>
         </div>
     );
     
@@ -159,18 +183,26 @@ function AttendanceSummaryContent() {
     });
   
     return () => setActions({});
-  }, [setActions, selectedDate, router]);
+  }, [setActions, selectedDate, router, turnoFilter]);
 
 
   const recordsForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
     const selectedDayString = format(startOfDay(selectedDate), 'yyyy-MM-dd');
-    return allRecords.filter(r => {
+    
+    let filtered = allRecords.filter(r => {
         if (!r.date || !isValid(r.date)) return false;
         const recordDayString = format(startOfDay(r.date), 'yyyy-MM-dd');
         return recordDayString === selectedDayString;
     });
-  }, [allRecords, selectedDate]);
+
+    if (turnoFilter !== 'todos') {
+        filtered = filtered.filter(r => (r.turno || 'Mañana') === turnoFilter);
+    }
+    
+    return filtered;
+
+  }, [allRecords, selectedDate, turnoFilter]);
 
 
   const pivotData = useMemo<PivotData | null>(() => {

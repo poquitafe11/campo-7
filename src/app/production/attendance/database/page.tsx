@@ -172,7 +172,7 @@ export default function AttendanceDatabasePage() {
         const dateKey = format(startOfDay(record.date), 'yyyy-MM-dd');
         const laborKey = record.labor || 'Sin Labor';
         const loteKey = record.lotName || record.lote || 'Sin Lote';
-        const turnoKey = record.turno || 'N/A';
+        const turnoKey = record.turno || 'Mañana';
 
         if (!groups[dateKey]) groups[dateKey] = {};
         if (!groups[dateKey][laborKey]) groups[dateKey][laborKey] = {};
