@@ -93,10 +93,9 @@ export default function RegisterTardePage() {
       }
     };
 
-    if (isOpen) {
-      getCameraPermission();
-    }
-  }, [toast, isOpen]);
+    getCameraPermission();
+
+  }, [toast]);
   
   useEffect(() => {
     if (codeValue) {
@@ -117,7 +116,7 @@ export default function RegisterTardePage() {
     return Array.from(lotesMap.values());
   }, [lotes]);
 
-  const handleManualAdd = (trabajadores: WorkerMasterItem[]) => {
+  const handleManualAdd = () => {
     if (manualDni.length !== 8) {
         toast({ variant: 'destructive', title: 'DNI Inválido', description: 'El DNI debe tener 8 dígitos.' });
         return;
@@ -251,7 +250,7 @@ export default function RegisterTardePage() {
                     maxLength={8}
                     className="h-10"
                 />
-                <Button type="button" onClick={() => handleManualAdd(trabajadores)} className="h-10 w-full sm:w-auto">
+                <Button type="button" onClick={handleManualAdd} className="h-10 w-full sm:w-auto">
                     <UserPlus className="mr-2 h-4 w-4" />
                     Agregar
                 </Button>
