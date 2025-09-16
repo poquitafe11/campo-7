@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -18,6 +19,7 @@ import {
   Trash2,
   Loader2,
   ChevronDown,
+  Clock,
 } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -88,6 +90,7 @@ const attendanceFormSchema = z.object({
     required_error: 'La fecha es obligatoria.',
   }),
   lote: z.string().min(1, 'Debe seleccionar un lote.'),
+  turno: z.string().min(1, 'Debe seleccionar un turno.'),
   code: z.string().optional(),
   labor: z.string().optional(),
   assistants: z.array(assistantInFormSchema),
@@ -111,6 +114,7 @@ export default function DailyEntryPage() {
     defaultValues: {
       date: new Date(), 
       lote: '',
+      turno: '',
       code: '',
       labor: '',
       assistants: [],
@@ -357,6 +361,7 @@ export default function DailyEntryPage() {
                     date: format(data.date, 'yyyy-MM-dd'),
                     lote: data.lote,
                     lotName: loteMasterData.lote,
+                    turno: data.turno,
                     variedad: loteMasterData.variedad,
                     fechaCianamida: loteMasterData.fechaCianamida,
                     campana: loteMasterData.campana,
@@ -383,6 +388,7 @@ export default function DailyEntryPage() {
         form.reset({
           date: new Date(),
           lote: '',
+          turno: '',
           code: '',
           labor: '',
           assistants: [],
@@ -440,28 +446,52 @@ export default function DailyEntryPage() {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="lote"
-            render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Sprout className="h-4 w-4" /> Lote
-              </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger><SelectValue placeholder="Selecciona un lote" /></SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {uniqueLotes
-                     .sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}))
-                     .map((lote) => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-            )}
-          />
+         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="lote"
+              render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <Sprout className="h-4 w-4" /> Lote
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue placeholder="Selecciona un lote" /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {uniqueLotes
+                       .sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}))
+                       .map((lote) => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="turno"
+              render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" /> Turno
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue placeholder="Selecciona un turno" /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                      <SelectItem value="Mañana">Mañana</SelectItem>
+                      <SelectItem value="Tarde">Tarde</SelectItem>
+                      <SelectItem value="Noche">Noche</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+              )}
+            />
+         </div>
 
           <div className="grid grid-cols-3 gap-4">
             <FormField
