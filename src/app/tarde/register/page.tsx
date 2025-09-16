@@ -20,9 +20,9 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Loader2, QrCode, User, Sprout, Wrench, Code } from 'lucide-react';
+import { CalendarIcon, Loader2, QrCode, User, Sprout, Wrench, Code, UserPlus, Trash2 } from 'lucide-react';
 import type { LoteData } from '@/lib/types';
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 // Schema for the main form
 const afternoonRegisterSchema = z.object({
@@ -34,14 +34,18 @@ const afternoonRegisterSchema = z.object({
 });
 
 type AfternoonRegisterValues = z.infer<typeof afternoonRegisterSchema>;
+type RegisteredPersonnel = { dni: string; name: string };
 
 export default function RegisterTardePage() {
   const { setActions } = useHeaderActions();
   const { toast } = useToast();
-  const { lotes, labors, asistentes, loading: masterLoading } = useMasterData();
+  const { lotes, labors, asistentes, trabajadores, loading: masterLoading } = useMasterData();
   const { profile } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  
+  const [registeredPersonnel, setRegisteredPersonnel] = useState<RegisteredPersonnel[]>([]);
+  const [manualDni, setManualDni] = useState('');
 
   const form = useForm<AfternoonRegisterValues>({
     resolver: zodResolver(afternoonRegisterSchema),
@@ -69,13 +73,11 @@ export default function RegisterTardePage() {
   }, [profile, form]);
 
   useEffect(() => {
-    if (!videoRef.current) return;
-
     const getCameraPermission = async () => {
+      if (!videoRef.current) return;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         setHasCameraPermission(true);
-
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
@@ -91,7 +93,7 @@ export default function RegisterTardePage() {
     };
 
     getCameraPermission();
-  }, [toast, videoRef]);
+  }, [toast]);
   
   useEffect(() => {
     if (codeValue) {
@@ -112,8 +114,37 @@ export default function RegisterTardePage() {
     return Array.from(lotesMap.values());
   }, [lotes]);
 
+  const handleManualAdd = () => {
+    if (manualDni.length !== 8) {
+        toast({ variant: 'destructive', title: 'DNI Inválido', description: 'El DNI debe tener 8 dígitos.' });
+        return;
+    }
+    if (registeredPersonnel.some(p => p.dni === manualDni)) {
+        toast({ variant: 'destructive', title: 'DNI Repetido', description: 'Esta persona ya ha sido registrada.' });
+        return;
+    }
+
+    const worker = trabajadores.find(t => t.dni === manualDni);
+    if (!worker) {
+        toast({ variant: 'destructive', title: 'No Encontrado', description: 'No se encontró un trabajador con ese DNI en el maestro.' });
+        return;
+    }
+
+    setRegisteredPersonnel(prev => [...prev, { dni: worker.dni, name: worker.name }]);
+    setManualDni('');
+    toast({ title: 'Agregado', description: `${worker.name} ha sido añadido a la lista.` });
+  };
+  
+  const handleRemovePersonnel = (dni: string) => {
+    setRegisteredPersonnel(prev => prev.filter(p => p.dni !== dni));
+  };
+
+
   function onSubmit(values: AfternoonRegisterValues) {
-    console.log(values);
+    console.log({
+        ...values,
+        personnel: registeredPersonnel
+    });
     toast({ title: "Registro Guardado (Simulación)" });
   }
 
@@ -122,7 +153,7 @@ export default function RegisterTardePage() {
       <Card>
         <CardHeader>
           <CardTitle>Registro de Asistencia Turno Tarde</CardTitle>
-          <CardDescription>Complete los datos y escanee el QR del personal.</CardDescription>
+          <CardDescription>Complete los datos y escanee el QR del personal o ingrese el DNI manualmente.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -183,9 +214,9 @@ export default function RegisterTardePage() {
 
       <Card>
         <CardHeader>
-            <CardTitle>Escanear QR del Personal</CardTitle>
+            <CardTitle>Escanear QR o Ingresar DNI</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
              <div className="relative aspect-video bg-muted rounded-md overflow-hidden border">
                 <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                 {hasCameraPermission === false && (
@@ -207,15 +238,57 @@ export default function RegisterTardePage() {
                     <div className="w-3/5 h-3/5 border-4 border-dashed border-white/50 rounded-lg"></div>
                 </div>
             </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+                <Input 
+                    placeholder="Ingresar DNI manualmente"
+                    value={manualDni}
+                    onChange={(e) => setManualDni(e.target.value)}
+                    maxLength={8}
+                    className="h-10"
+                />
+                <Button type="button" onClick={handleManualAdd} className="h-10 w-full sm:w-auto">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Agregar
+                </Button>
+            </div>
         </CardContent>
       </Card>
        <Card>
         <CardHeader>
-            <CardTitle>Personal Registrado</CardTitle>
+            <CardTitle>Personal Registrado ({registeredPersonnel.length})</CardTitle>
         </CardHeader>
         <CardContent>
-            <div className="flex items-center justify-center h-24 border-2 border-dashed rounded-lg">
-                <p className="text-muted-foreground">La lista de personal aparecerá aquí.</p>
+            <div className="border rounded-md max-h-60 overflow-y-auto">
+              <Table>
+                  <TableHeader>
+                      <TableRow>
+                          <TableHead>DNI</TableHead>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead className="text-right"></TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {registeredPersonnel.length > 0 ? (
+                          registeredPersonnel.map(p => (
+                              <TableRow key={p.dni}>
+                                  <TableCell className="font-medium">{p.dni}</TableCell>
+                                  <TableCell>{p.name}</TableCell>
+                                  <TableCell className="text-right">
+                                      <Button variant="ghost" size="icon" onClick={() => handleRemovePersonnel(p.dni)}>
+                                          <Trash2 className="h-4 w-4 text-destructive"/>
+                                      </Button>
+                                  </TableCell>
+                              </TableRow>
+                          ))
+                      ) : (
+                         <TableRow>
+                            <TableCell colSpan={3} className="h-24 text-center">
+                                La lista de personal aparecerá aquí.
+                            </TableCell>
+                        </TableRow>
+                      )}
+                  </TableBody>
+              </Table>
             </div>
         </CardContent>
       </Card>
@@ -223,5 +296,3 @@ export default function RegisterTardePage() {
     </div>
   );
 }
-
-    
