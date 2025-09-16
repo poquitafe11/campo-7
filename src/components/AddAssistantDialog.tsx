@@ -221,7 +221,7 @@ export default function AddAssistantDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl sm:top-auto sm:translate-y-0 data-[state=open]:sm:slide-in-from-bottom-0 top-[4rem] translate-y-0 data-[state=open]:slide-in-from-top-12">
         <DialogHeader>
           <DialogTitle>Agregar Asistente y su Personal</DialogTitle>
         </DialogHeader>
