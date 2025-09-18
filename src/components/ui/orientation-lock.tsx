@@ -8,7 +8,16 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function OrientationLocker() {
   const [isLocked, setIsLocked] = useState(false);
+  const [isApiSupported, setIsApiSupported] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if the Screen Orientation API and its lock method are supported.
+    const supported = 'screen' in window && 
+                      'orientation' in window.screen && 
+                      'lock' in window.screen.orientation;
+    setIsApiSupported(supported);
+  }, []);
 
   const lockOrientation = async () => {
     try {
@@ -17,19 +26,13 @@ export default function OrientationLocker() {
       toast({ title: 'Orientación bloqueada', description: 'La pantalla se ha fijado en modo horizontal.' });
     } catch (err: any) {
       console.error("Failed to lock orientation:", err);
-      if (err.name === 'NotSupportedError') {
-        toast({
-          variant: 'destructive',
-          title: 'Función no soportada',
-          description: 'Tu navegador o dispositivo no permite bloquear la orientación de la pantalla.'
-        });
-      } else {
-         toast({
-          variant: 'destructive',
-          title: 'Error al girar',
-          description: `No se pudo bloquear la orientación.`
-        });
-      }
+      // Even with the check, some sandboxed environments might still throw an error.
+      // We handle it gracefully.
+      toast({
+        variant: 'destructive',
+        title: 'No se pudo bloquear la orientación',
+        description: 'Tu dispositivo o navegador denegó el permiso en este momento.'
+      });
     }
   };
 
@@ -47,9 +50,7 @@ export default function OrientationLocker() {
     }
   };
 
-  // Check if the API is available
-  const isApiSupported = typeof window !== 'undefined' && 'screen' in window && 'orientation' in window.screen && 'lock' in window.screen.orientation;
-
+  // If the API is not supported at all, render nothing.
   if (!isApiSupported) {
     return null;
   }
