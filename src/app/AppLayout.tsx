@@ -4,7 +4,6 @@
 import React from 'react';
 import { Sidebar } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
-import OrientationLocker from '@/components/ui/orientation-lock';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -21,7 +20,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {children}
           </div>
         </main>
-        <OrientationLocker />
       </div>
   );
 }
