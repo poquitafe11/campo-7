@@ -128,15 +128,19 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
             <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild className="w-full">
-                  <AccordionTrigger className={cn(
-                      'group flex items-center w-full justify-between gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline [&>svg]:size-5',
-                      isMastersActive && 'bg-sidebar-accent text-sidebar-foreground',
-                      !isExpanded && 'justify-center'
-                    )}>
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <Layers className="h-5 w-5 flex-shrink-0" />
-                        {isExpanded && <span className="flex-1 text-left truncate">Maestros</span>}
-                      </div>
+                   <div className={cn(
+                      'group flex items-center justify-between w-full rounded-lg px-3 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
+                       isMastersActive && 'bg-sidebar-accent text-sidebar-foreground'
+                   )}>
+                    <AccordionTrigger className={cn(
+                        'flex-1 flex items-center w-full justify-start gap-3 py-2 hover:no-underline [&>svg]:size-5',
+                        !isExpanded && 'justify-center'
+                      )}>
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <Layers className="h-5 w-5 flex-shrink-0" />
+                          {isExpanded && <span className="flex-1 text-left truncate">Maestros</span>}
+                        </div>
+                      </AccordionTrigger>
                       {isExpanded && profile?.rol === 'Admin' && (
                         <Button 
                               variant="ghost" 
@@ -147,7 +151,7 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
                               <Settings className="h-4 w-4" />
                           </Button>
                       )}
-                    </AccordionTrigger>
+                    </div>
                 </TooltipTrigger>
                 {!isExpanded && (
                   <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent">
