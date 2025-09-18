@@ -14,26 +14,29 @@ import {
   Shield,
   Map,
   Truck,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemo, useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import FeaturePermissionsDialog from './FeaturePermissionsDialog';
+import { Button } from './ui/button';
 
 const mainLinks = [
-  { href: '/dashboard', label: 'Áreas', icon: LayoutGrid },
-  { href: '/users', label: 'Usuarios', icon: Shield },
-  { href: '/maps', label: 'Mapas', icon: Map, disabled: true },
+  { href: '/dashboard', label: 'Áreas', icon: LayoutGrid, title: 'Áreas de Gestión' },
+  { href: '/users', label: 'Usuarios', icon: Shield, title: 'Gestión de Usuarios' },
+  { href: '/maps', label: 'Mapas', icon: Map, disabled: true, title: 'Mapas' },
 ];
 
 const masterLinks = [
-  { href: '/maestro-lotes', label: 'Lotes', icon: Box },
-  { href: '/maestro-labores', label: 'Labores', icon: Layers },
-  { href: '/maestro-trabajadores', label: 'Trabajadores', icon: Users },
-  { href: '/asistentes', label: 'Asistentes', icon: Users },
-  { href: '/maestro-jaladores', label: 'Jaladores', icon: Truck },
-  { href: '/min-max', label: 'Mínimos y Máximos', icon: Thermometer },
-  { href: '/presupuesto', label: 'Presupuesto', icon: ScrollText },
+  { href: '/maestro-lotes', label: 'Lotes', icon: Box, title: 'Maestro de Lotes' },
+  { href: '/maestro-labores', label: 'Labores', icon: Layers, title: 'Maestro de Labores' },
+  { href: '/maestro-trabajadores', label: 'Trabajadores', icon: Users, title: 'Maestro de Trabajadores' },
+  { href: '/asistentes', label: 'Asistentes', icon: Users, title: 'Gestión de Asistentes' },
+  { href: '/maestro-jaladores', label: 'Jaladores', icon: Truck, title: 'Maestro de Jaladores' },
+  { href: '/min-max', label: 'Mínimos y Máximos', icon: Thermometer, title: 'Mínimos y Máximos' },
+  { href: '/presupuesto', label: 'Presupuesto', icon: ScrollText, title: 'Presupuesto' },
 ];
 
 interface SidebarNavProps {
@@ -46,6 +49,16 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
   
   const isMastersActive = masterLinks.some(link => pathname.startsWith(link.href));
   const [activeAccordion, setActiveAccordion] = useState(isMastersActive ? 'maestros' : '');
+
+  const [isPermissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState<{title: string, href: string} | null>(null);
+
+  const handlePermissionSettings = (e: React.MouseEvent, feature: {title: string, href: string}) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedFeature(feature);
+    setPermissionsDialogOpen(true);
+  }
 
   const visibleLinks = useMemo(() => {
     if (!profile) return { main: [], masters: [] };
@@ -60,16 +73,28 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
     return pathname.startsWith(href);
   };
   
-  const NavLink = ({ href, label, icon: Icon, disabled = false }: { href: string; label: string; icon: React.ElementType; disabled?: boolean }) => {
+  const NavLink = ({ href, label, icon: Icon, disabled = false, title }: { href: string; label: string; icon: React.ElementType; disabled?: boolean; title: string }) => {
     const linkContent = (
       <div className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
+        'group flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground',
         isActive(href) && 'bg-sidebar-accent text-sidebar-foreground',
         !isExpanded && 'justify-center',
         disabled && 'cursor-not-allowed opacity-50'
       )}>
-        <Icon className="h-5 w-5 flex-shrink-0" />
-        {isExpanded && <span className="truncate">{label}</span>}
+        <div className="flex items-center gap-3 overflow-hidden">
+          <Icon className="h-5 w-5 flex-shrink-0" />
+          {isExpanded && <span className="truncate">{label}</span>}
+        </div>
+        {isExpanded && profile?.rol === 'Admin' && href !== '/dashboard' && !disabled && (
+           <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
+                onClick={(e) => handlePermissionSettings(e, { title, href })}
+            >
+                <Settings className="h-4 w-4" />
+            </Button>
+        )}
       </div>
     );
     
@@ -92,41 +117,61 @@ export function SidebarNav({ isExpanded }: SidebarNavProps) {
   };
 
   return (
-    <nav className="grid items-start gap-1 p-2 text-sm font-medium">
-      {visibleLinks.main.map((link) => (
-        <NavLink key={link.href} {...link} />
-      ))}
-      
-      <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
-        <AccordionItem value="maestros" className="border-none">
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild className="w-full">
-                 <AccordionTrigger className={cn(
-                    'flex items-center w-full gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline [&>svg]:size-5',
-                    isMastersActive && 'bg-sidebar-accent text-sidebar-foreground',
-                    !isExpanded && 'justify-center'
-                  )}>
-                    <div className="flex items-center gap-3">
-                      <Layers className="h-5 w-5 flex-shrink-0" />
-                      {isExpanded && <span className="flex-1 text-left truncate">Maestros</span>}
-                    </div>
-                  </AccordionTrigger>
-              </TooltipTrigger>
-              {!isExpanded && (
-                <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent">
-                   <p>Maestros</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-          <AccordionContent className={cn("pt-1 space-y-1", isExpanded ? "pl-4" : "pl-0")}>
-            {visibleLinks.masters.map((link) => (
-               <NavLink key={link.href} {...link} />
-            ))}
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </nav>
+    <>
+      <nav className="grid items-start gap-1 p-2 text-sm font-medium">
+        {visibleLinks.main.map((link) => (
+          <NavLink key={link.href} {...link} />
+        ))}
+        
+        <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion}>
+          <AccordionItem value="maestros" className="border-none">
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild className="w-full">
+                  <AccordionTrigger className={cn(
+                      'group flex items-center w-full justify-between gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:bg-sidebar-accent/20 hover:text-sidebar-foreground hover:no-underline [&>svg]:size-5',
+                      isMastersActive && 'bg-sidebar-accent text-sidebar-foreground',
+                      !isExpanded && 'justify-center'
+                    )}>
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <Layers className="h-5 w-5 flex-shrink-0" />
+                        {isExpanded && <span className="flex-1 text-left truncate">Maestros</span>}
+                      </div>
+                      {isExpanded && profile?.rol === 'Admin' && (
+                        <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
+                              onClick={(e) => handlePermissionSettings(e, { title: 'Maestros (Todos)', href: '/maestros' })}
+                          >
+                              <Settings className="h-4 w-4" />
+                          </Button>
+                      )}
+                    </AccordionTrigger>
+                </TooltipTrigger>
+                {!isExpanded && (
+                  <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-accent">
+                    <p>Maestros</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            <AccordionContent className={cn("pt-1 space-y-1", isExpanded ? "pl-4" : "pl-0")}>
+              {visibleLinks.masters.map((link) => (
+                <NavLink key={link.href} {...link} />
+              ))}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </nav>
+      {selectedFeature && (
+          <FeaturePermissionsDialog
+              isOpen={isPermissionsDialogOpen}
+              onOpenChange={setPermissionsDialogOpen}
+              feature={selectedFeature}
+              onSuccess={() => setPermissionsDialogOpen(false)}
+          />
+      )}
+    </>
   );
 }
