@@ -40,13 +40,14 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         if (pathname.startsWith('/api/') || pathname === '/manifest.json') return false; 
         return true;
       },
-      handler: 'StaleWhileRevalidate',
+      handler: 'NetworkFirst', // Use NetworkFirst for pages to ensure freshness
       options: {
         cacheName: 'pages-cache',
         expiration: {
           maxEntries: 50,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
         },
+        networkTimeoutSeconds: 3, // Fallback to cache after 3 seconds
       },
     },
      {

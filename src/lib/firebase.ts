@@ -16,14 +16,15 @@ let auth: Auth;
 let db: Firestore;
 
 if (typeof window !== 'undefined') {
-    const apps = getApps();
-    app = apps.length ? apps[0]! : initializeApp(firebaseConfig);
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
     try {
+      // Use indexedDB for more robust persistence in PWAs
       auth = initializeAuth(app, {
         persistence: indexedDBLocalPersistence
       });
     } catch (e) {
+      console.warn("Fallback to getAuth():", e);
       auth = getAuth(app); 
     }
 
@@ -33,12 +34,13 @@ if (typeof window !== 'undefined') {
       });
       enableIndexedDbPersistence(db).catch((err) => {
           if (err.code == 'failed-precondition') {
-              console.warn("Firestore persistence failed: Multiple tabs open.");
+              console.warn("Firestore persistence failed: Multiple tabs open. Offline data will not be saved.");
           } else if (err.code == 'unimplemented') {
               console.warn("Firestore persistence failed: Browser does not support it.");
           }
       });
     } catch (e) {
+        console.warn("Fallback to getFirestore():", e);
         db = getFirestore(app);
     }
 } else {

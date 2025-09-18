@@ -3,7 +3,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 const protectedRoutes = [
@@ -36,9 +36,14 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const { user, profile, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  
+  // Add a state to track if the initial auth check has been passed.
+  const [initialAuthPassed, setInitialAuthPassed] = useState(false);
+
   useEffect(() => {
     if (loading) return;
+
+    // Once not loading, we mark initial auth as passed.
+    setInitialAuthPassed(true);
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
     
@@ -73,7 +78,8 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }, [user, profile, loading, pathname, router]);
 
 
-  if (loading) {
+  // Only show the main loader ONCE on the very first load of the app.
+  if (loading && !initialAuthPassed) {
      return (
         <div className="flex h-screen items-center justify-center bg-background">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -83,10 +89,14 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
   if (isProtectedRoute && !user) {
+    // Don't render protected content if user is not logged in.
+    // The useEffect will handle the redirect.
     return null; 
   }
 
   if(pathname === '/login' && user) {
+     // Don't render login page if user is already logged in.
+     // The useEffect will handle the redirect.
     return null;
   }
 

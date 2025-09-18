@@ -14,6 +14,7 @@ interface MasterData {
   asistentes: (Assistant & { id: string, assistantName: string, cargo: string })[];
   minMax: MinMax[];
   jaladores: Jalador[];
+  trabajadores: { dni: string, name: string }[];
 }
 
 interface MasterDataContextType extends MasterData {
@@ -25,75 +26,53 @@ interface MasterDataContextType extends MasterData {
 const MasterDataContext = createContext<MasterDataContextType | undefined>(undefined);
 
 export function MasterDataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<MasterData>({ lotes: [], labors: [], asistentes: [], minMax: [], jaladores: [] });
+  const [data, setData] = useState<MasterData>({ lotes: [], labors: [], asistentes: [], minMax: [], jaladores: [], trabajadores: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
   const loadMasterData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const lotesSnapshot = await getDocs(collection(db, 'maestro-lotes'));
-      const lotesData = lotesSnapshot.docs.map(doc => {
-          const docData = doc.data();
-          const fechaCianamida = docData.fechaCianamida?.toDate ? docData.fechaCianamida.toDate() : (docData.fechaCianamida ? parseISO(docData.fechaCianamida) : new Date());
-          return { id: doc.id, ...docData, fechaCianamida } as LoteData;
-      });
-
-      const laborsSnapshot = await getDocs(collection(db, 'maestro-labores'));
-      const laborsData = laborsSnapshot.docs.map(doc => ({ codigo: doc.id, ...doc.data() } as Labor));
-
-      const asistentesSnapshot = await getDocs(collection(db, 'asistentes'));
-      const asistentesData = asistentesSnapshot.docs.map(doc => ({ 
-          id: doc.id, 
-          assistantName: doc.data().nombre,
-          cargo: doc.data().cargo, 
-          personnelCount: 0, 
-          absentCount: 0 
-      }));
-      
-      const minMaxSnapshot = await getDocs(collection(db, 'min-max'));
-      const minMaxData = minMaxSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MinMax));
-      
-      const jaladoresSnapshot = await getDocs(collection(db, 'maestro-jaladores'));
-      const jaladoresData = jaladoresSnapshot.docs.map(doc => ({ id: doc.id, dni: doc.id, ...doc.data() } as Jalador));
-
-
-      setData({ lotes: lotesData, labors: laborsData, asistentes: asistentesData, minMax: minMaxData, jaladores: jaladoresData });
-
-    } catch (err) {
-      console.error('Error loading master data:', err);
-      const fetchError = new Error('Failed to fetch master data.');
-      setError(fetchError);
-      toast({
-        variant: 'destructive',
-        title: 'Error de Carga',
-        description: 'No se pudieron cargar los datos maestros. La funcionalidad sin conexión puede verse afectada.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+    // This function can be used to manually trigger a refresh, but the primary loading is handled by onSnapshot.
+    console.log('Refreshing master data...');
+  }, []);
 
   useEffect(() => {
-    loadMasterData();
+    setLoading(true);
 
-    const lotesUnsub = onSnapshot(collection(db, 'maestro-lotes'), () => loadMasterData());
-    const laboresUnsub = onSnapshot(collection(db, 'maestro-labores'), () => loadMasterData());
-    const asistentesUnsub = onSnapshot(collection(db, 'asistentes'), () => loadMasterData());
-    const minMaxUnsub = onSnapshot(collection(db, 'min-max'), () => loadMasterData());
-    const jaladoresUnsub = onSnapshot(collection(db, 'maestro-jaladores'), () => loadMasterData());
+    const collections = [
+        { name: 'maestro-lotes', key: 'lotes', processor: (doc: any) => ({ id: doc.id, ...doc.data(), fechaCianamida: doc.data().fechaCianamida?.toDate ? doc.data().fechaCianamida.toDate() : (doc.data().fechaCianamida ? parseISO(doc.data().fechaCianamida) : new Date()) }) },
+        { name: 'maestro-labores', key: 'labors', processor: (doc: any) => ({ codigo: doc.id, ...doc.data() }) },
+        { name: 'asistentes', key: 'asistentes', processor: (doc: any) => ({ id: doc.id, assistantName: doc.data().nombre, cargo: doc.data().cargo, personnelCount: 0, absentCount: 0 }) },
+        { name: 'min-max', key: 'minMax', processor: (doc: any) => ({ id: doc.id, ...doc.data() }) },
+        { name: 'maestro-jaladores', key: 'jaladores', processor: (doc: any) => ({ id: doc.id, ...doc.data() }) },
+        { name: 'maestro-trabajadores', key: 'trabajadores', processor: (doc: any) => ({ dni: doc.id, name: doc.data().name }) },
+    ];
+
+    const unsubscribes = collections.map(({ name, key, processor }) => {
+        return onSnapshot(collection(db, name), (snapshot) => {
+            const collectionData = snapshot.docs.map(processor);
+            setData(prevData => ({
+                ...prevData,
+                [key]: collectionData,
+            }));
+            setLoading(false); // Set loading to false after the first successful data fetch.
+        }, (err) => {
+            console.error(`Error loading ${name}:`, err);
+            setError(new Error(`Failed to fetch ${name}.`));
+            setLoading(false);
+            toast({
+                variant: 'destructive',
+                title: `Error de Carga: ${name}`,
+                description: 'No se pudieron cargar los datos maestros. La funcionalidad sin conexión puede verse afectada.',
+            });
+        });
+    });
     
     return () => {
-        lotesUnsub();
-        laboresUnsub();
-        asistentesUnsub();
-        minMaxUnsub();
-        jaladoresUnsub();
+        unsubscribes.forEach(unsub => unsub());
     }
 
-  }, [loadMasterData]);
+  }, [toast]);
 
   const value = { ...data, loading, error, refreshData: loadMasterData };
 
