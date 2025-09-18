@@ -40,7 +40,7 @@ export const viewport: Viewport = {
   themeColor: "#6d28d9",
   width: 'device-width',
   initialScale: 1,
-  userScalable: false,
+  userScalable: true, // Allow user to zoom
   orientation: 'any',
 };
 

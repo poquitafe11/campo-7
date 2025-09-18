@@ -356,10 +356,10 @@ function AttendanceSummaryContent() {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-x-auto max-w-full">
-        <div className="bg-white p-2 rounded-lg shadow-sm border inline-block">
+      <div className="w-full">
+        <div className="bg-white p-2 rounded-lg shadow-sm border inline-block min-w-full">
             {pivotData && pivotData.loteHeaders.length > 0 && selectedDate ? (
-                <table className="table-auto border-collapse text-xs">
+                <table className="table-auto border-collapse text-xs w-full">
                     <thead className="text-center font-bold text-black">
                         <tr>
                             <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs">
