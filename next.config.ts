@@ -36,8 +36,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         const isSameOrigin = self.origin === url.origin;
         if (!isSameOrigin) return false;
         const pathname = url.pathname;
-        // Exclude API routes from this cache
-        if (pathname.startsWith('/api/')) return false; 
+        // Exclude API routes and the manifest from this cache
+        if (pathname.startsWith('/api/') || pathname === '/manifest.json') return false; 
         return true;
       },
       handler: 'StaleWhileRevalidate',
