@@ -21,13 +21,13 @@ export default function OrientationLocker() {
         toast({
           variant: 'destructive',
           title: 'Función no soportada',
-          description: 'Tu navegador no soporta el bloqueo de orientación.'
+          description: 'Tu navegador o dispositivo no permite bloquear la orientación de la pantalla.'
         });
       } else {
          toast({
           variant: 'destructive',
           title: 'Error al girar',
-          description: `No se pudo bloquear la orientación: ${err.message}`
+          description: `No se pudo bloquear la orientación.`
         });
       }
     }
