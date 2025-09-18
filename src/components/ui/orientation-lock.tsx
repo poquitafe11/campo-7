@@ -15,24 +15,33 @@ export default function OrientationLocker() {
       if (document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen();
       }
-      // Use the new Screen Orientation API
+      // It's crucial to lock orientation AFTER entering fullscreen
       await window.screen.orientation.lock('landscape');
       setIsLocked(true);
       toast({ title: 'Orientación bloqueada', description: 'La pantalla se ha fijado en modo horizontal.' });
     } catch (err: any) {
       console.error("Failed to lock orientation:", err);
-      // Fallback for older browsers or if locking fails
+      // More specific error handling
       if (err.name === 'NotSupportedError') {
         toast({
           variant: 'destructive',
           title: 'Función no soportada',
           description: 'Tu navegador no soporta el bloqueo de orientación.'
         });
+      } else if (err.name === 'SecurityError') {
+         toast({
+          variant: 'destructive',
+          title: 'Permiso denegado',
+          description: 'No se pudo bloquear la orientación. Inténtalo de nuevo y acepta la solicitud de pantalla completa.'
+        });
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
       } else {
          toast({
           variant: 'destructive',
           title: 'Error al girar',
-          description: 'No se pudo bloquear la orientación de la pantalla.'
+          description: `No se pudo bloquear la orientación: ${err.message}`
         });
       }
     }
@@ -56,7 +65,7 @@ export default function OrientationLocker() {
   };
 
   // Check if the API is available
-  const isApiSupported = typeof window !== 'undefined' && 'screen' in window && 'orientation' in window.screen;
+  const isApiSupported = typeof window !== 'undefined' && 'screen' in window && 'orientation' in window.screen && 'lock' in window.screen.orientation;
 
   if (!isApiSupported) {
     return null;
