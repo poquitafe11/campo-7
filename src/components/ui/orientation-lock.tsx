@@ -12,31 +12,17 @@ export default function OrientationLocker() {
 
   const lockOrientation = async () => {
     try {
-      if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
-      }
-      // It's crucial to lock orientation AFTER entering fullscreen
       await window.screen.orientation.lock('landscape');
       setIsLocked(true);
       toast({ title: 'Orientación bloqueada', description: 'La pantalla se ha fijado en modo horizontal.' });
     } catch (err: any) {
       console.error("Failed to lock orientation:", err);
-      // More specific error handling
       if (err.name === 'NotSupportedError') {
         toast({
           variant: 'destructive',
           title: 'Función no soportada',
           description: 'Tu navegador no soporta el bloqueo de orientación.'
         });
-      } else if (err.name === 'SecurityError') {
-         toast({
-          variant: 'destructive',
-          title: 'Permiso denegado',
-          description: 'No se pudo bloquear la orientación. Inténtalo de nuevo y acepta la solicitud de pantalla completa.'
-        });
-        if (document.fullscreenElement) {
-            document.exitFullscreen();
-        }
       } else {
          toast({
           variant: 'destructive',
@@ -49,9 +35,6 @@ export default function OrientationLocker() {
 
   const unlockOrientation = () => {
     window.screen.orientation.unlock();
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    }
     setIsLocked(false);
     toast({ title: 'Orientación desbloqueada', description: 'La pantalla ahora puede girar libremente.' });
   };
