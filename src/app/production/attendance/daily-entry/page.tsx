@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -63,7 +62,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, runTransaction, getDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
@@ -291,92 +290,93 @@ export default function DailyEntryPage() {
     const docRef = doc(attendanceCollectionRef, docId);
 
     try {
-        await runTransaction(db, async (transaction) => {
-            const docSnap = await transaction.get(docRef);
-            
-            const assistantsPayload = assistantsToSave.map(a => {
-                const jaladores = (a.jaladores || []).map(j => {
-                    const jaladorData: Partial<JaladorAttendance> = {
-                        id: j.id,
-                        jaladorId: j.jaladorId,
-                        jaladorAlias: j.jaladorAlias,
-                        personnelCount: j.personnelCount,
-                        absentCount: j.absentCount,
-                    };
-                    if (j.supportedLabor) {
-                        jaladorData.supportedLabor = j.supportedLabor;
-                    }
-                    return jaladorData as JaladorAttendance;
-                });
-                return {
-                    id: a.id,
-                    assistantDni: a.assistantDni,
-                    assistantName: a.assistantName,
-                    jaladores: jaladores,
+        const docSnap = await getDoc(docRef);
+
+        const assistantsPayload = assistantsToSave.map(a => {
+            const jaladores = (a.jaladores || []).map(j => {
+                const jaladorData: Partial<JaladorAttendance> = {
+                    id: j.id,
+                    jaladorId: j.jaladorId,
+                    jaladorAlias: j.jaladorAlias,
+                    personnelCount: j.personnelCount,
+                    absentCount: j.absentCount,
                 };
+                if (j.supportedLabor) {
+                    jaladorData.supportedLabor = j.supportedLabor;
+                }
+                return jaladorData as JaladorAttendance;
+            });
+            return {
+                id: a.id,
+                assistantDni: a.assistantDni,
+                assistantName: a.assistantName,
+                jaladores: jaladores,
+            };
+        });
+
+        let finalData: Omit<AttendanceRecord, 'id'>;
+
+        if (docSnap.exists()) {
+            const existingData = docSnap.data() as AttendanceRecord;
+            const existingAssistants = existingData.assistants || [];
+            
+            const combinedAssistants = [...existingAssistants];
+            assistantsPayload.forEach(newAssistant => {
+                if (!combinedAssistants.some(ea => ea.assistantDni === newAssistant.assistantDni)) {
+                    combinedAssistants.push(newAssistant);
+                }
             });
 
-            if (docSnap.exists()) {
-                const existingData = docSnap.data() as AttendanceRecord;
-                const existingAssistants = existingData.assistants || [];
-                
-                const combinedAssistants = [...existingAssistants];
-                assistantsPayload.forEach(newAssistant => {
-                    if (!combinedAssistants.some(ea => ea.assistantDni === newAssistant.assistantDni)) {
-                        combinedAssistants.push(newAssistant);
-                    }
-                });
+            const newTotals = combinedAssistants.reduce((acc, a) => {
+                const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
+                    jAcc.personnelCount += j.personnelCount;
+                    jAcc.absentCount += j.absentCount;
+                    return jAcc;
+                }, {personnelCount: 0, absentCount: 0});
+                acc.personnelCount += assistantTotals.personnelCount;
+                acc.absentCount += assistantTotals.absentCount;
+                return acc;
+            }, { personnelCount: 0, absentCount: 0 });
 
-                const newTotals = combinedAssistants.reduce((acc, a) => {
-                    const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
-                        jAcc.personnelCount += j.personnelCount;
-                        jAcc.absentCount += j.absentCount;
-                        return jAcc;
-                    }, {personnelCount: 0, absentCount: 0});
-                    acc.personnelCount += assistantTotals.personnelCount;
-                    acc.absentCount += assistantTotals.absentCount;
-                    return acc;
-                }, { personnelCount: 0, absentCount: 0 });
+            finalData = {
+                ...existingData,
+                assistants: combinedAssistants,
+                totals: newTotals,
+                lastModifiedBy: auth.currentUser?.email,
+                lastModifiedAt: Timestamp.now(),
+            };
+        } else {
+            const recordTotals = assistantsPayload.reduce((acc, a) => {
+                const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
+                    jAcc.personnelCount += j.personnelCount;
+                    jAcc.absentCount += j.absentCount;
+                    return jAcc;
+                }, {personnelCount: 0, absentCount: 0});
+                acc.personnelCount += assistantTotals.personnelCount;
+                acc.absentCount += assistantTotals.absentCount;
+                return acc;
+            }, { personnelCount: 0, absentCount: 0 });
 
-                transaction.update(docRef, {
-                    assistants: combinedAssistants,
-                    totals: newTotals,
-                    lastModifiedBy: auth.currentUser?.email,
-                    lastModifiedAt: serverTimestamp(),
-                });
+            finalData = {
+                date: format(data.date, 'yyyy-MM-dd'),
+                lote: data.lote,
+                lotName: loteMasterData.lote,
+                turno: data.turno,
+                variedad: loteMasterData.variedad,
+                fechaCianamida: loteMasterData.fechaCianamida,
+                campana: loteMasterData.campana,
+                code: laborCode,
+                labor: laborDesc,
+                assistants: assistantsPayload,
+                totals: recordTotals,
+                registeredBy: auth.currentUser?.email,
+                createdAt: Timestamp.now(),
+                lastModifiedBy: auth.currentUser?.email,
+                lastModifiedAt: Timestamp.now(),
+            };
+        }
 
-            } else {
-                const recordTotals = assistantsPayload.reduce((acc, a) => {
-                    const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
-                        jAcc.personnelCount += j.personnelCount;
-                        jAcc.absentCount += j.absentCount;
-                        return jAcc;
-                    }, {personnelCount: 0, absentCount: 0});
-                    acc.personnelCount += assistantTotals.personnelCount;
-                    acc.absentCount += assistantTotals.absentCount;
-                    return acc;
-                }, { personnelCount: 0, absentCount: 0 });
-
-                const record: Omit<AttendanceRecord, 'id'> = {
-                    date: format(data.date, 'yyyy-MM-dd'),
-                    lote: data.lote,
-                    lotName: loteMasterData.lote,
-                    turno: data.turno,
-                    variedad: loteMasterData.variedad,
-                    fechaCianamida: loteMasterData.fechaCianamida,
-                    campana: loteMasterData.campana,
-                    code: laborCode,
-                    labor: laborDesc,
-                    assistants: assistantsPayload,
-                    totals: recordTotals,
-                    registeredBy: auth.currentUser?.email,
-                    createdAt: serverTimestamp(),
-                    lastModifiedBy: auth.currentUser?.email,
-                    lastModifiedAt: serverTimestamp(),
-                };
-                transaction.set(docRef, record);
-            }
-        });
+        await setDoc(docRef, finalData);
         
         toast({
             title: "Operación Completada",
