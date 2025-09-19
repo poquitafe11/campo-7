@@ -286,7 +286,8 @@ export default function DailyEntryPage() {
     const laborCode = laborMasterData?.codigo || '';
     const laborDesc = laborMasterData?.descripcion || data.labor || '';
 
-    const docId = `${format(data.date, 'yyyy-MM-dd')}-${loteMasterData.lote}-${laborDesc}`.replace(/\s+/g, '-');
+    const sanitizedLaborDesc = laborDesc.replace(/[\s\/]/g, '-');
+    const docId = `${format(data.date, 'yyyy-MM-dd')}-${loteMasterData.lote}-${sanitizedLaborDesc}`;
     const docRef = doc(attendanceCollectionRef, docId);
 
     try {
