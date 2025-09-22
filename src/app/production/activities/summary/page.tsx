@@ -43,23 +43,20 @@ interface SummaryValues {
     maximo: number;
 }
 
-const CustomBarLabel = (props: any) => {
-  const { x, y, width, height, value, payload } = props;
-  if (!payload || value <= 0) return null;
-
-  const { max, min } = payload;
+const renderCustomizedLabel = (props: any) => {
+  const { x, y, width, height, payload } = props;
+  const { max, promedio, min } = payload;
   const barCenter = x + width / 2;
-  const topOfBar = y;
 
   return (
     <g>
-      <text x={barCenter} y={topOfBar - 28} fill="#22c55e" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">
+      <text x={barCenter} y={y - 28} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
         {Math.round(max)}
       </text>
-      <text x={barCenter} y={topOfBar - 14} fill="#3b82f6" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight="bold">
-        {Math.round(value)}
+      <text x={barCenter} y={y - 14} fill="#3b82f6" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        {Math.round(promedio)}
       </text>
-      <text x={barCenter} y={topOfBar} fill="#ef4444" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">
+      <text x={barCenter} y={y} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
         {Math.round(min)}
       </text>
     </g>
@@ -266,8 +263,7 @@ export default function ActivitySummaryPage() {
             performanceSum: number;
             workdaySum: number;
             specialPerformanceSum: number;
-            minPerformance: number;
-            maxPerformance: number;
+            promJhuValues: number[];
         }>();
         
         const assistantNameMap = new Map<string, string>();
@@ -292,19 +288,16 @@ export default function ActivitySummaryPage() {
                         performanceSum: 0,
                         workdaySum: 0,
                         specialPerformanceSum: 0,
-                        minPerformance: Infinity,
-                        maxPerformance: -Infinity,
+                        promJhuValues: [],
                     });
                 }
                 const current = assistantData.get(assistantDni)!;
                 
                 const performance = activity.performance || 0;
                 const jhu = activity.workdayCount || 0;
-                const promJhu = jhu > 0 ? performance / jhu : 0;
                 
-                if (promJhu > 0) {
-                    current.minPerformance = Math.min(current.minPerformance, promJhu);
-                    current.maxPerformance = Math.max(current.maxPerformance, promJhu);
+                if (jhu > 0) {
+                    current.promJhuValues.push(performance / jhu);
                 }
 
                 current.performanceSum += performance;
@@ -315,13 +308,14 @@ export default function ActivitySummaryPage() {
         
         const chartData = Array.from(assistantData.entries()).map(([assistantId, data]) => {
             const promedio = data.workdaySum > 0 ? data.performanceSum / data.workdaySum : 0;
-            const min = isFinite(data.minPerformance) ? data.minPerformance : 0;
-            const max = isFinite(data.maxPerformance) ? data.maxPerformance : 0;
+            const min = data.promJhuValues.length > 0 ? Math.min(...data.promJhuValues) : 0;
+            const max = data.promJhuValues.length > 0 ? Math.max(...data.promJhuValues) : 0;
+            
             return {
                 name: formatAssistantName(assistantNameMap.get(assistantId) || assistantId),
-                promedio: Math.round(promedio),
-                min: Math.round(min),
-                max: Math.round(max),
+                promedio,
+                min,
+                max,
                 rendimiento: isSpecialLabor ? data.specialPerformanceSum : data.performanceSum,
                 jornadas: data.workdaySum,
             }
@@ -530,7 +524,7 @@ export default function ActivitySummaryPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
-                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 40, right: 20, bottom: 60, left: 20 }} >
+                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 40, right: 20, bottom: 60, left: 20 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
                                         <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
@@ -541,7 +535,7 @@ export default function ActivitySummaryPage() {
                                           <LabelList 
                                               dataKey="promedio"
                                               position="top"
-                                              content={<CustomBarLabel />}
+                                              content={renderCustomizedLabel}
                                             />
                                         </Bar>
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Jornadas"/>
