@@ -304,7 +304,7 @@ export default function ActivitySummaryPage() {
         promedio: { label: "Promedio", color: "#3b82f6" },
         min: { label: "Mínimo", color: "#ef4444" },
         max: { label: "Máximo", color: "#22c55e" },
-        jornadas: { label: "Jornadas", color: "hsl(var(--chart-3))" },
+        jornadas: { label: "Jornadas", color: "#8884d8" },
     };
 
     const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
@@ -498,22 +498,25 @@ export default function ActivitySummaryPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
-                                    <ResponsiveContainer>
-                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
-                                        <CartesianGrid vertical={false} />
-                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
-                                        <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
-                                        <Tooltip content={<ChartTooltipContent />} />
-                                        <Legend />
-                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]} barSize={20}>
-                                            <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
-                                        </Bar>
-                                        <Bar yAxisId="left" dataKey="min" fill="var(--color-min)" barSize={20} />
-                                        <Bar yAxisId="left" dataKey="max" fill="var(--color-max)" barSize={20} />
-                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                    </ComposedChart>
-                                    </ResponsiveContainer>
+                                <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
+                                    <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
+                                    <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Legend />
+                                    <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]} barSize={30}>
+                                        <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
+                                    </Bar>
+                                    {/* Thin bars for min and max to act as indicators inside the main bar */}
+                                    <Bar yAxisId="left" dataKey="min" fill="var(--color-min)" barSize={5} radius={[4, 4, 0, 0]}>
+                                      <LabelList dataKey="min" position="insideBottom" formatter={(value: number) => value.toFixed(0)} fontSize={10} fill="#ffffff" />
+                                    </Bar>
+                                    <Bar yAxisId="left" dataKey="max" fill="var(--color-max)" barSize={5} radius={[4, 4, 0, 0]}>
+                                       <LabelList dataKey="max" position="insideTop" formatter={(value: number) => value.toFixed(0)} fontSize={10} fill="#ffffff" />
+                                    </Bar>
+                                    <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                </ComposedChart>
                                 </ChartContainer>
                             </CardContent>
                         </Card>
