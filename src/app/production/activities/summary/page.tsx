@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, Filter, RefreshCcw, User as UserIcon, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Filter, RefreshCcw, User as UserIcon, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip, ResponsiveContainer } from 'recharts';
 import { DateRange } from "react-day-picker";
 
 import { type ActivityRecordData, type LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
@@ -59,6 +59,7 @@ export default function ActivitySummaryPage() {
     
     // New state for chart-specific date range
     const [chartDateRange, setChartDateRange] = useState<DateRange | undefined>(undefined);
+    const [chartShiftFilter, setChartShiftFilter] = useState('todos');
 
     const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
@@ -227,15 +228,23 @@ export default function ActivitySummaryPage() {
             return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
         
-        // Apply chart-specific date range if it exists
         if (chartDateRange?.from) {
           filtered = filtered.filter(a => a.registerDate >= startOfDay(chartDateRange.from!));
         }
         if (chartDateRange?.to) {
           filtered = filtered.filter(a => a.registerDate <= startOfDay(chartDateRange.to!));
         }
+        if (chartShiftFilter !== 'todos') {
+            filtered = filtered.filter(a => a.shift === chartShiftFilter);
+        }
 
-        const assistantData = new Map<string, { performanceSum: number; workdaySum: number; specialPerformanceSum: number; }>();
+        const assistantData = new Map<string, {
+            performanceSum: number;
+            workdaySum: number;
+            specialPerformanceSum: number;
+            minPerformance: number;
+            maxPerformance: number;
+        }>();
         
         const assistantNameMap = new Map<string, string>();
         asistentes.forEach(a => {
@@ -246,42 +255,57 @@ export default function ActivitySummaryPage() {
             const assistantDni = activity.assistantDni;
             if (assistantDni) {
                 if (!assistantData.has(assistantDni)) {
-                    assistantData.set(assistantDni, { performanceSum: 0, workdaySum: 0, specialPerformanceSum: 0 });
+                    assistantData.set(assistantDni, {
+                        performanceSum: 0,
+                        workdaySum: 0,
+                        specialPerformanceSum: 0,
+                        minPerformance: Infinity,
+                        maxPerformance: -Infinity,
+                    });
                 }
                 const current = assistantData.get(assistantDni)!;
                 
-                current.performanceSum += (activity.performance || 0);
+                const performance = activity.performance || 0;
+                const jhu = activity.workdayCount || 0;
+                const promJhu = jhu > 0 ? performance / jhu : 0;
+                
+                if (promJhu > 0) {
+                    current.minPerformance = Math.min(current.minPerformance, promJhu);
+                    current.maxPerformance = Math.max(current.maxPerformance, promJhu);
+                }
+
+                current.performanceSum += performance;
                 current.specialPerformanceSum += (activity.clustersOrJabas || 0);
-                current.workdaySum += (activity.workdayCount || 0);
+                current.workdaySum += jhu;
             }
         });
         
-        const chartData = Array.from(assistantData.entries()).map(([assistantId, data]) => ({
-            name: assistantNameMap.get(assistantId) || assistantId,
-            promedio: data.workdaySum > 0 ? data.performanceSum / data.workdaySum : 0,
-            rendimiento: isSpecialLabor ? data.specialPerformanceSum : data.performanceSum,
-            jornadas: data.workdaySum,
-        }));
+        const chartData = Array.from(assistantData.entries()).map(([assistantId, data]) => {
+            const promedio = data.workdaySum > 0 ? data.performanceSum / data.workdaySum : 0;
+            const min = isFinite(data.minPerformance) ? data.minPerformance : 0;
+            const max = isFinite(data.maxPerformance) ? data.maxPerformance : 0;
+            return {
+                name: assistantNameMap.get(assistantId) || assistantId,
+                promedio,
+                min,
+                max,
+                rendimiento: isSpecialLabor ? data.specialPerformanceSum : data.performanceSum,
+                jornadas: data.workdaySum,
+            }
+        });
 
         const maxRendimiento = Math.max(0, ...chartData.map(d => d.rendimiento));
 
         return { data: chartData, maxRendimiento };
 
-    }, [allActivities, asistentes, activeFilters, isSpecialLabor, chartDateRange]);
+    }, [allActivities, asistentes, activeFilters, isSpecialLabor, chartDateRange, chartShiftFilter]);
 
     const chartConfig: ChartConfig = {
-        promedio: {
-            label: "Promedio",
-            color: "#3b82f6",
-        },
-        rendimiento: {
-            label: "Rendimiento",
-            color: "#ef4444",
-        },
-        jornadas: {
-            label: "Jornadas",
-            color: "#22c55e",
-        },
+        promedio: { label: "Promedio", color: "#3b82f6" },
+        min: { label: "Mínimo", color: "#ef4444" },
+        max: { label: "Máximo", color: "#22c55e" },
+        rendimiento: { label: "Rendimiento", color: "#ef4444" },
+        jornadas: { label: "Jornadas", color: "#22c55e" },
     };
 
     const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
@@ -441,60 +465,60 @@ export default function ActivitySummaryPage() {
                     {assistantPerformanceData.length > 0 && (
                          <Card>
                             <CardHeader>
-                                <div className="flex items-start justify-between gap-4">
+                                <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                                     <div>
                                         <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
                                         <CardDescription>
-                                            Comparativa del rendimiento promedio, rendimiento total y jornadas totales por asistente.
+                                            Comparativa del rendimiento promedio, mínimo, máximo y jornadas por asistente.
                                         </CardDescription>
                                     </div>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                              id="date"
-                                              variant={"outline"}
-                                              className={cn("w-[260px] justify-start text-left font-normal h-9", !chartDateRange && "text-muted-foreground")}
-                                            >
-                                              <CalendarIcon className="mr-2 h-4 w-4" />
-                                              {chartDateRange?.from ? ( chartDateRange.to ? (
-                                                  <>{format(chartDateRange.from, "LLL dd, y", {locale: es})} - {format(chartDateRange.to, "LLL dd, y", {locale: es})}</>
-                                                ) : (
-                                                  format(chartDateRange.from, "LLL dd, y", {locale: es})
-                                                )
-                                              ) : (
-                                                <span>Filtrar por fecha</span>
-                                              )}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="end">
-                                            <Calendar
-                                                initialFocus
-                                                mode="range"
-                                                defaultMonth={chartDateRange?.from}
-                                                selected={chartDateRange}
-                                                onSelect={setChartDateRange}
-                                                numberOfMonths={2}
-                                                locale={es}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
+                                    <div className="flex items-center gap-2">
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button id="date" variant={"outline"} size="sm" className={cn("w-full sm:w-[240px] justify-start text-left font-normal", !chartDateRange && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {chartDateRange?.from ? (chartDateRange.to ? (<>{format(chartDateRange.from, "LLL dd", {locale: es})} - {format(chartDateRange.to, "LLL dd", {locale: es})}</>) : (format(chartDateRange.from, "LLL dd, y", {locale: es}))) : (<span>Fecha</span>)}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="end">
+                                                <Calendar initialFocus mode="range" defaultMonth={chartDateRange?.from} selected={chartDateRange} onSelect={setChartDateRange} numberOfMonths={2} locale={es}/>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <Select value={chartShiftFilter} onValueChange={setChartShiftFilter}>
+                                            <SelectTrigger className="w-[120px]">
+                                                <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><SelectValue /></div>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="todos">Todos</SelectItem>
+                                                <SelectItem value="Mañana">Mañana</SelectItem>
+                                                <SelectItem value="Tarde">Tarde</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                                    <ComposedChart data={assistantPerformanceData}>
+                                <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
+                                    <ResponsiveContainer>
+                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
                                         <CartesianGrid vertical={false} />
-                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} interval={0} />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
                                         <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-rendimiento)" />
+                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend />
                                         <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
                                             <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Bar>
-                                        <Line yAxisId="right" type="monotone" dataKey="rendimiento" name="Rendimiento" stroke="var(--color-rendimiento)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                        <Bar yAxisId="left" dataKey="min" fill="var(--color-min)" barSize={10} radius={[2,2,0,0]}>
+                                            <LabelList dataKey="min" position="inside" fill="#fff" fontSize={10} formatter={(value: number) => value > 0 ? value.toFixed(0) : ''} />
+                                        </Bar>
+                                        <Bar yAxisId="left" dataKey="max" fill="var(--color-max)" barSize={10} radius={[2,2,0,0]}>
+                                            <LabelList dataKey="max" position="inside" fill="#fff" fontSize={10} formatter={(value: number) => value > 0 ? value.toFixed(0) : ''}/>
+                                        </Bar>
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                     </ComposedChart>
+                                    </ResponsiveContainer>
                                 </ChartContainer>
                             </CardContent>
                         </Card>
