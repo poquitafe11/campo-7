@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, Filter, RefreshCcw, User as UserIcon } from 'lucide-react';
-import { format, parseISO, isValid } from 'date-fns';
+import { Loader2, Filter, RefreshCcw, User as UserIcon, Calendar as CalendarIcon } from 'lucide-react';
+import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip } from 'recharts';
+import { DateRange } from "react-day-picker";
 
 import { type ActivityRecordData, type LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DetailedSummaryTable } from '@/components/DetailedSummaryTable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 
 interface SummaryValues {
@@ -53,6 +56,9 @@ export default function ActivitySummaryPage() {
     const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const { setActions } = useHeaderActions();
+    
+    // New state for chart-specific date range
+    const [chartDateRange, setChartDateRange] = useState<DateRange | undefined>(undefined);
 
     const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
@@ -213,13 +219,21 @@ export default function ActivitySummaryPage() {
     }, [isSpecialLabor, activeFilters.labor, allLabors]);
     
    const {data: assistantPerformanceData, maxRendimiento} = useMemo(() => {
-        const filtered = allActivities.filter(a => {
+        let filtered = allActivities.filter(a => {
             const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
             const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
             const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
             const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
             return campaignMatch && loteMatch && laborMatch && pasadaMatch;
         });
+        
+        // Apply chart-specific date range if it exists
+        if (chartDateRange?.from) {
+          filtered = filtered.filter(a => a.registerDate >= startOfDay(chartDateRange.from!));
+        }
+        if (chartDateRange?.to) {
+          filtered = filtered.filter(a => a.registerDate <= startOfDay(chartDateRange.to!));
+        }
 
         const assistantData = new Map<string, { performanceSum: number; workdaySum: number; specialPerformanceSum: number; }>();
         
@@ -253,7 +267,7 @@ export default function ActivitySummaryPage() {
 
         return { data: chartData, maxRendimiento };
 
-    }, [allActivities, asistentes, activeFilters, isSpecialLabor]);
+    }, [allActivities, asistentes, activeFilters, isSpecialLabor, chartDateRange]);
 
     const chartConfig: ChartConfig = {
         promedio: {
@@ -427,10 +441,44 @@ export default function ActivitySummaryPage() {
                     {assistantPerformanceData.length > 0 && (
                          <Card>
                             <CardHeader>
-                                <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
-                                <CardDescription>
-                                    Comparativa del rendimiento promedio, rendimiento total y jornadas totales por asistente.
-                                </CardDescription>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
+                                        <CardDescription>
+                                            Comparativa del rendimiento promedio, rendimiento total y jornadas totales por asistente.
+                                        </CardDescription>
+                                    </div>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                              id="date"
+                                              variant={"outline"}
+                                              className={cn("w-[260px] justify-start text-left font-normal h-9", !chartDateRange && "text-muted-foreground")}
+                                            >
+                                              <CalendarIcon className="mr-2 h-4 w-4" />
+                                              {chartDateRange?.from ? ( chartDateRange.to ? (
+                                                  <>{format(chartDateRange.from, "LLL dd, y", {locale: es})} - {format(chartDateRange.to, "LLL dd, y", {locale: es})}</>
+                                                ) : (
+                                                  format(chartDateRange.from, "LLL dd, y", {locale: es})
+                                                )
+                                              ) : (
+                                                <span>Filtrar por fecha</span>
+                                              )}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="end">
+                                            <Calendar
+                                                initialFocus
+                                                mode="range"
+                                                defaultMonth={chartDateRange?.from}
+                                                selected={chartDateRange}
+                                                onSelect={setChartDateRange}
+                                                numberOfMonths={2}
+                                                locale={es}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
