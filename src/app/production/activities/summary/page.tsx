@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -45,20 +46,33 @@ interface SummaryValues {
 
 const renderCustomizedLabel = (props: any) => {
   const { x, y, width, height, payload } = props;
+  
+  if (!payload || typeof payload.max === 'undefined' || typeof payload.promedio === 'undefined' || typeof payload.min === 'undefined') {
+    return null;
+  }
+
   const { max, promedio, min } = payload;
   const barCenter = x + width / 2;
 
+  const isValidNumber = (val: any) => typeof val === 'number' && isFinite(val);
+
   return (
     <g>
-      <text x={barCenter} y={y - 28} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-        {Math.round(max)}
-      </text>
-      <text x={barCenter} y={y - 14} fill="#3b82f6" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-        {Math.round(promedio)}
-      </text>
-      <text x={barCenter} y={y} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-        {Math.round(min)}
-      </text>
+      {isValidNumber(max) && (
+        <text x={barCenter} y={y - 28} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+          {Math.round(max)}
+        </text>
+      )}
+      {isValidNumber(promedio) && (
+        <text x={barCenter} y={y - 14} fill="#3b82f6" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+          {Math.round(promedio)}
+        </text>
+      )}
+      {isValidNumber(min) && (
+        <text x={barCenter} y={y} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+          {Math.round(min)}
+        </text>
+      )}
     </g>
   );
 };
@@ -562,3 +576,5 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
+
+    
