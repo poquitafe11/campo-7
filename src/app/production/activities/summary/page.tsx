@@ -308,37 +308,6 @@ export default function ActivitySummaryPage() {
 
     }, [allActivities, asistentes, activeFilters, isSpecialLabor, chartDateRange, chartShiftFilter]);
     
-    const renderCustomizedLabel = (props: any) => {
-        const { x, y, width, height, payload } = props;
-        
-        if (!payload) return null;
-        
-        const isValidNumber = (val: any) => typeof val === 'number' && isFinite(val);
-
-        const { max, promedio, min } = payload;
-        const barCenter = x + width / 2;
-
-        return (
-            <g>
-                {isValidNumber(max) && (
-                    <text x={barCenter} y={y - 12} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-                        {Math.round(max)}
-                    </text>
-                )}
-                {isValidNumber(promedio) && (
-                    <text x={barCenter} y={y + (height / 2)} fill="white" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-                        {Math.round(promedio)}
-                    </text>
-                )}
-                 {isValidNumber(min) && (
-                    <text x={barCenter} y={y + height + 12} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-                       {Math.round(min)}
-                    </text>
-                )}
-            </g>
-        );
-    };
-
     const chartConfig: ChartConfig = {
         promedio: { label: "Promedio", color: "hsl(var(--primary))" },
         jornadas: { label: "Jornadas", color: "hsl(var(--secondary))" },
@@ -504,7 +473,7 @@ export default function ActivitySummaryPage() {
                                     <div>
                                         <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
                                         <CardDescription>
-                                            Comparativa del rendimiento promedio, mínimo, máximo y jornadas por asistente.
+                                            Comparativa del rendimiento promedio y jornadas por asistente.
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -534,19 +503,15 @@ export default function ActivitySummaryPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
-                                      <ComposedChart data={assistantPerformanceData} margin={{ top: 30, right: 20, bottom: 60, left: 20 }}>
+                                      <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
                                         <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
                                         <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend />
-                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" barSize={50}>
-                                          <LabelList 
-                                              dataKey="promedio"
-                                              position="top"
-                                              content={renderCustomizedLabel}
-                                            />
+                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" name="Promedio" barSize={50} radius={[4,4,0,0]} >
+                                            <LabelList dataKey="promedio" position="top" formatter={(value: number) => Math.round(value)} />
                                         </Bar>
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Jornadas"/>
                                     </ComposedChart>
