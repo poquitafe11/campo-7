@@ -507,13 +507,8 @@ export default function ActivitySummaryPage() {
                                     <Legend />
                                     <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]} barSize={30}>
                                         <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
-                                    </Bar>
-                                    {/* Thin bars for min and max to act as indicators inside the main bar */}
-                                    <Bar yAxisId="left" dataKey="min" fill="var(--color-min)" barSize={5} radius={[4, 4, 0, 0]}>
-                                      <LabelList dataKey="min" position="insideBottom" formatter={(value: number) => value.toFixed(0)} fontSize={10} fill="#ffffff" />
-                                    </Bar>
-                                    <Bar yAxisId="left" dataKey="max" fill="var(--color-max)" barSize={5} radius={[4, 4, 0, 0]}>
-                                       <LabelList dataKey="max" position="insideTop" formatter={(value: number) => value.toFixed(0)} fontSize={10} fill="#ffffff" />
+                                        <LabelList dataKey="min" position="insideBottom" formatter={(v:number) => v.toFixed(0)} fill="#FFFFFF" fontSize={10} color="red"/>
+                                        <LabelList dataKey="max" position="insideTop" formatter={(v:number) => v.toFixed(0)} fill="#FFFFFF" fontSize={10} color="green"/>
                                     </Bar>
                                     <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                 </ComposedChart>
