@@ -44,26 +44,24 @@ interface SummaryValues {
 }
 
 const CustomBarLabel = (props: any) => {
-  const { x, y, width, height, value, payload } = props;
-
-  if (!payload) return null;
-
+  const { x, y, width, value, payload } = props;
+  if (payload === undefined) return null;
   const { min, max } = payload;
-  const barBaseY = y + height;
+  const barHeight = props.height;
+  
+  // Don't render if there's no real data
+  if (value <= 0) return null;
 
   return (
     <g>
-      {/* Promedio */}
-      <text x={x + width / 2} y={y - 8} fill="#3b82f6" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-        {value}
+      <text x={x + width / 2} y={y - 28} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={11} fontWeight="bold">
+        {Math.round(max)}
       </text>
-      {/* Maximo */}
-       <text x={x + width / 2} y={barBaseY - 22} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-        {max}
+      <text x={x + width / 2} y={y - 14} fill="#3b82f6" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        {Math.round(value)}
       </text>
-       {/* Minimo */}
-      <text x={x + width / 2} y={barBaseY - 8} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-        {min}
+      <text x={x + width / 2} y={y} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={11} fontWeight="bold">
+        {Math.round(min)}
       </text>
     </g>
   );
@@ -340,7 +338,7 @@ export default function ActivitySummaryPage() {
         promedio: { label: "Promedio", color: "#3b82f6" },
         min: { label: "Mínimo", color: "#ef4444" },
         max: { label: "Máximo", color: "#22c55e" },
-        jornadas: { label: "Jornadas", color: "#8884d8" },
+        jornadas: { label: "Jornadas", color: "hsl(var(--primary))" },
     };
 
     const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
@@ -532,23 +530,23 @@ export default function ActivitySummaryPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
-                                <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }} barSize={50}>
-                                    <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
-                                    <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
-                                    <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Legend />
-                                    <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
-                                       <LabelList 
-                                          dataKey="promedio"
-                                          position="top"
-                                          content={<CustomBarLabel />}
-                                        />
-                                    </Bar>
-                                    <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                </ComposedChart>
+                                <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
+                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 40, right: 20, bottom: 60, left: 20 }} barSize={50}>
+                                        <CartesianGrid vertical={false} />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
+                                        <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
+                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <Legend />
+                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
+                                          <LabelList 
+                                              dataKey="promedio"
+                                              position="top"
+                                              content={<CustomBarLabel />}
+                                            />
+                                        </Bar>
+                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Jornadas"/>
+                                    </ComposedChart>
                                 </ChartContainer>
                             </CardContent>
                         </Card>
