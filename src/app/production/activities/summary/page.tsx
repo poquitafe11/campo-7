@@ -43,6 +43,27 @@ interface SummaryValues {
     maximo: number;
 }
 
+const CustomBarLabel = (props: any) => {
+  const { x, y, width, value, min, max } = props;
+
+  if (!value && !min && !max) return null;
+
+  return (
+    <g>
+      <text x={x + width / 2} y={y - 22} fill="#10b981" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        {max}
+      </text>
+      <text x={x + width / 2} y={y - 8} fill="#3b82f6" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        {value}
+      </text>
+       <text x={x + width / 2} y={y + 6} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        {min}
+      </text>
+    </g>
+  );
+};
+
+
 export default function ActivitySummaryPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
@@ -286,9 +307,9 @@ export default function ActivitySummaryPage() {
             const max = isFinite(data.maxPerformance) ? data.maxPerformance : 0;
             return {
                 name: assistantNameMap.get(assistantId) || assistantId,
-                promedio,
-                min,
-                max,
+                promedio: Math.round(promedio),
+                min: Math.round(min),
+                max: Math.round(max),
                 rendimiento: isSpecialLabor ? data.specialPerformanceSum : data.performanceSum,
                 jornadas: data.workdaySum,
             }
@@ -498,17 +519,24 @@ export default function ActivitySummaryPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
-                                <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
+                                <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }} barSize={50}>
                                     <CartesianGrid vertical={false} />
                                     <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
                                     <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
                                     <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
                                     <Tooltip content={<ChartTooltipContent />} />
                                     <Legend />
-                                    <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]} barSize={30}>
-                                        <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
-                                        <LabelList dataKey="min" position="insideBottom" formatter={(v:number) => v.toFixed(0)} fill="#FFFFFF" fontSize={10} color="red"/>
-                                        <LabelList dataKey="max" position="insideTop" formatter={(v:number) => v.toFixed(0)} fill="#FFFFFF" fontSize={10} color="green"/>
+                                    <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
+                                       <LabelList 
+                                          dataKey="promedio"
+                                          position="top"
+                                          content={
+                                            <CustomBarLabel 
+                                              min={(props: any) => props.payload.min}
+                                              max={(props: any) => props.payload.max}
+                                            />
+                                          }
+                                        />
                                     </Bar>
                                     <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                 </ComposedChart>
