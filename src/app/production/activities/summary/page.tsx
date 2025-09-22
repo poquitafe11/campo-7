@@ -304,8 +304,7 @@ export default function ActivitySummaryPage() {
         promedio: { label: "Promedio", color: "#3b82f6" },
         min: { label: "Mínimo", color: "#ef4444" },
         max: { label: "Máximo", color: "#22c55e" },
-        rendimiento: { label: "Rendimiento", color: "#ef4444" },
-        jornadas: { label: "Jornadas", color: "#22c55e" },
+        jornadas: { label: "Jornadas", color: "hsl(var(--chart-3))" },
     };
 
     const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
@@ -507,15 +506,11 @@ export default function ActivitySummaryPage() {
                                         <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend />
-                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]}>
+                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" radius={[4, 4, 0, 0]} barSize={20}>
                                             <LabelList dataKey="promedio" position="top" formatter={(value: number) => value.toFixed(0)} fontSize={12} />
                                         </Bar>
-                                        <Bar yAxisId="left" dataKey="min" fill="var(--color-min)" barSize={10} radius={[2,2,0,0]}>
-                                            <LabelList dataKey="min" position="inside" fill="#fff" fontSize={10} formatter={(value: number) => value > 0 ? value.toFixed(0) : ''} />
-                                        </Bar>
-                                        <Bar yAxisId="left" dataKey="max" fill="var(--color-max)" barSize={10} radius={[2,2,0,0]}>
-                                            <LabelList dataKey="max" position="inside" fill="#fff" fontSize={10} formatter={(value: number) => value > 0 ? value.toFixed(0) : ''}/>
-                                        </Bar>
+                                        <Bar yAxisId="left" dataKey="min" fill="var(--color-min)" barSize={20} />
+                                        <Bar yAxisId="left" dataKey="max" fill="var(--color-max)" barSize={20} />
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                     </ComposedChart>
                                     </ResponsiveContainer>
