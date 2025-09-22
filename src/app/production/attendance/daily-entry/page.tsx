@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -291,10 +292,11 @@ export default function DailyEntryPage() {
     const docRef = doc(attendanceCollectionRef, docId);
 
     try {
-        const docSnap = await getDoc(docRef);
-
-        const assistantsPayload = assistantsToSave.map(a => {
-            const jaladores = (a.jaladores || []).map(j => {
+        const assistantsPayload = assistantsToSave.map(a => ({
+            id: a.id,
+            assistantDni: a.assistantDni,
+            assistantName: a.assistantName,
+            jaladores: (a.jaladores || []).map(j => {
                 const jaladorData: Partial<JaladorAttendance> = {
                     id: j.id,
                     jaladorId: j.jaladorId,
@@ -306,82 +308,67 @@ export default function DailyEntryPage() {
                     jaladorData.supportedLabor = j.supportedLabor;
                 }
                 return jaladorData as JaladorAttendance;
-            });
-            return {
-                id: a.id,
-                assistantDni: a.assistantDni,
-                assistantName: a.assistantName,
-                jaladores: jaladores,
-            };
+            }),
+        }));
+
+        const recordTotals = assistantsPayload.reduce((acc, a) => {
+            const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
+                jAcc.personnelCount += j.personnelCount;
+                jAcc.absentCount += j.absentCount;
+                return jAcc;
+            }, { personnelCount: 0, absentCount: 0 });
+            acc.personnelCount += assistantTotals.personnelCount;
+            acc.absentCount += assistantTotals.absentCount;
+            return acc;
+        }, { personnelCount: 0, absentCount: 0 });
+
+        const finalData = {
+            date: format(data.date, 'yyyy-MM-dd'),
+            lote: data.lote,
+            lotName: loteMasterData.lote,
+            turno: data.turno,
+            variedad: loteMasterData.variedad,
+            fechaCianamida: loteMasterData.fechaCianamida,
+            campana: loteMasterData.campana,
+            code: laborCode,
+            labor: laborDesc,
+            assistants: assistantsPayload,
+            totals: recordTotals,
+            registeredBy: auth.currentUser?.email,
+            lastModifiedBy: auth.currentUser?.email,
+            lastModifiedAt: serverTimestamp(),
+            // We can't know if it's new or not without reading, so we set createdAt on merge.
+            // Firestore handles this: if doc doesn't exist, it's created.
+            createdAt: serverTimestamp(),
+        };
+
+        // Use set with merge:true to create or update the document.
+        // This is offline-first. It will write to local cache immediately.
+        await setDoc(docRef, finalData, { 
+            mergeFields: [
+                'assistants', 'totals', 'lastModifiedBy', 'lastModifiedAt'
+            ]
         });
 
-        let finalData: Omit<AttendanceRecord, 'id'>;
+        // Set non-merging fields separately only on creation.
+        await setDoc(docRef, {
+            date: finalData.date,
+            lote: finalData.lote,
+            lotName: finalData.lotName,
+            turno: finalData.turno,
+            variedad: finalData.variedad,
+            fechaCianamida: finalData.fechaCianamida,
+            campana: finalData.campana,
+            code: finalData.code,
+            labor: finalData.labor,
+            registeredBy: finalData.registeredBy,
+            createdAt: finalData.createdAt,
+        }, { merge: true });
 
-        if (docSnap.exists()) {
-            const existingData = docSnap.data() as AttendanceRecord;
-            const existingAssistants = existingData.assistants || [];
-            
-            const combinedAssistants = [...existingAssistants];
-            assistantsPayload.forEach(newAssistant => {
-                if (!combinedAssistants.some(ea => ea.assistantDni === newAssistant.assistantDni)) {
-                    combinedAssistants.push(newAssistant);
-                }
-            });
 
-            const newTotals = combinedAssistants.reduce((acc, a) => {
-                const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
-                    jAcc.personnelCount += j.personnelCount;
-                    jAcc.absentCount += j.absentCount;
-                    return jAcc;
-                }, {personnelCount: 0, absentCount: 0});
-                acc.personnelCount += assistantTotals.personnelCount;
-                acc.absentCount += assistantTotals.absentCount;
-                return acc;
-            }, { personnelCount: 0, absentCount: 0 });
-
-            finalData = {
-                ...existingData,
-                assistants: combinedAssistants,
-                totals: newTotals,
-                lastModifiedBy: auth.currentUser?.email,
-                lastModifiedAt: Timestamp.now(),
-            };
-        } else {
-            const recordTotals = assistantsPayload.reduce((acc, a) => {
-                const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
-                    jAcc.personnelCount += j.personnelCount;
-                    jAcc.absentCount += j.absentCount;
-                    return jAcc;
-                }, {personnelCount: 0, absentCount: 0});
-                acc.personnelCount += assistantTotals.personnelCount;
-                acc.absentCount += assistantTotals.absentCount;
-                return acc;
-            }, { personnelCount: 0, absentCount: 0 });
-
-            finalData = {
-                date: format(data.date, 'yyyy-MM-dd'),
-                lote: data.lote,
-                lotName: loteMasterData.lote,
-                turno: data.turno,
-                variedad: loteMasterData.variedad,
-                fechaCianamida: loteMasterData.fechaCianamida,
-                campana: loteMasterData.campana,
-                code: laborCode,
-                labor: laborDesc,
-                assistants: assistantsPayload,
-                totals: recordTotals,
-                registeredBy: auth.currentUser?.email,
-                createdAt: Timestamp.now(),
-                lastModifiedBy: auth.currentUser?.email,
-                lastModifiedAt: Timestamp.now(),
-            };
-        }
-
-        await setDoc(docRef, finalData);
-        
         toast({
             title: "Operación Completada",
-            description: `Registro guardado/actualizado con éxito.`,
+            description: `Registro guardado con éxito. Se sincronizará cuando haya conexión.`,
         });
 
         fetchLaborsOnSameDay();
