@@ -47,7 +47,7 @@ interface SummaryValues {
 const renderCustomizedLabel = (props: any) => {
   const { x, y, width, height, payload } = props;
   
-  if (!payload || typeof payload.max === 'undefined' || typeof payload.promedio === 'undefined' || typeof payload.min === 'undefined') {
+  if (!payload || typeof payload.promedio === 'undefined') {
     return null;
   }
 
@@ -59,17 +59,17 @@ const renderCustomizedLabel = (props: any) => {
   return (
     <g>
       {isValidNumber(max) && (
-        <text x={barCenter} y={y - 28} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        <text x={barCenter} y={y + 8} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
           {Math.round(max)}
         </text>
       )}
       {isValidNumber(promedio) && (
-        <text x={barCenter} y={y - 14} fill="#3b82f6" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        <text x={barCenter} y={y + 22} fill="#ffffff" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
           {Math.round(promedio)}
         </text>
       )}
       {isValidNumber(min) && (
-        <text x={barCenter} y={y} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        <text x={barCenter} y={y + 36} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
           {Math.round(min)}
         </text>
       )}
@@ -538,14 +538,14 @@ export default function ActivitySummaryPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
-                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 40, right: 20, bottom: 60, left: 20 }}>
+                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
                                         <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
                                         <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend />
-                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" barSize={50}>
+                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" barSize={60}>
                                           <LabelList 
                                               dataKey="promedio"
                                               position="top"
