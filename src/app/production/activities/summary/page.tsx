@@ -44,37 +44,13 @@ interface SummaryValues {
     maximo: number;
 }
 
-const renderCustomizedLabel = (props: any) => {
-  const { x, y, width, height, payload } = props;
-  
-  if (!payload || typeof payload.promedio === 'undefined') {
-    return null;
-  }
-
-  const { max, promedio, min } = payload;
-  const barCenter = x + width / 2;
-
-  const isValidNumber = (val: any) => typeof val === 'number' && isFinite(val);
-
-  return (
-    <g>
-      {isValidNumber(max) && (
-        <text x={barCenter} y={y + 8} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-          {Math.round(max)}
-        </text>
-      )}
-      {isValidNumber(promedio) && (
-        <text x={barCenter} y={y + 22} fill="#ffffff" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-          {Math.round(promedio)}
-        </text>
-      )}
-      {isValidNumber(min) && (
-        <text x={barCenter} y={y + 36} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-          {Math.round(min)}
-        </text>
-      )}
-    </g>
-  );
+const formatAssistantName = (name: string) => {
+    if (!name) return '';
+    const parts = name.trim().split(' ');
+    if (parts.length < 2) return name;
+    const firstName = parts[0];
+    const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase() + '.';
+    return `${firstName} ${lastNameInitial}`;
 };
 
 
@@ -285,15 +261,6 @@ export default function ActivitySummaryPage() {
             assistantNameMap.set(a.id, a.assistantName);
         });
         
-        const formatAssistantName = (name: string) => {
-            if (!name) return '';
-            const parts = name.trim().split(' ');
-            if (parts.length < 2) return name;
-            const firstName = parts[0];
-            const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase() + '.';
-            return `${firstName} ${lastNameInitial}`;
-        };
-
         filtered.forEach(activity => {
             const assistantDni = activity.assistantDni;
             if (assistantDni) {
@@ -340,12 +307,41 @@ export default function ActivitySummaryPage() {
         return { data: chartData, maxRendimiento };
 
     }, [allActivities, asistentes, activeFilters, isSpecialLabor, chartDateRange, chartShiftFilter]);
+    
+    const renderCustomizedLabel = (props: any) => {
+        const { x, y, width, height, payload } = props;
+        
+        if (!payload) return null;
+        
+        const isValidNumber = (val: any) => typeof val === 'number' && isFinite(val);
+
+        const { max, promedio, min } = payload;
+        const barCenter = x + width / 2;
+
+        return (
+            <g>
+                {isValidNumber(max) && (
+                    <text x={barCenter} y={y - 12} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+                        {Math.round(max)}
+                    </text>
+                )}
+                {isValidNumber(promedio) && (
+                    <text x={barCenter} y={y + (height / 2)} fill="white" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+                        {Math.round(promedio)}
+                    </text>
+                )}
+                 {isValidNumber(min) && (
+                    <text x={barCenter} y={y + height + 12} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+                       {Math.round(min)}
+                    </text>
+                )}
+            </g>
+        );
+    };
 
     const chartConfig: ChartConfig = {
-        promedio: { label: "Promedio", color: "#3b82f6" },
-        min: { label: "Mínimo", color: "#ef4444" },
-        max: { label: "Máximo", color: "#22c55e" },
-        jornadas: { label: "Jornadas", color: "hsl(var(--primary))" },
+        promedio: { label: "Promedio", color: "hsl(var(--primary))" },
+        jornadas: { label: "Jornadas", color: "hsl(var(--secondary))" },
     };
 
     const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
@@ -538,14 +534,14 @@ export default function ActivitySummaryPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
-                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
+                                      <ComposedChart data={assistantPerformanceData} margin={{ top: 30, right: 20, bottom: 60, left: 20 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
                                         <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
                                         <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend />
-                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" barSize={60}>
+                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" barSize={50}>
                                           <LabelList 
                                               dataKey="promedio"
                                               position="top"
