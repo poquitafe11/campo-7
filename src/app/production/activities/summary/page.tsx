@@ -44,19 +44,25 @@ interface SummaryValues {
 }
 
 const CustomBarLabel = (props: any) => {
-  const { x, y, width, value, min, max } = props;
+  const { x, y, width, height, value, payload } = props;
 
-  if (!value && !min && !max) return null;
+  if (!payload) return null;
+
+  const { min, max } = payload;
+  const barBaseY = y + height;
 
   return (
     <g>
-      <text x={x + width / 2} y={y - 22} fill="#10b981" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
-        {max}
-      </text>
+      {/* Promedio */}
       <text x={x + width / 2} y={y - 8} fill="#3b82f6" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
         {value}
       </text>
-       <text x={x + width / 2} y={y + 6} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+      {/* Maximo */}
+       <text x={x + width / 2} y={barBaseY - 22} fill="#22c55e" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
+        {max}
+      </text>
+       {/* Minimo */}
+      <text x={x + width / 2} y={barBaseY - 8} fill="#ef4444" textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight="bold">
         {min}
       </text>
     </g>
@@ -271,6 +277,15 @@ export default function ActivitySummaryPage() {
         asistentes.forEach(a => {
             assistantNameMap.set(a.id, a.assistantName);
         });
+        
+        const formatAssistantName = (name: string) => {
+            if (!name) return '';
+            const parts = name.trim().split(' ');
+            if (parts.length < 2) return name;
+            const firstName = parts[0];
+            const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase() + '.';
+            return `${firstName} ${lastNameInitial}`;
+        };
 
         filtered.forEach(activity => {
             const assistantDni = activity.assistantDni;
@@ -306,7 +321,7 @@ export default function ActivitySummaryPage() {
             const min = isFinite(data.minPerformance) ? data.minPerformance : 0;
             const max = isFinite(data.maxPerformance) ? data.maxPerformance : 0;
             return {
-                name: assistantNameMap.get(assistantId) || assistantId,
+                name: formatAssistantName(assistantNameMap.get(assistantId) || assistantId),
                 promedio: Math.round(promedio),
                 min: Math.round(min),
                 max: Math.round(max),
@@ -399,7 +414,6 @@ export default function ActivitySummaryPage() {
                         <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, labor: v === 'all' ? '' : v }))} value={popoverFilters.labor}>
                           <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Todas</SelectItem>
                             {filterOptions.labors.map((l, i) => <SelectItem key={l+i} value={l}>{l}</SelectItem>)}
                           </SelectContent>
                         </Select>
@@ -530,12 +544,7 @@ export default function ActivitySummaryPage() {
                                        <LabelList 
                                           dataKey="promedio"
                                           position="top"
-                                          content={
-                                            <CustomBarLabel 
-                                              min={(props: any) => props.payload.min}
-                                              max={(props: any) => props.payload.max}
-                                            />
-                                          }
+                                          content={<CustomBarLabel />}
                                         />
                                     </Bar>
                                     <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
