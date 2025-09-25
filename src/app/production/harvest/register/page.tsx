@@ -232,10 +232,10 @@ export default function RegisterHarvestPage() {
                                 )}/>
                                 <div className="grid grid-cols-2 gap-4">
                                      <FormField control={performanceForm.control} name="personnelCodes" render={({ field }) => (
-                                        <FormItem><FormLabel>Códigos de Personal</FormLabel><FormControl><Textarea placeholder="Un código por línea..." {...field} className="text-4xl text-center font-bold" rows={10}/></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Códigos de Personal</FormLabel><FormControl><Textarea placeholder="Un código por línea..." {...field} className="text-4xl text-center font-bold" /></FormControl><FormMessage /></FormItem>
                                      )}/>
                                      <FormField control={performanceForm.control} name="jabas" render={({ field }) => (
-                                        <FormItem><FormLabel>N° de Jabas</FormLabel><FormControl><Textarea placeholder="Un número por línea..." {...field} className="text-4xl text-center font-bold" rows={10}/></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>N° de Jabas</FormLabel><FormControl><Textarea placeholder="Un número por línea..." {...field} className="text-4xl text-center font-bold" /></FormControl><FormMessage /></FormItem>
                                      )}/>
                                 </div>
                                 <DialogFooter><Button type="submit">Añadir Rendimiento</Button></DialogFooter>
