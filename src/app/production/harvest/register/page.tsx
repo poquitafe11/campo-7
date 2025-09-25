@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarIcon, UserPlus, Boxes, Trash2, PlusCircle, Save, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { LoteData } from '@/lib/types';
+import type { LoteData, WorkerMasterItem } from '@/lib/types';
 
 
 const harvestHeaderSchema = z.object({
@@ -53,7 +53,7 @@ interface PerformanceData extends PerformanceFormValues { id: string; }
 
 export default function RegisterHarvestPage() {
   const { setActions } = useHeaderActions();
-  const { labors, lotes, loading: masterLoading } = useMasterData();
+  const { labors, lotes, trabajadores, loading: masterLoading } = useMasterData();
   const { toast } = useToast();
   
   const [personnel, setPersonnel] = useState<PersonnelData[]>([]);
@@ -81,6 +81,17 @@ export default function RegisterHarvestPage() {
   const harvestLabor = useMemo(() => labors.find(l => l.codigo === '67'), [labors]);
   const selectedLote = headerForm.watch('lote');
   const groupNumber = headerForm.watch('groupNumber');
+  
+  const dniValue = useWatch({ control: personnelForm.control, name: 'dni' });
+
+  useEffect(() => {
+    if (dniValue && dniValue.length === 8) {
+      const worker = trabajadores.find(t => t.dni === dniValue);
+      if (worker) {
+        personnelForm.setValue('name', worker.name, { shouldValidate: true });
+      }
+    }
+  }, [dniValue, trabajadores, personnelForm]);
 
   const uniqueLotes = useMemo(() => {
     const lotesMap = new Map<string, LoteData>();
