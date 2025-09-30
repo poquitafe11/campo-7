@@ -24,7 +24,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { AttendanceRecord, Assistant, JaladorAttendance } from '@/lib/types';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Label } from './ui/label';
+
 
 const jaladorAttendanceSchema = z.object({
   id: z.string(),
