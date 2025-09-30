@@ -246,7 +246,7 @@ export default function AttendanceDatabasePage() {
     }
   };
   
-  const handleSaveAssistantUpdate = async (recordId: string, assistantId: string, updatedData: Omit<Assistant, 'id' | 'jaladores'>) => {
+  const handleSaveAssistantUpdate = async (recordId: string, assistantId: string, updatedJaladores: JaladorAttendance[]) => {
     startTransition(async () => {
         const recordRef = doc(db, 'asistencia', recordId);
         const recordToUpdate = records.find(r => r.id === recordId);
@@ -258,27 +258,29 @@ export default function AttendanceDatabasePage() {
 
         const updatedAssistants = recordToUpdate.assistants.map(a => {
             if (a.id === assistantId) {
+                // Replace the jaladores list and recalculate totals for this assistant
+                const newPersonnelCount = updatedJaladores.reduce((sum, j) => sum + j.personnelCount, 0);
+                const newAbsentCount = updatedJaladores.reduce((sum, j) => sum + j.absentCount, 0);
                 return {
                     ...a,
-                    personnelCount: updatedData.personnelCount,
-                    absentCount: updatedData.absentCount,
+                    jaladores: updatedJaladores,
+                    personnelCount: newPersonnelCount,
+                    absentCount: newAbsentCount,
                 };
             }
             return a;
         });
         
-        const newTotals = updatedAssistants.reduce((acc, a) => {
-            const personnel = a.personnelCount || 0;
-            const absent = a.absentCount || 0;
-            acc.personnelCount += personnel;
-            acc.absentCount += absent;
+        const newRecordTotals = updatedAssistants.reduce((acc, a) => {
+            acc.personnelCount += a.personnelCount || 0;
+            acc.absentCount += a.absentCount || 0;
             return acc;
         }, { personnelCount: 0, absentCount: 0 });
 
         try {
             await updateDoc(recordRef, { 
                 assistants: updatedAssistants,
-                totals: newTotals,
+                totals: newRecordTotals,
                 lastModifiedBy: user?.email,
                 lastModifiedAt: serverTimestamp(),
             });
@@ -506,7 +508,7 @@ export default function AttendanceDatabasePage() {
                                                                                                         <div className="w-16 text-center">{assistant.totalPersonnel}</div>
                                                                                                         <div className="w-16 text-center">{assistant.totalAbsent}</div>
                                                                                                         <div className="w-24 text-right pr-2">
-                                                                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditAssistant(turnoData.recordId, assistant)} disabled={isPending}><Pencil className="h-4 w-4" /></Button>
+                                                                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditAssistant(turnoData.recordId, assistant as Assistant)} disabled={isPending}><Pencil className="h-4 w-4" /></Button>
                                                                                                             <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" disabled={isPending}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                                                                                                                 <AlertDialogContent>
                                                                                                                     <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Se eliminará al asistente <strong>{assistant.assistantName}</strong> y todo su personal de este registro. Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
