@@ -222,11 +222,14 @@ export default function AttendanceDatabasePage() {
                 existingAssistant.jaladores['Jalador Empresa'].push(placeholderJalador);
             }
 
-            const assistantTotals = (assistant.jaladores || [ {personnelCount: assistant.personnelCount || 0, absentCount: assistant.absentCount || 0 }]).reduce((acc, j) => {
-              acc.personnelCount += j.personnelCount || 0;
-              acc.absentCount += j.absentCount || 0;
-              return acc;
-            }, { personnelCount: 0, absentCount: 0 });
+            const assistantTotals = (assistant.jaladores && assistant.jaladores.length > 0) 
+              ? assistant.jaladores.reduce((acc, j) => {
+                  acc.personnelCount += j.personnelCount || 0;
+                  acc.absentCount += j.absentCount || 0;
+                  return acc;
+                }, { personnelCount: 0, absentCount: 0 })
+              : { personnelCount: assistant.personnelCount || 0, absentCount: assistant.absentCount || 0 };
+
 
             existingAssistant.totalPersonnel += assistantTotals.personnelCount;
             existingAssistant.totalAbsent += assistantTotals.absentCount;
@@ -253,19 +256,22 @@ export default function AttendanceDatabasePage() {
             return;
         }
 
-        const updatedAssistants = recordToUpdate.assistants.map(a => 
-            a.id === assistantId ? { ...a, ...updatedData } : a
-        );
+        const updatedAssistants = recordToUpdate.assistants.map(a => {
+            if (a.id === assistantId) {
+                return {
+                    ...a,
+                    personnelCount: updatedData.personnelCount,
+                    absentCount: updatedData.absentCount,
+                };
+            }
+            return a;
+        });
         
         const newTotals = updatedAssistants.reduce((acc, a) => {
-            const jaladorTotals = (a.jaladores || []).reduce((jAcc, j) => {
-              jAcc.personnelCount += j.personnelCount;
-              jAcc.absentCount += j.absentCount;
-              return jAcc;
-            }, { personnelCount: 0, absentCount: 0 });
-
-            acc.personnelCount += jaladorTotals.personnelCount;
-            acc.absentCount += jaladorTotals.absentCount;
+            const personnel = a.personnelCount || 0;
+            const absent = a.absentCount || 0;
+            acc.personnelCount += personnel;
+            acc.absentCount += absent;
             return acc;
         }, { personnelCount: 0, absentCount: 0 });
 
