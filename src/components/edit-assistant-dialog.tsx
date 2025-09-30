@@ -67,9 +67,11 @@ export default function EditAssistantDialog({ isOpen, setIsOpen, editingData, on
 
   useEffect(() => {
     if (editingData?.assistant) {
+      // THE FIX: Ensure `jaladores` is always an array before passing it to the form.
+      const jaladores = editingData.assistant.jaladores || [];
       form.reset({
         assistantName: editingData.assistant.assistantName,
-        jaladores: editingData.assistant.jaladores || [],
+        jaladores: jaladores,
       });
     }
   }, [editingData, form]);
