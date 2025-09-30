@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -63,7 +62,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, serverTimestamp, Timestamp, updateDoc } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
@@ -259,7 +258,7 @@ export default function DailyEntryPage() {
     setAssistants((prev) => prev.filter((a) => a.id !== id));
   };
   
-  async function onSubmit(data: AttendanceFormValues, isAutoSubmit = false) {
+  async function onSubmit(data: AttendanceFormValues) {
     setIsSubmitting(true);
     if (!db || !auth?.currentUser) {
         toast({ variant: 'destructive', title: 'Error', description: 'No estás autenticado o no hay conexión.' });
@@ -267,7 +266,7 @@ export default function DailyEntryPage() {
         return;
     }
     
-    const assistantsToSave = isAutoSubmit ? data.assistants : assistants;
+    const assistantsToSave = assistants;
     
     if (assistantsToSave.length === 0) {
         toast({ variant: 'destructive', title: 'Lista Vacía', description: 'Añade al menos un asistente a la lista antes de guardar.' });
@@ -292,7 +291,29 @@ export default function DailyEntryPage() {
     const docRef = doc(attendanceCollectionRef, docId);
 
     try {
-        const assistantsPayload = assistantsToSave.map(a => ({
+        const docSnap = await getDoc(docRef);
+        let finalAssistants = assistantsToSave;
+
+        if (docSnap.exists()) {
+            // Document exists, merge new assistants with existing ones.
+            const existingData = docSnap.data() as AttendanceRecord;
+            const existingAssistants = existingData.assistants || [];
+            
+            const newAssistantsMap = new Map(assistantsToSave.map(a => [a.assistantDni, a]));
+            const mergedAssistants = existingAssistants.map(existingA => 
+                newAssistantsMap.has(existingA.assistantDni) ? newAssistantsMap.get(existingA.assistantDni)! : existingA
+            );
+
+            newAssistantsMap.forEach((newA, dni) => {
+                if (!mergedAssistants.some(a => a.assistantDni === dni)) {
+                    mergedAssistants.push(newA);
+                }
+            });
+            finalAssistants = mergedAssistants;
+        }
+
+
+        const assistantsPayload = finalAssistants.map(a => ({
             id: a.id,
             assistantDni: a.assistantDni,
             assistantName: a.assistantName,
@@ -313,8 +334,8 @@ export default function DailyEntryPage() {
 
         const recordTotals = assistantsPayload.reduce((acc, a) => {
             const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
-                jAcc.personnelCount += j.personnelCount;
-                jAcc.absentCount += j.absentCount;
+                jAcc.personnelCount += j.personnelCount || 0;
+                jAcc.absentCount += j.absentCount || 0;
                 return jAcc;
             }, { personnelCount: 0, absentCount: 0 });
             acc.personnelCount += assistantTotals.personnelCount;
@@ -322,53 +343,39 @@ export default function DailyEntryPage() {
             return acc;
         }, { personnelCount: 0, absentCount: 0 });
 
-        const finalData = {
-            date: format(data.date, 'yyyy-MM-dd'),
-            lote: data.lote,
-            lotName: loteMasterData.lote,
-            turno: data.turno,
-            variedad: loteMasterData.variedad,
-            fechaCianamida: loteMasterData.fechaCianamida,
-            campana: loteMasterData.campana,
-            code: laborCode,
-            labor: laborDesc,
-            assistants: assistantsPayload,
-            totals: recordTotals,
-            registeredBy: auth.currentUser?.email,
-            lastModifiedBy: auth.currentUser?.email,
-            lastModifiedAt: serverTimestamp(),
-            // We can't know if it's new or not without reading, so we set createdAt on merge.
-            // Firestore handles this: if doc doesn't exist, it's created.
-            createdAt: serverTimestamp(),
-        };
-
-        // Use set with merge:true to create or update the document.
-        // This is offline-first. It will write to local cache immediately.
-        await setDoc(docRef, finalData, { 
-            mergeFields: [
-                'assistants', 'totals', 'lastModifiedBy', 'lastModifiedAt'
-            ]
-        });
-
-        // Set non-merging fields separately only on creation.
-        await setDoc(docRef, {
-            date: finalData.date,
-            lote: finalData.lote,
-            lotName: finalData.lotName,
-            turno: finalData.turno,
-            variedad: finalData.variedad,
-            fechaCianamida: finalData.fechaCianamida,
-            campana: finalData.campana,
-            code: finalData.code,
-            labor: finalData.labor,
-            registeredBy: finalData.registeredBy,
-            createdAt: finalData.createdAt,
-        }, { merge: true });
-
+        if (docSnap.exists()) {
+            // Update existing document
+             await updateDoc(docRef, {
+                assistants: assistantsPayload,
+                totals: recordTotals,
+                lastModifiedBy: auth.currentUser.email,
+                lastModifiedAt: serverTimestamp(),
+             });
+        } else {
+            // Create new document
+            const finalData = {
+                date: format(data.date, 'yyyy-MM-dd'),
+                lote: data.lote,
+                lotName: loteMasterData.lote,
+                turno: data.turno,
+                variedad: loteMasterData.variedad,
+                fechaCianamida: loteMasterData.fechaCianamida,
+                campana: loteMasterData.campana,
+                code: laborCode,
+                labor: laborDesc,
+                assistants: assistantsPayload,
+                totals: recordTotals,
+                registeredBy: auth.currentUser?.email,
+                createdAt: serverTimestamp(),
+                lastModifiedBy: auth.currentUser?.email,
+                lastModifiedAt: serverTimestamp(),
+            };
+            await setDoc(docRef, finalData);
+        }
 
         toast({
             title: "Operación Completada",
-            description: `Registro guardado con éxito. Se sincronizará cuando haya conexión.`,
+            description: `Registro guardado con éxito.`,
         });
 
         fetchLaborsOnSameDay();
@@ -397,7 +404,7 @@ export default function DailyEntryPage() {
   return (
     <div className="p-4 space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
             control={form.control}
             name="date"
