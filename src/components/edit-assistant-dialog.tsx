@@ -59,7 +59,7 @@ export default function EditAssistantDialog({ isOpen, setIsOpen, editingData, on
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields } = useFieldArray({
     control: form.control,
     name: "jaladores",
   });
