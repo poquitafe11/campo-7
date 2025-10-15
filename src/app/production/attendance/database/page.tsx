@@ -258,7 +258,6 @@ export default function AttendanceDatabasePage() {
 
         const updatedAssistants = recordToUpdate.assistants.map(a => {
             if (a.id === assistantId) {
-                // Replace the jaladores list and recalculate totals for this assistant
                 const newPersonnelCount = updatedJaladores.reduce((sum, j) => sum + j.personnelCount, 0);
                 const newAbsentCount = updatedJaladores.reduce((sum, j) => sum + j.absentCount, 0);
                 return {
@@ -497,44 +496,48 @@ export default function AttendanceDatabasePage() {
                                                                                 <TableHeader><TableRow><TableHead className="w-[50%]">Asistente/Encargado</TableHead><TableHead className="text-center">Personal</TableHead><TableHead className="text-center">Faltos</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                                                                                 <TableBody>
                                                                                     {turnoData.assistants.map(assistant => (
-                                                                                        <Collapsible asChild key={assistant.id}>
-                                                                                            <TableRow>
-                                                                                                <TableCell className="p-0" colSpan={4}>
-                                                                                                    <div className="flex items-center w-full">
-                                                                                                        <CollapsibleTrigger className="flex-1 text-left p-2.5 flex items-center gap-2">
-                                                                                                            {assistant.assistantName}
-                                                                                                            <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
-                                                                                                        </CollapsibleTrigger>
-                                                                                                        <div className="w-16 text-center">{assistant.totalPersonnel}</div>
-                                                                                                        <div className="w-16 text-center">{assistant.totalAbsent}</div>
-                                                                                                        <div className="w-24 text-right pr-2">
-                                                                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditAssistant(turnoData.recordId, assistant as Assistant)} disabled={isPending}><Pencil className="h-4 w-4" /></Button>
-                                                                                                            <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" disabled={isPending}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                                                                                                                <AlertDialogContent>
-                                                                                                                    <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Se eliminará al asistente <strong>{assistant.assistantName}</strong> y todo su personal de este registro. Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
-                                                                                                                    <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteAssistant(turnoData.recordId, assistant.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
-                                                                                                                </AlertDialogContent>
-                                                                                                            </AlertDialog>
+                                                                                        <React.Fragment key={assistant.id}>
+                                                                                            <Collapsible asChild>
+                                                                                                <TableRow>
+                                                                                                    <TableCell colSpan={4} className="p-0">
+                                                                                                        <div className="flex items-center w-full">
+                                                                                                            <CollapsibleTrigger asChild>
+                                                                                                                <div className="flex-1 text-left p-2.5 flex items-center gap-2 cursor-pointer">
+                                                                                                                    {assistant.assistantName}
+                                                                                                                    <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                                                                                                                </div>
+                                                                                                            </CollapsibleTrigger>
+                                                                                                            <div className="w-16 text-center">{assistant.totalPersonnel}</div>
+                                                                                                            <div className="w-16 text-center">{assistant.totalAbsent}</div>
+                                                                                                            <div className="w-24 text-right pr-2">
+                                                                                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditAssistant(turnoData.recordId, assistant as Assistant)} disabled={isPending}><Pencil className="h-4 w-4" /></Button>
+                                                                                                                <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" disabled={isPending}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                                                                                                    <AlertDialogContent>
+                                                                                                                        <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Se eliminará al asistente <strong>{assistant.assistantName}</strong> y todo su personal de este registro. Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
+                                                                                                                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteAssistant(turnoData.recordId, assistant.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                                                                                                                    </AlertDialogContent>
+                                                                                                                </AlertDialog>
+                                                                                                            </div>
                                                                                                         </div>
-                                                                                                    </div>
-                                                                                                    <CollapsibleContent>
-                                                                                                        <div className="p-2 bg-slate-50">
-                                                                                                            <Table><TableHeader><TableRow><TableHead className="h-7">Jalador</TableHead><TableHead className="h-7 text-center">Personal</TableHead><TableHead className="h-7 text-center">Faltos</TableHead></TableRow></TableHeader>
-                                                                                                                <TableBody>
-                                                                                                                    {Object.entries(assistant.jaladores).map(([jaladorAlias, jaladorRecords]) => {
-                                                                                                                        const totalP = jaladorRecords.reduce((s, j) => s + (j.personnelCount || 0), 0);
-                                                                                                                        const totalA = jaladorRecords.reduce((s, j) => s + (j.absentCount || 0), 0);
-                                                                                                                        return (
-                                                                                                                            <TableRow key={jaladorAlias}><TableCell>{jaladorAlias}</TableCell><TableCell className="text-center">{totalP}</TableCell><TableCell className="text-center">{totalA}</TableCell></TableRow>
-                                                                                                                        )
-                                                                                                                    })}
-                                                                                                                </TableBody>
-                                                                                                            </Table>
-                                                                                                        </div>
-                                                                                                    </CollapsibleContent>
-                                                                                                </TableCell>
-                                                                                            </TableRow>
-                                                                                        </Collapsible>
+                                                                                                        <CollapsibleContent>
+                                                                                                            <div className="p-2 bg-slate-50">
+                                                                                                                <Table><TableHeader><TableRow><TableHead className="h-7">Jalador</TableHead><TableHead className="h-7 text-center">Personal</TableHead><TableHead className="h-7 text-center">Faltos</TableHead></TableRow></TableHeader>
+                                                                                                                    <TableBody>
+                                                                                                                        {Object.entries(assistant.jaladores).map(([jaladorAlias, jaladorRecords]) => {
+                                                                                                                            const totalP = jaladorRecords.reduce((s, j) => s + (j.personnelCount || 0), 0);
+                                                                                                                            const totalA = jaladorRecords.reduce((s, j) => s + (j.absentCount || 0), 0);
+                                                                                                                            return (
+                                                                                                                                <TableRow key={jaladorAlias}><TableCell>{jaladorAlias}</TableCell><TableCell className="text-center">{totalP}</TableCell><TableCell className="text-center">{totalA}</TableCell></TableRow>
+                                                                                                                            )
+                                                                                                                        })}
+                                                                                                                    </TableBody>
+                                                                                                                </Table>
+                                                                                                            </div>
+                                                                                                        </CollapsibleContent>
+                                                                                                    </TableCell>
+                                                                                                </TableRow>
+                                                                                            </Collapsible>
+                                                                                        </React.Fragment>
                                                                                     ))}
                                                                                 </TableBody>
                                                                             </Table>
@@ -568,3 +571,5 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
+
+    
