@@ -534,41 +534,16 @@ export default function DailyEntryPage() {
                             }, { personnelCount: 0, absentCount: 0 });
 
                             return (
-                                <Collapsible asChild key={assistant.id}>
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="p-0">
-                                            <div className="flex items-center w-full">
-                                                <CollapsibleTrigger asChild>
-                                                  <div className="flex-1 p-4 cursor-pointer hover:bg-muted/50">
-                                                    <div className="flex items-center gap-2 w-full text-left">
-                                                      <span className="font-medium truncate">{assistant.assistantName}</span>
-                                                      <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
-                                                    </div>
-                                                  </div>
-                                                </CollapsibleTrigger>
-                                                <div className="w-24 text-center">{assistantTotals.personnelCount}</div>
-                                                <div className="w-24 text-center">{assistantTotals.absentCount}</div>
-                                                <div className="w-24 text-right pr-4">
-                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteAssistant(assistant.id)}>
-                                                        <Trash2 className="h-4 w-4" /><span className="sr-only">Eliminar</span>
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                            <CollapsibleContent>
-                                                <div className="bg-muted/50 p-2 border-t">
-                                                    <Table>
-                                                        <TableHeader><TableRow><TableHead className="h-8">Jalador</TableHead><TableHead className="h-8 text-center">Personal</TableHead><TableHead className="h-8 text-center">Faltos</TableHead></TableRow></TableHeader>
-                                                        <TableBody>
-                                                            {assistant.jaladores.map(j => (
-                                                                <TableRow key={j.id}><TableCell>{j.jaladorAlias}</TableCell><TableCell className="text-center">{j.personnelCount}</TableCell><TableCell className="text-center">{j.absentCount}</TableCell></TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </div>
-                                            </CollapsibleContent>
-                                        </TableCell>
-                                    </TableRow>
-                                </Collapsible>
+                                <TableRow key={assistant.id}>
+                                    <TableCell className="font-medium">{assistant.assistantName}</TableCell>
+                                    <TableCell className="text-center">{assistantTotals.personnelCount}</TableCell>
+                                    <TableCell className="text-center">{assistantTotals.absentCount}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteAssistant(assistant.id)}>
+                                            <Trash2 className="h-4 w-4" /><span className="sr-only">Eliminar</span>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
                             )
                         })}
                     </TableBody>
