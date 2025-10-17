@@ -183,8 +183,8 @@ export default function CreateActivityPage() {
   }, [profile, user, singleForm]);
   
   const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(codeValue || ''), [codeValue]);
-  const performanceLabel = showExtraPerformanceField ? "Rendimiento (Plantas)" : "Rendimiento";
-  const extraPerformanceLabel = codeValue === '46' ? "Rendimiento (Racimos)" : "Rendimiento (Jabas)";
+  const performanceLabel = showExtraPerformanceField ? "Plantas" : "Rendimiento";
+  const extraPerformanceLabel = codeValue === '46' ? "Racimos" : "Jabas";
   const ExtraPerformanceIcon = codeValue === '46' ? Grape : Boxes;
 
   const onSingleSubmit = (data: SingleActivityFormValues) => {
@@ -382,72 +382,87 @@ export default function CreateActivityPage() {
             </Form>
         ) : (
           <Form {...groupForm}>
-            <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-8">
+            <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-6">
                <div className="rounded-lg border bg-background p-6 shadow-sm space-y-6">
-                 {renderSharedHeader(groupForm)}
-                  
-                  <div className="space-y-2 overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[180px]">Asistente</TableHead>
-                          <TableHead>{performanceLabel}</TableHead>
-                          {showExtraPerformanceField && <TableHead>{extraPerformanceLabel}</TableHead>}
-                          <TableHead>Personas</TableHead>
-                          <TableHead>Jhu</TableHead>
-                          <TableHead>Mínimo</TableHead>
-                          <TableHead>Máximo</TableHead>
-                          <TableHead className="w-[150px]">Obs.</TableHead>
-                          <TableHead className="w-[80px] text-center">Acciones</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {fields.map((field, index) => (
-                           <TableRow key={field.id}>
-                              <TableCell>
-                                <FormField control={groupForm.control} name={`activities.${index}.assistantDni`} render={({ field }) => (
-                                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona"/></SelectTrigger></FormControl><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select>
-                                )}/>
-                              </TableCell>
-                              <TableCell><FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
-                              {showExtraPerformanceField && <TableCell><FormField control={groupForm.control} name={`activities.${index}.clustersOrJabas`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>}
-                              <TableCell><FormField control={groupForm.control} name={`activities.${index}.personnelCount`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
-                              <TableCell><FormField control={groupForm.control} name={`activities.${index}.workdayCount`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
-                              <TableCell><FormField control={groupForm.control} name={`activities.${index}.minRange`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
-                              <TableCell><FormField control={groupForm.control} name={`activities.${index}.maxRange`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
-                              <TableCell><FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field }) => <Input {...field} />}/></TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex gap-1">
-                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-4 w-4 text-blue-600"/></Button>
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8"><Trash2 className="h-4 w-4 text-destructive"/></Button>
-                                </div>
-                              </TableCell>
-                           </TableRow>
-                        ))}
-                      </TableBody>
-                       <TableFooter>
-                          <TableRow>
-                            <TableCell className="font-bold">Total</TableCell>
-                            <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
-                            {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
-                            <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
-                            <TableCell className="font-bold text-center">{totals.workdayCount.toFixed(1)}</TableCell>
-                            <TableCell className="font-bold text-center">{totals.minRange}</TableCell>
-                            <TableCell className="font-bold text-center">{totals.maxRange}</TableCell>
-                            <TableCell colSpan={2}></TableCell>
-                          </TableRow>
-                       </TableFooter>
-                    </Table>
-                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ assistantDni: '', performance: 0, personnelCount: 1, workdayCount: 0, minRange: 0, maxRange: 0, observations: '', clustersOrJabas: 0 })}>
-                        <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
-                    </Button>
-                  </div>
-                 <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={isPending || masterLoading}>
-                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Guardar {fields.length} Registros
-                  </Button>
-                </div>
+                    {/* Header */}
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-2 text-sm">
+                            <FormField control={groupForm.control} name="registerDate" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Fecha</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button size="sm" variant="outline" className="font-normal w-full justify-start h-8">{field.value ? format(field.value, 'P', { locale: es }) : <span>Elige</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent></Popover></FormItem>)}/>
+                            <FormField control={groupForm.control} name="lote" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                            <FormField control={groupForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Campaña</FormLabel><FormControl><Input className="h-8" {...field} /></FormControl></FormItem>)} />
+                            <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Costo</FormLabel><FormControl><Input className="h-8" type="number" {...field} /></FormControl></FormItem>)} />
+                            <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Pasada</FormLabel><FormControl><Input className="h-8" type="number" {...field} /></FormControl></FormItem>)} />
+                            <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>)} />
+                        </div>
+                         <div className="grid grid-cols-4 gap-x-4 gap-y-2 text-sm items-end">
+                            <FormField control={groupForm.control} name="code" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Cod Labor</FormLabel><FormControl><Input className="h-8" {...field} /></FormControl></FormItem>)} />
+                            <FormField control={groupForm.control} name="labor" render={({ field }) => (<FormItem className="col-span-3"><FormLabel className="font-semibold">Labor</FormLabel><FormControl><Input className="h-8" {...field} readOnly /></FormControl></FormItem>)} />
+                         </div>
+                    </div>
+
+                    {/* Table */}
+                    <div className="space-y-2 overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[180px]">Asistente</TableHead>
+                                    <TableHead>{performanceLabel}</TableHead>
+                                    {showExtraPerformanceField && <TableHead>{extraPerformanceLabel}</TableHead>}
+                                    <TableHead>Personas</TableHead>
+                                    <TableHead>Jhu</TableHead>
+                                    <TableHead>Mínimo</TableHead>
+                                    <TableHead>Máximo</TableHead>
+                                    <TableHead className="w-[150px]">Obs.</TableHead>
+                                    <TableHead className="w-[80px] text-center">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {fields.map((field, index) => (
+                                <TableRow key={field.id}>
+                                    <TableCell>
+                                        <FormField control={groupForm.control} name={`activities.${index}.assistantDni`} render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona"/></SelectTrigger></FormControl><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select>
+                                        )}/>
+                                    </TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
+                                    {showExtraPerformanceField && <TableCell><FormField control={groupForm.control} name={`activities.${index}.clustersOrJabas`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>}
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.personnelCount`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.workdayCount`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.minRange`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.maxRange`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field }) => <Input {...field} />}/></TableCell>
+                                    <TableCell className="text-center">
+                                        <div className="flex gap-1 justify-center">
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-4 w-4 text-blue-600"/></Button>
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8"><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow>
+                                    <TableCell className="font-bold text-right">Total</TableCell>
+                                    <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
+                                    {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
+                                    <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
+                                    <TableCell className="font-bold text-center">{totals.workdayCount.toFixed(1)}</TableCell>
+                                    <TableCell className="font-bold text-center">{totals.minRange}</TableCell>
+                                    <TableCell className="font-bold text-center">{totals.maxRange}</TableCell>
+                                    <TableCell colSpan={2}></TableCell>
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ assistantDni: '', performance: 0, personnelCount: 1, workdayCount: 0, minRange: 0, maxRange: 0, observations: '', clustersOrJabas: 0 })}>
+                            <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
+                        </Button>
+                    </div>
+                    <div className="flex justify-end pt-4">
+                        <Button type="submit" disabled={isPending || masterLoading}>
+                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Guardar {fields.length} Registros
+                        </Button>
+                    </div>
                </div>
             </form>
           </Form>
