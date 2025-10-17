@@ -345,7 +345,7 @@ export default function CreateActivityPage() {
             <Label htmlFor="form-mode-switch">Registro por Grupos</Label>
         </div>
 
-        {formMode === 'individual' && (
+        {formMode === 'individual' ? (
             <Form {...singleForm}>
                 <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-8">
                     <div className="rounded-lg border bg-background p-6 shadow-sm">
@@ -380,9 +380,7 @@ export default function CreateActivityPage() {
                     </div>
                 </form>
             </Form>
-        )}
-        
-        {formMode === 'group' && (
+        ) : (
           <Form {...groupForm}>
             <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-8">
                <div className="rounded-lg border bg-background p-6 shadow-sm space-y-6">
@@ -458,4 +456,3 @@ export default function CreateActivityPage() {
     </>
   );
 }
-
