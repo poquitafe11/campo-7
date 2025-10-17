@@ -28,6 +28,7 @@ import {
   PlusCircle,
   Trash2,
   Pencil,
+  User,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -351,7 +352,7 @@ export default function CreateActivityPage() {
                     <div className="space-y-6">
                         {renderSharedHeader(singleForm)}
                         <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (
-                           <FormItem> <FormLabel><IconWrapper><UserIcon className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>
+                           <FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>
                         )}/>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
@@ -457,3 +458,4 @@ export default function CreateActivityPage() {
     </>
   );
 }
+
