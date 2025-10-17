@@ -323,7 +323,7 @@ export default function CreateActivityPage() {
 
        <div className="grid grid-cols-3 gap-6">
           <FormField control={form.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator className="h-4 w-4" /> S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-          <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel> <FormControl> <Select onValueChange={field.onChange} value={field.value}> <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger> <SelectContent> <SelectItem value="Mañana">Mañana</SelectItem> <SelectItem value="Tarde">Tarde</SelectItem> </SelectContent> </Select> </FormControl> <FormMessage /> </FormItem> )} />
+          <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel> <FormControl><Select onValueChange={field.onChange} value={field.value}> <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger> <SelectContent> <SelectItem value="Mañana">Mañana</SelectItem> <SelectItem value="Tarde">Tarde</SelectItem> </SelectContent> </Select></FormControl> <FormMessage /> </FormItem> )} />
           <FormField control={form.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw className="h-4 w-4" /> Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
        </div>
     </>
