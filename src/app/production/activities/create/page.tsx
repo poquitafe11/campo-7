@@ -323,7 +323,7 @@ export default function CreateActivityPage() {
 
        <div className="grid grid-cols-3 gap-6">
           <FormField control={form.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator className="h-4 w-4" /> S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-          <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel> <FormControl><Select onValueChange={field.onChange} value={field.value}> <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger> <SelectContent> <SelectItem value="Mañana">Mañana</SelectItem> <SelectItem value="Tarde">Tarde</SelectItem> </SelectContent> </Select></FormControl> <FormMessage /> </FormItem> )} />
+          <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormControl><FormMessage /> </FormItem> )} />
           <FormField control={form.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw className="h-4 w-4" /> Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
        </div>
     </>
@@ -380,18 +380,18 @@ export default function CreateActivityPage() {
                <div className="rounded-lg border bg-background p-6 shadow-sm space-y-6">
                  {renderSharedHeader(groupForm)}
                   
-                  <div className="space-y-2">
+                  <div className="space-y-2 overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[200px]">Asistente</TableHead>
+                          <TableHead className="w-[180px]">Asistente</TableHead>
                           <TableHead>{performanceLabel}</TableHead>
                           {showExtraPerformanceField && <TableHead>{extraPerformanceLabel}</TableHead>}
                           <TableHead>Personas</TableHead>
-                          <TableHead>Jornadas</TableHead>
-                          <TableHead>Min</TableHead>
-                          <TableHead>Max</TableHead>
-                          <TableHead>Obs.</TableHead>
+                          <TableHead>Jhu</TableHead>
+                          <TableHead>Mínimo</TableHead>
+                          <TableHead>Máximo</TableHead>
+                          <TableHead className="w-[150px]">Obs.</TableHead>
                           <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -417,7 +417,7 @@ export default function CreateActivityPage() {
                        <TableFooter>
                           <TableRow>
                             <TableCell className="font-bold">Total</TableCell>
-                            <TableCell className="font-bold">{totals.performance}</TableCell>
+                            <TableCell className="font-bold">{totals.performance.toLocaleString('es-PE')}</TableCell>
                             {showExtraPerformanceField && <TableCell></TableCell>}
                             <TableCell className="font-bold">{totals.personnelCount}</TableCell>
                             <TableCell className="font-bold">{totals.workdayCount.toFixed(1)}</TableCell>
