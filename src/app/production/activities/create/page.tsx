@@ -61,12 +61,12 @@ type SingleActivityFormValues = z.infer<typeof singleActivitySchema>;
 
 const groupActivitySchema = z.object({
   assistantDni: z.string().min(1, "Asistente requerido."),
-  performance: z.coerce.number(),
+  performance: z.coerce.number().optional(),
   clustersOrJabas: z.coerce.number().optional(),
   personnelCount: z.coerce.number().int().min(1, "Mínimo 1."),
-  workdayCount: z.coerce.number(),
-  minRange: z.coerce.number(),
-  maxRange: z.coerce.number(),
+  workdayCount: z.coerce.number().optional(),
+  minRange: z.coerce.number().optional(),
+  maxRange: z.coerce.number().optional(),
   observations: z.string().optional(),
 });
 
@@ -78,8 +78,8 @@ const groupFormSchema = z.object({
   code: z.string().min(1, "El código es requerido."),
   labor: z.string().optional(),
   shift: z.string().min(1, "El turno es requerido."),
-  pass: z.coerce.number(),
-  cost: z.coerce.number(),
+  pass: z.coerce.number().optional(),
+  cost: z.coerce.number().optional(),
   activities: z.array(groupActivitySchema).min(1, "Debe agregar al menos una actividad de grupo."),
 });
 
@@ -113,15 +113,15 @@ export default function CreateActivityPage() {
       lote: '',
       code: '',
       labor: '',
-      performance: 0,
-      clustersOrJabas: 0,
+      performance: undefined,
+      clustersOrJabas: undefined,
       personnelCount: 1,
-      workdayCount: 0,
-      cost: 0,
+      workdayCount: undefined,
+      cost: undefined,
       shift: '',
-      minRange: 0,
-      maxRange: 0,
-      pass: 0,
+      minRange: undefined,
+      maxRange: undefined,
+      pass: undefined,
       observations: '',
       assistantDni: '',
       createdBy: '',
@@ -139,8 +139,8 @@ export default function CreateActivityPage() {
       code: '',
       labor: '',
       shift: '',
-      pass: 0,
-      cost: 0,
+      pass: undefined,
+      cost: undefined,
       activities: [],
     },
   });
@@ -202,15 +202,15 @@ export default function CreateActivityPage() {
               lote: '',
               code: '',
               labor: '',
-              performance: 0,
-              clustersOrJabas: 0,
+              performance: undefined,
+              clustersOrJabas: undefined,
               personnelCount: 1,
-              workdayCount: 0,
-              cost: 0,
+              workdayCount: undefined,
+              cost: undefined,
               shift: '',
-              minRange: 0,
-              maxRange: 0,
-              pass: 0,
+              minRange: undefined,
+              maxRange: undefined,
+              pass: undefined,
               observations: '',
               assistantDni: profile?.dni || '',
               createdBy: user?.email || '',
@@ -241,6 +241,8 @@ export default function CreateActivityPage() {
                 pass: data.pass,
                 cost: data.cost,
                 createdBy: user?.email || '',
+                performance: activity.performance || 0, // Ensure performance is a number
+                workdayCount: activity.workdayCount || 0 // Ensure workdayCount is a number
             };
             const result = await saveActivity(fullActivityData);
             if (result.success) {
@@ -276,8 +278,8 @@ export default function CreateActivityPage() {
       return acc;
     }, { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0 });
 
-    const minValues = activitiesArray.map(a => Number(a.minRange) || 0).filter(v => v > 0);
-    const maxValues = activitiesArray.map(a => Number(a.maxRange) || 0).filter(v => v > 0);
+    const minValues = activitiesArray.map(a => Number(a.minRange)).filter(v => v > 0);
+    const maxValues = activitiesArray.map(a => Number(a.maxRange)).filter(v => v > 0);
     
     return {
       ...totals,
@@ -326,7 +328,7 @@ export default function CreateActivityPage() {
 
        <div className="grid grid-cols-3 gap-6">
           <FormField control={form.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator className="h-4 w-4" /> S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-          <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormControl> <FormMessage /> </FormItem> )} />
+          <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select></FormControl> <FormMessage /> </FormItem> )} />
           <FormField control={form.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw className="h-4 w-4" /> Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
        </div>
     </>
@@ -389,10 +391,10 @@ export default function CreateActivityPage() {
                         <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-2 text-sm">
                             <FormField control={groupForm.control} name="registerDate" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Fecha</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button size="sm" variant="outline" className="font-normal w-full justify-start h-8">{field.value ? format(field.value, 'P', { locale: es }) : <span>Elige</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent></Popover></FormItem>)}/>
                             <FormField control={groupForm.control} name="lote" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                            <FormField control={groupForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Campaña</FormLabel><FormControl><Input className="h-8" {...field} /></FormControl></FormItem>)} />
+                            <FormField control={groupForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select></FormItem>)} />
                             <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Costo</FormLabel><FormControl><Input className="h-8" type="number" {...field} /></FormControl></FormItem>)} />
                             <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Pasada</FormLabel><FormControl><Input className="h-8" type="number" {...field} /></FormControl></FormItem>)} />
-                            <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>)} />
+                            <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select></FormItem>)} />
                         </div>
                          <div className="grid grid-cols-4 gap-x-4 gap-y-2 text-sm items-end">
                             <FormField control={groupForm.control} name="code" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Cod Labor</FormLabel><FormControl><Input className="h-8" {...field} /></FormControl></FormItem>)} />
@@ -406,13 +408,13 @@ export default function CreateActivityPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[180px]">Asistente</TableHead>
-                                    <TableHead>{performanceLabel}</TableHead>
-                                    {showExtraPerformanceField && <TableHead>{extraPerformanceLabel}</TableHead>}
-                                    <TableHead>Personas</TableHead>
-                                    <TableHead>Jhu</TableHead>
-                                    <TableHead>Mínimo</TableHead>
-                                    <TableHead>Máximo</TableHead>
-                                    <TableHead className="w-[150px]">Obs.</TableHead>
+                                    <TableHead className="w-[120px]">{performanceLabel}</TableHead>
+                                    {showExtraPerformanceField && <TableHead className="w-[120px]">{extraPerformanceLabel}</TableHead>}
+                                    <TableHead className="w-[100px]">Personas</TableHead>
+                                    <TableHead className="w-[100px]">Jhu</TableHead>
+                                    <TableHead className="w-[100px]">Mínimo</TableHead>
+                                    <TableHead className="w-[100px]">Máximo</TableHead>
+                                    <TableHead className="min-w-[150px]">Obs.</TableHead>
                                     <TableHead className="w-[80px] text-center">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -453,7 +455,7 @@ export default function CreateActivityPage() {
                                 </TableRow>
                             </TableFooter>
                         </Table>
-                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ assistantDni: '', performance: 0, personnelCount: 1, workdayCount: 0, minRange: 0, maxRange: 0, observations: '', clustersOrJabas: 0 })}>
+                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ assistantDni: '', performance: undefined, personnelCount: 1, workdayCount: undefined, minRange: undefined, maxRange: undefined, observations: '', clustersOrJabas: undefined })}>
                             <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
                         </Button>
                     </div>
