@@ -90,6 +90,17 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center gap-2 text-sm text-muted-foreground">{children}</div>
 );
 
+// Helper para formatear nombres: "Maria Allcarima" -> "Maria A."
+const formatAssistantName = (name: string) => {
+    if (!name) return '';
+    const parts = name.trim().split(' ');
+    if (parts.length < 2) return name;
+    const firstName = parts[0];
+    const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase() + '.';
+    return `${firstName} ${lastNameInitial}`;
+};
+
+
 export default function CreateActivityPage() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
@@ -113,15 +124,15 @@ export default function CreateActivityPage() {
       lote: '',
       code: '',
       labor: '',
-      performance: '' as any,
-      clustersOrJabas: '' as any,
+      performance: '',
+      clustersOrJabas: '',
       personnelCount: 1,
-      workdayCount: '' as any,
-      cost: '' as any,
+      workdayCount: '',
+      cost: '',
       shift: '',
-      minRange: '' as any,
-      maxRange: '' as any,
-      pass: '' as any,
+      minRange: '',
+      maxRange: '',
+      pass: '',
       observations: '',
       assistantDni: '',
       createdBy: '',
@@ -139,8 +150,8 @@ export default function CreateActivityPage() {
       code: '',
       labor: '',
       shift: '',
-      pass: '' as any,
-      cost: '' as any,
+      pass: '',
+      cost: '',
       activities: [],
     },
   });
@@ -166,7 +177,7 @@ export default function CreateActivityPage() {
   useEffect(() => {
     const activeForm = formMode === 'individual' ? singleForm : groupForm;
     if (codeValue) {
-      const matchedLabor = labors.find(l => l.codigo === codeValue);
+      const matchedLabor = labors.find(l => String(l.codigo) === String(codeValue));
       activeForm.setValue('labor', matchedLabor?.descripcion || '', { shouldValidate: true });
     } else {
       activeForm.setValue('labor', '', { shouldValidate: true });
@@ -182,10 +193,10 @@ export default function CreateActivityPage() {
     }
   }, [profile, user, singleForm]);
   
-  const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(codeValue || ''), [codeValue]);
+  const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(String(codeValue) || ''), [codeValue]);
   const performanceLabel = showExtraPerformanceField ? "Plantas" : "Rendimiento";
-  const extraPerformanceLabel = codeValue === '46' ? "Racimos" : "Jabas";
-  const ExtraPerformanceIcon = codeValue === '46' ? Grape : Boxes;
+  const extraPerformanceLabel = String(codeValue) === '46' ? "Racimos" : "Jabas";
+  const ExtraPerformanceIcon = String(codeValue) === '46' ? Grape : Boxes;
 
   const onSingleSubmit = (data: SingleActivityFormValues) => {
     startTransition(async () => {
@@ -202,15 +213,15 @@ export default function CreateActivityPage() {
               lote: '',
               code: '',
               labor: '',
-              performance: '' as any,
-              clustersOrJabas: '' as any,
+              performance: '',
+              clustersOrJabas: '',
               personnelCount: 1,
-              workdayCount: '' as any,
-              cost: '' as any,
+              workdayCount: '',
+              cost: '',
               shift: '',
-              minRange: '' as any,
-              maxRange: '' as any,
-              pass: '' as any,
+              minRange: '',
+              maxRange: '',
+              pass: '',
               observations: '',
               assistantDni: profile?.dni || '',
               createdBy: user?.email || '',
@@ -348,47 +359,47 @@ export default function CreateActivityPage() {
         </div>
 
         {formMode === 'individual' ? (
-            <Form {...singleForm}>
-                <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-8">
-                    <div className="rounded-lg border bg-background p-6 shadow-sm">
-                    <div className="space-y-6">
-                        {renderSharedHeader(singleForm)}
-                        <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (
-                           <FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                            {showExtraPerformanceField && (
-                                <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" /> {extraPerformanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                            )}
-                            <FormField control={singleForm.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users className="h-4 w-4" /> # Personas</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="1" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                            <FormField control={singleForm.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList className="h-4 w-4" /> # Jornadas (JHU)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                        </div>
+          <Form {...singleForm}>
+              <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-8">
+                  <div className="rounded-lg border bg-background p-6 shadow-sm">
+                  <div className="space-y-6">
+                      {renderSharedHeader(singleForm)}
+                      <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (
+                         <FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>
+                      )}/>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                          <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                          {showExtraPerformanceField && (
+                              <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" /> {extraPerformanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                          )}
+                          <FormField control={singleForm.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users className="h-4 w-4" /> # Personas</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="1" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                          <FormField control={singleForm.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList className="h-4 w-4" /> # Jornadas (JHU)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                      </div>
 
-                        <div className="grid grid-cols-2 gap-6">
-                            <FormField control={singleForm.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput className="h-4 w-4" /> Min</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                            <FormField control={singleForm.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileOutput className="h-4 w-4"/> Max</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                        </div>
-                        
-                        <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Observaciones</IconWrapper></FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                      <div className="grid grid-cols-2 gap-6">
+                          <FormField control={singleForm.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput className="h-4 w-4" /> Min</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                          <FormField control={singleForm.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileOutput className="h-4 w-4"/> Max</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                      </div>
+                      
+                      <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Wrench className="h-4 w-4" /> Observaciones</IconWrapper></FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )} />
 
-                        <div className="flex justify-end pt-4">
-                        <Button type="submit" disabled={isPending || masterLoading}>
-                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Guardar Ficha
-                        </Button>
-                        </div>
-                    </div>
-                    </div>
-                </form>
-            </Form>
+                      <div className="flex justify-end pt-4">
+                      <Button type="submit" disabled={isPending || masterLoading}>
+                          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Guardar Ficha
+                      </Button>
+                      </div>
+                  </div>
+                  </div>
+              </form>
+          </Form>
         ) : (
           <Form {...groupForm}>
             <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-6">
                <div className="rounded-lg border bg-background p-6 shadow-sm space-y-6">
                     {/* Header */}
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-2 text-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
                             <FormField control={groupForm.control} name="registerDate" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Fecha</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button size="sm" variant="outline" className="font-normal w-full justify-start h-8">{field.value ? format(field.value, 'P', { locale: es }) : <span>Elige</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent></Popover></FormItem>)}/>
                             <FormField control={groupForm.control} name="lote" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select></FormItem>)} />
                             <FormField control={groupForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue placeholder="Elegir..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select></FormItem>)} />
@@ -423,7 +434,7 @@ export default function CreateActivityPage() {
                                 <TableRow key={field.id}>
                                     <TableCell>
                                         <FormField control={groupForm.control} name={`activities.${index}.assistantDni`} render={({ field }) => (
-                                        <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona"/></SelectTrigger></FormControl><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select>
+                                        <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona"/></SelectTrigger></FormControl><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent></Select>
                                         )}/>
                                     </TableCell>
                                     <TableCell><FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field }) => <Input type="number" {...field} />}/></TableCell>
@@ -455,7 +466,7 @@ export default function CreateActivityPage() {
                                 </TableRow>
                             </TableFooter>
                         </Table>
-                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ assistantDni: '', performance: '' as any, personnelCount: 1, workdayCount: '' as any, minRange: '' as any, maxRange: '' as any, observations: '', clustersOrJabas: '' as any })}>
+                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ assistantDni: '', performance: '', personnelCount: 1, workdayCount: '', minRange: '', maxRange: '', observations: '', clustersOrJabas: '' })}>
                             <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
                         </Button>
                     </div>
