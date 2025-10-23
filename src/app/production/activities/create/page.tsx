@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useTransition, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -111,6 +111,44 @@ const formatAssistantName = (name: string) => {
     return `${firstName} ${lastNameInitial}`;
 };
 
+function GroupFormTotals({ control, showExtraPerformanceField }: { control: any, showExtraPerformanceField: boolean }) {
+  const activities = useWatch({ control, name: 'activities' });
+
+  const totals = useMemo(() => {
+    if (!activities) return { performance: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0, clustersOrJabas: 0 };
+    
+    const totals = activities.reduce((acc: any, curr: any) => {
+      acc.performance += Number(curr.performance) || 0;
+      acc.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
+      acc.personnelCount += Number(curr.personnelCount) || 0;
+      acc.workdayCount += Number(curr.workdayCount) || 0;
+      return acc;
+    }, { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0 });
+
+    const minValues = activities.map((a: any) => Number(a.minRange)).filter((v: number) => v > 0);
+    const maxValues = activities.map((a: any) => Number(a.maxRange)).filter((v: number) => v > 0);
+    
+    return {
+      ...totals,
+      minRange: minValues.length > 0 ? Math.min(...minValues) : 0,
+      maxRange: maxValues.length > 0 ? Math.max(...maxValues) : 0,
+    }
+  }, [activities]);
+
+  return (
+    <TableRow>
+      <TableCell className="font-bold text-right">Total</TableCell>
+      <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
+      {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
+      <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
+      <TableCell className="font-bold text-center">{totals.workdayCount.toFixed(1)}</TableCell>
+      <TableCell className="font-bold text-center">{totals.minRange}</TableCell>
+      <TableCell className="font-bold text-center">{totals.maxRange}</TableCell>
+      <TableCell colSpan={2}></TableCell>
+    </TableRow>
+  );
+}
+
 
 export default function CreateActivityPage() {
   const { toast } = useToast();
@@ -173,8 +211,10 @@ export default function CreateActivityPage() {
     name: 'activities'
   });
   
-  const singleCodeValue = singleForm.watch('code');
-  const groupCodeValue = groupForm.watch('code');
+  const singleCodeValue = useWatch({ control: singleForm.control, name: 'code' });
+  const groupCodeValue = useWatch({ control: groupForm.control, name: 'code' });
+  
+  const activeForm = formMode === 'individual' ? singleForm : groupForm;
   const codeValue = formMode === 'individual' ? singleCodeValue : groupCodeValue;
   
   const uniqueLotes = useMemo(() => {
@@ -188,14 +228,13 @@ export default function CreateActivityPage() {
   }, [lotes]);
 
   useEffect(() => {
-    const activeForm = formMode === 'individual' ? singleForm : groupForm;
     if (codeValue) {
       const matchedLabor = labors.find(l => String(l.codigo) === String(codeValue));
       activeForm.setValue('labor', matchedLabor?.descripcion || '', { shouldValidate: true });
     } else {
       activeForm.setValue('labor', '', { shouldValidate: true });
     }
-  }, [codeValue, labors, singleForm, groupForm, formMode]);
+  }, [codeValue, labors, activeForm]);
 
 
   useEffect(() => {
@@ -306,28 +345,6 @@ export default function CreateActivityPage() {
     });
   };
 
-  const totals = useMemo(() => {
-    const activities = groupForm.watch('activities');
-    if (!activities) return { performance: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0, clustersOrJabas: 0 };
-    
-    const totals = activities.reduce((acc, curr) => {
-      acc.performance += Number(curr.performance) || 0;
-      acc.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
-      acc.personnelCount += Number(curr.personnelCount) || 0;
-      acc.workdayCount += Number(curr.workdayCount) || 0;
-      return acc;
-    }, { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0 });
-
-    const minValues = activities.map(a => Number(a.minRange)).filter(v => v > 0);
-    const maxValues = activities.map(a => Number(a.maxRange)).filter(v => v > 0);
-    
-    return {
-      ...totals,
-      minRange: minValues.length > 0 ? Math.min(...minValues) : 0,
-      maxRange: maxValues.length > 0 ? Math.max(...maxValues) : 0,
-    }
-  }, [groupForm]);
-
   const renderSharedHeader = (form: any) => (
     <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
@@ -351,12 +368,12 @@ export default function CreateActivityPage() {
             )} />
         </div>
         <div className="grid grid-cols-4 gap-x-4 gap-y-2 text-sm items-end">
-            <FormField control={form.control} name="code" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Cod Labor</FormLabel><FormControl><Input className="h-8" {...field} /></FormControl></FormItem>)} />
+            <FormField control={form.control} name="code" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Cod Labor</FormLabel><FormControl><Input className="h-8" {...field} value={field.value || ''} /></FormControl></FormItem>)} />
             <FormField control={form.control} name="labor" render={({ field }) => (<FormItem className="col-span-3"><FormLabel className="font-semibold">Labor</FormLabel><FormControl><Input className="h-8" {...field} readOnly /></FormControl></FormItem>)} />
         </div>
         <div className="grid grid-cols-3 gap-6">
            <FormField control={form.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator className="h-4 w-4" /> S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
-           <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormControl><FormMessage /> </FormItem> )} />
+           <FormField control={form.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock className="h-4 w-4" /> Turno</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select></FormControl><FormMessage /> </FormItem> )} />
            <FormField control={form.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw className="h-4 w-4" /> Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
         </div>
     </>
@@ -453,16 +470,7 @@ export default function CreateActivityPage() {
                                 ))}
                             </TableBody>
                             <TableFooter>
-                                <TableRow>
-                                    <TableCell className="font-bold text-right">Total</TableCell>
-                                    <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
-                                    {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
-                                    <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
-                                    <TableCell className="font-bold text-center">{totals.workdayCount.toFixed(1)}</TableCell>
-                                    <TableCell className="font-bold text-center">{totals.minRange}</TableCell>
-                                    <TableCell className="font-bold text-center">{totals.maxRange}</TableCell>
-                                    <TableCell colSpan={2}></TableCell>
-                                </TableRow>
+                                <GroupFormTotals control={groupForm.control} showExtraPerformanceField={showExtraPerformanceField} />
                             </TableFooter>
                         </Table>
                         <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setAddActivityDialogOpen(true)}>
