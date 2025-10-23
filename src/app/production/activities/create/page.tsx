@@ -161,7 +161,10 @@ export default function CreateActivityPage() {
     name: "activities"
   });
 
-  const codeValue = useWatch({ control: formMode === 'individual' ? singleForm.control : groupForm.control, name: 'code' });
+  const singleCodeValue = useWatch({ control: singleForm.control, name: 'code' });
+  const groupCodeValue = useWatch({ control: groupForm.control, name: 'code' });
+  const codeValue = formMode === 'individual' ? singleCodeValue : groupCodeValue;
+
   const activitiesArray = useWatch({ control: groupForm.control, name: 'activities' });
   
   const uniqueLotes = useMemo(() => {
