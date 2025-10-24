@@ -39,7 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ActivityRecordSchema, type LoteData, type Assistant } from '@/lib/types';
+import { ActivityRecordSchema, type LoteData } from '@/lib/types';
 import { saveActivity } from './actions';
 import { useAuth } from '@/hooks/useAuth';
 import { useMasterData } from '@/context/MasterDataContext';
@@ -83,14 +83,13 @@ const groupFormSchema = z.object({
   cost: z.coerce.number().optional(),
   activities: z.array(z.object({
       id: z.string(),
-      assistantDni: z.string(),
       assistantName: z.string(),
-      performance: z.coerce.number().min(0),
-      clustersOrJabas: z.coerce.number().optional(),
+      performance: z.any(),
+      clustersOrJabas: z.any().optional(),
       personnelCount: z.coerce.number().int().min(1),
-      workdayCount: z.coerce.number().min(0),
-      minRange: z.coerce.number(),
-      maxRange: z.coerce.number(),
+      workdayCount: z.any(),
+      minRange: z.any(),
+      maxRange: z.any(),
       observations: z.string().optional(),
   }))
 });
@@ -288,6 +287,10 @@ export default function CreateActivityPage() {
   };
   
   const onGroupSubmit = (data: GroupFormValues) => {
+    if (!profile?.nombre) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
+      return;
+    }
     startTransition(async () => {
         let successCount = 0;
         for (const activity of data.activities) {
@@ -301,7 +304,7 @@ export default function CreateActivityPage() {
                 shift: data.shift,
                 pass: data.pass || 0,
                 cost: data.cost || 0,
-                createdBy: profile?.nombre || '',
+                createdBy: profile.nombre,
                 assistantName: activity.assistantName,
                 performance: activity.performance || 0,
                 clustersOrJabas: activity.clustersOrJabas,
@@ -337,22 +340,22 @@ export default function CreateActivityPage() {
   const handleAddAssistant = (assistant: { assistantDni: string, assistantName: string }) => {
     append({
         id: crypto.randomUUID(),
-        ...assistant,
-        performance: '' as any,
-        clustersOrJabas: '' as any,
+        assistantName: assistant.assistantName,
+        performance: '',
+        clustersOrJabas: '',
         personnelCount: 1,
-        workdayCount: '' as any,
-        minRange: '' as any,
-        maxRange: '' as any,
+        workdayCount: '',
+        minRange: '',
+        maxRange: '',
         observations: '',
     });
   };
-
+  
   const renderSharedHeader = (form: any) => (
     <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
             <FormField control={form.control} name="registerDate" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Fecha</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button size="sm" variant="outline" className="font-normal w-full justify-start h-8">{field.value ? format(field.value, 'P', { locale: es }) : <span>Elige</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent></Popover></FormItem>)}/>
-            <FormField control={form.control} name="lote" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+            <FormField control={form.control} name="lote" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue placeholder="Elegir..." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select></FormItem>)} />
             <FormField control={form.control} name="campaign" render={({ field }) => (<FormItem><FormLabel className="font-semibold">Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8"><SelectValue placeholder="Elegir..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select></FormItem>)} />
             <FormField control={form.control} name="stage" render={({ field }) => (
                 <FormItem>
@@ -401,7 +404,7 @@ export default function CreateActivityPage() {
                   <div className="rounded-lg border bg-background p-6 shadow-sm">
                   <div className="space-y-6">
                       {renderSharedHeader(singleForm)}
-                      <FormField control={singleForm.control} name="assistantName" render={({ field }) => (<FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.assistantName}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>)}/>
+                      <FormField control={singleForm.control} name="assistantName" render={({ field }) => (<FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map((a, index) => <SelectItem key={`${a.id}-${index}`} value={a.assistantName}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>)}/>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                           <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
                           {showExtraPerformanceField && (
@@ -494,7 +497,7 @@ export default function CreateActivityPage() {
           isOpen={isAddActivityDialogOpen}
           setIsOpen={setAddActivityDialogOpen}
           onSelectAssistant={handleAddAssistant}
-          currentAssistantsDnis={fields.map(f => f.assistantDni)}
+          currentAssistantsDnis={fields.map(f => f.assistantName)}
        />
     </>
   );
