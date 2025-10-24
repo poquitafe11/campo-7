@@ -185,7 +185,7 @@ export default function CreateActivityPage() {
       maxRange: '' as any,
       pass: '' as any,
       observations: '',
-      assistantDni: '',
+      assistantName: '',
       createdBy: '',
     },
   });
@@ -238,13 +238,11 @@ export default function CreateActivityPage() {
 
 
   useEffect(() => {
-    if (profile?.dni) {
-      singleForm.setValue('assistantDni', profile.dni);
+    if (profile?.nombre) {
+      singleForm.setValue('assistantName', profile.nombre);
+      singleForm.setValue('createdBy', profile.nombre);
     }
-    if (user?.email) {
-      singleForm.setValue('createdBy', user.email);
-    }
-  }, [profile, user, singleForm]);
+  }, [profile, singleForm]);
   
   const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(String(codeValue) || ''), [codeValue]);
   const performanceLabel = showExtraPerformanceField ? "Plantas" : "Rendimiento";
@@ -276,8 +274,8 @@ export default function CreateActivityPage() {
               maxRange: '' as any,
               pass: '' as any,
               observations: '',
-              assistantDni: profile?.dni || '',
-              createdBy: user?.email || '',
+              assistantName: profile?.nombre || '',
+              createdBy: profile?.nombre || '',
             });
         } else {
             toast({
@@ -294,7 +292,6 @@ export default function CreateActivityPage() {
         let successCount = 0;
         for (const activity of data.activities) {
             const fullActivityData: SingleActivityFormValues = {
-                ...activity,
                 registerDate: data.registerDate,
                 campaign: data.campaign,
                 stage: data.stage || '',
@@ -304,9 +301,15 @@ export default function CreateActivityPage() {
                 shift: data.shift,
                 pass: data.pass || 0,
                 cost: data.cost || 0,
-                createdBy: user?.email || '',
+                createdBy: profile?.nombre || '',
+                assistantName: activity.assistantName,
                 performance: activity.performance || 0,
-                workdayCount: activity.workdayCount || 0
+                clustersOrJabas: activity.clustersOrJabas,
+                personnelCount: activity.personnelCount,
+                workdayCount: activity.workdayCount || 0,
+                minRange: activity.minRange,
+                maxRange: activity.maxRange,
+                observations: activity.observations
             };
             const result = await saveActivity(fullActivityData);
             if (result.success) {
@@ -398,9 +401,7 @@ export default function CreateActivityPage() {
                   <div className="rounded-lg border bg-background p-6 shadow-sm">
                   <div className="space-y-6">
                       {renderSharedHeader(singleForm)}
-                      <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (
-                         <FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>
-                      )}/>
+                      <FormField control={singleForm.control} name="assistantName" render={({ field }) => (<FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.assistantName}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>)}/>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                           <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
                           {showExtraPerformanceField && (

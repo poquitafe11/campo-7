@@ -199,7 +199,7 @@ export const ActivityRecordSchema = z.object({
     maxRange: z.coerce.number(),
     pass: z.coerce.number(),
     observations: z.string().optional(),
-    assistantDni: z.string().min(1, "El asistente es requerido."),
+    assistantName: z.string().min(1, "El asistente es requerido."),
     createdBy: z.string().min(1, "No se pudo identificar al creador del registro."),
 });
 export type ActivityRecordData = z.infer<typeof ActivityRecordSchema>;

@@ -7,8 +7,10 @@ import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ActivityRecordSchema } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
-// Allow updating a subset of fields.
-const UpdateActivityRecordSchema = ActivityRecordSchema.partial();
+// Allow updating a subset of fields, but make sure registerDate is a date if present
+const UpdateActivityRecordSchema = ActivityRecordSchema.partial().extend({
+  registerDate: z.date().optional(),
+});
 type UpdateActivityRecordData = z.infer<typeof UpdateActivityRecordSchema>;
 
 
