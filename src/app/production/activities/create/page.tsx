@@ -1,9 +1,8 @@
-
-'use client';
+"use client";
 
 import { useEffect, useMemo, useTransition, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch, useFieldArray } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -172,7 +171,7 @@ export default function CreateActivityPage() {
     resolver: zodResolver(singleActivitySchema),
     defaultValues: {
       registerDate: new Date(),
-      campaign: '',
+      campaign: '2025',
       stage: '',
       lote: '',
       code: '',
@@ -182,7 +181,7 @@ export default function CreateActivityPage() {
       personnelCount: 1,
       workdayCount: 0,
       cost: 0,
-      shift: '',
+      shift: 'Mañana',
       minRange: 0,
       maxRange: 0,
       pass: 0,
@@ -241,7 +240,7 @@ export default function CreateActivityPage() {
 
 
   useEffect(() => {
-    if (profile?.nombre && profile.dni) {
+    if (profile?.nombre) {
       singleForm.setValue('createdBy', profile.nombre);
     }
   }, [profile, singleForm]);
@@ -255,18 +254,24 @@ export default function CreateActivityPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
       return;
     }
+    
+    // For single form, assistant is the user themselves.
+    const finalData = {
+        ...data,
+        createdBy: profile.nombre,
+        assistantDni: profile.dni || '',
+        assistantName: profile.nombre,
+    };
+    
     startTransition(async () => {
-        const result = await saveActivity({...data, createdBy: profile.nombre});
+        const result = await saveActivity(finalData);
         if (result.success) {
             toast({
                 title: 'Éxito',
                 description: 'Ficha de actividad guardada correctamente.',
             });
             singleForm.reset({
-              registerDate: new Date(),
-              campaign: '',
-              stage: '',
-              lote: '',
+              ...singleForm.getValues(),
               code: '',
               labor: '',
               performance: 0,
@@ -274,14 +279,13 @@ export default function CreateActivityPage() {
               personnelCount: 1,
               workdayCount: 0,
               cost: 0,
-              shift: '',
               minRange: 0,
               maxRange: 0,
               pass: 0,
               observations: '',
-              assistantDni: '',
-              assistantName: '',
               createdBy: profile?.nombre || '',
+              assistantDni: profile?.dni || '',
+              assistantName: profile?.nombre || '',
             });
         } else {
             toast({
@@ -372,17 +376,21 @@ export default function CreateActivityPage() {
   
   const renderSharedHeader = (formInstance: any) => (
     <>
-      <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
-        <FormItem>
-          <FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel>
-          <Popover>
-            <PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}> {field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" /> </Button></FormControl></PopoverTrigger>
-            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-          </Popover>
-          <FormMessage />
-        </FormItem>
-      )}/>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <FormField
+        control={formInstance.control}
+        name="registerDate"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel>
+            <Popover>
+              <PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
+              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+            </Popover>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <div className="grid grid-cols-3 gap-4">
           <FormField control={formInstance.control} name="campaign" render={({ field }) => (
             <FormItem>
               <FormLabel><IconWrapper><Briefcase/>Campaña</IconWrapper></FormLabel>
@@ -405,16 +413,16 @@ export default function CreateActivityPage() {
             </FormItem>
           )}/>
       </div>
-       <div className="grid grid-cols-3 gap-4">
+       <div className="grid grid-cols-2 gap-4">
         <FormField control={formInstance.control} name="code" render={({ field }) => (
-          <FormItem className="col-span-1">
+          <FormItem>
             <FormLabel><IconWrapper><Tag/>Cód.</IconWrapper></FormLabel>
             <FormControl><Input placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl>
             <FormMessage/>
           </FormItem>
         )}/>
         <FormField control={formInstance.control} name="labor" render={({ field }) => (
-          <FormItem className="col-span-2">
+          <FormItem>
             <FormLabel><IconWrapper><Wrench/>Labor</IconWrapper></FormLabel>
             <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl>
             <FormMessage/>
@@ -441,39 +449,47 @@ export default function CreateActivityPage() {
            <Form {...singleForm}>
              <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
                <div className="rounded-lg border bg-card text-card-foreground p-6 shadow-sm space-y-6">
-                  {renderSharedHeader(singleForm)}
                   
-                  <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel><IconWrapper><User className="h-4 w-4" />Asistente</IconWrapper></FormLabel>
-                        <FormControl><Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
-                            <SelectContent>{asistentes.map((a, index) => <SelectItem key={`${a.id}-${index}`} value={a.id}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent>
-                        </Select></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                  )}/>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                      <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
-                      {showExtraPerformanceField && (
-                          <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Grape />{extraPerformanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage/> </FormItem> )} />
-                      )}
-                      <FormField control={singleForm.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users/># Personas</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
-                      <FormField control={singleForm.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList/># Jornadas (JHU)</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
-                  </div>
+                    {/* FECHA */}
+                    <FormField control={singleForm.control} name="registerDate" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )}/>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                      <FormField control={singleForm.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator/>S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
-                      <FormField control={singleForm.control} name="shift" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Clock/>Turno</IconWrapper></FormLabel> <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl> <SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent> </Select><FormMessage/></FormItem> )} />
-                      <FormField control={singleForm.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw/>Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <FormField control={singleForm.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput/>Min</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
-                      <FormField control={singleForm.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileOutput/>Max</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
-                  </div>
+                    {/* CAMPAÑA, ETAPA, LOTE */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <FormField control={singleForm.control} name="campaign" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Briefcase/>Campaña</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem> )}/>
+                        <FormField control={singleForm.control} name="stage" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Flame/>Etapa</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem> )}/>
+                        <FormField control={singleForm.control} name="lote" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Sprout/>Lote</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem> )}/>
+                    </div>
+
+                    {/* COD, LABOR */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={singleForm.control} name="code" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Tag/>Cód.</IconWrapper></FormLabel><FormControl><Input placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField control={singleForm.control} name="labor" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Wrench/>Labor</IconWrapper></FormLabel><FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl><FormMessage/></FormItem> )}/>
+                    </div>
+
+                    {/* RENDIMIENTO, PERSONAS, JORNADAS */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
+                        <FormField control={singleForm.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users/># Personas</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                        <FormField control={singleForm.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList/># Jornadas (JHU)</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                    </div>
+                    {showExtraPerformanceField && (
+                        <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Grape />{extraPerformanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl> <FormMessage/> </FormItem> )} />
+                    )}
+
+                    {/* COSTO, TURNO, PASADA */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <FormField control={singleForm.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator/>S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                        <FormField control={singleForm.control} name="shift" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Clock/>Turno</IconWrapper></FormLabel> <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl> <SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent> </Select><FormMessage/></FormItem> )} />
+                        <FormField control={singleForm.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw/>Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
+                    </div>
+
+                    {/* MIN, MAX */}
+                     <div className="grid grid-cols-2 gap-4">
+                        <FormField control={singleForm.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput/>Min</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                        <FormField control={singleForm.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileOutput/>Max</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                    </div>
                   
-                  <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Pencil/>Observaciones</FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                    <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Pencil/>Observaciones</FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                </div>
                <div className="flex justify-end pt-4">
                    <Button type="submit" disabled={isPending || masterLoading}>
