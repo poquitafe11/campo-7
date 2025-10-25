@@ -3,9 +3,9 @@
 
 import { useEffect, useMemo, useTransition, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch, useFieldArray } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon,
@@ -49,7 +49,7 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
+import AddAssistantDialog from '@/components/AddAssistantDialog';
 
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
   ssr: false,
@@ -144,6 +144,15 @@ function GroupFormTotals({ control, showExtraPerformanceField }: { control: any,
     );
   }
 
+const formatAssistantName = (name: string) => {
+    if (!name) return '';
+    const parts = name.trim().split(' ');
+    if (parts.length < 2) return name;
+    const firstName = parts[0];
+    const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase() + '.';
+    return `${firstName} ${lastNameInitial}`;
+};
+
 
 export default function CreateActivityPage() {
   const { toast } = useToast();
@@ -201,7 +210,7 @@ export default function CreateActivityPage() {
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: groupForm.control,
     name: 'activities'
   });
@@ -414,6 +423,103 @@ export default function CreateActivityPage() {
       </div>
     </>
   );
+  
+  const renderSingleForm = () => (
+    <>
+      <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><User className="h-4 w-4" />Asistente</IconWrapper></FormLabel>
+          <FormControl>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+              <SelectContent>{asistentes.map((a, index) => <SelectItem key={`${a.id}-${index}`} value={a.id}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent>
+            </Select>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+      <FormField control={singleForm.control} name="performance" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" />{performanceLabel}</IconWrapper></FormLabel>
+          <FormControl><Input type="number" {...field} value={field.value || ''}/></FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+      {showExtraPerformanceField && (
+        <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (
+          <FormItem>
+            <FormLabel><IconWrapper><Grape />{extraPerformanceLabel}</IconWrapper></FormLabel>
+            <FormControl><Input type="number" {...field} value={field.value || ''}/></FormControl>
+            <FormMessage/>
+          </FormItem>
+        )}
+      />
+      )}
+      <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><Users/># Personas</IconWrapper></FormLabel>
+          <FormControl><Input type="number" {...field} /></FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+      <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><ClipboardList/># Jornadas</IconWrapper></FormLabel>
+          <FormControl><Input type="number" {...field} /></FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+      <FormField control={singleForm.control} name="cost" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><Calculator/>S/ Costo</IconWrapper></FormLabel>
+          <FormControl><Input type="number" {...field} /></FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+      <FormField control={singleForm.control} name="shift" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><Clock/>Turno</IconWrapper></FormLabel>
+          <Select onValueChange={field.onChange} value={field.value}>
+            <FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl>
+            <SelectContent>
+              <SelectItem value="Mañana">Mañana</SelectItem>
+              <SelectItem value="Tarde">Tarde</SelectItem>
+              <SelectItem value="Noche">Noche</SelectItem>
+            </SelectContent>
+          </Select>
+          <FormMessage/>
+        </FormItem>
+      )}/>
+      <FormField control={singleForm.control} name="pass" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><RotateCw/>Pasada</IconWrapper></FormLabel>
+          <FormControl><Input type="number" {...field}/></FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+      <FormField control={singleForm.control} name="minRange" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><FileInput/>Min</IconWrapper></FormLabel>
+          <FormControl><Input type="number" {...field} /></FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+      <FormField control={singleForm.control} name="maxRange" render={({ field }) => (
+        <FormItem>
+          <FormLabel><IconWrapper><FileOutput/>Max</IconWrapper></FormLabel>
+          <FormControl><Input type="number" {...field} /></FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+      <FormField control={singleForm.control} name="observations" render={({ field }) => (
+        <FormItem>
+          <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Pencil/>Observaciones</FormLabel>
+          <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl>
+          <FormMessage />
+        </FormItem>
+      )}/>
+    </>
+  );
 
   return (
     <>
@@ -433,28 +539,7 @@ export default function CreateActivityPage() {
               <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
                   <div className="rounded-lg border bg-card text-card-foreground p-6 shadow-sm space-y-6">
                       {renderSharedHeader(singleForm)}
-                      <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (<FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map((a, index) => <SelectItem key={`${a.id}-${index}`} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>)}/>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                          <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
-                          {showExtraPerformanceField && (
-                            <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Grape /> {extraPerformanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)} />
-                          )}
-                          <FormField control={singleForm.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users/># Personas</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                          <FormField control={singleForm.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList/># Jornadas</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                          <FormField control={singleForm.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator/>S/ Costo</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                          <FormField control={singleForm.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock/>Turno</IconWrapper></FormLabel> <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select> <FormMessage/> </FormItem> )}/>
-                          <FormField control={singleForm.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw/>Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" {...field}/></FormControl> <FormMessage /> </FormItem> )} />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <FormField control={singleForm.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput/>Min</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                          <FormField control={singleForm.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileOutput/>Max</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                      </div>
-                      
-                      <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Pencil/>Observaciones</FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                      {renderSingleForm()}
                   </div>
                   <div className="flex justify-end pt-4">
                       <Button type="submit" disabled={isPending || masterLoading}>
@@ -478,7 +563,7 @@ export default function CreateActivityPage() {
                                     <TableHead className="min-w-[120px]">{performanceLabel}</TableHead>
                                     {showExtraPerformanceField && <TableHead className="min-w-[120px]">{extraPerformanceLabel}</TableHead>}
                                     <TableHead className="min-w-[100px]">Personas</TableHead>
-                                    <TableHead className="min-w-[100px]">Jhu</TableHead>
+                                    <TableHead className="min-w-[100px]">JHU</TableHead>
                                     <TableHead className="min-w-[100px]">Mínimo</TableHead>
                                     <TableHead className="min-w-[100px]">Máximo</TableHead>
                                     <TableHead className="min-w-[150px]">Obs.</TableHead>
@@ -524,10 +609,10 @@ export default function CreateActivityPage() {
         )}
       </div>
 
-       <AddAssistantActivityDialog
+       <AddAssistantDialog
           isOpen={isAddActivityDialogOpen}
           setIsOpen={setAddActivityDialogOpen}
-          onSelectAssistant={handleAddAssistant}
+          onAddAssistant={handleAddAssistant}
           currentAssistantsDnis={fields.map(f => f.assistantDni)}
        />
     </>
