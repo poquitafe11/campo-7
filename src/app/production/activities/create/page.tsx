@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useTransition, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -447,70 +447,36 @@ export default function CreateActivityPage() {
                   <div className="rounded-lg border bg-background p-6 shadow-sm">
                     <div className="space-y-6">
                       {renderSharedHeader(singleForm)}
-                      
-                      <div className="grid grid-cols-3 gap-4">
-                        <FormField control={singleForm.control} name="performance" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><TrendingUp/>{performanceLabel}</IconWrapper></FormLabel>
-                            <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl>
-                          <FormMessage/></FormItem>
+                      <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel>
+                                <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+                                    <SelectContent>{asistentes.map((a, index) => <SelectItem key={`${a.id}-${index}`} value={a.id}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent>
+                                </Select>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )}/>
-                        <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><Users/># Personas</IconWrapper></FormLabel>
-                            <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl>
-                          <FormMessage/></FormItem>
-                        )}/>
-                        <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><ClipboardList/># Jornadas (JHU)</IconWrapper></FormLabel>
-                            <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl>
-                          <FormMessage/></FormItem>
-                        )}/>
-                      </div>
-
-                      {showExtraPerformanceField && (
-                        <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><ExtraPerformanceIcon/>{extraPerformanceLabel}</IconWrapper></FormLabel>
-                            <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl>
-                          <FormMessage/></FormItem>
-                        )}/>
-                      )}
-
-                      <div className="grid grid-cols-3 gap-4">
-                        <FormField control={singleForm.control} name="cost" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><Calculator/>S/ Costo (PEN)</IconWrapper></FormLabel>
-                            <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl>
-                          <FormMessage/></FormItem>
-                        )}/>
-                        <FormField control={singleForm.control} name="shift" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><Clock/>Turno</IconWrapper></FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select>
-                          <FormMessage/></FormItem>
-                        )}/>
-                        <FormField control={singleForm.control} name="pass" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><RotateCw/>Pasada</IconWrapper></FormLabel>
-                            <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl>
-                          <FormMessage/></FormItem>
-                        )}/>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField control={singleForm.control} name="minRange" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><FileInput/>Min</IconWrapper></FormLabel>
-                            <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl>
-                          <FormMessage/></FormItem>
-                        )}/>
-                        <FormField control={singleForm.control} name="maxRange" render={({ field }) => (
-                          <FormItem><FormLabel><IconWrapper><FileOutput/>Max</IconWrapper></FormLabel>
-                            <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl>
-                          <FormMessage/></FormItem>
-                        )}/>
-                      </div>
-                        
-                      <FormField control={singleForm.control} name="observations" render={({ field }) => (
-                        <FormItem><FormLabel><IconWrapper><Pencil/>Observaciones</IconWrapper></FormLabel>
-                          <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} value={field.value || ''} /></FormControl>
-                        <FormMessage/></FormItem>
-                      )}/>
-                  
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
+                            {showExtraPerformanceField && (
+                                <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                            )}
+                            <FormField control={singleForm.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users/># Personas</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                            <FormField control={singleForm.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList/># Jornadas (JHU)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <FormField control={singleForm.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator/>S/ Costo (PEN)</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                            <FormField control={singleForm.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock/>Turno</IconWrapper></FormLabel> <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select> <FormMessage/> </FormItem> )}/>
+                            <FormField control={singleForm.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw/>Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <FormField control={singleForm.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput/>Min</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                            <FormField control={singleForm.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileOutput/>Max</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )} />
+                        </div>
+                        <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Pencil/>Observaciones</IconWrapper></FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )}/>
                     </div>
                     <div className="flex justify-end pt-8">
                         <Button type="submit" disabled={isPending || masterLoading}>
