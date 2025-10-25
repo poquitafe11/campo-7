@@ -29,6 +29,7 @@ import {
   FileOutput,
   Tag,
   Hash,
+  Pencil,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -104,44 +105,44 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 function GroupFormTotals({ control, showExtraPerformanceField }: { control: any, showExtraPerformanceField: boolean }) {
-  const activities = useWatch({ control, name: 'activities' });
+    const activities = useWatch({ control, name: 'activities' });
+  
+    const totals = useMemo(() => {
+      if (!activities || activities.length === 0) return { performance: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0, clustersOrJabas: 0 };
+      
+      return activities.reduce((acc: any, curr: any) => {
+        acc.performance += Number(curr.performance) || 0;
+        acc.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
+        acc.personnelCount += Number(curr.personnelCount) || 0;
+        acc.workdayCount += Number(curr.workdayCount) || 0;
+        
+        const min = Number(curr.minRange) || 0;
+        const max = Number(curr.maxRange) || 0;
+        
+        if (min > 0) {
+          acc.minRange = acc.minRange === 0 ? min : Math.min(acc.minRange, min);
+        }
+        if (max > 0) {
+          acc.maxRange = Math.max(acc.maxRange, max);
+        }
+        
+        return acc;
+      }, { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0 });
+    }, [activities]);
 
-  const totals = useMemo(() => {
-    if (!activities || activities.length === 0) return { performance: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0, clustersOrJabas: 0 };
-    
-    return activities.reduce((acc: any, curr: any) => {
-      acc.performance += Number(curr.performance) || 0;
-      acc.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
-      acc.personnelCount += Number(curr.personnelCount) || 0;
-      acc.workdayCount += Number(curr.workdayCount) || 0;
-      
-      const min = Number(curr.minRange) || 0;
-      const max = Number(curr.maxRange) || 0;
-      
-      if (min > 0) {
-        acc.minRange = acc.minRange === 0 ? min : Math.min(acc.minRange, min);
-      }
-      if (max > 0) {
-        acc.maxRange = Math.max(acc.maxRange, max);
-      }
-      
-      return acc;
-    }, { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0 });
-  }, [activities]);
-
-  return (
-    <TableRow>
-      <TableCell colSpan={showExtraPerformanceField ? 2 : 1} className="font-bold text-right">Total</TableCell>
-      <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
-      {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
-      <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
-      <TableCell className="font-bold text-center">{totals.workdayCount.toFixed(1)}</TableCell>
-      <TableCell className="font-bold text-center">{totals.minRange}</TableCell>
-      <TableCell className="font-bold text-center">{totals.maxRange}</TableCell>
-      <TableCell colSpan={2}></TableCell>
-    </TableRow>
-  );
-}
+    return (
+      <TableRow>
+        <TableCell colSpan={showExtraPerformanceField ? 2 : 1} className="font-bold text-right">Total</TableCell>
+        <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
+        {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
+        <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
+        <TableCell className="font-bold text-center">{totals.workdayCount.toFixed(1)}</TableCell>
+        <TableCell className="font-bold text-center">{totals.minRange}</TableCell>
+        <TableCell className="font-bold text-center">{totals.maxRange}</TableCell>
+        <TableCell colSpan={2}></TableCell>
+      </TableRow>
+    );
+  }
 
 
 export default function CreateActivityPage() {
@@ -179,6 +180,7 @@ export default function CreateActivityPage() {
       pass: 0,
       observations: '',
       assistantDni: '',
+      assistantName: '',
       createdBy: '',
     },
   });
@@ -199,7 +201,7 @@ export default function CreateActivityPage() {
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control: groupForm.control,
     name: 'activities'
   });
@@ -231,11 +233,10 @@ export default function CreateActivityPage() {
 
 
   useEffect(() => {
-    if (profile?.nombre) {
+    if (profile?.nombre && profile.dni) {
       singleForm.setValue('createdBy', profile.nombre);
-      if(profile.dni) {
-          singleForm.setValue('assistantDni', profile.dni);
-      }
+      singleForm.setValue('assistantDni', profile.dni);
+      singleForm.setValue('assistantName', profile.nombre);
     }
   }, [profile, singleForm]);
   
@@ -273,6 +274,7 @@ export default function CreateActivityPage() {
               pass: 0,
               observations: '',
               assistantDni: profile?.dni || '',
+              assistantName: profile?.nombre || '',
               createdBy: profile?.nombre || '',
             });
         } else {
@@ -293,7 +295,7 @@ export default function CreateActivityPage() {
     startTransition(async () => {
         let successCount = 0;
         for (const activity of data.activities) {
-            const fullActivityData = {
+            const fullActivityData: SingleActivityFormValues = {
                 registerDate: data.registerDate,
                 campaign: data.campaign,
                 stage: data.stage || '',
@@ -364,54 +366,48 @@ export default function CreateActivityPage() {
   
   const renderSharedHeader = (formInstance: any) => (
     <>
-      <FormField
-        control={formInstance.control}
-        name="registerDate"
-        render={({ field }) => (
-            <FormItem>
-              <FormLabel className='flex items-center gap-2 text-sm text-muted-foreground'><CalendarIcon className="h-4 w-4" />Fecha de Registro</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                      {field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-        )}
-      />
+      <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
+          <FormItem>
+            <FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel>
+            <Popover>
+              <PopoverTrigger asChild><FormControl>
+                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                    {field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+              </FormControl></PopoverTrigger>
+              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+            </Popover>
+            <FormMessage />
+          </FormItem>
+      )}/>
 
       <div className="grid grid-cols-3 gap-4">
         <FormField control={formInstance.control} name="campaign" render={({ field }) => (
-          <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase/>Campaña</FormLabel>
+          <FormItem><FormLabel><IconWrapper><Briefcase/>Campaña</IconWrapper></FormLabel>
             <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select>
           <FormMessage/></FormItem>
         )}/>
         <FormField control={formInstance.control} name="stage" render={({ field }) => (
-          <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Flame/>Etapa</FormLabel>
+          <FormItem><FormLabel><IconWrapper><Flame/>Etapa</IconWrapper></FormLabel>
             <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select>
           <FormMessage/></FormItem>
         )}/>
         <FormField control={formInstance.control} name="lote" render={({ field }) => (
-          <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Sprout/>Lote</FormLabel>
+          <FormItem><FormLabel><IconWrapper><Sprout/>Lote</IconWrapper></FormLabel>
             <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select>
           <FormMessage/></FormItem>
         )}/>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <FormField control={formInstance.control} name="code" render={({ field }) => (
-          <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Tag/>Cód.</FormLabel>
+          <FormItem><FormLabel><IconWrapper><Tag/>Cód.</IconWrapper></FormLabel>
             <FormControl><Input placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl>
           <FormMessage/></FormItem>
         )}/>
         <FormField control={formInstance.control} name="labor" render={({ field }) => (
-          <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Wrench/>Labor</FormLabel>
+          <FormItem className="col-span-2"><FormLabel><IconWrapper><Wrench/>Labor</IconWrapper></FormLabel>
             <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl>
           <FormMessage/></FormItem>
         )}/>
@@ -437,26 +433,25 @@ export default function CreateActivityPage() {
               <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
                   <div className="rounded-lg border bg-card text-card-foreground p-6 shadow-sm space-y-6">
                       {renderSharedHeader(singleForm)}
-
-                      <div className="grid grid-cols-3 gap-4">
-                          <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp />Rendimiento</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                          <FormField control={singleForm.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Users/># Personas</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                          <FormField control={singleForm.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><ClipboardList/># Jornadas (JHU)</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                      <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (<FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map((a, index) => <SelectItem key={`${a.id}-${index}`} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>)}/>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                          <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
+                          {showExtraPerformanceField && (
+                            <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Grape /> {extraPerformanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)} />
+                          )}
+                          <FormField control={singleForm.control} name="personnelCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Users/># Personas</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                          <FormField control={singleForm.control} name="workdayCount" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><ClipboardList/># Jornadas</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                       </div>
                       
-                      {showExtraPerformanceField && (
-                        <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground">{codeValue === '46' ? <Grape/> : <Boxes/>}{extraPerformanceLabel}</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                      )}
-
-                      <div className="grid grid-cols-3 gap-4">
-                          <FormField control={singleForm.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Calculator/>S/ Costo (PEN)</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                          <FormField control={singleForm.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Clock/>Turno</FormLabel> <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select> <FormMessage/> </FormItem> )}/>
-                          <FormField control={singleForm.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><RotateCw/>Pasada</FormLabel> <FormControl><Input type="number" {...field}/></FormControl> <FormMessage /> </FormItem> )} />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                          <FormField control={singleForm.control} name="cost" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Calculator/>S/ Costo</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                          <FormField control={singleForm.control} name="shift" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><Clock/>Turno</IconWrapper></FormLabel> <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select> <FormMessage/> </FormItem> )}/>
+                          <FormField control={singleForm.control} name="pass" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><RotateCw/>Pasada</IconWrapper></FormLabel> <FormControl><Input type="number" {...field}/></FormControl> <FormMessage /> </FormItem> )} />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                          <FormField control={singleForm.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><FileInput/>Min</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                          <FormField control={singleForm.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><FileOutput/>Max</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <FormField control={singleForm.control} name="minRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileInput/>Min</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                          <FormField control={singleForm.control} name="maxRange" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><FileOutput/>Max</IconWrapper></FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                       </div>
                       
                       <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Pencil/>Observaciones</FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
