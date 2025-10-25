@@ -83,6 +83,7 @@ const groupFormSchema = z.object({
   cost: z.coerce.number().optional(),
   activities: z.array(z.object({
       id: z.string(),
+      assistantDni: z.string(),
       assistantName: z.string(),
       performance: z.any(),
       clustersOrJabas: z.any().optional(),
@@ -114,7 +115,7 @@ function GroupFormTotals({ control, showExtraPerformanceField }: { control: any,
   const activities = useWatch({ control, name: 'activities' });
 
   const totals = useMemo(() => {
-    if (!activities) return { performance: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0, clustersOrJabas: 0 };
+    if (!activities || activities.length === 0) return { performance: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0, clustersOrJabas: 0 };
     
     const totals = activities.reduce((acc: any, curr: any) => {
       acc.performance += Number(curr.performance) || 0;
@@ -184,7 +185,7 @@ export default function CreateActivityPage() {
       maxRange: '' as any,
       pass: '' as any,
       observations: '',
-      assistantName: '',
+      assistantDni: '',
       createdBy: '',
     },
   });
@@ -237,9 +238,13 @@ export default function CreateActivityPage() {
 
 
   useEffect(() => {
-    if (profile?.nombre) {
-      singleForm.setValue('assistantName', profile.nombre);
-      singleForm.setValue('createdBy', profile.nombre);
+    if (profile) {
+      if (profile.dni) {
+        singleForm.setValue('assistantDni', profile.dni);
+      }
+      if (profile.nombre) {
+         singleForm.setValue('createdBy', profile.nombre);
+      }
     }
   }, [profile, singleForm]);
   
@@ -249,8 +254,12 @@ export default function CreateActivityPage() {
   const ExtraPerformanceIcon = String(codeValue) === '46' ? Grape : Boxes;
 
   const onSingleSubmit = (data: SingleActivityFormValues) => {
+    if (!profile?.nombre) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
+      return;
+    }
     startTransition(async () => {
-        const result = await saveActivity(data);
+        const result = await saveActivity({...data, createdBy: profile.nombre});
         if (result.success) {
             toast({
                 title: 'Éxito',
@@ -273,7 +282,7 @@ export default function CreateActivityPage() {
               maxRange: '' as any,
               pass: '' as any,
               observations: '',
-              assistantName: profile?.nombre || '',
+              assistantDni: profile?.dni || '',
               createdBy: profile?.nombre || '',
             });
         } else {
@@ -305,7 +314,7 @@ export default function CreateActivityPage() {
                 pass: data.pass || 0,
                 cost: data.cost || 0,
                 createdBy: profile.nombre,
-                assistantName: activity.assistantName,
+                assistantDni: activity.assistantDni,
                 performance: activity.performance || 0,
                 clustersOrJabas: activity.clustersOrJabas,
                 personnelCount: activity.personnelCount,
@@ -340,6 +349,7 @@ export default function CreateActivityPage() {
   const handleAddAssistant = (assistant: { assistantDni: string, assistantName: string }) => {
     append({
         id: crypto.randomUUID(),
+        assistantDni: assistant.assistantDni,
         assistantName: assistant.assistantName,
         performance: '',
         clustersOrJabas: '',
@@ -404,7 +414,7 @@ export default function CreateActivityPage() {
                   <div className="rounded-lg border bg-background p-6 shadow-sm">
                   <div className="space-y-6">
                       {renderSharedHeader(singleForm)}
-                      <FormField control={singleForm.control} name="assistantName" render={({ field }) => (<FormItem> <FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map((a, index) => <SelectItem key={`${a.id}-${index}`} value={a.assistantName}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>)}/>
+                      <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (<FormItem><FormLabel><IconWrapper><User className="h-4 w-4" /> Asistente</IconWrapper></FormLabel><FormControl><Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger><SelectContent>{asistentes.map((a, index) => <SelectItem key={`${a.id}-${index}`} value={a.id}>{formatAssistantName(a.assistantName)}</SelectItem>)}</SelectContent></Select></FormControl><FormMessage /></FormItem>)}/>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                           <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem> <FormLabel><IconWrapper><TrendingUp className="h-4 w-4" /> {performanceLabel}</IconWrapper></FormLabel> <FormControl><Input type="number" placeholder="" {...field} value={field.value || ''}/></FormControl> <FormMessage /> </FormItem> )} />
                           {showExtraPerformanceField && (
@@ -457,13 +467,13 @@ export default function CreateActivityPage() {
                                 {fields.map((field, index) => (
                                 <TableRow key={field.id}>
                                     <TableCell>{formatAssistantName(field.assistantName)}</TableCell>
-                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field }) => <Input type="number" {...field} className="w-24"/>} /></TableCell>
-                                    {showExtraPerformanceField && <TableCell><FormField control={groupForm.control} name={`activities.${index}.clustersOrJabas`} render={({ field }) => <Input type="number" {...field} className="w-24"/>} /></TableCell>}
-                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.personnelCount`} render={({ field }) => <Input type="number" {...field} className="w-20"/>} /></TableCell>
-                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.workdayCount`} render={({ field }) => <Input type="number" {...field} className="w-20"/>} /></TableCell>
-                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.minRange`} render={({ field }) => <Input type="number" {...field} className="w-20"/>} /></TableCell>
-                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.maxRange`} render={({ field }) => <Input type="number" {...field} className="w-20"/>} /></TableCell>
-                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field }) => <Input {...field} className="w-36"/>} /></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field }) => <Input type="number" {...field} className="w-24" value={field.value || ''} />}/></TableCell>
+                                    {showExtraPerformanceField && <TableCell><FormField control={groupForm.control} name={`activities.${index}.clustersOrJabas`} render={({ field }) => <Input type="number" {...field} className="w-24" value={field.value || ''}/>} /></TableCell>}
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.personnelCount`} render={({ field }) => <Input type="number" {...field} className="w-20" value={field.value || ''}/>} /></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.workdayCount`} render={({ field }) => <Input type="number" {...field} className="w-20" value={field.value || ''}/>} /></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.minRange`} render={({ field }) => <Input type="number" {...field} className="w-20" value={field.value || ''}/>} /></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.maxRange`} render={({ field }) => <Input type="number" {...field} className="w-20" value={field.value || ''}/>} /></TableCell>
+                                    <TableCell><FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field }) => <Input {...field} className="w-36" value={field.value || ''}/>} /></TableCell>
                                     <TableCell className="text-center">
                                         <div className="flex gap-1 justify-center">
                                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>
@@ -497,7 +507,7 @@ export default function CreateActivityPage() {
           isOpen={isAddActivityDialogOpen}
           setIsOpen={setAddActivityDialogOpen}
           onSelectAssistant={handleAddAssistant}
-          currentAssistantsDnis={fields.map(f => f.assistantName)}
+          currentAssistantsDnis={fields.map(f => f.assistantDni)}
        />
     </>
   );
