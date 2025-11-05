@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useTransition, useState } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch, useFieldArray } from 'react-hook-form';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -172,20 +172,20 @@ export default function CreateActivityPage() {
     resolver: zodResolver(singleActivitySchema),
     defaultValues: {
       registerDate: new Date(),
-      campaign: '2025',
+      campaign: '',
       stage: '',
       lote: '',
       code: '',
       labor: '',
-      performance: 0,
-      clustersOrJabas: 0,
-      personnelCount: 1,
-      workdayCount: 0,
-      cost: 0,
-      shift: 'Mañana',
-      minRange: 0,
-      maxRange: 0,
-      pass: 0,
+      performance: '',
+      clustersOrJabas: '',
+      personnelCount: '',
+      workdayCount: '',
+      cost: '',
+      shift: '',
+      minRange: '',
+      maxRange: '',
+      pass: '',
       observations: '',
       assistantDni: '',
       assistantName: '',
@@ -197,14 +197,14 @@ export default function CreateActivityPage() {
     resolver: zodResolver(groupFormSchema),
     defaultValues: {
       registerDate: new Date(),
-      campaign: '2025',
+      campaign: '',
       stage: '',
       lote: '',
       code: '',
       labor: '',
-      shift: 'Mañana',
-      pass: 0,
-      cost: 0,
+      shift: '',
+      pass: '',
+      cost: '',
       activities: []
     },
   });
@@ -245,8 +245,9 @@ export default function CreateActivityPage() {
       singleForm.setValue('createdBy', profile.nombre);
     }
      if (profile?.dni) {
-      singleForm.setValue('assistantDni', profile.dni);
-      singleForm.setValue('assistantName', profile.nombre);
+      // Don't auto-set assistant for individual form
+      // singleForm.setValue('assistantDni', profile.dni);
+      // singleForm.setValue('assistantName', profile.nombre);
     }
   }, [profile, singleForm]);
   
@@ -262,7 +263,11 @@ export default function CreateActivityPage() {
     }
     
     startTransition(async () => {
-        const result = await saveActivity(data);
+        const result = await saveActivity({
+          ...data,
+          assistantDni: profile.dni || 'N/A', // Use current user's DNI
+          assistantName: profile.nombre,
+        });
         if (result.success) {
             toast({
                 title: 'Éxito',
@@ -272,18 +277,16 @@ export default function CreateActivityPage() {
               ...singleForm.getValues(),
               code: '',
               labor: '',
-              performance: 0,
-              clustersOrJabas: 0,
-              personnelCount: 1,
-              workdayCount: 0,
-              cost: 0,
-              minRange: 0,
-              maxRange: 0,
-              pass: 0,
+              performance: '',
+              clustersOrJabas: '',
+              personnelCount: '',
+              workdayCount: '',
+              cost: '',
+              minRange: '',
+              maxRange: '',
+              pass: '',
               observations: '',
               createdBy: profile?.nombre || '',
-              assistantDni: profile?.dni || '',
-              assistantName: profile?.nombre || '',
             });
         } else {
             toast({
@@ -311,17 +314,17 @@ export default function CreateActivityPage() {
                 code: data.code,
                 labor: data.labor || '',
                 shift: data.shift,
-                pass: data.pass || 0,
-                cost: data.cost || 0,
+                pass: data.pass || '',
+                cost: data.cost || '',
                 createdBy: profile.nombre,
                 assistantDni: activity.assistantDni,
                 assistantName: activity.assistantName,
-                performance: activity.performance || 0,
-                clustersOrJabas: activity.clustersOrJabas || 0,
+                performance: activity.performance || '',
+                clustersOrJabas: activity.clustersOrJabas || '',
                 personnelCount: activity.personnelCount,
-                workdayCount: activity.workdayCount || 0,
-                minRange: activity.minRange || 0,
-                maxRange: activity.maxRange || 0,
+                workdayCount: activity.workdayCount || '',
+                minRange: activity.minRange || '',
+                maxRange: activity.maxRange || '',
                 observations: activity.observations || ''
             };
             const result = await saveActivity(fullActivityData);
@@ -337,14 +340,14 @@ export default function CreateActivityPage() {
             });
             groupForm.reset({
               registerDate: new Date(),
-              campaign: '2025',
+              campaign: '',
               stage: '',
               lote: '',
               code: '',
               labor: '',
-              shift: 'Mañana',
-              pass: 0,
-              cost: 0,
+              shift: '',
+              pass: '',
+              cost: '',
               activities: []
             });
         } else {
@@ -364,7 +367,7 @@ export default function CreateActivityPage() {
         assistantName: assistant.assistantName,
         performance: '',
         clustersOrJabas: '',
-        personnelCount: 1,
+        personnelCount: 1, // Default to 1
         workdayCount: '',
         minRange: '',
         maxRange: '',
@@ -422,56 +425,39 @@ export default function CreateActivityPage() {
            <Form {...singleForm}>
              <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
                <div className="rounded-lg border bg-card text-card-foreground p-6 shadow-sm space-y-6">
-                  
-                  <FormField control={singleForm.control} name="registerDate" render={({ field }) => (
-                    <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><CalendarIcon/>Fecha de Registro</FormLabel>
-                      <Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                      </Popover><FormMessage/>
-                    </FormItem>
-                  )}/>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <FormField control={singleForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase/>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="stage" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Flame/>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="lote" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Sprout/>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>)}/>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField control={singleForm.control} name="code" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Tag/>Cód.</FormLabel><FormControl><Input placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="labor" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Wrench/>Labor</FormLabel><FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl><FormMessage/></FormItem>)}/>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className={cn("grid gap-4", showExtraPerformanceField ? "col-span-3 grid-cols-2" : "col-span-1")}>
-                      <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp/>{performanceLabel}</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
-                      {showExtraPerformanceField && (
-                          <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><ExtraPerformanceIcon />{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
-                      )}
+                    <FormField control={singleForm.control} name="registerDate" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><CalendarIcon/>Fecha de Registro</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage/></FormItem>)}/>
+                    <div className="grid grid-cols-3 gap-4">
+                        <FormField control={singleForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase/>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
+                        <FormField control={singleForm.control} name="stage" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Flame/>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
+                        <FormField control={singleForm.control} name="lote" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Sprout/>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>)}/>
                     </div>
-                    <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Users/># Personas</FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><ClipboardList/># Jornadas (JHU)</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={singleForm.control} name="code" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Tag/>Cód.</FormLabel><FormControl><Input placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                        <FormField control={singleForm.control} name="labor" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Wrench/>Labor</FormLabel><FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl><FormMessage/></FormItem>)}/>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp/>{performanceLabel}</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
+                      {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><ExtraPerformanceIcon />{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/> )}
+                      <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Users/># Personas</FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                      <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><ClipboardList/># Jornadas (JHU)</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Calculator/>S/ Costo (PEN)</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                      <FormField control={singleForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Clock/>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
+                      <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><RotateCw/>Pasada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={singleForm.control} name="minRange" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><FileInput/>Min</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                      <FormField control={singleForm.control} name="maxRange" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><FileOutput/>Max</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                    </div>
+                    <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Pencil/>Observaciones</FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Calculator/>S/ Costo (PEN)</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Clock/>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><RotateCw/>Pasada</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField control={singleForm.control} name="minRange" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><FileInput/>Min</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="maxRange" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><FileOutput/>Max</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
-                  </div>
-                  
-                  <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Pencil/>Observaciones</FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-               </div>
-               <div className="flex justify-end pt-4">
-                   <Button type="submit" disabled={isPending || masterLoading}>
-                       {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                       Guardar Ficha
-                   </Button>
-               </div>
+                   <div className="flex justify-end pt-4">
+                       <Button type="submit" disabled={isPending || masterLoading}>
+                           {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
+                           Guardar Ficha
+                       </Button>
+                   </div>
              </form>
            </Form>
         ) : (
@@ -524,7 +510,7 @@ export default function CreateActivityPage() {
                     </div>
                     <div className="flex justify-end pt-4">
                         <Button type="submit" disabled={isPending || masterLoading || fields.length === 0}>
-                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
                             Guardar {fields.length} Registros
                         </Button>
                     </div>
