@@ -49,6 +49,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
 
+
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
   ssr: false,
   loading: () => <div className="h-[290px] w-[240px] bg-muted rounded-md animate-pulse" />,
@@ -130,7 +131,7 @@ function GroupFormTotals({ control, showExtraPerformanceField }: { control: any,
 
     return (
       <TableRow>
-        <TableCell colSpan={1} className="font-bold text-right">Total</TableCell>
+        <TableCell colSpan={showExtraPerformanceField ? 2 : 1} className="font-bold text-right">Total</TableCell>
         <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
         {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
         <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
@@ -250,7 +251,7 @@ export default function CreateActivityPage() {
   }, [profile, singleForm]);
   
   const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(String(codeValue) || ''), [codeValue]);
-  const performanceLabel = "Rendimiento";
+  const performanceLabel = showExtraPerformanceField ? "Rendimiento (Plantas)" : "Rendimiento";
   const extraPerformanceLabel = String(codeValue) === '46' ? "Racimos" : "Jabas";
   const ExtraPerformanceIcon = String(codeValue) === '46' ? Grape : Boxes;
 
@@ -373,12 +374,8 @@ export default function CreateActivityPage() {
   
   const renderSharedHeader = (formInstance: any) => (
     <>
-      <FormField
-        control={formInstance.control}
-        name="registerDate"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel>
+      <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
+          <FormItem><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel>
             <Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
             </Popover>
@@ -446,14 +443,15 @@ export default function CreateActivityPage() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
-                    <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp/>{performanceLabel}</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
+                    <div className={cn("grid gap-4", showExtraPerformanceField ? "col-span-3 grid-cols-2" : "col-span-1")}>
+                      <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp/>{performanceLabel}</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
+                      {showExtraPerformanceField && (
+                          <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><ExtraPerformanceIcon />{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
+                      )}
+                    </div>
                     <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Users/># Personas</FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                     <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><ClipboardList/># Jornadas (JHU)</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                   </div>
-                  
-                  {showExtraPerformanceField && (
-                      <FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><ExtraPerformanceIcon />{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
-                  )}
 
                   <div className="grid grid-cols-3 gap-4">
                     <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2 text-sm text-muted-foreground"><Calculator/>S/ Costo (PEN)</FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
