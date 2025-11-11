@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useTransition, useState } from 'react';
+import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
@@ -30,8 +30,10 @@ import {
   Tag,
   Pencil,
   Save,
+  Camera,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import html2canvas from 'html2canvas';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -162,6 +164,7 @@ export default function CreateActivityPage() {
   const { labors, lotes, asistentes, loading: masterLoading, refreshData } = useMasterData();
   const { setActions } = useHeaderActions();
   const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
+  const tableRef = useRef<HTMLDivElement>(null);
   
   const [isAddActivityDialogOpen, setAddActivityDialogOpen] = useState(false);
 
@@ -374,6 +377,28 @@ export default function CreateActivityPage() {
     });
   };
   
+  const handleCapture = async () => {
+    if (!tableRef.current) {
+        toast({ title: 'Error', description: 'No se pudo encontrar la tabla para capturar.', variant: 'destructive' });
+        return;
+    }
+    toast({ title: 'Capturando...', description: 'Generando imagen de la tabla.'});
+    try {
+        const canvas = await html2canvas(tableRef.current, {
+            scale: 2, // Increase resolution
+            useCORS: true,
+            backgroundColor: '#ffffff'
+        });
+        const link = document.createElement('a');
+        link.download = `registro-grupal-${format(new Date(), 'yyyy-MM-dd')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    } catch (error) {
+        console.error("Error capturing table: ", error);
+        toast({ title: 'Error de Captura', description: 'No se pudo generar la imagen.', variant: 'destructive'});
+    }
+};
+
   const renderSharedHeader = (formInstance: any) => (
     <>
       <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
@@ -447,12 +472,15 @@ export default function CreateActivityPage() {
                         <FormField control={singleForm.control} name="labor" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Wrench/>Labor</IconWrapper></FormLabel><FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl><FormMessage/></FormItem>)}/>
                     </div>
 
-                     <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
                         <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel><IconWrapper><TrendingUp/>{performanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
                         {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ExtraPerformanceIcon />{extraPerformanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/> )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
                         <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Users/># Personas</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                         <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ClipboardList/># Jornadas (JHU)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
-                     </div>
+                    </div>
                       
                      <div className="grid grid-cols-3 gap-4">
                          <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
@@ -487,7 +515,7 @@ export default function CreateActivityPage() {
                       <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
                     </div>
 
-                    <div className="space-y-2 overflow-x-auto">
+                    <div className="space-y-2 overflow-x-auto" ref={tableRef}>
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -525,10 +553,18 @@ export default function CreateActivityPage() {
                                 <GroupFormTotals control={groupForm.control} showExtraPerformanceField={showExtraPerformanceField} />
                             </TableFooter>
                         </Table>
-                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setAddActivityDialogOpen(true)}>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => setAddActivityDialogOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
                         </Button>
+                        {fields.length > 0 && (
+                            <Button type="button" variant="outline" size="sm" onClick={handleCapture}>
+                                <Camera className="mr-2 h-4 w-4"/> Capturar Tabla
+                            </Button>
+                        )}
                     </div>
+
                     <div className="flex justify-end pt-4">
                         <Button type="submit" disabled={isPending || masterLoading || fields.length === 0}>
                             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
