@@ -385,7 +385,7 @@ export default function CreateActivityPage() {
     toast({ title: 'Capturando...', description: 'Generando imagen de la tabla.'});
     try {
         const canvas = await html2canvas(tableRef.current, {
-            scale: 2, // Increase resolution
+            scale: 2,
             useCORS: true,
             backgroundColor: '#ffffff'
         });
@@ -504,94 +504,85 @@ export default function CreateActivityPage() {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <div ref={tableRef}>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[180px]">Asistente</TableHead>
-                                        <TableHead className="min-w-[120px]">{performanceLabel}</TableHead>
-                                        {showExtraPerformanceField && <TableHead className="min-w-[120px]">{extraPerformanceLabel}</TableHead>}
-                                        <TableHead className="min-w-[100px]">Personas</TableHead>
-                                        <TableHead className="min-w-[100px]">JHU</TableHead>
-                                        <TableHead className="min-w-[100px]">Mínimo</TableHead>
-                                        <TableHead className="min-w-[100px]">Máximo</TableHead>
-                                        <TableHead className="min-w-[150px]">Obs.</TableHead>
-                                        <TableHead className="w-[80px] text-center print-hide">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {fields.map((field, index) => (
-                                    <TableRow key={field.id}>
-                                        <TableCell className="font-medium whitespace-nowrap">{field.assistantName}</TableCell>
-                                        <TableCell>
-                                            <FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field }) => (
-                                                <div className="relative">
-                                                    <Input type="number" {...field} className="w-24 h-8" value={field.value || ''} />
-                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
-                                                </div>
-                                            )}/>
-                                        </TableCell>
-                                        {showExtraPerformanceField && <TableCell>
-                                            <FormField control={groupForm.control} name={`activities.${index}.clustersOrJabas`} render={({ field }) => (
-                                                <div className="relative">
-                                                    <Input type="number" {...field} className="w-24 h-8" value={field.value || ''}/>
-                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
-                                                </div>
-                                            )} />
-                                        </TableCell>}
-                                        <TableCell>
-                                            <FormField control={groupForm.control} name={`activities.${index}.personnelCount`} render={({ field }) => (
-                                                <div className="relative">
-                                                    <Input type="number" {...field} className="w-20 h-8" value={field.value || ''}/>
-                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
-                                                </div>
-                                            )} />
-                                        </TableCell>
-                                        <TableCell>
-                                            <FormField control={groupForm.control} name={`activities.${index}.workdayCount`} render={({ field }) => (
-                                                <div className="relative">
-                                                    <Input type="number" {...field} className="w-20 h-8" value={field.value || ''}/>
-                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
-                                                </div>
-                                            )} />
-                                        </TableCell>
-                                        <TableCell>
-                                            <FormField control={groupForm.control} name={`activities.${index}.minRange`} render={({ field }) => (
-                                                <div className="relative">
-                                                    <Input type="number" {...field} className="w-20 h-8" value={field.value || ''}/>
-                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
-                                                </div>
-                                            )} />
-                                        </TableCell>
-                                        <TableCell>
-                                            <FormField control={groupForm.control} name={`activities.${index}.maxRange`} render={({ field }) => (
-                                                <div className="relative">
-                                                    <Input type="number" {...field} className="w-20 h-8" value={field.value || ''}/>
-                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
-                                                </div>
-                                            )} />
-                                        </TableCell>
-                                        <TableCell>
-                                            <FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field }) => (
-                                                <div className="relative">
-                                                    <Input {...field} className="w-36 h-8" value={field.value || ''}/>
-                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
-                                                </div>
-                                            )} />
-                                        </TableCell>
-                                        <TableCell className="text-center print-hide">
-                                            <div className="flex gap-1 justify-center">
-                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>
+                        <Table ref={tableRef}>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[180px]">Asistente</TableHead>
+                                    <TableHead className="min-w-[120px]">{performanceLabel}</TableHead>
+                                    {showExtraPerformanceField && <TableHead className="min-w-[120px]">{extraPerformanceLabel}</TableHead>}
+                                    <TableHead className="min-w-[100px]">Personas</TableHead>
+                                    <TableHead className="min-w-[100px]">JHU</TableHead>
+                                    <TableHead className="min-w-[100px]">Mínimo</TableHead>
+                                    <TableHead className="min-w-[100px]">Máximo</TableHead>
+                                    <TableHead className="min-w-[150px]">Obs.</TableHead>
+                                    <TableHead className="w-[80px] text-center print-hide">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {fields.map((field, index) => (
+                                <TableRow key={field.id}>
+                                    <TableCell className="font-medium whitespace-nowrap">{field.assistantName}</TableCell>
+                                    <TableCell>
+                                        <FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field: formField }) => (
+                                            <div className="relative">
+                                                <Input type="number" {...formField} className="w-24 h-8" value={formField.value || ''} />
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
-                                    ))}
-                                </TableBody>
-                                <TableFooter>
-                                    <GroupFormTotals control={groupForm.control} showExtraPerformanceField={showExtraPerformanceField} />
-                                </TableFooter>
-                            </Table>
-                        </div>
+                                        )}/>
+                                    </TableCell>
+                                    {showExtraPerformanceField && <TableCell>
+                                        <FormField control={groupForm.control} name={`activities.${index}.clustersOrJabas`} render={({ field: formField }) => (
+                                            <div className="relative">
+                                                <Input type="number" {...formField} className="w-24 h-8" value={formField.value || ''}/>
+                                            </div>
+                                        )} />
+                                    </TableCell>}
+                                    <TableCell>
+                                        <FormField control={groupForm.control} name={`activities.${index}.personnelCount`} render={({ field: formField }) => (
+                                            <div className="relative">
+                                                <Input type="number" {...formField} className="w-20 h-8" value={formField.value || ''}/>
+                                            </div>
+                                        )} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <FormField control={groupForm.control} name={`activities.${index}.workdayCount`} render={({ field: formField }) => (
+                                            <div className="relative">
+                                                <Input type="number" {...formField} className="w-20 h-8" value={formField.value || ''}/>
+                                            </div>
+                                        )} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <FormField control={groupForm.control} name={`activities.${index}.minRange`} render={({ field: formField }) => (
+                                            <div className="relative">
+                                                <Input type="number" {...formField} className="w-20 h-8" value={formField.value || ''}/>
+                                            </div>
+                                        )} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <FormField control={groupForm.control} name={`activities.${index}.maxRange`} render={({ field: formField }) => (
+                                            <div className="relative">
+                                                <Input type="number" {...formField} className="w-20 h-8" value={formField.value || ''}/>
+                                            </div>
+                                        )} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field: formField }) => (
+                                            <div className="relative">
+                                                <Input {...formField} className="w-36 h-8" value={formField.value || ''}/>
+                                            </div>
+                                        )} />
+                                    </TableCell>
+                                    <TableCell className="text-center print-hide">
+                                        <div className="flex gap-1 justify-center">
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                            <TableFooter>
+                                <GroupFormTotals control={groupForm.control} showExtraPerformanceField={showExtraPerformanceField} />
+                            </TableFooter>
+                        </Table>
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => setAddActivityDialogOpen(true)}>
