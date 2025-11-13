@@ -434,21 +434,6 @@ export default function CreateActivityPage() {
 
   return (
     <>
-      <style>{`
-        .print-only-value {
-          display: none;
-        }
-        @media print {
-          .print-hide-input {
-            display: none !important;
-          }
-          .print-only-value {
-            display: block;
-            width: 100%;
-            text-align: center;
-          }
-        }
-      `}</style>
       <div className="mx-auto max-w-4xl">
         <div className="flex items-center justify-center space-x-2 mb-6">
             <Label htmlFor="form-mode-switch">Individual</Label>
@@ -464,53 +449,38 @@ export default function CreateActivityPage() {
           <Form {...singleForm}>
              <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
                 <div className="rounded-lg border bg-card text-card-foreground p-6 shadow-sm space-y-6">
-                    {/* Fila 1: Fecha */}
-                    <FormField control={singleForm.control} name="registerDate" render={({ field }) => (
-                      <FormItem><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4"/>Fecha de Registro</IconWrapper></FormLabel>
-                          <Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                              {field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button></FormControl></PopoverTrigger>
-                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                          </Popover><FormMessage/>
-                      </FormItem>
-                    )}/>
+                    
+                    <FormField control={singleForm.control} name="registerDate" render={({ field }) => (<FormItem><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4"/>Fecha de Registro</IconWrapper></FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage/></FormItem>)}/>
                    
-                    {/* Fila 2: Campaña, Etapa, Lote */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
                       <FormField control={singleForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Briefcase className="h-4 w-4"/>Campaña</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
                       <FormField control={singleForm.control} name="stage" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Flame className="h-4 w-4"/>Etapa</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
                       <FormField control={singleForm.control} name="lote" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Sprout className="h-4 w-4"/>Lote</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>)}/>
                     </div>
 
-                    {/* Fila 3: Cód, Labor */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
                         <FormField control={singleForm.control} name="code" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Tag className="h-4 w-4"/>Cód.</IconWrapper></FormLabel><FormControl><Input placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                         <FormField control={singleForm.control} name="labor" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Wrench className="h-4 w-4"/>Labor</IconWrapper></FormLabel><FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl><FormMessage/></FormItem>)}/>
                     </div>
-
-                    {/* Fila 4: Rendimiento, # Personas, # Jornadas */}
+                    
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
-                      <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel><IconWrapper><TrendingUp className="h-4 w-4"/>{performanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
-                      {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/> )}
-                      <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Users className="h-4 w-4"/># Personas</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
-                      <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ClipboardList className="h-4 w-4"/># Jornadas (JHU)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                        <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel><IconWrapper><TrendingUp className="h-4 w-4"/>{performanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
+                        {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/> )}
+                        <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Users className="h-4 w-4"/># Personas</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                     </div>
-                      
-                    {/* Fila 5: Costo, Turno, Pasada */}
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
+                        <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ClipboardList className="h-4 w-4"/># Jornadas (JHU)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                          <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                          <FormField control={singleForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                         <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
-                     </div>
+                    </div>
                       
-                    {/* Fila 6: Min, Max */}
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
+                         <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
                          <FormField control={singleForm.control} name="minRange" render={({ field }) => (<FormItem><FormLabel><IconWrapper><FileInput className="h-4 w-4"/>Min</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                          <FormField control={singleForm.control} name="maxRange" render={({ field }) => (<FormItem><FormLabel><IconWrapper><FileOutput className="h-4 w-4"/>Max</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                      </div>
                       
-                     {/* Fila 7: Observaciones */}
                      <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><Pencil className="h-4 w-4"/>Observaciones</IconWrapper></FormLabel> <FormControl><Textarea placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                   </div>
                    <div className="flex justify-end pt-4">
@@ -534,92 +504,94 @@ export default function CreateActivityPage() {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <Table ref={tableRef}>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[180px]">Asistente</TableHead>
-                                    <TableHead className="min-w-[120px]">{performanceLabel}</TableHead>
-                                    {showExtraPerformanceField && <TableHead className="min-w-[120px]">{extraPerformanceLabel}</TableHead>}
-                                    <TableHead className="min-w-[100px]">Personas</TableHead>
-                                    <TableHead className="min-w-[100px]">JHU</TableHead>
-                                    <TableHead className="min-w-[100px]">Mínimo</TableHead>
-                                    <TableHead className="min-w-[100px]">Máximo</TableHead>
-                                    <TableHead className="min-w-[150px]">Obs.</TableHead>
-                                    <TableHead className="w-[80px] text-center">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {fields.map((field, index) => (
-                                <TableRow key={field.id}>
-                                    <TableCell className="font-medium whitespace-nowrap">{field.assistantName}</TableCell>
-                                    <TableCell>
-                                        <FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field }) => (
-                                            <>
-                                                <Input type="number" {...field} className="w-24 h-8 print-hide-input" value={field.value || ''} />
-                                                <span className="print-only-value">{field.value || ''}</span>
-                                            </>
-                                        )}/>
-                                    </TableCell>
-                                    {showExtraPerformanceField && <TableCell>
-                                        <FormField control={groupForm.control} name={`activities.${index}.clustersOrJabas`} render={({ field }) => (
-                                            <>
-                                                <Input type="number" {...field} className="w-24 h-8 print-hide-input" value={field.value || ''}/>
-                                                <span className="print-only-value">{field.value || ''}</span>
-                                            </>
-                                        )} />
-                                    </TableCell>}
-                                    <TableCell>
-                                        <FormField control={groupForm.control} name={`activities.${index}.personnelCount`} render={({ field }) => (
-                                             <>
-                                                <Input type="number" {...field} className="w-20 h-8 print-hide-input" value={field.value || ''}/>
-                                                <span className="print-only-value">{field.value || ''}</span>
-                                            </>
-                                        )} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <FormField control={groupForm.control} name={`activities.${index}.workdayCount`} render={({ field }) => (
-                                             <>
-                                                <Input type="number" {...field} className="w-20 h-8 print-hide-input" value={field.value || ''}/>
-                                                <span className="print-only-value">{field.value || ''}</span>
-                                            </>
-                                        )} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <FormField control={groupForm.control} name={`activities.${index}.minRange`} render={({ field }) => (
-                                            <>
-                                                <Input type="number" {...field} className="w-20 h-8 print-hide-input" value={field.value || ''}/>
-                                                <span className="print-only-value">{field.value || ''}</span>
-                                            </>
-                                        )} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <FormField control={groupForm.control} name={`activities.${index}.maxRange`} render={({ field }) => (
-                                            <>
-                                                <Input type="number" {...field} className="w-20 h-8 print-hide-input" value={field.value || ''}/>
-                                                <span className="print-only-value">{field.value || ''}</span>
-                                            </>
-                                        )} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field }) => (
-                                            <>
-                                                <Input {...field} className="w-36 h-8 print-hide-input" value={field.value || ''}/>
-                                                <span className="print-only-value">{field.value || ''}</span>
-                                            </>
-                                        )} />
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <div className="flex gap-1 justify-center">
-                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive print-hide-input" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                                ))}
-                            </TableBody>
-                            <TableFooter>
-                                <GroupFormTotals control={groupForm.control} showExtraPerformanceField={showExtraPerformanceField} />
-                            </TableFooter>
-                        </Table>
+                        <div ref={tableRef}>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[180px]">Asistente</TableHead>
+                                        <TableHead className="min-w-[120px]">{performanceLabel}</TableHead>
+                                        {showExtraPerformanceField && <TableHead className="min-w-[120px]">{extraPerformanceLabel}</TableHead>}
+                                        <TableHead className="min-w-[100px]">Personas</TableHead>
+                                        <TableHead className="min-w-[100px]">JHU</TableHead>
+                                        <TableHead className="min-w-[100px]">Mínimo</TableHead>
+                                        <TableHead className="min-w-[100px]">Máximo</TableHead>
+                                        <TableHead className="min-w-[150px]">Obs.</TableHead>
+                                        <TableHead className="w-[80px] text-center print-hide">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {fields.map((field, index) => (
+                                    <TableRow key={field.id}>
+                                        <TableCell className="font-medium whitespace-nowrap">{field.assistantName}</TableCell>
+                                        <TableCell>
+                                            <FormField control={groupForm.control} name={`activities.${index}.performance`} render={({ field }) => (
+                                                <div className="relative">
+                                                    <Input type="number" {...field} className="w-24 h-8" value={field.value || ''} />
+                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
+                                                </div>
+                                            )}/>
+                                        </TableCell>
+                                        {showExtraPerformanceField && <TableCell>
+                                            <FormField control={groupForm.control} name={`activities.${index}.clustersOrJabas`} render={({ field }) => (
+                                                <div className="relative">
+                                                    <Input type="number" {...field} className="w-24 h-8" value={field.value || ''}/>
+                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
+                                                </div>
+                                            )} />
+                                        </TableCell>}
+                                        <TableCell>
+                                            <FormField control={groupForm.control} name={`activities.${index}.personnelCount`} render={({ field }) => (
+                                                <div className="relative">
+                                                    <Input type="number" {...field} className="w-20 h-8" value={field.value || ''}/>
+                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
+                                                </div>
+                                            )} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <FormField control={groupForm.control} name={`activities.${index}.workdayCount`} render={({ field }) => (
+                                                <div className="relative">
+                                                    <Input type="number" {...field} className="w-20 h-8" value={field.value || ''}/>
+                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
+                                                </div>
+                                            )} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <FormField control={groupForm.control} name={`activities.${index}.minRange`} render={({ field }) => (
+                                                <div className="relative">
+                                                    <Input type="number" {...field} className="w-20 h-8" value={field.value || ''}/>
+                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
+                                                </div>
+                                            )} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <FormField control={groupForm.control} name={`activities.${index}.maxRange`} render={({ field }) => (
+                                                <div className="relative">
+                                                    <Input type="number" {...field} className="w-20 h-8" value={field.value || ''}/>
+                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
+                                                </div>
+                                            )} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field }) => (
+                                                <div className="relative">
+                                                    <Input {...field} className="w-36 h-8" value={field.value || ''}/>
+                                                    <div className="absolute inset-0 flex items-center justify-center text-transparent pointer-events-none">{field.value || ''}</div>
+                                                </div>
+                                            )} />
+                                        </TableCell>
+                                        <TableCell className="text-center print-hide">
+                                            <div className="flex gap-1 justify-center">
+                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                    ))}
+                                </TableBody>
+                                <TableFooter>
+                                    <GroupFormTotals control={groupForm.control} showExtraPerformanceField={showExtraPerformanceField} />
+                                </TableFooter>
+                            </Table>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => setAddActivityDialogOpen(true)}>
