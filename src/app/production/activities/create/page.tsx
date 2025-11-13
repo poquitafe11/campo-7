@@ -135,7 +135,7 @@ function GroupFormTotals({ control, showExtraPerformanceField }: { control: any,
 
     return (
       <TableRow>
-        <TableCell className="font-bold text-right">Total</TableCell>
+        <TableCell colSpan={1} className="font-bold text-right">Total</TableCell>
         <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
         {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
         <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
@@ -378,15 +378,16 @@ export default function CreateActivityPage() {
   };
   
   const handleCapture = async () => {
+    if (!tableRef.current) return;
     toast({ title: 'Capturando...', description: 'Generando imagen de la tabla.' });
 
-    // Create a temporary table for capturing
+    // Create a temporary, off-screen container for rendering the full table
     const captureContainer = document.createElement('div');
     captureContainer.style.position = 'absolute';
-    captureContainer.style.left = '-9999px'; // Position off-screen
-    captureContainer.style.width = `${tableRef.current?.offsetWidth || 1000}px`; // Match width
+    captureContainer.style.left = '-9999px';
     captureContainer.style.background = 'white';
     
+    // Get current form values
     const activitiesData = groupForm.getValues('activities');
     const totalsData = activitiesData.reduce((acc, curr) => {
         acc.performance += Number(curr.performance) || 0;
@@ -400,8 +401,9 @@ export default function CreateActivityPage() {
         return acc;
       }, { performance: 0, clustersOrJabas: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0 });
 
+    // Build the HTML for the table manually
     const headerRow = `
-        <tr style="background-color: #f3f4f6;">
+        <tr style="background-color: #f3f4f6; font-weight: bold;">
             <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Asistente</th>
             <th style="padding: 8px; border: 1px solid #e5e7eb;">${performanceLabel}</th>
             ${showExtraPerformanceField ? `<th style="padding: 8px; border: 1px solid #e5e7eb;">${extraPerformanceLabel}</th>` : ''}
@@ -421,7 +423,7 @@ export default function CreateActivityPage() {
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.workdayCount || ''}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.minRange || ''}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.maxRange || ''}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.observations || ''}</td>
+            <td style="padding: 8px; border: 1px solid #e5e7eb;">${row.observations || ''}</td>
         </tr>`).join('');
     
     const footerRow = `
@@ -449,6 +451,8 @@ export default function CreateActivityPage() {
         const canvas = await html2canvas(captureContainer, {
             scale: 2,
             useCORS: true,
+            width: captureContainer.scrollWidth,
+            height: captureContainer.scrollHeight
         });
         const link = document.createElement('a');
         link.download = `registro-grupal-${format(new Date(), 'yyyy-MM-dd')}.png`;
@@ -527,13 +531,10 @@ export default function CreateActivityPage() {
                         <FormField control={singleForm.control} name="labor" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Wrench className="h-4 w-4"/>Labor</IconWrapper></FormLabel><FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl><FormMessage/></FormItem>)}/>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
                         <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel><IconWrapper><TrendingUp className="h-4 w-4"/>{performanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
                         {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/> )}
-                    </div>
-                    
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
-                        <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Users className="h-4 w-4"/># Personas</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
+                         <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Users className="h-4 w-4"/># Personas</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="1" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                         <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ClipboardList className="h-4 w-4"/># Jornadas (JHU)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
                     </div>
                     
@@ -570,7 +571,7 @@ export default function CreateActivityPage() {
                       <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''}/></FormControl><FormMessage/></FormItem>)}/>
                     </div>
 
-                    <div ref={tableRef} className="overflow-x-auto">
+                    <div className="overflow-x-auto" ref={tableRef}>
                         <Table>
                             <TableHeader>
                                 <TableRow>
