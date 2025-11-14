@@ -15,6 +15,7 @@ const SummarizeFieldDataInputSchema = z.object({
   healthLogs: z.string().describe('Summary of plant health logs.'),
   irrigationLogs: z.string().describe('Summary of irrigation logs.'),
   qualityControlLogs: z.string().describe('Summary of quality control logs.'),
+  biologicalControlLogs: z.string().describe('Summary of biological control logs.'),
 });
 export type SummarizeFieldDataInput = z.infer<typeof SummarizeFieldDataInputSchema>;
 
@@ -39,6 +40,7 @@ const prompt = ai.definePrompt({
   Health Logs: {{{healthLogs}}}
   Irrigation Logs: {{{irrigationLogs}}}
   Quality Control Logs: {{{qualityControlLogs}}}
+  Biological Control Logs: {{{biologicalControlLogs}}}
 
   Please provide a summary of the key data from these logs:
 `,

@@ -17,6 +17,7 @@ export async function askQuery(query: string, data: AppState) {
             healthLogs: stringifyForLLM(data.health),
             irrigationLogs: stringifyForLLM(data.irrigation),
             qualityControlLogs: stringifyForLLM(data.qualityControl),
+            biologicalControlLogs: stringifyForLLM(data.biologicalControl),
         });
 
         if (!fieldDataSummary.summary) {
