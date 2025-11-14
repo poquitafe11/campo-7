@@ -32,17 +32,30 @@ const prompt = ai.definePrompt({
   name: 'summarizeFieldDataPrompt',
   input: {schema: SummarizeFieldDataInputSchema},
   output: {schema: SummarizeFieldDataOutputSchema},
-  prompt: `You are an AI assistant that summarizes field data from various sources.
+  prompt: `You are an expert agronomist AI assistant. Your task is to analyze raw, line-by-line data logs from various farm activities and provide a concise, high-level summary.
 
-  Your goal is to provide a concise and informative summary of the key data provided, highlighting any potential issues or areas of concern.
+  The user will provide data from different sections: Production, Health, Irrigation, Quality Control, and Biological Control.
+  Review all the provided data and synthesize it into a single, coherent summary paragraph. Highlight key trends, potential issues, and important metrics.
 
-  Production Logs: {{{productionLogs}}}
-  Health Logs: {{{healthLogs}}}
-  Irrigation Logs: {{{irrigationLogs}}}
-  Quality Control Logs: {{{qualityControlLogs}}}
-  Biological Control Logs: {{{biologicalControlLogs}}}
+  **Data Logs:**
 
-  Please provide a summary of the key data from these logs:
+  Production Logs:
+  {{{productionLogs}}}
+
+  Health Logs:
+  {{{healthLogs}}}
+
+  Irrigation Logs:
+  {{{irrigationLogs}}}
+
+  Quality Control Logs:
+  {{{qualityControlLogs}}}
+
+  Biological Control Logs:
+  {{{biologicalControlLogs}}}
+
+  **Instructions:**
+  Based on all the data above, generate a single, easy-to-read summary. Do not just list the data. Interpret it. For example, mention things like "recent pest activity," "irrigation consistency," or "quality trends."
 `,
 });
 
