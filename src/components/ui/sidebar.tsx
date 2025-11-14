@@ -8,7 +8,6 @@ import { LogOut, Menu, ArrowLeft, LayoutGrid } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
-import ConnectionStatus from "../ConnectionStatus";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import { useRouter } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "./sheet";
@@ -36,7 +35,6 @@ function SidebarContent() {
       </div>
 
       <div className="mt-auto p-2 border-t border-sidebar-accent/20">
-        <ConnectionStatus isExpanded={true} />
         <Button
             variant="ghost"
             onClick={logout}
