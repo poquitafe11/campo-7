@@ -15,18 +15,18 @@ const withPWA = require('@ducanh2912/next-pwa').default({
       options: {
         cacheName: 'images-cache',
         expiration: {
-          maxEntries: 50,
+          maxEntries: 100,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
         },
       },
     },
     {
-      urlPattern: /\.(?:js)$/i,
+      urlPattern: /\.(?:js|css)$/i,
       handler: 'StaleWhileRevalidate',
       options: {
-        cacheName: 'js-cache',
+        cacheName: 'static-resources-cache',
         expiration: {
-          maxEntries: 50,
+          maxEntries: 100,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
         },
       },
@@ -36,32 +36,24 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         const isSameOrigin = self.origin === url.origin;
         if (!isSameOrigin) return false;
         const pathname = url.pathname;
-        // Exclude API routes and the manifest from this cache
-        if (pathname.startsWith('/api/') || pathname === '/manifest.json') return false; 
+        if (pathname.startsWith('/api/') || pathname.startsWith('/_next/static/') || pathname.includes('manifest.json')) {
+            return false;
+        }
         return true;
       },
-      handler: 'NetworkFirst', // Use NetworkFirst for pages to ensure freshness
+      handler: 'CacheFirst',
       options: {
         cacheName: 'pages-cache',
         expiration: {
           maxEntries: 50,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
         },
-        networkTimeoutSeconds: 3, // Fallback to cache after 3 seconds
       },
     },
-     {
-      urlPattern: /^https?.*/,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'offlineCache',
-        expiration: {
-          maxEntries: 200
-        },
-        networkTimeoutSeconds: 10
-      }
-    },
   ],
+  fallbacks: {
+    document: '/_offline',
+  }
 });
 
 const nextConfig = {

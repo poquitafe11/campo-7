@@ -16,38 +16,37 @@ let auth: Auth;
 let db: Firestore;
 
 if (typeof window !== 'undefined') {
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-    try {
-      // Use indexedDB for more robust persistence in PWAs
-      auth = initializeAuth(app, {
-        persistence: indexedDBLocalPersistence
-      });
-    } catch (e) {
-      console.warn("Fallback to getAuth():", e);
-      auth = getAuth(app); 
-    }
-
-    try {
-      db = initializeFirestore(app, {
-        cacheSizeBytes: CACHE_SIZE_UNLIMITED
-      });
-      enableIndexedDbPersistence(db).catch((err) => {
-          if (err.code == 'failed-precondition') {
-              console.warn("Firestore persistence failed: Multiple tabs open. Offline data will not be saved.");
-          } else if (err.code == 'unimplemented') {
-              console.warn("Firestore persistence failed: Browser does not support it.");
-          }
-      });
-    } catch (e) {
-        console.warn("Fallback to getFirestore():", e);
-        db = getFirestore(app);
-    }
-} else {
-    // Server-side initialization
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    db = getFirestore(app);
+  try {
+    auth = initializeAuth(app, {
+      persistence: indexedDBLocalPersistence
+    });
+  } catch (e) {
+    console.warn("Fallback to getAuth():", e);
     auth = getAuth(app);
+  }
+
+  try {
+    db = initializeFirestore(app, {
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED
+    });
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn("Firestore persistence failed: Multiple tabs open. Offline data will not be saved.");
+      } else if (err.code === 'unimplemented') {
+        console.warn("Firestore persistence failed: Browser does not support it.");
+      }
+    });
+  } catch (e) {
+    console.warn("Fallback to getFirestore():", e);
+    db = getFirestore(app);
+  }
+  
+} else {
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
 }
 
 export { db, app, auth };
