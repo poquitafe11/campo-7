@@ -60,7 +60,6 @@ const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mo
   loading: () => <div className="h-[290px] w-[240px] bg-muted rounded-md animate-pulse" />,
 });
 
-
 type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
 const groupFormSchema = z.object({
@@ -77,12 +76,12 @@ const groupFormSchema = z.object({
       id: z.string(),
       assistantDni: z.string(),
       assistantName: z.string(),
-      performance: z.coerce.number().min(0),
-      clustersOrJabas: z.coerce.number().min(0).optional(),
+      performance: z.any(),
+      clustersOrJabas: z.any().optional(),
       personnelCount: z.coerce.number().int().min(1),
-      workdayCount: z.coerce.number().min(0),
-      minRange: z.coerce.number(),
-      maxRange: z.coerce.number(),
+      workdayCount: z.any(),
+      minRange: z.any(),
+      maxRange: z.any(),
       observations: z.string().optional(),
   }))
 });
@@ -666,5 +665,3 @@ export default function CreateActivityPage() {
     </>
   );
 }
-
-    
