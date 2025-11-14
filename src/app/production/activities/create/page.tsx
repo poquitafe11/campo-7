@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
@@ -60,21 +61,7 @@ const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mo
 });
 
 
-const singleActivitySchema = ActivityRecordSchema;
-type SingleActivityFormValues = z.infer<typeof singleActivitySchema>;
-
-export type GroupActivityRow = {
-  id: string;
-  assistantDni: string;
-  assistantName: string;
-  performance: number;
-  clustersOrJabas?: number;
-  personnelCount: number;
-  workdayCount: number;
-  minRange: number;
-  maxRange: number;
-  observations?: string;
-};
+type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
 const groupFormSchema = z.object({
   registerDate: z.date({ required_error: "La fecha es requerida." }),
@@ -90,12 +77,12 @@ const groupFormSchema = z.object({
       id: z.string(),
       assistantDni: z.string(),
       assistantName: z.string(),
-      performance: z.any(),
-      clustersOrJabas: z.any().optional(),
+      performance: z.coerce.number().min(0),
+      clustersOrJabas: z.coerce.number().min(0).optional(),
       personnelCount: z.coerce.number().int().min(1),
-      workdayCount: z.any(),
-      minRange: z.any(),
-      maxRange: z.any(),
+      workdayCount: z.coerce.number().min(0),
+      minRange: z.coerce.number(),
+      maxRange: z.coerce.number(),
       observations: z.string().optional(),
   }))
 });
@@ -174,7 +161,7 @@ export default function CreateActivityPage() {
   }, [setActions]);
 
   const singleForm = useForm<SingleActivityFormValues>({
-    resolver: zodResolver(singleActivitySchema),
+    resolver: zodResolver(ActivityRecordSchema),
     defaultValues: {
       registerDate: new Date(),
       campaign: '',
@@ -182,15 +169,15 @@ export default function CreateActivityPage() {
       lote: '',
       code: '',
       labor: '',
-      performance: undefined,
-      clustersOrJabas: undefined,
-      personnelCount: undefined,
-      workdayCount: undefined,
-      cost: undefined,
+      performance: 0,
+      clustersOrJabas: 0,
+      personnelCount: 1,
+      workdayCount: 0,
+      cost: 0,
       shift: '',
-      minRange: undefined,
-      maxRange: undefined,
-      pass: undefined,
+      minRange: 0,
+      maxRange: 0,
+      pass: 0,
       observations: '',
       assistantDni: '',
       assistantName: '',
@@ -208,8 +195,8 @@ export default function CreateActivityPage() {
       code: '',
       labor: '',
       shift: '',
-      pass: undefined,
-      cost: undefined,
+      pass: 0,
+      cost: 0,
       activities: []
     },
   });
@@ -279,14 +266,14 @@ export default function CreateActivityPage() {
               ...singleForm.getValues(),
               code: '',
               labor: '',
-              performance: undefined,
-              clustersOrJabas: undefined,
-              personnelCount: undefined,
-              workdayCount: undefined,
-              cost: undefined,
-              minRange: undefined,
-              maxRange: undefined,
-              pass: undefined,
+              performance: 0,
+              clustersOrJabas: 0,
+              personnelCount: 1,
+              workdayCount: 0,
+              cost: 0,
+              minRange: 0,
+              maxRange: 0,
+              pass: 0,
               observations: '',
               createdBy: profile?.nombre || '',
             });
@@ -308,7 +295,7 @@ export default function CreateActivityPage() {
     startTransition(async () => {
         let successCount = 0;
         for (const activity of data.activities) {
-            const fullActivityData: SingleActivityFormValues = {
+            const fullActivityData = {
                 registerDate: data.registerDate,
                 campaign: data.campaign,
                 stage: data.stage || '',
@@ -348,8 +335,8 @@ export default function CreateActivityPage() {
               code: '',
               labor: '',
               shift: '',
-              pass: undefined,
-              cost: undefined,
+              pass: 0,
+              cost: 0,
               activities: []
             });
         } else {
@@ -367,12 +354,12 @@ export default function CreateActivityPage() {
         id: crypto.randomUUID(),
         assistantDni: assistant.assistantDni,
         assistantName: assistant.assistantName,
-        performance: '',
-        clustersOrJabas: '',
-        personnelCount: 1, // Default to 1
-        workdayCount: '',
-        minRange: '',
-        maxRange: '',
+        performance: 0,
+        clustersOrJabas: 0,
+        personnelCount: 1, 
+        workdayCount: 0,
+        minRange: 0,
+        maxRange: 0,
         observations: '',
     });
   };
