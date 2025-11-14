@@ -182,15 +182,15 @@ export default function CreateActivityPage() {
       lote: '',
       code: '',
       labor: '',
-      performance: '',
-      clustersOrJabas: '',
-      personnelCount: '',
-      workdayCount: '',
-      cost: '',
+      performance: undefined,
+      clustersOrJabas: undefined,
+      personnelCount: undefined,
+      workdayCount: undefined,
+      cost: undefined,
       shift: '',
-      minRange: '',
-      maxRange: '',
-      pass: '',
+      minRange: undefined,
+      maxRange: undefined,
+      pass: undefined,
       observations: '',
       assistantDni: '',
       assistantName: '',
@@ -279,14 +279,14 @@ export default function CreateActivityPage() {
               ...singleForm.getValues(),
               code: '',
               labor: '',
-              performance: '',
-              clustersOrJabas: '',
-              personnelCount: '',
-              workdayCount: '',
-              cost: '',
-              minRange: '',
-              maxRange: '',
-              pass: '',
+              performance: undefined,
+              clustersOrJabas: undefined,
+              personnelCount: undefined,
+              workdayCount: undefined,
+              cost: undefined,
+              minRange: undefined,
+              maxRange: undefined,
+              pass: undefined,
               observations: '',
               createdBy: profile?.nombre || '',
             });
@@ -316,17 +316,17 @@ export default function CreateActivityPage() {
                 code: data.code,
                 labor: data.labor || '',
                 shift: data.shift,
-                pass: data.pass || '',
-                cost: data.cost || '',
+                pass: data.pass || 0,
+                cost: data.cost || 0,
                 createdBy: profile.nombre,
                 assistantDni: activity.assistantDni,
                 assistantName: activity.assistantName,
-                performance: activity.performance || '',
-                clustersOrJabas: activity.clustersOrJabas || '',
+                performance: activity.performance || 0,
+                clustersOrJabas: activity.clustersOrJabas || 0,
                 personnelCount: activity.personnelCount,
-                workdayCount: activity.workdayCount || '',
-                minRange: activity.minRange || '',
-                maxRange: activity.maxRange || '',
+                workdayCount: activity.workdayCount || 0,
+                minRange: activity.minRange || 0,
+                maxRange: activity.maxRange || 0,
                 observations: activity.observations || ''
             };
             const result = await saveActivity(fullActivityData);
@@ -369,7 +369,7 @@ export default function CreateActivityPage() {
         assistantName: assistant.assistantName,
         performance: '',
         clustersOrJabas: '',
-        personnelCount: '', // Default to 1
+        personnelCount: 1, // Default to 1
         workdayCount: '',
         minRange: '',
         maxRange: '',
@@ -436,7 +436,7 @@ export default function CreateActivityPage() {
     captureContainer.style.background = 'white';
     
     captureContainer.innerHTML = `
-        <table style="border-collapse: collapse; width: 100%; font-family: sans-serif; font-size: 14px;">
+        <table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;">
             <thead>${headerRow}</thead>
             <tbody>${bodyRows}</tbody>
             <tfoot>${footerRow}</tfoot>
@@ -679,3 +679,5 @@ export default function CreateActivityPage() {
     </>
   );
 }
+
+    
