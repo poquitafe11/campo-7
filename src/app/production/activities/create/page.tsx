@@ -60,6 +60,7 @@ const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mo
   loading: () => <div className="h-[290px] w-[240px] bg-muted rounded-md animate-pulse" />,
 });
 
+
 type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
 const groupFormSchema = z.object({
@@ -199,6 +200,15 @@ export default function CreateActivityPage() {
       activities: []
     },
   });
+  
+  useEffect(() => {
+    // This effect ensures that when switching forms, the values of the other form are cleared to prevent validation conflicts.
+    if (formMode === 'individual') {
+        groupForm.reset();
+    } else {
+        singleForm.reset();
+    }
+  }, [formMode, groupForm, singleForm]);
 
   const { fields, append, remove, update } = useFieldArray({
     control: groupForm.control,
@@ -297,7 +307,7 @@ export default function CreateActivityPage() {
     startTransition(async () => {
         let successCount = 0;
         for (const activity of data.activities) {
-            const fullActivityData = {
+            const fullActivityData: SingleActivityFormValues = {
                 registerDate: data.registerDate,
                 campaign: data.campaign,
                 stage: data.stage || '',
@@ -617,7 +627,7 @@ export default function CreateActivityPage() {
                                         )} />
                                     </TableCell>
                                     <TableCell>
-                                        <FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field: formField }) => (
+                                        <FormField control={form.control} name={`activities.${index}.observations`} render={({ field: formField }) => (
                                             <div className="relative">
                                                 <Input {...formField} className="w-36 h-8" />
                                             </div>
