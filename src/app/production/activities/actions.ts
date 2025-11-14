@@ -1,6 +1,9 @@
 
 'use server';
 
+// This file is deprecated. The logic has been moved to create/actions.ts
+// It is kept to avoid breaking changes but should be removed in a future cleanup.
+
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
