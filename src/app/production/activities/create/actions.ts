@@ -6,7 +6,6 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { ActivityRecordSchema } from '@/lib/types';
 
-
 export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>) {
   try {
     const validatedData = ActivityRecordSchema.parse(values);

@@ -52,7 +52,6 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import AddAssistantDialog from '@/components/AddAssistantDialog';
 import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
 
 
@@ -77,17 +76,17 @@ const assistantInGroupSchema = z.object({
   observations: z.string().optional(),
 });
 
-// This is the correct schema for the group form, including the header fields
-const groupFormSchema = z.object({
-    registerDate: z.date({required_error: "La fecha es requerida."}),
-    campaign: z.string().min(1, "La campaña es requerida."),
-    stage: z.string().min(1, "La etapa es requerida."),
-    lote: z.string().min(1, "El lote es requerido."),
-    code: z.string().optional(),
-    labor: z.string().optional(),
-    shift: z.string().min(1, "El turno es requerido."),
-    pass: z.coerce.number().optional(),
-    cost: z.coerce.number().optional(),
+const groupFormSchema = ActivityRecordSchema.pick({
+    registerDate: true,
+    campaign: true,
+    stage: true,
+    lote: true,
+    code: true,
+    labor: true,
+    shift: true,
+    pass: true,
+    cost: true,
+}).extend({
     activities: z.array(assistantInGroupSchema)
 });
 
@@ -309,14 +308,15 @@ export default function CreateActivityPage() {
     });
   };
   
-  const onGroupSubmit = (data: GroupFormValues) => {
+ const onGroupSubmit = (data: GroupFormValues) => {
     if (!profile?.nombre) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
-      return;
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
+        return;
     }
     startTransition(async () => {
         let successCount = 0;
         for (const activity of data.activities) {
+            // Combine header data with individual activity data
             const fullActivityData: SingleActivityFormValues = {
                 registerDate: data.registerDate,
                 campaign: data.campaign,
@@ -338,6 +338,7 @@ export default function CreateActivityPage() {
                 maxRange: activity.maxRange || 0,
                 observations: activity.observations || ''
             };
+
             const result = await saveActivity(fullActivityData);
             if (result.success) {
                 successCount++;
@@ -345,21 +346,21 @@ export default function CreateActivityPage() {
         }
 
         if (successCount === data.activities.length) {
-             toast({
+            toast({
                 title: 'Éxito',
                 description: `${successCount} fichas de actividad han sido guardadas.`,
             });
             groupForm.reset({
-              registerDate: new Date(),
-              campaign: '',
-              stage: '',
-              lote: '',
-              code: '',
-              labor: '',
-              shift: '',
-              pass: 0,
-              cost: 0,
-              activities: []
+                registerDate: new Date(),
+                campaign: '',
+                stage: '',
+                lote: '',
+                code: '',
+                labor: '',
+                shift: '',
+                pass: 0,
+                cost: 0,
+                activities: []
             });
         } else {
             toast({
@@ -369,7 +370,7 @@ export default function CreateActivityPage() {
             });
         }
     });
-  };
+};
   
   const handleAddAssistant = (assistant: { assistantDni: string, assistantName: string }) => {
     append({
@@ -573,7 +574,9 @@ export default function CreateActivityPage() {
                          <FormField control={groupForm.control} name="shift" render={({ field }) => (
                             <FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger>
+                                    <FormControl>
+                                        <SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger>
+                                    </FormControl>
                                     <SelectContent>
                                         <SelectItem value="Mañana">Mañana</SelectItem>
                                         <SelectItem value="Tarde">Tarde</SelectItem>
