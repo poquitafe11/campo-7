@@ -203,11 +203,17 @@ export default function CreateActivityPage() {
   
   useEffect(() => {
     if (formMode === 'individual') {
-        groupForm.reset();
+        const individualDefaults = {
+            registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', performance: 0, clustersOrJabas: 0, personnelCount: 1, workdayCount: 0, cost: 0, shift: '', minRange: 0, maxRange: 0, pass: 0, observations: '', assistantDni: profile?.dni || '', assistantName: profile?.nombre || '', createdBy: profile?.nombre || '',
+        };
+        singleForm.reset(individualDefaults);
     } else {
-        singleForm.reset();
+        const groupDefaults = {
+          registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', shift: '', pass: 0, cost: 0, activities: []
+        };
+        groupForm.reset(groupDefaults);
     }
-  }, [formMode, groupForm, singleForm]);
+  }, [formMode, groupForm, singleForm, profile]);
 
   const { fields, append, remove, update } = useFieldArray({
     control: groupForm.control,
@@ -558,10 +564,10 @@ export default function CreateActivityPage() {
                <div className="rounded-lg border bg-card text-card-foreground p-4 shadow-sm space-y-4">
                     {renderSharedHeader(groupForm)}
                     <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-                         <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                         <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                         <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                     </div>
+                        <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                        <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
+                        <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                    </div>
 
                     <div className="overflow-x-auto" ref={tableRef}>
                         <Table>
