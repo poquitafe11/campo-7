@@ -626,7 +626,7 @@ export default function CreateActivityPage() {
                                         )} />
                                     </TableCell>
                                     <TableCell>
-                                        <FormField control={form.control} name={`activities.${index}.observations`} render={({ field: formField }) => (
+                                        <FormField control={groupForm.control} name={`activities.${index}.observations`} render={({ field: formField }) => (
                                             <div className="relative">
                                                 <Input {...formField} className="w-36 h-8" />
                                             </div>
