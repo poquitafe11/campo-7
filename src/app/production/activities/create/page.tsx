@@ -202,7 +202,6 @@ export default function CreateActivityPage() {
   });
   
   useEffect(() => {
-    // This effect ensures that when switching forms, the values of the other form are cleared to prevent validation conflicts.
     if (formMode === 'individual') {
         groupForm.reset();
     } else {
