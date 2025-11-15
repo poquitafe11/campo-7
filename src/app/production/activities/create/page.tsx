@@ -76,12 +76,9 @@ const groupActivitiesSchema = z.object({
   observations: z.string().optional(),
 });
 
-const groupFormSchema = ActivityRecordSchema.extend({
-  activities: z.array(groupActivitiesSchema),
-});
-
-
-type GroupFormValues = z.infer<typeof groupFormSchema>;
+type GroupFormValues = z.infer<typeof ActivityRecordSchema> & {
+    activities: z.infer<typeof groupActivitiesSchema>[];
+};
 
 
 const IconWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -180,7 +177,7 @@ export default function CreateActivityPage() {
   });
 
   const groupForm = useForm<GroupFormValues>({
-    resolver: zodResolver(groupFormSchema),
+    resolver: zodResolver(ActivityRecordSchema),
     defaultValues: {
       registerDate: new Date(),
       campaign: '',
@@ -189,8 +186,8 @@ export default function CreateActivityPage() {
       code: '',
       labor: '',
       shift: '',
-      pass: '',
-      cost: '',
+      pass: 0,
+      cost: 0,
       activities: []
     },
   });
@@ -203,7 +200,7 @@ export default function CreateActivityPage() {
         singleForm.reset(individualDefaults);
     } else {
         const groupDefaults = {
-          registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', shift: '', pass: '', cost: '', activities: []
+          registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', shift: '', pass: 0, cost: 0, activities: []
         };
         groupForm.reset(groupDefaults);
     }
@@ -314,8 +311,8 @@ export default function CreateActivityPage() {
                 code: data.code,
                 labor: data.labor || '',
                 shift: data.shift,
-                pass: data.pass || 0,
-                cost: data.cost || 0,
+                pass: data.pass,
+                cost: data.cost,
                 createdBy: profile.nombre,
                 assistantDni: activity.assistantDni,
                 assistantName: activity.assistantName,
@@ -346,8 +343,8 @@ export default function CreateActivityPage() {
               code: '',
               labor: '',
               shift: '',
-              pass: '',
-              cost: '',
+              pass: 0,
+              cost: 0,
               activities: []
             });
         } else {
@@ -557,10 +554,10 @@ export default function CreateActivityPage() {
             <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-6">
                <div className="rounded-lg border bg-card text-card-foreground p-4 shadow-sm space-y-4">
                     {renderSharedHeader(groupForm)}
-                    <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-                        <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                     <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
+                        <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
                         <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                        <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                        <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
                     </div>
 
                     <div className="overflow-x-auto" ref={tableRef}>
