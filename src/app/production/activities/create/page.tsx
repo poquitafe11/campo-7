@@ -169,15 +169,15 @@ export default function CreateActivityPage() {
       lote: '',
       code: '',
       labor: '',
-      performance: "" as any,
-      clustersOrJabas: "" as any,
+      performance: 0,
+      clustersOrJabas: 0,
       personnelCount: 1,
-      workdayCount: "" as any,
-      cost: "" as any,
+      workdayCount: 0,
+      cost: 0,
       shift: '',
-      minRange: "" as any,
-      maxRange: "" as any,
-      pass: "" as any,
+      minRange: 0,
+      maxRange: 0,
+      pass: 0,
       observations: '',
       assistantDni: '',
       assistantName: '',
@@ -276,14 +276,14 @@ export default function CreateActivityPage() {
               ...singleForm.getValues(),
               code: '',
               labor: '',
-              performance: "" as any,
-              clustersOrJabas: "" as any,
+              performance: 0,
+              clustersOrJabas: 0,
               personnelCount: 1,
-              workdayCount: "" as any,
-              cost: "" as any,
-              minRange: "" as any,
-              maxRange: "" as any,
-              pass: "" as any,
+              workdayCount: 0,
+              cost: 0,
+              minRange: 0,
+              maxRange: 0,
+              pass: 0,
               observations: '',
               createdBy: profile?.nombre || '',
               assistantDni: profile?.dni || ''
@@ -557,12 +557,11 @@ export default function CreateActivityPage() {
             <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-6">
                <div className="rounded-lg border bg-card text-card-foreground p-4 shadow-sm space-y-4">
                     {renderSharedHeader(groupForm)}
-
                     <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-                      <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                      <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                      <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                    </div>
+                         <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                         <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
+                         <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                     </div>
 
                     <div className="overflow-x-auto" ref={tableRef}>
                         <Table>
