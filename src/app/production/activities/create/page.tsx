@@ -53,6 +53,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AddAssistantDialog from '@/components/AddAssistantDialog';
+import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
 
 
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
@@ -569,24 +570,18 @@ export default function CreateActivityPage() {
                     {renderSharedHeader(groupForm)}
                      <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
                         <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder='0' {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                        <FormField
-                            control={groupForm.control}
-                            name="shift"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel><IconWrapper><Clock className="h-4 w-4" />Turno</IconWrapper></FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Mañana">Mañana</SelectItem>
-                                            <SelectItem value="Tarde">Tarde</SelectItem>
-                                            <SelectItem value="Noche">Noche</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                         <FormField control={groupForm.control} name="shift" render={({ field }) => (
+                            <FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Mañana">Mañana</SelectItem>
+                                        <SelectItem value="Tarde">Tarde</SelectItem>
+                                        <SelectItem value="Noche">Noche</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            <FormMessage/></FormItem>
+                        )}/>
                         <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder='0' {...field} /></FormControl><FormMessage/></FormItem>)}/>
                     </div>
 
