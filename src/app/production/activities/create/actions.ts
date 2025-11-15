@@ -6,15 +6,10 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { ActivityRecordSchema } from '@/lib/types';
 
-// Use a slightly more lenient schema for the server action, as some values might be coerced
-const SaveActivitySchema = ActivityRecordSchema.extend({
-  shift: z.string().optional(),
-});
 
-
-export async function saveActivity(values: z.infer<typeof SaveActivitySchema>) {
+export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>) {
   try {
-    const validatedData = SaveActivitySchema.parse(values);
+    const validatedData = ActivityRecordSchema.parse(values);
     
     if (!validatedData.createdBy) {
       return { success: false, message: 'Usuario no autenticado.' };

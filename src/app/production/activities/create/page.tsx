@@ -67,18 +67,32 @@ const groupActivitiesSchema = z.object({
   id: z.string(),
   assistantDni: z.string(),
   assistantName: z.string(),
-  performance: z.any().transform(v => parseFloat(v) || 0),
-  clustersOrJabas: z.any().transform(v => parseFloat(v) || 0).optional(),
-  personnelCount: z.any().transform(v => parseInt(v, 10) || 1),
-  workdayCount: z.any().transform(v => parseFloat(v) || 0),
-  minRange: z.any().transform(v => parseFloat(v) || 0).optional(),
-  maxRange: z.any().transform(v => parseFloat(v) || 0).optional(),
+  performance: z.coerce.number(),
+  clustersOrJabas: z.coerce.number().optional(),
+  personnelCount: z.coerce.number().int(),
+  workdayCount: z.coerce.number(),
+  minRange: z.coerce.number().optional(),
+  maxRange: z.coerce.number().optional(),
   observations: z.string().optional(),
 });
 
-type GroupFormValues = z.infer<typeof ActivityRecordSchema> & {
-    activities: z.infer<typeof groupActivitiesSchema>[];
-};
+// This is the correct schema for the group form, including the header fields
+const groupFormSchema = ActivityRecordSchema.pick({
+    registerDate: true,
+    campaign: true,
+    stage: true,
+    lote: true,
+    code: true,
+    labor: true,
+    shift: true,
+    pass: true,
+    cost: true,
+}).extend({
+    activities: z.array(groupActivitiesSchema)
+});
+
+
+type GroupFormValues = z.infer<typeof groupFormSchema>;
 
 
 const IconWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -160,15 +174,15 @@ export default function CreateActivityPage() {
       lote: '',
       code: '',
       labor: '',
-      performance: '',
-      clustersOrJabas: '',
+      performance: 0,
+      clustersOrJabas: 0,
       personnelCount: 1,
-      workdayCount: '',
-      cost: '',
+      workdayCount: 0,
+      cost: 0,
       shift: '',
-      minRange: '',
-      maxRange: '',
-      pass: '',
+      minRange: 0,
+      maxRange: 0,
+      pass: 0,
       observations: '',
       assistantDni: '',
       assistantName: '',
@@ -177,7 +191,7 @@ export default function CreateActivityPage() {
   });
 
   const groupForm = useForm<GroupFormValues>({
-    resolver: zodResolver(ActivityRecordSchema),
+    resolver: zodResolver(groupFormSchema),
     defaultValues: {
       registerDate: new Date(),
       campaign: '',
@@ -195,7 +209,7 @@ export default function CreateActivityPage() {
  useEffect(() => {
     if (formMode === 'individual') {
         const individualDefaults = {
-            registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', performance: '', clustersOrJabas: '', personnelCount: 1, workdayCount: '', cost: '', shift: '', minRange: '', maxRange: '', pass: '', observations: '', assistantDni: profile?.dni || '', assistantName: profile?.nombre || '', createdBy: profile?.nombre || '',
+            registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', performance: 0, clustersOrJabas: 0, personnelCount: 1, workdayCount: 0, cost: 0, shift: '', minRange: 0, maxRange: 0, pass: 0, observations: '', assistantDni: profile?.dni || '', assistantName: profile?.nombre || '', createdBy: profile?.nombre || '',
         };
         singleForm.reset(individualDefaults);
     } else {
@@ -273,14 +287,14 @@ export default function CreateActivityPage() {
               ...singleForm.getValues(),
               code: '',
               labor: '',
-              performance: '',
-              clustersOrJabas: '',
+              performance: 0,
+              clustersOrJabas: 0,
               personnelCount: 1,
-              workdayCount: '',
-              cost: '',
-              minRange: '',
-              maxRange: '',
-              pass: '',
+              workdayCount: 0,
+              cost: 0,
+              minRange: 0,
+              maxRange: 0,
+              pass: 0,
               observations: '',
               createdBy: profile?.nombre || '',
               assistantDni: profile?.dni || ''
@@ -626,7 +640,7 @@ export default function CreateActivityPage() {
                                             <div className="relative">
                                                 <Input {...formField} className="w-36 h-8" />
                                             </div>
-                                        )} />
+                                        )}/>
                                     </TableCell>
                                     <TableCell className="text-center print-hide">
                                         <div className="flex gap-1 justify-center">
