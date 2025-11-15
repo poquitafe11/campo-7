@@ -63,29 +63,23 @@ const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mo
 
 type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
-const groupFormSchema = z.object({
-  registerDate: z.date({ required_error: "La fecha es requerida." }),
-  campaign: z.string().min(1, "La campaña es requerida."),
-  stage: z.string().optional(),
-  lote: z.string().min(1, "El lote es requerido."),
-  code: z.string().min(1, "El código es requerido."),
-  labor: z.string().optional(),
-  shift: z.string().min(1, "El turno es requerido."),
-  pass: z.coerce.number().optional(),
-  cost: z.coerce.number().optional(),
-  activities: z.array(z.object({
-      id: z.string(),
-      assistantDni: z.string(),
-      assistantName: z.string(),
-      performance: z.coerce.number(),
-      clustersOrJabas: z.coerce.number().optional(),
-      personnelCount: z.coerce.number().int().min(1),
-      workdayCount: z.coerce.number(),
-      minRange: z.coerce.number(),
-      maxRange: z.coerce.number(),
-      observations: z.string().optional(),
-  }))
+const groupActivitiesSchema = z.object({
+  id: z.string(),
+  assistantDni: z.string(),
+  assistantName: z.string(),
+  performance: z.any().transform(v => parseFloat(v) || 0),
+  clustersOrJabas: z.any().transform(v => parseFloat(v) || 0).optional(),
+  personnelCount: z.any().transform(v => parseInt(v, 10) || 1),
+  workdayCount: z.any().transform(v => parseFloat(v) || 0),
+  minRange: z.any().transform(v => parseFloat(v) || 0).optional(),
+  maxRange: z.any().transform(v => parseFloat(v) || 0).optional(),
+  observations: z.string().optional(),
 });
+
+const groupFormSchema = ActivityRecordSchema.extend({
+  activities: z.array(groupActivitiesSchema),
+});
+
 
 type GroupFormValues = z.infer<typeof groupFormSchema>;
 
@@ -169,15 +163,15 @@ export default function CreateActivityPage() {
       lote: '',
       code: '',
       labor: '',
-      performance: 0,
-      clustersOrJabas: 0,
+      performance: '',
+      clustersOrJabas: '',
       personnelCount: 1,
-      workdayCount: 0,
-      cost: 0,
+      workdayCount: '',
+      cost: '',
       shift: '',
-      minRange: 0,
-      maxRange: 0,
-      pass: 0,
+      minRange: '',
+      maxRange: '',
+      pass: '',
       observations: '',
       assistantDni: '',
       assistantName: '',
@@ -195,25 +189,25 @@ export default function CreateActivityPage() {
       code: '',
       labor: '',
       shift: '',
-      pass: 0,
-      cost: 0,
+      pass: '',
+      cost: '',
       activities: []
     },
   });
   
-  useEffect(() => {
+ useEffect(() => {
     if (formMode === 'individual') {
         const individualDefaults = {
-            registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', performance: 0, clustersOrJabas: 0, personnelCount: 1, workdayCount: 0, cost: 0, shift: '', minRange: 0, maxRange: 0, pass: 0, observations: '', assistantDni: profile?.dni || '', assistantName: profile?.nombre || '', createdBy: profile?.nombre || '',
+            registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', performance: '', clustersOrJabas: '', personnelCount: 1, workdayCount: '', cost: '', shift: '', minRange: '', maxRange: '', pass: '', observations: '', assistantDni: profile?.dni || '', assistantName: profile?.nombre || '', createdBy: profile?.nombre || '',
         };
         singleForm.reset(individualDefaults);
     } else {
         const groupDefaults = {
-          registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', shift: '', pass: 0, cost: 0, activities: []
+          registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', shift: '', pass: '', cost: '', activities: []
         };
         groupForm.reset(groupDefaults);
     }
-  }, [formMode, groupForm, singleForm, profile]);
+  }, [formMode, singleForm, groupForm, profile]);
 
   const { fields, append, remove, update } = useFieldArray({
     control: groupForm.control,
@@ -282,14 +276,14 @@ export default function CreateActivityPage() {
               ...singleForm.getValues(),
               code: '',
               labor: '',
-              performance: 0,
-              clustersOrJabas: 0,
+              performance: '',
+              clustersOrJabas: '',
               personnelCount: 1,
-              workdayCount: 0,
-              cost: 0,
-              minRange: 0,
-              maxRange: 0,
-              pass: 0,
+              workdayCount: '',
+              cost: '',
+              minRange: '',
+              maxRange: '',
+              pass: '',
               observations: '',
               createdBy: profile?.nombre || '',
               assistantDni: profile?.dni || ''
@@ -352,8 +346,8 @@ export default function CreateActivityPage() {
               code: '',
               labor: '',
               shift: '',
-              pass: 0,
-              cost: 0,
+              pass: '',
+              cost: '',
               activities: []
             });
         } else {
