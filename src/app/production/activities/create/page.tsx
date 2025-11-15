@@ -63,32 +63,31 @@ const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mo
 
 type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
-const groupActivitiesSchema = z.object({
+const assistantInGroupSchema = z.object({
   id: z.string(),
   assistantDni: z.string(),
   assistantName: z.string(),
-  performance: z.coerce.number(),
+  performance: z.coerce.number().optional(),
   clustersOrJabas: z.coerce.number().optional(),
-  personnelCount: z.coerce.number().int(),
-  workdayCount: z.coerce.number(),
+  personnelCount: z.coerce.number().int().optional(),
+  workdayCount: z.coerce.number().optional(),
   minRange: z.coerce.number().optional(),
   maxRange: z.coerce.number().optional(),
   observations: z.string().optional(),
 });
 
 // This is the correct schema for the group form, including the header fields
-const groupFormSchema = ActivityRecordSchema.pick({
-    registerDate: true,
-    campaign: true,
-    stage: true,
-    lote: true,
-    code: true,
-    labor: true,
-    shift: true,
-    pass: true,
-    cost: true,
-}).extend({
-    activities: z.array(groupActivitiesSchema)
+const groupFormSchema = z.object({
+    registerDate: z.date({required_error: "La fecha es requerida."}),
+    campaign: z.string().min(1, "La campaña es requerida."),
+    stage: z.string().min(1, "La etapa es requerida."),
+    lote: z.string().min(1, "El lote es requerido."),
+    code: z.string().optional(),
+    labor: z.string().optional(),
+    shift: z.string().min(1, "El turno es requerido."),
+    pass: z.coerce.number().optional(),
+    cost: z.coerce.number().optional(),
+    activities: z.array(assistantInGroupSchema)
 });
 
 
@@ -207,15 +206,16 @@ export default function CreateActivityPage() {
   });
   
  useEffect(() => {
+    const individualDefaults = {
+        registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', performance: 0, clustersOrJabas: 0, personnelCount: 1, workdayCount: 0, cost: 0, shift: '', minRange: 0, maxRange: 0, pass: 0, observations: '', assistantDni: profile?.dni || '', assistantName: profile?.nombre || '', createdBy: profile?.nombre || '',
+    };
+    const groupDefaults = {
+      registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', shift: '', pass: 0, cost: 0, activities: []
+    };
+
     if (formMode === 'individual') {
-        const individualDefaults = {
-            registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', performance: 0, clustersOrJabas: 0, personnelCount: 1, workdayCount: 0, cost: 0, shift: '', minRange: 0, maxRange: 0, pass: 0, observations: '', assistantDni: profile?.dni || '', assistantName: profile?.nombre || '', createdBy: profile?.nombre || '',
-        };
         singleForm.reset(individualDefaults);
     } else {
-        const groupDefaults = {
-          registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', shift: '', pass: 0, cost: 0, activities: []
-        };
         groupForm.reset(groupDefaults);
     }
   }, [formMode, singleForm, groupForm, profile]);
@@ -291,7 +291,6 @@ export default function CreateActivityPage() {
               clustersOrJabas: 0,
               personnelCount: 1,
               workdayCount: 0,
-              cost: 0,
               minRange: 0,
               maxRange: 0,
               pass: 0,
@@ -332,7 +331,7 @@ export default function CreateActivityPage() {
                 assistantName: activity.assistantName,
                 performance: activity.performance || 0,
                 clustersOrJabas: activity.clustersOrJabas || 0,
-                personnelCount: activity.personnelCount,
+                personnelCount: activity.personnelCount || 0,
                 workdayCount: activity.workdayCount || 0,
                 minRange: activity.minRange || 0,
                 maxRange: activity.maxRange || 0,
@@ -569,9 +568,9 @@ export default function CreateActivityPage() {
                <div className="rounded-lg border bg-card text-card-foreground p-4 shadow-sm space-y-4">
                     {renderSharedHeader(groupForm)}
                      <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-                        <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                        <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder='0' {...field} /></FormControl><FormMessage/></FormItem>)}/>
                         <FormField control={groupForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                        <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                        <FormField control={groupForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder='0' {...field} /></FormControl><FormMessage/></FormItem>)}/>
                     </div>
 
                     <div className="overflow-x-auto" ref={tableRef}>
