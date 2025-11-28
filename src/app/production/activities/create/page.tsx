@@ -77,16 +77,16 @@ const assistantInGroupSchema = z.object({
 });
 type AssistantInGroup = z.infer<typeof assistantInGroupSchema>;
 
-const headerSchema = z.object({
-    registerDate: z.date(),
-    campaign: z.string().min(1, "La campaña es requerida."),
-    stage: z.string().min(1, "La etapa es requerida."),
-    lote: z.string().min(1, "El lote es requerido."),
-    code: z.string().optional(),
-    labor: z.string().optional(),
-    shift: z.string().min(1, "El turno es requerido."),
-    pass: z.coerce.number().int().optional(),
-    cost: z.coerce.number().optional(),
+const headerSchema = ActivityRecordSchema.pick({
+    registerDate: true,
+    campaign: true,
+    stage: true,
+    lote: true,
+    code: true,
+    labor: true,
+    shift: true,
+    pass: true,
+    cost: true,
 });
 
 type HeaderFormValues = z.infer<typeof headerSchema>;
@@ -309,8 +309,11 @@ export default function CreateActivityPage() {
   };
   
  const handleGroupSave = async () => {
-    const headerData = await headerForm.trigger();
-    if (!headerData) return;
+    const isValidHeader = await headerForm.trigger();
+    if (!isValidHeader) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Por favor, complete todos los campos de la cabecera.' });
+      return;
+    }
 
     if (groupActivities.length === 0) {
         toast({ variant: 'destructive', title: 'Error', description: 'Debe agregar al menos una fila de asistente.' });
@@ -322,7 +325,7 @@ export default function CreateActivityPage() {
         return;
     }
 
-    const { ...validHeaderData } = headerForm.getValues();
+    const validHeaderData = headerForm.getValues();
 
     startTransition(async () => {
         let successCount = 0;
@@ -398,6 +401,11 @@ export default function CreateActivityPage() {
     if (!tableRef.current) return;
     toast({ title: 'Capturando...', description: 'Generando imagen de la tabla.' });
 
+    const headerData = headerForm.getValues();
+    const labor = headerData.labor || 'N/A';
+    const lote = lotes.find(l => l.id === headerData.lote)?.lote || 'N/A';
+    const responsable = profile?.nombre || 'N/A';
+
     const activitiesData = groupActivities;
     const totalsData = activitiesData.reduce((acc, curr) => {
         acc.performance += Number(curr.performance) || 0;
@@ -410,6 +418,16 @@ export default function CreateActivityPage() {
         if (max > 0) acc.maxRange = Math.max(acc.maxRange, max);
         return acc;
       }, { performance: 0, clustersOrJabas: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0 });
+
+    const captureHeader = `
+        <div style="padding: 16px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; font-family: sans-serif;">
+            <h2 style="font-size: 1.125rem; font-weight: 600; margin: 0;">Labor: ${labor}</h2>
+            <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: #4b5563; margin-top: 4px;">
+                <span><strong>Lote:</strong> ${lote}</span>
+                <span><strong>Responsable:</strong> ${responsable}</span>
+            </div>
+        </div>
+    `;
 
     const headerRow = `
         <tr style="background-color: #f3f4f6; font-weight: bold;">
@@ -453,7 +471,8 @@ export default function CreateActivityPage() {
     captureContainer.style.background = 'white';
     
     captureContainer.innerHTML = `
-        <table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;">
+        ${captureHeader}
+        <table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px; width: 100%;">
             <thead>${headerRow}</thead>
             <tbody>${bodyRows}</tbody>
             <tfoot>${footerRow}</tfoot>
@@ -498,7 +517,7 @@ export default function CreateActivityPage() {
             <FormItem><FormLabel><IconWrapper><Flame/>Etapa</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem>
           )}/>
           <FormField control={formInstance.control} name="lote" render={({ field }) => (
-            <FormItem><FormLabel><IconWrapper><Sprout/>Lote</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.lote}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+            <FormItem><FormLabel><IconWrapper><Sprout/>Lote</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
           )}/>
       </div>
        <div className="grid grid-cols-2 gap-4">
@@ -591,7 +610,7 @@ export default function CreateActivityPage() {
            </Form>
         ) : (
           <Form {...headerForm}>
-            <form onSubmit={headerForm.handleSubmit(handleGroupSave)} className="space-y-6">
+            <form className="space-y-6">
                <div className="rounded-lg border bg-card text-card-foreground p-4 shadow-sm space-y-4">
                     {renderSharedHeader(headerForm)}
                     
@@ -660,7 +679,7 @@ export default function CreateActivityPage() {
                     </div>
 
                     <div className="flex justify-end pt-4">
-                        <Button type="submit" disabled={isPending || masterLoading || groupActivities.length === 0}>
+                        <Button type="button" onClick={handleGroupSave} disabled={isPending || masterLoading || groupActivities.length === 0}>
                             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
                             Guardar {groupActivities.length} Registros
                         </Button>
