@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -326,12 +326,22 @@ export default function CreateActivityPage() {
     }
 
     const validHeaderData = headerForm.getValues();
+    const loteId = validHeaderData.lote;
+    const loteData = uniqueLotes.find(l => l.id === loteId);
+    
+    if (!loteData) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el lote seleccionado.' });
+        return;
+    }
+    const loteNumber = loteData.lote;
+
 
     startTransition(async () => {
         let successCount = 0;
         for (const activity of groupActivities) {
             const fullActivityData: SingleActivityFormValues = {
                 ...validHeaderData,
+                lote: loteNumber,
                 createdBy: profile.nombre,
                 assistantDni: activity.assistantDni,
                 assistantName: activity.assistantName,
@@ -403,7 +413,8 @@ export default function CreateActivityPage() {
 
     const headerData = headerForm.getValues();
     const labor = headerData.labor || 'N/A';
-    const lote = lotes.find(l => l.id === headerData.lote)?.lote || 'N/A';
+    const loteId = headerData.lote;
+    const lote = lotes.find(l => l.id === loteId)?.lote || 'N/A';
     const responsable = profile?.nombre || 'N/A';
 
     const activitiesData = groupActivities;
