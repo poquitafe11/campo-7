@@ -205,12 +205,39 @@ export default function CreateActivityPage() {
     },
   });
   
- useEffect(() => {
+  useEffect(() => {
     const individualDefaults = {
-        registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', performance: 0, clustersOrJabas: 0, personnelCount: 1, workdayCount: 0, cost: 0, shift: '', minRange: 0, maxRange: 0, pass: 0, observations: '', assistantDni: profile?.dni || '', assistantName: profile?.nombre || '', createdBy: profile?.nombre || '',
+      registerDate: new Date(),
+      campaign: '',
+      stage: '',
+      lote: '',
+      code: '',
+      labor: '',
+      performance: 0,
+      clustersOrJabas: 0,
+      personnelCount: 1,
+      workdayCount: 0,
+      cost: 0,
+      shift: '',
+      minRange: 0,
+      maxRange: 0,
+      pass: 0,
+      observations: '',
+      assistantDni: profile?.dni || '',
+      assistantName: profile?.nombre || '',
+      createdBy: profile?.nombre || '',
     };
     const groupDefaults = {
-      registerDate: new Date(), campaign: '', stage: '', lote: '', code: '', labor: '', shift: '', pass: 0, cost: 0, activities: []
+      registerDate: new Date(),
+      campaign: '',
+      stage: '',
+      lote: '',
+      code: '',
+      labor: '',
+      shift: '',
+      pass: 0,
+      cost: 0,
+      activities: []
     };
 
     if (formMode === 'individual') {
@@ -219,6 +246,7 @@ export default function CreateActivityPage() {
         groupForm.reset(groupDefaults);
     }
   }, [formMode, singleForm, groupForm, profile]);
+
 
   const { fields, append, remove, update } = useFieldArray({
     control: groupForm.control,
@@ -573,7 +601,7 @@ export default function CreateActivityPage() {
                         <FormField control={groupForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder='0' {...field} /></FormControl><FormMessage/></FormItem>)}/>
                          <FormField control={groupForm.control} name="shift" render={({ field }) => (
                             <FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger>
                                     </FormControl>
