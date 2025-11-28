@@ -83,9 +83,9 @@ const groupFormSchema = ActivityRecordSchema.pick({
     lote: true,
     code: true,
     labor: true,
-    shift: true,
     pass: true,
     cost: true,
+    shift: true, // This is the crucial fix
 }).extend({
     activities: z.array(assistantInGroupSchema)
 });
@@ -344,7 +344,6 @@ export default function CreateActivityPage() {
     startTransition(async () => {
         let successCount = 0;
         for (const activity of data.activities) {
-            // Combine header data with individual activity data
             const fullActivityData: SingleActivityFormValues = {
                 registerDate: data.registerDate,
                 campaign: data.campaign,
