@@ -1,6 +1,6 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence, initializeFirestore, CACHE_SIZE_UNLIMITED, type Firestore, enableNetwork, disableNetwork } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, initializeFirestore, CACHE_SIZE_UNLIMITED, type Firestore, enableNetwork, disableNetwork, query } from "firebase/firestore";
 import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -23,6 +23,8 @@ export const goOffline = async () => {
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(OFFLINE_PERSISTENCE_KEY, 'true');
     await disableNetwork(db);
+    window.dispatchEvent(new CustomEvent('online-status-changed'));
+    console.log("Network disabled. App is now offline.");
   }
 };
 
@@ -30,6 +32,8 @@ export const goOnline = async () => {
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem(OFFLINE_PERSISTENCE_KEY);
     await enableNetwork(db);
+    window.dispatchEvent(new CustomEvent('online-status-changed'));
+    console.log("Network enabled. App is now online.");
   }
 };
 

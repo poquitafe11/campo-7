@@ -2,8 +2,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { collection, getDocs, onSnapshot, getDocsFromCache } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import { db, isOffline } from '@/lib/firebase';
 import type { LoteData, Labor, Assistant, MinMax, Jalador } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
@@ -31,7 +31,7 @@ const collectionsConfig = [
     { name: 'asistentes', key: 'asistentes', processor: (doc: any) => ({ id: doc.id, assistantName: doc.data().nombre, cargo: doc.data().cargo, personnelCount: 0, absentCount: 0 }) },
     { name: 'min-max', key: 'minMax', processor: (doc: any) => ({ id: doc.id, ...doc.data() }) },
     { name: 'maestro-jaladores', key: 'jaladores', processor: (doc: any) => ({ id: doc.id, ...doc.data() }) },
-    { name: 'maestro-trabajadores', key: 'trabajadores', processor: (doc: any) => ({ dni: doc.id, name: doc.data().name }) },
+    { name: 'maestro-trabajadores', key: 'trabajadores', processor: (doc: any) => ({ dni: doc.id, ...doc.data() }) },
 ];
 
 export function MasterDataProvider({ children }: { children: ReactNode }) {
@@ -40,12 +40,16 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  const loadMasterData = useCallback(async () => {
-    console.log('Refreshing master data...');
+  const loadMasterData = useCallback(async (forceServer = false) => {
     setLoading(true);
+    setError(null);
+    
+    // Determine the source based on online status and force flag
+    const source = forceServer || !isOffline() ? 'default' : 'cache';
+
     try {
         const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
-            const querySnapshot = await getDocs(collection(db, name));
+            const querySnapshot = await getDocs(query(collection(db, name)), { source });
             return { key, data: querySnapshot.docs.map(processor) };
         });
 
@@ -56,51 +60,51 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         });
 
         setData(currentData => ({ ...currentData, ...newData as MasterData }));
+        
+        if (source === 'default') {
+             console.log("Master data refreshed from server.");
+        } else {
+             console.log("Master data loaded from cache.");
+        }
 
-    } catch (err) {
-        console.error("Manual refresh failed: ", err);
-        toast({
-            variant: "destructive",
-            title: "Error al Refrescar",
-            description: "No se pudieron actualizar los datos maestros.",
-        });
+    } catch (err: any) {
+        // If it fails to get from 'default' (e.g., no network), try to load from cache as a fallback.
+        if (source === 'default') {
+            console.warn("Server fetch failed, attempting to load from cache.", err.message);
+            try {
+                const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
+                    const querySnapshot = await getDocs(query(collection(db, name)), { source: 'cache' });
+                    return { key, data: querySnapshot.docs.map(processor) };
+                });
+                 const allDataResults = await Promise.all(allDataPromises);
+                 const newData: Partial<MasterData> = {};
+                 allDataResults.forEach(result => {
+                     (newData as any)[result.key] = result.data;
+                 });
+                 setData(currentData => ({ ...currentData, ...newData as MasterData }));
+                 console.log("Successfully loaded master data from cache after server failure.");
+            } catch (cacheErr: any) {
+                console.error("Failed to load master data from cache as well:", cacheErr);
+                setError(new Error("No se pudieron cargar los datos maestros ni desde el servidor ni desde la caché."));
+                toast({
+                    variant: "destructive",
+                    title: "Error Crítico de Datos",
+                    description: "No se pueden cargar los datos maestros. La aplicación puede no funcionar correctamente.",
+                });
+            }
+        } else {
+            console.error("Failed to load master data from cache:", err);
+            setError(err);
+        }
     } finally {
         setLoading(false);
     }
   }, [toast]);
-
+  
   useEffect(() => {
-    // This effect now uses onSnapshot to listen for real-time updates.
-    // The `goOffline` and `goOnline` functions in firebase.ts will control
-    // whether these listeners actually hit the network. When offline,
-    // onSnapshot will only serve cached data.
-    setLoading(true);
-    const unsubscribes = collectionsConfig.map(({ name, key, processor }) => {
-      const q = collection(db, name);
-      return onSnapshot(q, (querySnapshot) => {
-        const collectionData = querySnapshot.docs.map(processor);
-        setData(prevData => ({
-          ...prevData,
-          [key]: collectionData,
-        }));
-        setLoading(false);
-      }, (err) => {
-        console.error(`Error listening to ${name}:`, err);
-        setError(new Error(`Failed to listen to ${name}.`));
-        setLoading(false);
-        toast({
-            variant: 'destructive',
-            title: `Error de Conexión: ${name}`,
-            description: 'No se pudieron sincronizar los datos.',
-        });
-      });
-    });
-
-    return () => {
-      unsubscribes.forEach(unsub => unsub());
-    };
-  }, [toast]);
-
+    // Initial load when the component mounts
+    loadMasterData();
+  }, [loadMasterData]);
 
   const value = { ...data, loading, error, refreshData: loadMasterData };
 

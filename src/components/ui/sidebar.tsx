@@ -16,42 +16,31 @@ import { goOnline, goOffline, isOffline } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { onSnapshot, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useMasterData } from "@/context/MasterDataContext";
 
 
 function SidebarContent() {
   const { profile, user, logout } = useAuth();
   const { toast } = useToast();
+  const { refreshData } = useMasterData();
   const [isOnlineState, setIsOnlineState] = useState(true);
 
   useEffect(() => {
-    // We get the initial state from isOffline(), but we need a listener to
-    // react to changes if they happen in another tab. We can listen to a
-    // specific document known to not change often, like user profile, as a proxy.
-    setIsOnlineState(!isOffline());
+    const updateOnlineStatus = () => {
+      setIsOnlineState(!isOffline());
+    };
+    updateOnlineStatus(); // Set initial state
     
-    let unsubscribe = () => {};
-    if (user?.email) {
-      const docRef = doc(db, 'usuarios', user.email);
-      unsubscribe = onSnapshot(docRef, 
-        () => { // onNext
-          if (isOffline()) {
-             setIsOnlineState(false);
-          } else {
-             setIsOnlineState(true);
-          }
-        },
-        () => { // onError
-          setIsOnlineState(false);
-        }
-      );
-    }
-    return () => unsubscribe();
-  }, [user]);
+    // Listen for custom events that we'll dispatch from goOnline/goOffline
+    window.addEventListener('online-status-changed', updateOnlineStatus);
+    
+    return () => window.removeEventListener('online-status-changed', updateOnlineStatus);
+  }, []);
 
   const handleSync = async () => {
     try {
       await goOnline();
-      setIsOnlineState(true);
+      await refreshData(true); // Force a server refresh
       toast({ title: "Sincronización Activada", description: "Los datos se están sincronizando con la nube." });
     } catch (error) {
       toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo activar la sincronización." });
@@ -61,7 +50,6 @@ function SidebarContent() {
   const handleGoOffline = async () => {
     try {
       await goOffline();
-      setIsOnlineState(false);
       toast({ title: "Modo Offline Activado", description: "La aplicación ahora trabaja sin conexión." });
     } catch (error) {
        toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo desactivar la sincronización." });
@@ -82,7 +70,7 @@ function SidebarContent() {
           <div className="flex items-center gap-1.5">
             <span className={cn(
                 "h-2.5 w-2.5 rounded-full transition-colors",
-                isOnlineState ? "bg-green-500" : "bg-gray-500"
+                isOnlineState ? "bg-green-500 animate-pulse" : "bg-gray-500"
             )}></span>
             <p className="text-xs text-sidebar-muted-foreground truncate">
                 {isOnlineState ? "En Línea" : "Sin Conexión"}
