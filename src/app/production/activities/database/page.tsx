@@ -18,7 +18,7 @@ import { ActivityRecordData, User, LoteData, Presupuesto, MinMax, Assistant } fr
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, FileDown, Filter, Calendar as CalendarIcon } from 'lucide-react';
+import { Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, FileDown, Filter, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteActivity } from './actions';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
@@ -72,6 +72,61 @@ export default function ActivityDatabasePage() {
   const [activeFilters, setActiveFilters] = useState<Filters>(getInitialFilters());
   const [popoverFilters, setPopoverFilters] = useState<Filters>(getInitialFilters());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+        const [
+            usersSnapshot, 
+            presupuestoSnapshot, 
+            minMaxSnapshot, 
+            activitiesSnapshot
+        ] = await Promise.all([
+            getDocs(collection(db, "usuarios")),
+            getDocs(collection(db, "presupuesto")),
+            getDocs(collection(db, "min-max")),
+            getDocs(query(collection(db, "actividades"), orderBy("registerDate", "desc")))
+        ]);
+
+        const usersData = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as User);
+        setUsers(usersData);
+        
+        const presupuestoData = presupuestoSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as Presupuesto);
+        setPresupuestos(presupuestoData);
+        
+        const minMaxData = minMaxSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as MinMax));
+        setMinMax(minMaxData);
+        
+        const recordsData = activitiesSnapshot.docs.map(doc => {
+            const docData = doc.data();
+            let registerDate: Date;
+            if (docData.registerDate?.toDate) {
+                registerDate = docData.registerDate.toDate();
+            } else if (typeof docData.registerDate === 'string') {
+                registerDate = parseISO(docData.registerDate);
+            } else {
+                registerDate = new Date();
+            }
+            return { ...docData, id: doc.id, registerDate } as ActivityRecordWithId;
+        });
+        setData(recordsData);
+
+    } catch (error) {
+        console.error("Error fetching data: ", error);
+        toast({
+            title: "Error de Conexión",
+            description: "No se pudieron cargar los registros. Intente sincronizar.",
+            variant: "destructive"
+        });
+    } finally {
+        setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
 
   const userMap = useMemo(() => {
     const map = new Map<string, User>();
@@ -136,61 +191,13 @@ export default function ActivityDatabasePage() {
   }, [minMax]);
 
   useEffect(() => {
-    setActions({ title: "Base de Datos de Actividades" });
+    setActions({
+        title: "Base de Datos de Actividades",
+        right: <Button onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button>
+    });
     return () => setActions({});
-  }, [setActions]);
+  }, [setActions, fetchData, loading]);
   
-  useEffect(() => {
-    setLoading(true);
-
-    const usersPromise = getDocs(collection(db, "usuarios"));
-    const presupuestoPromise = getDocs(collection(db, "presupuesto"));
-    const minMaxPromise = getDocs(collection(db, "min-max"));
-
-    Promise.all([usersPromise, presupuestoPromise, minMaxPromise]).then(([usersSnapshot, presupuestoSnapshot, minMaxSnapshot]) => {
-        const usersData = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as User);
-        setUsers(usersData);
-        
-        const presupuestoData = presupuestoSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as Presupuesto);
-        setPresupuestos(presupuestoData);
-        
-        const minMaxData = minMaxSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as MinMax));
-        setMinMax(minMaxData);
-
-    }).catch(error => {
-        console.error("Error fetching related data: ", error);
-        toast({ title: "Error", description: "No se pudieron cargar los datos de usuarios, presupuesto o min-max.", variant: "destructive" });
-    });
-
-    const q = query(collection(db, "actividades"), orderBy("registerDate", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const recordsData = snapshot.docs.map(doc => {
-        const docData = doc.data();
-        let registerDate: Date;
-        if (docData.registerDate?.toDate) {
-            registerDate = docData.registerDate.toDate();
-        } else if (typeof docData.registerDate === 'string') {
-            registerDate = parseISO(docData.registerDate);
-        } else {
-            registerDate = new Date();
-        }
-        return { ...docData, id: doc.id, registerDate } as ActivityRecordWithId;
-      });
-      setData(recordsData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching activities: ", error);
-      toast({
-        title: "Error de Conexión",
-        description: "No se pudieron cargar los registros.",
-        variant: "destructive"
-      });
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
-
   const cumulativeJrHaMap = useMemo(() => {
     const cumulativeMap = new Map<string, number>();
     const tempTotals = new Map<string, number>();
@@ -223,6 +230,7 @@ export default function ActivityDatabasePage() {
         const result = await deleteActivity(id);
         if (result.success) {
             toast({ title: "Éxito", description: "Actividad eliminada correctamente." });
+            setData(prev => prev.filter(item => item.id !== id));
         } else {
             toast({ variant: "destructive", title: "Error", description: result.message });
         }
@@ -661,9 +669,12 @@ export default function ActivityDatabasePage() {
                   onSuccess={() => {
                       setIsEditDialogOpen(false);
                       setSelectedActivity(null);
+                      fetchData();
                   }}
               />
           )}
       </div>
     );
   }
+
+    

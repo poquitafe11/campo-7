@@ -20,7 +20,7 @@ import { digitizeIrrigationTable } from "@/ai/flows/digitize-irrigation-table";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, writeBatch, doc, deleteDoc, updateDoc, setDoc } from "firebase/firestore";
+import { collection, onSnapshot, writeBatch, doc, deleteDoc, updateDoc, setDoc, getDocs } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -156,27 +156,35 @@ export default function RegisterIrrigationPage() {
     }
   }, [editingRecord, form]);
 
-
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "registros-riego"), (snapshot) => {
-      const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      const sortedRecords = records.sort((a, b) => {
-          const dateA = a.Fecha ? parseSpanishDate(a.Fecha) : new Date(0);
-          const dateB = b.Fecha ? parseSpanishDate(b.Fecha) : new Date(0);
-          
-          if (isValid(dateA) && isValid(dateB)) {
-              return dateB.getTime() - dateA.getTime();
-          }
-          if (isValid(dateA)) return -1;
-          if (isValid(dateB)) return 1;
-          return 0;
-      });
+    const fetchRecords = async () => {
+        try {
+            const snapshot = await getDocs(collection(db, "registros-riego"));
+            const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      setSavedRecords(sortedRecords);
-    });
-    return () => unsubscribe();
-  }, []);
+            const sortedRecords = records.sort((a, b) => {
+                const dateA = a.Fecha ? parseSpanishDate(a.Fecha) : new Date(0);
+                const dateB = b.Fecha ? parseSpanishDate(b.Fecha) : new Date(0);
+                
+                if (isValid(dateA) && isValid(dateB)) {
+                    return dateB.getTime() - dateA.getTime();
+                }
+                if (isValid(dateA)) return -1;
+                if (isValid(dateB)) return 1;
+                return 0;
+            });
+            setSavedRecords(sortedRecords);
+        } catch(error) {
+            console.error("Failed to fetch records", error);
+            toast({
+                title: "Error",
+                description: "No se pudieron cargar los registros. Comprueba tu conexión.",
+                variant: "destructive",
+            });
+        }
+    };
+    fetchRecords();
+  }, [toast]);
 
   useEffect(() => {
     const result = savedRecords.filter(record => {
@@ -305,6 +313,7 @@ export default function RegisterIrrigationPage() {
         await batch.commit();
         
         toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados.` });
+        setSavedRecords(prev => [...prev, ...parsedData]);
         
         setSourceImage(null);
         setCroppedImage(null);
@@ -329,6 +338,7 @@ export default function RegisterIrrigationPage() {
     try {
         await deleteDoc(doc(db, "registros-riego", id));
         toast({ title: "Éxito", description: "Registro eliminado." });
+        setSavedRecords(prev => prev.filter(r => r.id !== id));
     } catch (error) {
         console.error("Error deleting record:", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el registro." });
@@ -352,6 +362,7 @@ export default function RegisterIrrigationPage() {
           title: 'Éxito',
           description: 'Registro actualizado en la base de datos.',
         });
+        setSavedRecords(prev => prev.map(r => r.id === id ? { ...r, ...dataFromForm } : r));
       } catch (error) {
         console.error('Error updating record:', error);
         toast({
@@ -691,3 +702,5 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
+
+    

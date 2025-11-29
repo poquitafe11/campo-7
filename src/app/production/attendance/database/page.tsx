@@ -2,12 +2,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDocs, serverTimestamp, getDocsFromCache } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench, Briefcase, ChevronDown, Filter, Calendar as CalendarIcon, FileDown } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench, Briefcase, ChevronDown, Filter, Calendar as CalendarIcon, FileDown, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteAssistantFromRecord } from './actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -105,46 +105,49 @@ export default function AttendanceDatabasePage() {
     });
     return map;
   }, [users]);
+  
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+        const q = query(collection(db, "asistencia"), orderBy("date", "desc"));
+        const snapshot = await getDocs(q);
+        const recordsData = snapshot.docs.map(doc => {
+            const data = doc.data();
+            let date: Date;
+            if (data.date?.toDate) {
+                date = data.date.toDate();
+            } else if (typeof data.date === 'string' && isValid(parseISO(data.date))) {
+                date = parseISO(data.date);
+            } else {
+                date = new Date();
+            }
 
+            const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+            const lastModifiedAt = data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : new Date();
+
+            return { id: doc.id, ...data, date, createdAt, lastModifiedAt } as AttendanceRecordWithId;
+        });
+        setRecords(recordsData);
+        
+        const usersSnapshot = await getDocs(collection(db, "usuarios"));
+        setUsers(usersSnapshot.docs.map(doc => doc.data() as User));
+
+    } catch (error) {
+        console.error("Error fetching attendance records: ", error);
+        toast({
+            title: "Error de Conexión",
+            description: "No se pudieron cargar los registros de asistencia.",
+            variant: "destructive"
+        });
+    } finally {
+        setLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    setLoading(true);
-    const q = query(collection(db, "asistencia"), orderBy("date", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const recordsData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        let date: Date;
-        if (data.date?.toDate) {
-            date = data.date.toDate();
-        } else if (typeof data.date === 'string' && isValid(parseISO(data.date))) {
-            date = parseISO(data.date);
-        } else {
-            date = new Date();
-        }
+    fetchData();
+  }, [fetchData]);
 
-        const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-        const lastModifiedAt = data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : new Date();
-
-        return { id: doc.id, ...data, date, createdAt, lastModifiedAt } as AttendanceRecordWithId;
-      });
-      setRecords(recordsData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching attendance records: ", error);
-      toast({
-        title: "Error de Conexión",
-        description: "No se pudieron cargar los registros de asistencia.",
-        variant: "destructive"
-      });
-      setLoading(false);
-    });
-    
-    getDocs(collection(db, "usuarios")).then(snapshot => {
-        setUsers(snapshot.docs.map(doc => doc.data() as User));
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
 
   const filteredRecords = useMemo(() => {
     return records.filter(record => {
@@ -284,6 +287,7 @@ export default function AttendanceDatabasePage() {
                 lastModifiedAt: serverTimestamp(),
             });
             toast({ title: "Éxito", description: "Registro de asistente actualizado." });
+            fetchData();
         } catch (error) {
             console.error("Error updating assistant:", error);
             toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el registro." });
@@ -296,6 +300,7 @@ export default function AttendanceDatabasePage() {
       const result = await deleteAssistantFromRecord(recordId, assistantId);
       if (result.success) {
         toast({ title: "Éxito", description: result.message });
+        fetchData();
       } else {
         toast({ variant: "destructive", title: "Error", description: result.message });
       }
@@ -371,6 +376,7 @@ export default function AttendanceDatabasePage() {
       title: "Historial de Asistencia",
       right: (
         <div className="flex items-center gap-1">
+           <Button onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button>
            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -414,7 +420,7 @@ export default function AttendanceDatabasePage() {
       )
     });
     return () => setActions({});
-  }, [setActions, router, handleDownload, filteredRecords.length, popoverFilters, filterOptions, isFilterOpen, handleApplyFilters, handleClearFilters]);
+  }, [setActions, router, handleDownload, filteredRecords.length, popoverFilters, filterOptions, isFilterOpen, handleApplyFilters, handleClearFilters, fetchData, loading]);
   
   const sortedDateKeys = useMemo(() => {
     return Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));

@@ -18,7 +18,7 @@ import { digitizeHealthTable } from "@/ai/flows/digitize-health-table";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, onSnapshot, writeBatch, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, writeBatch, doc, deleteDoc, updateDoc, getDocs } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -155,25 +155,34 @@ export default function RegisterHealthPage() {
   }, [editingRecord, form]);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "registros-sanidad"), (snapshot) => {
-      const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const fetchRecords = async () => {
+        try {
+            const snapshot = await getDocs(collection(db, "registros-sanidad"));
+            const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      records.sort((a, b) => {
-          const dateA = parseCustomDate(a['fechaAplicacion']);
-          const dateB = parseCustomDate(b['fechaAplicacion']);
+            records.sort((a, b) => {
+                const dateA = parseCustomDate(a['fechaAplicacion']);
+                const dateB = parseCustomDate(b['fechaAplicacion']);
 
-          if (dateA && dateB) {
-              return dateB.getTime() - dateA.getTime();
-          }
-          if (dateA) return -1;
-          if (dateB) return 1;
-          return 0;
-      });
-
-      setSavedRecords(records);
-    });
-    return () => unsubscribe();
-  }, []);
+                if (dateA && dateB) {
+                    return dateB.getTime() - dateA.getTime();
+                }
+                if (dateA) return -1;
+                if (dateB) return 1;
+                return 0;
+            });
+            setSavedRecords(records);
+        } catch(error) {
+            console.error("Failed to fetch records", error);
+            toast({
+                title: "Error",
+                description: "No se pudieron cargar los registros guardados. Comprueba tu conexión.",
+                variant: "destructive",
+            });
+        }
+    };
+    fetchRecords();
+  }, [toast]);
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -311,6 +320,7 @@ export default function RegisterHealthPage() {
     try {
         await deleteDoc(doc(db, "registros-sanidad", id));
         toast({ title: "Éxito", description: "Registro eliminado." });
+        setSavedRecords(prev => prev.filter(r => r.id !== id));
     } catch (error) {
         console.error("Error deleting record:", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el registro." });
@@ -331,6 +341,7 @@ export default function RegisterHealthPage() {
             const { id, ...dataToUpdate } = values;
             await updateDoc(docRef, dataToUpdate);
             toast({ title: "Éxito", description: "Registro actualizado en la base de datos." });
+            setSavedRecords(prev => prev.map(r => r.id === editingRecord.id ? { ...r, ...values } : r));
         } catch(error) {
             console.error("Error updating record:", error);
             toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el registro." });
@@ -633,3 +644,5 @@ export default function RegisterHealthPage() {
     </>
   );
 }
+
+    

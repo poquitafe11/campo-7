@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { format, differenceInDays, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,19 +66,21 @@ export default function HealthSummaryPage() {
         return map;
     }, [lotes]);
 
-
     useEffect(() => {
-        setLoading(true);
-        const unsubscribe = onSnapshot(collection(db, "registros-sanidad"), (snapshot) => {
-            const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HealthRecord));
-            setHealthRecords(records);
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching health records: ", error);
-            toast({ variant: "destructive", title: "Error de Carga", description: "No se pudieron cargar los registros de sanidad." });
-            setLoading(false);
-        });
-        return () => unsubscribe();
+        const fetchRecords = async () => {
+            setLoading(true);
+            try {
+                const snapshot = await getDocs(collection(db, "registros-sanidad"));
+                const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HealthRecord));
+                setHealthRecords(records);
+            } catch (error) {
+                console.error("Error fetching health records: ", error);
+                toast({ variant: "destructive", title: "Error de Carga", description: "No se pudieron cargar los registros de sanidad." });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchRecords();
     }, [toast]);
 
     const processedData = useMemo(() => {
@@ -245,3 +247,5 @@ export default function HealthSummaryPage() {
         </div>
     );
 }
+
+    
