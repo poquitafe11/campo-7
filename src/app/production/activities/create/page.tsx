@@ -119,11 +119,12 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
         
         return acc;
       }, { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0 });
-
-      summary.average = summary.workdayCount > 0 ? summary.performance / summary.workdayCount : 0;
+      
+      const numerator = showExtraPerformanceField ? summary.clustersOrJabas : summary.performance;
+      summary.average = summary.workdayCount > 0 ? numerator / summary.workdayCount : 0;
       
       return summary;
-    }, [activities]);
+    }, [activities, showExtraPerformanceField]);
 
     return (
       <TableRow>
@@ -434,8 +435,9 @@ export default function CreateActivityPage() {
         if (max > 0) acc.maxRange = Math.max(acc.maxRange, max);
         return acc;
       }, { performance: 0, clustersOrJabas: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0 });
-
-    const totalAverage = (totalsData.workdayCount > 0 ? totalsData.performance / totalsData.workdayCount : 0).toFixed(2);
+    
+    const numerator = showExtraPerformanceField ? totalsData.clustersOrJabas : totalsData.performance;
+    const totalAverage = (totalsData.workdayCount > 0 ? numerator / totalsData.workdayCount : 0).toFixed(2);
 
 
     const captureHeader = `
@@ -462,7 +464,8 @@ export default function CreateActivityPage() {
         </tr>`;
 
     const bodyRows = activitiesData.map(row => {
-        const average = (row.workdayCount || 0) > 0 ? ((row.performance || 0) / (row.workdayCount || 1)).toFixed(2) : '0.00';
+        const numerator = showExtraPerformanceField ? (row.clustersOrJabas || 0) : (row.performance || 0);
+        const average = (row.workdayCount || 0) > 0 ? (numerator / (row.workdayCount || 1)).toFixed(2) : '0.00';
         return `
         <tr>
             <td style="padding: 8px; border: 1px solid #e5e7eb;">${row.assistantName}</td>
@@ -656,7 +659,8 @@ export default function CreateActivityPage() {
                             </TableHeader>
                             <TableBody>
                                 {groupActivities.map((field, index) => {
-                                    const average = (field.workdayCount || 0) > 0 ? ((field.performance || 0) / (field.workdayCount || 1)) : 0;
+                                    const numerator = showExtraPerformanceField ? (field.clustersOrJabas || 0) : (field.performance || 0);
+                                    const average = (field.workdayCount || 0) > 0 ? (numerator / (field.workdayCount || 1)) : 0;
                                     return (
                                         <TableRow key={field.id}>
                                             <TableCell className="font-medium whitespace-nowrap">{field.assistantName}</TableCell>
@@ -730,3 +734,4 @@ export default function CreateActivityPage() {
     </>
   );
 }
+
