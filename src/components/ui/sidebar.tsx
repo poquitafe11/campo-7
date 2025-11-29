@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, ArrowLeft, LayoutGrid } from "lucide-react";
+import { LogOut, Menu, ArrowLeft, LayoutGrid, Wifi, WifiOff } from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,9 +12,32 @@ import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import { useRouter } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "./sheet";
 import { DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
+import { enableNetwork, disableNetwork } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 function SidebarContent() {
   const { profile, user, logout } = useAuth();
+  const { toast } = useToast();
+
+  const handleSync = async () => {
+    try {
+      await enableNetwork(db);
+      toast({ title: "Sincronización Activada", description: "Los datos se están sincronizando con la nube." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo activar la sincronización." });
+    }
+  };
+
+  const handleGoOffline = async () => {
+    try {
+      await disableNetwork(db);
+      toast({ title: "Modo Offline Activado", description: "La aplicación ahora trabaja sin conexión." });
+    } catch (error) {
+       toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo desactivar la sincronización." });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       <div className="p-4 border-b border-sidebar-accent/20 flex items-center gap-3 h-[73px] flex-shrink-0">
@@ -35,6 +58,22 @@ function SidebarContent() {
       </div>
 
       <div className="mt-auto p-2 border-t border-sidebar-accent/20">
+        <Button
+            variant="ghost"
+            onClick={handleSync}
+            className="w-full flex items-center justify-start gap-3 mt-1 text-sidebar-muted-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-foreground p-2"
+        >
+            <Wifi className="h-5 w-5 flex-shrink-0"/>
+            <span className="truncate">Sincronizar</span>
+        </Button>
+         <Button
+            variant="ghost"
+            onClick={handleGoOffline}
+            className="w-full flex items-center justify-start gap-3 mt-1 text-sidebar-muted-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-foreground p-2"
+        >
+            <WifiOff className="h-5 w-5 flex-shrink-0"/>
+            <span className="truncate">Trabajar sin conexión</span>
+        </Button>
         <Button
             variant="ghost"
             onClick={logout}
