@@ -14,17 +14,39 @@ import { Sheet, SheetContent, SheetTrigger } from "./sheet";
 import { DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
 import { goOnline, goOffline, isOffline } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { onSnapshot, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 
 function SidebarContent() {
   const { profile, user, logout } = useAuth();
   const { toast } = useToast();
-  const [isOnlineState, setIsOnlineState] = useState(!isOffline());
+  const [isOnlineState, setIsOnlineState] = useState(true);
 
   useEffect(() => {
-    // This component might mount after the initial check in firebase.ts,
-    // so we sync the visual state here as well.
+    // We get the initial state from isOffline(), but we need a listener to
+    // react to changes if they happen in another tab. We can listen to a
+    // specific document known to not change often, like user profile, as a proxy.
     setIsOnlineState(!isOffline());
-  }, []);
+    
+    let unsubscribe = () => {};
+    if (user?.email) {
+      const docRef = doc(db, 'usuarios', user.email);
+      unsubscribe = onSnapshot(docRef, 
+        () => { // onNext
+          if (isOffline()) {
+             setIsOnlineState(false);
+          } else {
+             setIsOnlineState(true);
+          }
+        },
+        () => { // onError
+          setIsOnlineState(false);
+        }
+      );
+    }
+    return () => unsubscribe();
+  }, [user]);
 
   const handleSync = async () => {
     try {
@@ -59,8 +81,8 @@ function SidebarContent() {
           <p className="font-semibold text-sm truncate">{profile?.nombre}</p>
           <div className="flex items-center gap-1.5">
             <span className={cn(
-                "h-2.5 w-2.5 rounded-full",
-                isOnlineState ? "bg-green-500 animate-pulse" : "bg-gray-500"
+                "h-2.5 w-2.5 rounded-full transition-colors",
+                isOnlineState ? "bg-green-500" : "bg-gray-500"
             )}></span>
             <p className="text-xs text-sidebar-muted-foreground truncate">
                 {isOnlineState ? "En Línea" : "Sin Conexión"}
@@ -78,6 +100,7 @@ function SidebarContent() {
             variant="ghost"
             onClick={handleSync}
             className="w-full flex items-center justify-start gap-3 mt-1 text-sidebar-muted-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-foreground p-2"
+            disabled={isOnlineState}
         >
             <Wifi className="h-5 w-5 flex-shrink-0"/>
             <span className="truncate">Sincronizar</span>
@@ -86,6 +109,7 @@ function SidebarContent() {
             variant="ghost"
             onClick={handleGoOffline}
             className="w-full flex items-center justify-start gap-3 mt-1 text-sidebar-muted-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-foreground p-2"
+            disabled={!isOnlineState}
         >
             <WifiOff className="h-5 w-5 flex-shrink-0"/>
             <span className="truncate">Trabajar sin conexión</span>

@@ -70,62 +70,37 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   useEffect(() => {
+    // This effect now uses onSnapshot to listen for real-time updates.
+    // The `goOffline` and `goOnline` functions in firebase.ts will control
+    // whether these listeners actually hit the network. When offline,
+    // onSnapshot will only serve cached data.
     setLoading(true);
-
-    const setupListeners = async () => {
-      // First, try to load everything from cache to get a fast initial load.
-      try {
-        const allCachePromises = collectionsConfig.map(async ({ name, key, processor }) => {
-          const querySnapshot = await getDocsFromCache(collection(db, name));
-          return { key, data: querySnapshot.docs.map(processor) };
-        });
-        const allCacheResults = await Promise.all(allCachePromises);
-        const initialData: Partial<MasterData> = {};
-        allCacheResults.forEach(result => {
-          (initialData as any)[result.key] = result.data;
-        });
-        setData(currentData => ({ ...currentData, ...initialData as MasterData }));
-      } catch (e) {
-        console.log("Cache miss or error, will rely on server listeners.", e);
-      } finally {
-        // Even if cache fails, we must stop loading to show UI,
-        // which will then be populated by the realtime listeners.
+    const unsubscribes = collectionsConfig.map(({ name, key, processor }) => {
+      const q = collection(db, name);
+      return onSnapshot(q, (querySnapshot) => {
+        const collectionData = querySnapshot.docs.map(processor);
+        setData(prevData => ({
+          ...prevData,
+          [key]: collectionData,
+        }));
         setLoading(false);
-      }
-      
-      // Then, set up realtime listeners to keep data fresh.
-      const unsubscribes = collectionsConfig.map(({ name, key, processor }) => {
-          return onSnapshot(collection(db, name), (snapshot) => {
-              const collectionData = snapshot.docs.map(processor);
-              setData(prevData => ({
-                  ...prevData,
-                  [key]: collectionData,
-              }));
-              // In case the initial cache load was empty, this will now show data.
-              if (loading) setLoading(false);
-          }, (err) => {
-              console.error(`Error listening to ${name}:`, err);
-              setError(new Error(`Failed to listen to ${name}.`));
-              // Don't set loading to false on error if we already have some data
-              if (data[key as keyof MasterData].length === 0) {
-                 setLoading(false);
-              }
-              toast({
-                  variant: 'destructive',
-                  title: `Error de Conexión: ${name}`,
-                  description: 'No se pudieron sincronizar los datos. Se usarán los datos locales si están disponibles.',
-              });
-          });
+      }, (err) => {
+        console.error(`Error listening to ${name}:`, err);
+        setError(new Error(`Failed to listen to ${name}.`));
+        setLoading(false);
+        toast({
+            variant: 'destructive',
+            title: `Error de Conexión: ${name}`,
+            description: 'No se pudieron sincronizar los datos.',
+        });
       });
-      
-      return () => {
-          unsubscribes.forEach(unsub => unsub());
-      }
-    };
-    
-    setupListeners();
+    });
 
-  }, [toast, loading, data]);
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [toast]);
+
 
   const value = { ...data, loading, error, refreshData: loadMasterData };
 
