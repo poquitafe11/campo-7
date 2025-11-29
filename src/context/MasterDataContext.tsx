@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query } from 'firebase/firestore';
 import { db, isOffline } from '@/lib/firebase';
 import type { LoteData, Labor, Assistant, MinMax, Jalador } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +20,7 @@ interface MasterData {
 interface MasterDataContextType extends MasterData {
   loading: boolean;
   error: Error | null;
-  refreshData: () => Promise<void>;
+  refreshData: (forceServer?: boolean) => Promise<void>;
 }
 
 const MasterDataContext = createContext<MasterDataContextType | undefined>(undefined);
@@ -44,7 +44,6 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     
-    // Determine the source based on online status and force flag
     const source = forceServer || !isOffline() ? 'default' : 'cache';
 
     try {
@@ -68,7 +67,6 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         }
 
     } catch (err: any) {
-        // If it fails to get from 'default' (e.g., no network), try to load from cache as a fallback.
         if (source === 'default') {
             console.warn("Server fetch failed, attempting to load from cache.", err.message);
             try {
@@ -102,7 +100,6 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   }, [toast]);
   
   useEffect(() => {
-    // Initial load when the component mounts
     loadMasterData();
   }, [loadMasterData]);
 
