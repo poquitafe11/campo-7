@@ -19,10 +19,12 @@ import { useToast } from "@/hooks/use-toast";
 function SidebarContent() {
   const { profile, user, logout } = useAuth();
   const { toast } = useToast();
+  const [isOnline, setIsOnline] = useState(true);
 
   const handleSync = async () => {
     try {
       await enableNetwork(db);
+      setIsOnline(true);
       toast({ title: "Sincronización Activada", description: "Los datos se están sincronizando con la nube." });
     } catch (error) {
       toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo activar la sincronización." });
@@ -32,6 +34,7 @@ function SidebarContent() {
   const handleGoOffline = async () => {
     try {
       await disableNetwork(db);
+      setIsOnline(false);
       toast({ title: "Modo Offline Activado", description: "La aplicación ahora trabaja sin conexión." });
     } catch (error) {
        toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo desactivar la sincronización." });
@@ -49,7 +52,15 @@ function SidebarContent() {
         </Avatar>
         <div className="overflow-hidden">
           <p className="font-semibold text-sm truncate">{profile?.nombre}</p>
-          <p className="text-xs text-sidebar-muted-foreground truncate">Rol: {profile?.rol}</p>
+          <div className="flex items-center gap-1.5">
+            <span className={cn(
+                "h-2.5 w-2.5 rounded-full",
+                isOnline ? "bg-green-500 animate-pulse" : "bg-gray-500"
+            )}></span>
+            <p className="text-xs text-sidebar-muted-foreground truncate">
+                {isOnline ? "En Línea" : "Sin Conexión"}
+            </p>
+          </div>
         </div>
       </div>
 
