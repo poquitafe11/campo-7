@@ -44,6 +44,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     
+    // The source of truth is the isOffline() function, which checks localStorage.
     const offlineMode = isOffline();
     const source = forceServer || !offlineMode ? 'default' : 'cache';
 
@@ -68,9 +69,11 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         }
 
     } catch (err: any) {
-        if (source === 'default' && err.code === 'unavailable') {
-            console.warn("Server fetch failed (unavailable), attempting to load from cache.", err.message);
-            try {
+        // If the primary source fails (e.g., server fetch on a flaky connection), always try cache as a fallback.
+        console.error(`Failed to load master data from ${source}:`, err);
+        if (source === 'default') {
+             console.warn("Server fetch failed, attempting to load from cache as fallback.");
+             try {
                 const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
                     const querySnapshot = await getDocs(query(collection(db, name)), { source: 'cache' });
                     return { key, data: querySnapshot.docs.map(processor) };
@@ -83,8 +86,8 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
                  setData(currentData => ({ ...currentData, ...newData as MasterData }));
                  console.log("Successfully loaded master data from cache after server failure.");
             } catch (cacheErr: any) {
-                console.error("Failed to load master data from cache as well:", cacheErr);
-                setError(new Error("No se pudieron cargar los datos maestros ni desde el servidor ni desde la caché."));
+                console.error("Critical error: Failed to load master data from cache as well:", cacheErr);
+                setError(new Error("No se pudieron cargar los datos maestros. La aplicación puede no funcionar correctamente."));
                 toast({
                     variant: "destructive",
                     title: "Error Crítico de Datos",
@@ -92,7 +95,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
                 });
             }
         } else {
-            console.error(`Failed to load master data from ${source}:`, err);
+            // If even cache fails, it's a critical error.
             setError(err);
         }
     } finally {
@@ -104,6 +107,8 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     loadMasterData();
     
     const handleStatusChange = () => {
+        // This event is fired by our goOnline/goOffline functions.
+        // We reload the data to respect the new state.
         loadMasterData();
     };
 
