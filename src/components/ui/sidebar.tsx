@@ -23,15 +23,16 @@ function SidebarContent() {
   const { profile, user, logout } = useAuth();
   const { toast } = useToast();
   const { refreshData } = useMasterData();
-  const [isOnlineState, setIsOnlineState] = useState(true);
+  const [isOnlineState, setIsOnlineState] = useState(!isOffline());
 
   useEffect(() => {
     const updateOnlineStatus = () => {
       setIsOnlineState(!isOffline());
     };
-    updateOnlineStatus(); // Set initial state
     
-    // Listen for custom events that we'll dispatch from goOnline/goOffline
+    // Set initial state
+    updateOnlineStatus();
+    
     window.addEventListener('online-status-changed', updateOnlineStatus);
     
     return () => window.removeEventListener('online-status-changed', updateOnlineStatus);
@@ -39,8 +40,9 @@ function SidebarContent() {
 
   const handleSync = async () => {
     try {
-      await goOnline();
-      await refreshData(true); // Force a server refresh
+      await goOnline(); // This will trigger the event and update state
+      // Force a server refresh immediately after going online
+      await refreshData(true); 
       toast({ title: "Sincronización Activada", description: "Los datos se están sincronizando con la nube." });
     } catch (error) {
       toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo activar la sincronización." });
@@ -49,7 +51,7 @@ function SidebarContent() {
 
   const handleGoOffline = async () => {
     try {
-      await goOffline();
+      await goOffline(); // This will trigger the event and update state
       toast({ title: "Modo Offline Activado", description: "La aplicación ahora trabaja sin conexión." });
     } catch (error) {
        toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo desactivar la sincronización." });

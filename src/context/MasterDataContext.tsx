@@ -44,7 +44,8 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     
-    const source = forceServer || !isOffline() ? 'default' : 'cache';
+    const offlineMode = isOffline();
+    const source = forceServer || !offlineMode ? 'default' : 'cache';
 
     try {
         const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
@@ -67,6 +68,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         }
 
     } catch (err: any) {
+        // If the primary source fails, always try the cache as a fallback.
         if (source === 'default') {
             console.warn("Server fetch failed, attempting to load from cache.", err.message);
             try {
@@ -101,6 +103,18 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   
   useEffect(() => {
     loadMasterData();
+    
+    const handleStatusChange = () => {
+        // Reload data respecting the offline status when it changes
+        loadMasterData();
+    };
+
+    window.addEventListener('online-status-changed', handleStatusChange);
+
+    return () => {
+        window.removeEventListener('online-status-changed', handleStatusChange);
+    };
+
   }, [loadMasterData]);
 
   const value = { ...data, loading, error, refreshData: loadMasterData };
