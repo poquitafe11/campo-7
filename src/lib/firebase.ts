@@ -16,7 +16,6 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-// --- Funciones para controlar el estado de red ---
 const OFFLINE_PERSISTENCE_KEY = 'firebase-offline-mode';
 
 export const goOffline = async () => {
@@ -41,11 +40,10 @@ export const isOffline = () => {
   if (typeof window !== 'undefined') {
     return window.localStorage.getItem(OFFLINE_PERSISTENCE_KEY) === 'true';
   }
-  return false; // Default to online on the server
+  return false; 
 };
 
 
-// This function will initialize firebase on the client
 function initializeFirebase() {
   if (getApps().length) {
     app = getApp();
@@ -75,10 +73,9 @@ function initializeFirebase() {
 
   enableIndexedDbPersistence(db)
     .then(() => {
-      // Check if we should start in offline mode
       if (isOffline()) {
         console.log("Starting in offline mode as per saved preference.");
-        disableNetwork(db);
+        return disableNetwork(db);
       }
     })
     .catch((err) => {

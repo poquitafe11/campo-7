@@ -68,9 +68,8 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         }
 
     } catch (err: any) {
-        // If the primary source fails, always try the cache as a fallback.
-        if (source === 'default') {
-            console.warn("Server fetch failed, attempting to load from cache.", err.message);
+        if (source === 'default' && err.code === 'unavailable') {
+            console.warn("Server fetch failed (unavailable), attempting to load from cache.", err.message);
             try {
                 const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
                     const querySnapshot = await getDocs(query(collection(db, name)), { source: 'cache' });
@@ -93,7 +92,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
                 });
             }
         } else {
-            console.error("Failed to load master data from cache:", err);
+            console.error(`Failed to load master data from ${source}:`, err);
             setError(err);
         }
     } finally {
@@ -105,7 +104,6 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     loadMasterData();
     
     const handleStatusChange = () => {
-        // Reload data respecting the offline status when it changes
         loadMasterData();
     };
 
