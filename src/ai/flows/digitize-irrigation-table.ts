@@ -52,8 +52,9 @@ IMPORTANT RULES FOR TABLE EXTRACTION:
 1.  **Unified Rows**: Treat each horizontal line of data across the image as a single record. Combine the corresponding cells from all four sections into one JSON object for that row.
 2.  **Row Correspondence**: The rows in the second, third, and fourth sections correspond to the rows in the first section based on their vertical position.
 3.  **Header Cleaning**: For the HEADERS (which will become the keys of the JSON object), use the exact text from the image, but remove any dots '.' and slashes '/'. Do NOT add any other punctuation like underscores '_' or hyphens '-'. For example, "Bomba N°" remains "Bomba N°", "Total m3/Dia" becomes "Total m3Dia", and "m3/Ha /Hora" becomes "m3Ha Hora".
-4.  **Empty Cells**: If a cell in a row is empty or contains only a hyphen '-', do not include that key-value pair in the JSON object for that row.
-5.  **Final Table Output**: The final output for 'tableContent' must be a single JSON string containing ONE valid JSON array. Each object in the array represents a complete, unified row from the image.
+4.  **Nutrient Columns**: Pay special attention to the last section "Unidades / Ha". Make sure to extract values for "N", "P2O5", "K", "Ca", "Mg", "Zn", and "Mn" if they are present in a row.
+5.  **Empty Cells**: If a cell in a row is empty or contains only a hyphen '-', do not include that key-value pair in the JSON object for that row.
+6.  **Final Table Output**: The final output for 'tableContent' must be a single JSON string containing ONE valid JSON array. Each object in the array represents a complete, unified row from the image.
 
 Example Output Format:
 {
@@ -61,7 +62,7 @@ Example Output Format:
   "fecha": "29 de Agosto de 2025",
   "dia": "VIERNES",
   "eto": "5.8",
-  "tableContent": "[ { \\"Bomba N°\\": \\"001\\", \\"Sector\\": \\"Cotton candy\\", \\"Lote\\": \\"82a\\", \\"Ha\\": \\"14.80\\", \\"m3Ha Hora\\": \\"10.3\\" }, { \\"Bomba N°\\": \\"002\\", \\"Sector\\": \\"Autumn Crisp\\", \\"Lote\\": \\"072\\", \\"De\\": \\"10:00 a. m.\\", \\"Hasta\\": \\"6:00 p. m.\\", \\"Total Horas\\": \\"08:00\\", \\"Observaciones\\": \\"Fertilizar\\", \\"Kc\\": \\"1.8\\", \\"Total m3Dia\\": \\"2,007.6\\", \\"Ha\\": \\"31.00\\", \\"m3Ha Hora\\": \\"8.1\\", \\"Lps Ideal\\": \\"70\\", \\"Lps adicional 10%\\": \\"77\\", \\"Nitr Calcio (Kgr)\\" : \\"2,025.0\\", \\"Tiosulfato de Calcio (Lts)\\" : \\"600.0\\", \\"N\\": \\"10\\", \\"K\\": \\"19\\" } ]"
+  "tableContent": "[ { \\"Bomba N°\\": \\"001\\", \\"Sector\\": \\"Cotton candy\\", \\"Lote\\": \\"82a\\", \\"Ha\\": \\"14.80\\", \\"m3Ha Hora\\": \\"10.3\\" }, { \\"Bomba N°\\": \\"002\\", \\"Sector\\": \\"Autumn Crisp\\", \\"Lote\\": \\"072\\", \\"De\\": \\"10:00 a. m.\\", \\"Hasta\\": \\"6:00 p. m.\\", \\"Total Horas\\": \\"08:00\\", \\"Observaciones\\": \\"Fertilizar\\", \\"Kc\\": \\"1.8\\", \\"Total m3Dia\\": \\"2,007.6\\", \\"Ha\\": \\"31.00\\", \\"m3Ha Hora\\": \\"8.1\\", \\"Lps Ideal\\": \\"70\\", \\"Lps adicional 10%\\": \\"77\\", \\"Nitr Calcio (Kgr)\\" : \\"2,025.0\\", \\"Tiosulfato de Calcio (Lts)\\" : \\"600.0\\", \\"N\\": \\"10\\", \\"K\\": \\"19\\", \\"Ca\\": \\"8\\" } ]"
 }
 
 
