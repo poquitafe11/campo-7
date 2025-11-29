@@ -44,13 +44,18 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     
-    // The source of truth is the isOffline() function, which checks localStorage.
-    const offlineMode = isOffline();
-    const source = forceServer || !offlineMode ? 'default' : 'cache';
-
+    // The isOffline() function is the SINGLE source of truth.
+    // The getDocs() call will either use the network or fail if offline,
+    // which is the desired behavior. The persistence layer will serve from cache if network is disabled.
+    console.log(`MasterDataContext: Attempting to load data. Is app offline? ${isOffline()}. Force server? ${forceServer}`);
+    
     try {
         const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
-            const querySnapshot = await getDocs(query(collection(db, name)), { source });
+            // We don't specify the source anymore. Firebase's SDK will handle it.
+            // If we called disableNetwork(), this will automatically fail to reach the server
+            // and the enabled persistence layer will serve the data from cache.
+            // If we called enableNetwork(), it will try the server.
+            const querySnapshot = await getDocs(query(collection(db, name)));
             return { key, data: querySnapshot.docs.map(processor) };
         });
 
@@ -62,42 +67,16 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
 
         setData(currentData => ({ ...currentData, ...newData as MasterData }));
         
-        if (source === 'default') {
-             console.log("Master data refreshed from server.");
-        } else {
-             console.log("Master data loaded from cache.");
-        }
+        console.log("Master data successfully loaded.");
 
     } catch (err: any) {
-        // If the primary source fails (e.g., server fetch on a flaky connection), always try cache as a fallback.
-        console.error(`Failed to load master data from ${source}:`, err);
-        if (source === 'default') {
-             console.warn("Server fetch failed, attempting to load from cache as fallback.");
-             try {
-                const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
-                    const querySnapshot = await getDocs(query(collection(db, name)), { source: 'cache' });
-                    return { key, data: querySnapshot.docs.map(processor) };
-                });
-                 const allDataResults = await Promise.all(allDataPromises);
-                 const newData: Partial<MasterData> = {};
-                 allDataResults.forEach(result => {
-                     (newData as any)[result.key] = result.data;
-                 });
-                 setData(currentData => ({ ...currentData, ...newData as MasterData }));
-                 console.log("Successfully loaded master data from cache after server failure.");
-            } catch (cacheErr: any) {
-                console.error("Critical error: Failed to load master data from cache as well:", cacheErr);
-                setError(new Error("No se pudieron cargar los datos maestros. La aplicación puede no funcionar correctamente."));
-                toast({
-                    variant: "destructive",
-                    title: "Error Crítico de Datos",
-                    description: "No se pueden cargar los datos maestros. La aplicación puede no funcionar correctamente.",
-                });
-            }
-        } else {
-            // If even cache fails, it's a critical error.
-            setError(err);
-        }
+        console.error(`Critical error loading master data:`, err);
+        setError(new Error("No se pudieron cargar los datos maestros. La aplicación puede no funcionar correctamente."));
+        toast({
+            variant: "destructive",
+            title: "Error Crítico de Datos",
+            description: "No se pueden cargar los datos maestros. Comprueba tu conexión o contacta a soporte.",
+        });
     } finally {
         setLoading(false);
     }

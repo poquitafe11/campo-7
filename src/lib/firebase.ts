@@ -23,7 +23,7 @@ export const goOffline = async () => {
     window.localStorage.setItem(OFFLINE_PERSISTENCE_KEY, 'true');
     await disableNetwork(db);
     window.dispatchEvent(new CustomEvent('online-status-changed'));
-    console.log("Network disabled. App is now offline.");
+    console.log("NETWORK CONTROL: Network DISABLED. App is now explicitly offline.");
   }
 };
 
@@ -32,7 +32,7 @@ export const goOnline = async () => {
     window.localStorage.removeItem(OFFLINE_PERSISTENCE_KEY);
     await enableNetwork(db);
     window.dispatchEvent(new CustomEvent('online-status-changed'));
-    console.log("Network enabled. App is now online.");
+    console.log("NETWORK CONTROL: Network ENABLED. App is now explicitly online.");
   }
 };
 
@@ -73,8 +73,9 @@ function initializeFirebase() {
 
   enableIndexedDbPersistence(db)
     .then(() => {
+      console.log("Firebase persistence enabled.");
       if (isOffline()) {
-        console.log("Starting in offline mode as per saved preference.");
+        console.log("NETWORK CONTROL: Starting in offline mode as per saved preference.");
         return disableNetwork(db);
       }
     })
