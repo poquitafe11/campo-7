@@ -40,8 +40,9 @@ export const viewport: Viewport = {
   themeColor: "#6d28d9",
   width: 'device-width',
   initialScale: 1,
-  userScalable: true, // Allow user to zoom
-  orientation: 'any',
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
