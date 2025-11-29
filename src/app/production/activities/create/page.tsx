@@ -99,9 +99,9 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
   
     const totals = useMemo(() => {
-      if (!activities || activities.length === 0) return { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0 };
+      if (!activities || activities.length === 0) return { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0, average: 0 };
       
-      return activities.reduce((acc: any, curr: any) => {
+      const summary = activities.reduce((acc: any, curr: any) => {
         acc.performance += Number(curr.performance) || 0;
         acc.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
         acc.personnelCount += Number(curr.personnelCount) || 0;
@@ -119,6 +119,10 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
         
         return acc;
       }, { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0 });
+
+      summary.average = summary.workdayCount > 0 ? summary.performance / summary.workdayCount : 0;
+      
+      return summary;
     }, [activities]);
 
     return (
@@ -128,6 +132,7 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
         {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
         <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
         <TableCell className="font-bold text-center">{totals.workdayCount.toFixed(1)}</TableCell>
+        <TableCell className="font-bold text-center">{totals.average.toFixed(2)}</TableCell>
         <TableCell className="font-bold text-center">{totals.minRange}</TableCell>
         <TableCell className="font-bold text-center">{totals.maxRange}</TableCell>
         <TableCell colSpan={2}></TableCell>
@@ -430,6 +435,9 @@ export default function CreateActivityPage() {
         return acc;
       }, { performance: 0, clustersOrJabas: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0 });
 
+    const totalAverage = (totalsData.workdayCount > 0 ? totalsData.performance / totalsData.workdayCount : 0).toFixed(2);
+
+
     const captureHeader = `
         <div style="padding: 16px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; font-family: sans-serif;">
             <h2 style="font-size: 1.125rem; font-weight: 600; margin: 0;">Labor: ${labor}</h2>
@@ -447,22 +455,26 @@ export default function CreateActivityPage() {
             ${showExtraPerformanceField ? `<th style="padding: 8px; border: 1px solid #e5e7eb;">${extraPerformanceLabel}</th>` : ''}
             <th style="padding: 8px; border: 1px solid #e5e7eb;">Personas</th>
             <th style="padding: 8px; border: 1px solid #e5e7eb;">JHU</th>
+            <th style="padding: 8px; border: 1px solid #e5e7eb;">Prom.</th>
             <th style="padding: 8px; border: 1px solid #e5e7eb;">Mínimo</th>
             <th style="padding: 8px; border: 1px solid #e5e7eb;">Máximo</th>
             <th style="padding: 8px; border: 1px solid #e5e7eb;">Obs.</th>
         </tr>`;
 
-    const bodyRows = activitiesData.map(row => `
+    const bodyRows = activitiesData.map(row => {
+        const average = (row.workdayCount || 0) > 0 ? ((row.performance || 0) / (row.workdayCount || 1)).toFixed(2) : '0.00';
+        return `
         <tr>
             <td style="padding: 8px; border: 1px solid #e5e7eb;">${row.assistantName}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.performance || ''}</td>
             ${showExtraPerformanceField ? `<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.clustersOrJabas || ''}</td>` : ''}
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.personnelCount}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.workdayCount || ''}</td>
+            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${average}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.minRange || ''}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.maxRange || ''}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb;">${row.observations || ''}</td>
-        </tr>`).join('');
+        </tr>`}).join('');
     
     const footerRow = `
         <tr style="font-weight: bold; background-color: #f3f4f6;">
@@ -471,6 +483,7 @@ export default function CreateActivityPage() {
              ${showExtraPerformanceField ? `<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.clustersOrJabas.toLocaleString('es-PE')}</td>` : ''}
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.personnelCount}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.workdayCount.toFixed(1)}</td>
+            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalAverage}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.minRange}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.maxRange}</td>
             <td style="padding: 8px; border: 1px solid #e5e7eb;"></td>
@@ -634,6 +647,7 @@ export default function CreateActivityPage() {
                                     {showExtraPerformanceField && <TableHead className="min-w-[120px]">{extraPerformanceLabel}</TableHead>}
                                     <TableHead className="min-w-[100px]">Personas</TableHead>
                                     <TableHead className="min-w-[100px]">JHU</TableHead>
+                                    <TableHead className="min-w-[100px]">Prom.</TableHead>
                                     <TableHead className="min-w-[100px]">Mínimo</TableHead>
                                     <TableHead className="min-w-[100px]">Máximo</TableHead>
                                     <TableHead className="min-w-[150px]">Obs.</TableHead>
@@ -641,37 +655,43 @@ export default function CreateActivityPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {groupActivities.map((field, index) => (
-                                <TableRow key={field.id}>
-                                    <TableCell className="font-medium whitespace-nowrap">{field.assistantName}</TableCell>
-                                    <TableCell>
-                                        <Input type="number" value={field.performance || ''} onChange={e => handleGroupActivityChange(index, 'performance', e.target.value)} className="w-24 h-8" />
-                                    </TableCell>
-                                    {showExtraPerformanceField && <TableCell>
-                                       <Input type="number" value={field.clustersOrJabas || ''} onChange={e => handleGroupActivityChange(index, 'clustersOrJabas', e.target.value)} className="w-24 h-8" />
-                                    </TableCell>}
-                                    <TableCell>
-                                        <Input type="number" value={field.personnelCount || ''} onChange={e => handleGroupActivityChange(index, 'personnelCount', e.target.value)} className="w-20 h-8" />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input type="number" value={field.workdayCount || ''} onChange={e => handleGroupActivityChange(index, 'workdayCount', e.target.value)} className="w-20 h-8" />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input type="number" value={field.minRange || ''} onChange={e => handleGroupActivityChange(index, 'minRange', e.target.value)} className="w-20 h-8" />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input type="number" value={field.maxRange || ''} onChange={e => handleGroupActivityChange(index, 'maxRange', e.target.value)} className="w-20 h-8" />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input value={field.observations || ''} onChange={e => handleGroupActivityChange(index, 'observations', e.target.value)} className="w-36 h-8" />
-                                    </TableCell>
-                                    <TableCell className="text-center print-hide">
-                                        <div className="flex gap-1 justify-center">
-                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveActivity(field.id)}><Trash2 className="h-4 w-4"/></Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                                ))}
+                                {groupActivities.map((field, index) => {
+                                    const average = (field.workdayCount || 0) > 0 ? ((field.performance || 0) / (field.workdayCount || 1)) : 0;
+                                    return (
+                                        <TableRow key={field.id}>
+                                            <TableCell className="font-medium whitespace-nowrap">{field.assistantName}</TableCell>
+                                            <TableCell>
+                                                <Input type="number" value={field.performance || ''} onChange={e => handleGroupActivityChange(index, 'performance', e.target.value)} className="w-24 h-8" />
+                                            </TableCell>
+                                            {showExtraPerformanceField && <TableCell>
+                                            <Input type="number" value={field.clustersOrJabas || ''} onChange={e => handleGroupActivityChange(index, 'clustersOrJabas', e.target.value)} className="w-24 h-8" />
+                                            </TableCell>}
+                                            <TableCell>
+                                                <Input type="number" value={field.personnelCount || ''} onChange={e => handleGroupActivityChange(index, 'personnelCount', e.target.value)} className="w-20 h-8" />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Input type="number" value={field.workdayCount || ''} onChange={e => handleGroupActivityChange(index, 'workdayCount', e.target.value)} className="w-20 h-8" />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Input type="number" value={average.toFixed(2)} readOnly disabled className="w-20 h-8 bg-muted/50" />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Input type="number" value={field.minRange || ''} onChange={e => handleGroupActivityChange(index, 'minRange', e.target.value)} className="w-20 h-8" />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Input type="number" value={field.maxRange || ''} onChange={e => handleGroupActivityChange(index, 'maxRange', e.target.value)} className="w-20 h-8" />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Input value={field.observations || ''} onChange={e => handleGroupActivityChange(index, 'observations', e.target.value)} className="w-36 h-8" />
+                                            </TableCell>
+                                            <TableCell className="text-center print-hide">
+                                                <div className="flex gap-1 justify-center">
+                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveActivity(field.id)}><Trash2 className="h-4 w-4"/></Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
                             </TableBody>
                             <TableFooter>
                                 <GroupFormTotals activities={groupActivities} showExtraPerformanceField={showExtraPerformanceField} />
