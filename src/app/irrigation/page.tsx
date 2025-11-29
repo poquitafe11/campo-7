@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Database, BarChart3, Settings } from "lucide-react";
+import { Database, FileDigit, BarChart3, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,16 @@ import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const allIrrigationFeatures = [
   {
-    icon: <Database className="h-8 w-8 text-primary" />,
-    title: "Registro y Base",
-    description: "Digitaliza y gestiona los registros de riego.",
+    icon: <FileDigit className="h-8 w-8 text-primary" />,
+    title: "Registro",
+    description: "Digitaliza y crea nuevos registros de riego.",
     href: "/irrigation/register",
+  },
+  {
+    icon: <Database className="h-8 w-8 text-primary" />,
+    title: "Base de Datos",
+    description: "Gestiona y consulta el historial de riego.",
+    href: "/irrigation/database",
   },
   {
     icon: <BarChart3 className="h-8 w-8 text-primary" />,
