@@ -260,14 +260,16 @@ export default function RegisterIrrigationPage() {
         const batch = writeBatch(db);
         parsedData.forEach(row => {
             const { internalId, ...rowData } = row;
-            // Generate a unique ID to prevent overwrites, or use a more specific ID if available
-            const docId = `${rowData.Campaña}-${rowData.Lote}-${rowData.Fecha}-${Math.random()}`;
+            // Use a stable, predictable ID to allow for overwrites.
+            // Using Campaña, Lote, Fecha, and now Sector for more uniqueness.
+            const sector = rowData.Sector || 'General';
+            const docId = `${rowData.Campaña}-${rowData.Lote}-${rowData.Fecha}-${sector}`.replace(/[\s/]/g, '-');
             const docRef = doc(db, "registros-riego", docId);
-            batch.set(docRef, rowData);
+            batch.set(docRef, rowData, { merge: true }); // Use merge: true to update if exists
         });
         await batch.commit();
         
-        toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados.` });
+        toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados o actualizados.` });
         
         setSourceImage(null);
         setCroppedImage(null);
@@ -475,5 +477,7 @@ export default function RegisterIrrigationPage() {
     </>
   );
 }
+
+    
 
     
