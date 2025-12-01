@@ -59,6 +59,25 @@ const getHeaderGroupColor = (header: string) => {
   return '';
 };
 
+const parseSpanishDate = (dateString: string): Date => {
+    if (!dateString) return new Date('invalid');
+    const normalizedDateString = dateString.toLowerCase().replace('setiembre', 'septiembre');
+    const months: { [key: string]: number } = {
+        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+    };
+    const parts = normalizedDateString.split(' de ');
+    if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = months[parts[1]];
+        const year = parseInt(parts[2], 10);
+        if (!isNaN(day) && month !== undefined && !isNaN(year)) {
+            return new Date(year, month, day);
+        }
+    }
+    return new Date('invalid');
+};
+
 
 export default function IrrigationDatabasePage() {
   const { toast } = useToast();
@@ -99,8 +118,12 @@ export default function IrrigationDatabasePage() {
             const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             const sortedRecords = records.sort((a, b) => {
-                const dateA = a.Fecha ? new Date(a.Fecha) : new Date(0);
-                const dateB = b.Fecha ? new Date(b.Fecha) : new Date(0);
+                const dateA = parseSpanishDate(a.Fecha);
+                const dateB = parseSpanishDate(b.Fecha);
+                
+                if (dateA.toString() === 'Invalid Date') return 1;
+                if (dateB.toString() === 'Invalid Date') return -1;
+
                 return dateB.getTime() - dateA.getTime();
             });
             setSavedRecords(sortedRecords);
@@ -405,3 +428,5 @@ export default function IrrigationDatabasePage() {
     </>
   );
 }
+
+    
