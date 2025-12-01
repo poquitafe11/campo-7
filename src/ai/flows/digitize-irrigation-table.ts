@@ -51,7 +51,7 @@ The image contains one large table visually split into multiple sections. Your p
 IMPORTANT RULES FOR TABLE EXTRACTION:
 1.  **Column Headers**: First, identify all column headers across all sections. For the JSON keys, use the exact header text from the image but clean it by removing any dots '.' and slashes '/'. For example, "Total m3/Dia" becomes "Total m3Dia", and "m3/Ha /Hora" becomes "m3Ha Hora".
 2.  **Row Unification**: For each row of data, combine the values from all corresponding columns across the different visual sections into a single JSON object.
-3.  **Mandatory Nutrient Columns and Hyphen Rule**: The final JSON for EACH row MUST contain keys for all the following nutrients: "N", "P2O5", "K", "Ca", "Mg", "Zn", "Mn". Carefully match the value under each nutrient column in the image (e.g., "N", "K", "Ca") to its correct key in the JSON. If a nutrient column in the image for a specific row contains a hyphen "-", is blank, or is empty, you MUST include the corresponding nutrient key in the JSON with an empty string "" as its value. The hyphen is a placeholder for an empty cell and is critical for maintaining correct column alignment. DO NOT SKIP IT.
+3.  **Mandatory Nutrient Columns and Hyphen Rule**: The final JSON for EACH row MUST contain keys for all the following nutrients: "N", "P2O5", "K", "Ca", "Mg", "Zn", "Mn", "B", "Fe", "S". Carefully match the value under each nutrient column in the image (e.g., "N", "K", "Ca") to its correct key in the JSON. If a nutrient column in the image for a specific row contains a hyphen "-", is blank, or is empty, you MUST include the corresponding nutrient key in the JSON with an empty string "" as its value. The hyphen is a placeholder for an empty cell and is critical for maintaining correct column alignment. DO NOT SKIP IT.
 
 Example Output Format:
 {
@@ -59,7 +59,7 @@ Example Output Format:
   "fecha": "29 de Agosto de 2025",
   "dia": "VIERNES",
   "eto": "5.8",
-  "tableContent": "[ { \\"Bomba N°\\": \\"001\\", \\"Sector\\": \\"Cotton candy\\", \\"Lote\\": \\"78\\", \\"Ha\\": \\"14.80\\", \\"m3Ha Hora\\": \\"10.3\\", \\"N\\": \\"4\\", \\"P2O5\\": \\"\\", \\"K\\": \\"\\", \\"Ca\\": \\"6\\", \\"Mg\\": \\"\\", \\"Zn\\": \\"\\", \\"Mn\\": \\"\\" }, { \\"Bomba N°\\": \\"002\\", \\"Sector\\": \\"Autumn Crisp\\", \\"Lote\\": \\"072\\", \\"De\\": \\"10:00 a. m.\\", \\"Hasta\\": \\"6:00 p. m.\\", \\"Total Horas\\": \\"08:00\\", \\"Observaciones\\": \\"Fertilizar\\", \\"Kc\\": \\"1.8\\", \\"Total m3Dia\\": \\"2,007.6\\", \\"Ha\\": \\"31.00\\", \\"m3Ha Hora\\": \\"8.1\\", \\"Lps Ideal\\": \\"70\\", \\"Lps adicional 10%\\": \\"77\\", \\"N\\": \\"\\", \\"P2O5\\": \\"\\", \\"K\\": \\"18\\", \\"Ca\\": \\"\\", \\"Mg\\": \\"\\", \\"Zn\\": \\"\\", \\"Mn\\": \\"\\" } ]"
+  "tableContent": "[ { \\"Bomba N°\\": \\"001\\", \\"Sector\\": \\"Cotton candy\\", \\"Lote\\": \\"78\\", \\"Ha\\": \\"14.80\\", \\"m3Ha Hora\\": \\"10.3\\", \\"N\\": \\"4\\", \\"P2O5\\": \\"\\", \\"K\\": \\"\\", \\"Ca\\": \\"6\\", \\"Mg\\": \\"\\", \\"Zn\\": \\"\\", \\"Mn\\": \\"\\", \\"B\\": \\"\\", \\"Fe\\": \\"\\", \\"S\\": \\"\\" }, { \\"Bomba N°\\": \\"002\\", \\"Sector\\": \\"Autumn Crisp\\", \\"Lote\\": \\"072\\", \\"De\\": \\"10:00 a. m.\\", \\"Hasta\\": \\"6:00 p. m.\\", \\"Total Horas\\": \\"08:00\\", \\"Observaciones\\": \\"Fertilizar\\", \\"Kc\\": \\"1.8\\", \\"Total m3Dia\\": \\"2,007.6\\", \\"Ha\\": \\"31.00\\", \\"m3Ha Hora\\": \\"8.1\\", \\"Lps Ideal\\": \\"70\\", \\"Lps adicional 10%\\": \\"77\\", \\"N\\": \\"\\", \\"P2O5\\": \\"\\", \\"K\\": \\"18\\", \\"Ca\\": \\"\\", \\"Mg\\": \\"\\", \\"Zn\\": \\"\\", \\"Mn\\": \\"\\", \\"B\\": \\"\\", \\"Fe\\": \\"\\", \\"S\\": \\"\\" } ]"
 }
 
 
@@ -79,4 +79,3 @@ const digitizeIrrigationTableFlow = ai.defineFlow(
     return output!;
   }
 );
-
