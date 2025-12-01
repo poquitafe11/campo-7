@@ -46,15 +46,13 @@ TASK 1: Extract Header Data
 - Find the "ETo" value at the top of the document. Extract only the numeric value (e.g., "5.8"). Place this string in the "eto" output field.
 
 TASK 2: Extract and Unify the Table
-- The image shows one large logical table divided visually into four sections. You must analyze each horizontal row across all four sections and combine them into a single JSON object.
+The image contains one large table visually split into multiple sections. Your primary task is to merge the data from all sections for each row into a single JSON object.
 
 IMPORTANT RULES FOR TABLE EXTRACTION:
-1.  **Unified Rows**: Treat each horizontal line of data across the image as a single record. Combine the corresponding cells from all four sections into one JSON object for that row.
-2.  **Row Correspondence**: The rows in the second, third, and fourth sections correspond to the rows in the first section based on their vertical position.
-3.  **Header Cleaning**: For the HEADERS (which will become the keys of the JSON object), use the exact text from the image, but remove any dots '.' and slashes '/'. Do NOT add any other punctuation like underscores '_' or hyphens '-'. For example, "Bomba N°" remains "Bomba N°", "Total m3/Dia" becomes "Total m3Dia", and "m3/Ha /Hora" becomes "m3Ha Hora".
-4.  **Nutrient Columns**: The nutrient columns are "N", "P2O5", "K", "Ca", "Mg", "Zn", and "Mn". When you see a hyphen "-" in one of these columns for a given row, it means the value is empty.
-5.  **Mandatory Nutrient Keys**: For EVERY row, you MUST include keys for all of the following nutrients: "N", "P2O5", "K", "Ca", "Mg", "Zn", and "Mn". If a value for a nutrient is present, extract it. If a nutrient column contains a hyphen "-" or is empty, you MUST include the key with an empty string "" as the value. This ensures all nutrient columns are always present.
-6.  **Final Table Output**: The final output for 'tableContent' must be a single JSON string containing ONE valid JSON array. Each object in the array represents a complete, unified row from the image.
+1.  **Column Headers**: First, identify all column headers across all sections. For the JSON keys, use the exact header text from the image but clean it by removing any dots '.' and slashes '/'. For example, "Total m3/Dia" becomes "Total m3Dia", and "m3/Ha /Hora" becomes "m3Ha Hora".
+2.  **Row Unification**: For each row of data, combine the values from all corresponding columns across the different visual sections into a single JSON object.
+3.  **Mandatory Nutrient Columns**: The final JSON for EACH row MUST contain keys for all the following nutrients: "N", "P2O5", "K", "Ca", "Mg", "Zn", "Mn".
+4.  **Nutrient Value Assignment**: Carefully match the value under each nutrient column in the image (e.g., "N", "K", "Ca") to its correct key in the JSON. If a nutrient column in the image for a specific row contains a hyphen "-", is blank, or is empty, you MUST include the corresponding nutrient key in the JSON with an empty string "" as its value. This is critical to prevent data from shifting columns.
 
 Example Output Format:
 {
