@@ -15,7 +15,7 @@ const DigitizeIrrigationTableInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo of a table, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo of a table, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
 });
 export type DigitizeIrrigationTableInput = z.infer<typeof DigitizeIrrigationTableInputSchema>;
@@ -52,8 +52,9 @@ IMPORTANT RULES FOR TABLE EXTRACTION:
 1.  **Unified Rows**: Treat each horizontal line of data across the image as a single record. Combine the corresponding cells from all four sections into one JSON object for that row.
 2.  **Row Correspondence**: The rows in the second, third, and fourth sections correspond to the rows in the first section based on their vertical position.
 3.  **Header Cleaning**: For the HEADERS (which will become the keys of the JSON object), use the exact text from the image, but remove any dots '.' and slashes '/'. Do NOT add any other punctuation like underscores '_' or hyphens '-'. For example, "Bomba N°" remains "Bomba N°", "Total m3/Dia" becomes "Total m3Dia", and "m3/Ha /Hora" becomes "m3Ha Hora".
-4.  **Mandatory Nutrient Columns**: For EVERY row, you MUST include keys for all of the following nutrients: "N", "P2O5", "K", "Ca", "Mg", "Zn", and "Mn". If a value for a nutrient is present in a given row, extract it. If a nutrient does not have a value in a row, you MUST include the key with an empty string "" as the value.
-5.  **Final Table Output**: The final output for 'tableContent' must be a single JSON string containing ONE valid JSON array. Each object in the array represents a complete, unified row from the image.
+4.  **Nutrient Columns**: The nutrient columns are "N", "P2O5", "K", "Ca", "Mg", "Zn", and "Mn". When you see a hyphen "-" in one of these columns for a given row, it means the value is empty.
+5.  **Mandatory Nutrient Keys**: For EVERY row, you MUST include keys for all of the following nutrients: "N", "P2O5", "K", "Ca", "Mg", "Zn", and "Mn". If a value for a nutrient is present, extract it. If a nutrient column contains a hyphen "-" or is empty, you MUST include the key with an empty string "" as the value. This ensures all nutrient columns are always present.
+6.  **Final Table Output**: The final output for 'tableContent' must be a single JSON string containing ONE valid JSON array. Each object in the array represents a complete, unified row from the image.
 
 Example Output Format:
 {
