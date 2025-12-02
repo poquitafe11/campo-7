@@ -334,11 +334,11 @@ export default function Irrigation01DatabasePage() {
               </div>
               <div className="flex gap-2">
                   <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
-                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}><FileUp className="mr-2 h-4 w-4" />Subir Excel</Button>
-                  <Button variant="outline" size="sm" onClick={handleDownloadExcel} disabled={filteredRecords.length === 0}><FileDown className="mr-2 h-4 w-4" />Descargar</Button>
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-9"><FileUp className="mr-2 h-4 w-4" />Subir</Button>
+                  <Button variant="outline" size="sm" onClick={handleDownloadExcel} disabled={filteredRecords.length === 0} className="h-9"><FileDown className="mr-2 h-4 w-4" />Descargar</Button>
                    <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="h-9">
                                 <Filter className="mr-2 h-4 w-4" />
                                 Filtros
                             </Button>
@@ -357,11 +357,11 @@ export default function Irrigation01DatabasePage() {
                                     </div>
                                     <div className="grid grid-cols-3 items-center gap-4">
                                         <Label>Etapa</Label>
-                                        <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
                                     </div>
                                     <div className="grid grid-cols-3 items-center gap-4">
                                         <Label>Fecha</Label>
-                                        <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
                                     </div>
                                 </div>
                             </div>
