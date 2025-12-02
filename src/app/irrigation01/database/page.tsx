@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Loader2, Pencil, Trash2, FileDown, Filter, List } from "lucide-react";
+import { Loader2, Pencil, Trash2, FileDown, Filter, List, UploadCloud, FileUp, X, CheckCircle } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -42,23 +42,6 @@ const editHeaderSchema = z.object({
 });
 
 
-const headerGroups = {
-  main: ['Fundo', 'Fecha', 'Dia', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones'],
-  metrics: ['ETo', 'Kc', 'Total m3Dia', 'Ha', 'm3Ha Hora', 'Lps Ideal', 'Lps adicional 10%'],
-  units: ['N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn', 'B', 'Fe', 'S']
-};
-
-const getHeaderGroupColor = (header: string) => {
-  if (headerGroups.main.includes(header)) return 'bg-blue-100';
-  if (headerGroups.metrics.includes(header)) return 'bg-green-100';
-  if (headerGroups.units.includes(header)) return 'bg-gray-100';
-  
-  const allFixed = [...headerGroups.main, ...headerGroups.metrics, ...headerGroups.units];
-  if (!allFixed.includes(header)) return 'bg-yellow-100';
-
-  return '';
-};
-
 const parseSpanishDate = (dateString: string): Date => {
     if (!dateString) return new Date('invalid');
     const normalizedDateString = dateString.toLowerCase().replace('setiembre', 'septiembre');
@@ -79,6 +62,44 @@ const parseSpanishDate = (dateString: string): Date => {
 };
 
 
+async function processAndUploadFile(file: File): Promise<{ count: number }> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                if (!e.target?.result) {
+                    return reject(new Error('No se pudo leer el archivo.'));
+                }
+                const workbook = xlsx.read(e.target.result, { type: 'binary', cellDates: true });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[] = xlsx.utils.sheet_to_json(worksheet);
+
+                if (json.length === 0) {
+                    return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
+                }
+                
+                const batch = writeBatch(db);
+                json.forEach(row => {
+                    const docRef = doc(collection(db, 'registros-riego-01'));
+                    batch.set(docRef, row);
+                });
+
+                await batch.commit();
+                resolve({ count: json.length });
+
+            } catch (error: any) {
+                console.error('Error processing or uploading file: ', error);
+                reject(new Error(error.message || 'Hubo un error al procesar el archivo.'));
+            }
+        };
+        reader.onerror = (error) => reject(new Error('Error al leer el archivo.'));
+        reader.readAsBinaryString(file);
+    });
+}
+
+
+
 export default function Irrigation01DatabasePage() {
   const { toast } = useToast();
   const { setActions } = useHeaderActions();
@@ -92,6 +113,10 @@ export default function Irrigation01DatabasePage() {
   const [editingHeader, setEditingHeader] = useState<string | null>(null);
   const [isHeaderSubmitting, setIsHeaderSubmitting] = useState(false);
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const editHeaderForm = useForm<z.infer<typeof editHeaderSchema>>({
     resolver: zodResolver(editHeaderSchema),
   });
@@ -118,8 +143,8 @@ export default function Irrigation01DatabasePage() {
             const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             const sortedRecords = records.sort((a, b) => {
-                const dateA = parseSpanishDate(a.Fecha);
-                const dateB = parseSpanishDate(b.Fecha);
+                const dateA = a.Fecha ? parseSpanishDate(a.Fecha) : new Date('invalid');
+                const dateB = b.Fecha ? parseSpanishDate(b.Fecha) : new Date('invalid');
                 
                 if (dateA.toString() === 'Invalid Date') return 1;
                 if (dateB.toString() === 'Invalid Date') return -1;
@@ -211,28 +236,17 @@ export default function Irrigation01DatabasePage() {
     ));
   };
   
-  const getSortedHeaders = (records: ParsedRow[]): string[] => {
+  const savedRecordsHeaders = useMemo(() => {
+    if (filteredRecords.length === 0) return [];
     const allHeaders = new Set<string>();
-    records.forEach(record => {
+    filteredRecords.forEach(record => {
       Object.keys(record).forEach(key => {
-        if (key !== 'id' && key !== 'internalId') {
-          allHeaders.add(key);
-        }
+        if (key !== 'id') allHeaders.add(key);
       });
     });
+    return Array.from(allHeaders);
+  }, [filteredRecords]);
 
-    const fixedHeaders1 = headerGroups.main.filter(h => allHeaders.has(h));
-    const fixedHeaders2 = headerGroups.metrics.filter(h => allHeaders.has(h));
-    const fixedHeaders4 = headerGroups.units.filter(h => allHeaders.has(h));
-    
-    const allFixedHeaders = new Set([...fixedHeaders1, ...fixedHeaders2, ...fixedHeaders4]);
-    
-    const dynamicHeaders = [...allHeaders].filter(h => !allFixedHeaders.has(h)).sort();
-
-    return [...fixedHeaders1, ...fixedHeaders2, ...dynamicHeaders, ...fixedHeaders4];
-  };
-
-  const savedRecordsHeaders = useMemo(() => getSortedHeaders(filteredRecords), [filteredRecords]);
 
   const handleDownloadExcel = () => {
     const dataToExport = filteredRecords.map(record => {
@@ -241,8 +255,8 @@ export default function Irrigation01DatabasePage() {
     });
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
     const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, "RegistrosRiego");
-    xlsx.writeFile(workbook, "RegistrosRiego.xlsx");
+    xlsx.utils.book_append_sheet(workbook, worksheet, "RegistrosRiego01");
+    xlsx.writeFile(workbook, "RegistrosRiego01.xlsx");
     toast({ title: "Éxito", description: "La descarga ha comenzado." });
   };
   
@@ -282,6 +296,30 @@ export default function Irrigation01DatabasePage() {
     }
     setIsHeaderSubmitting(false);
   };
+  
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!selectedFile) return;
+    setIsUploading(true);
+    try {
+      const { count } = await processAndUploadFile(selectedFile);
+      toast({ title: "Éxito", description: `${count} registros cargados/actualizados.` });
+    } catch (error: any) {
+      toast({ title: "Error al Cargar", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+      }
+    }
+  };
 
 
   return (
@@ -291,10 +329,12 @@ export default function Irrigation01DatabasePage() {
         <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
-                <CardTitle className="flex items-center gap-2"><List className="h-6 w-6" />Base de Datos de Riego</CardTitle>
+                <CardTitle className="flex items-center gap-2"><List className="h-6 w-6" />Base de Datos de Riego 01</CardTitle>
                 <CardDescription>Historial de todos los registros de riego guardados.</CardDescription>
               </div>
               <div className="flex gap-2">
+                  <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}><FileUp className="mr-2 h-4 w-4" />Subir Excel</Button>
                   <Button variant="outline" size="sm" onClick={handleDownloadExcel} disabled={filteredRecords.length === 0}><FileDown className="mr-2 h-4 w-4" />Descargar</Button>
                    <Popover>
                         <PopoverTrigger asChild>
@@ -330,14 +370,26 @@ export default function Irrigation01DatabasePage() {
               </div>
             </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+             {selectedFile && (
+                <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
+                    <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
+                    <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
+                    <X className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
+                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                    {isUploading ? 'Subiendo...' : 'Confirmar Carga'}
+                    </Button>
+                </div>
+            )}
             {filteredRecords.length > 0 ? (
                 <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
                     <Table className="bg-background">
                         <TableHeader>
                             <TableRow>
                                 {savedRecordsHeaders.map(header => (
-                                    <TableHead key={header} className={cn("group whitespace-nowrap", getHeaderGroupColor(header))}>
+                                    <TableHead key={header} className="group whitespace-nowrap">
                                         <div className="flex items-center gap-1">
                                             {header}
                                             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditHeader(header)}>
@@ -353,7 +405,7 @@ export default function Irrigation01DatabasePage() {
                             {filteredRecords.map(record => (
                                 <TableRow key={record.id}>
                                     {savedRecordsHeaders.map(header => (
-                                        <TableCell key={`${record.id}-${header}`} className={cn('whitespace-nowrap', getHeaderGroupColor(header))}>
+                                        <TableCell key={`${record.id}-${header}`} className='whitespace-nowrap'>
                                             {String(record[header] ?? '')}
                                         </TableCell>
                                     ))}
