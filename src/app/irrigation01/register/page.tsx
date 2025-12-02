@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -259,10 +260,12 @@ export default function RegisterIrrigation01Page() {
         const batch = writeBatch(db);
         parsedData.forEach(row => {
             const { internalId, ...rowData } = row;
+            // Use a stable, predictable ID to allow for overwrites.
+            // Using Campaña, Lote, Fecha, and now Sector for more uniqueness.
             const sector = rowData.Sector || 'General';
             const docId = `${rowData.Campaña}-${rowData.Lote}-${rowData.Fecha}-${sector}`.replace(/[\s/]/g, '-');
             const docRef = doc(db, "registros-riego-01", docId);
-            batch.set(docRef, rowData, { merge: true });
+            batch.set(docRef, rowData, { merge: true }); // Use merge: true to update if exists
         });
         await batch.commit();
         
@@ -304,6 +307,8 @@ export default function RegisterIrrigation01Page() {
           title: 'Éxito',
           description: 'Registro actualizado en la base de datos.',
         });
+        // This part is removed as we no longer keep savedRecords in this component.
+        // The database component will show the live data.
       } catch (error) {
         console.error('Error updating record:', error);
         toast({
@@ -472,3 +477,4 @@ export default function RegisterIrrigation01Page() {
     </>
   );
 }
+
