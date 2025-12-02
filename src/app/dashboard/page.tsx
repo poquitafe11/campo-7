@@ -37,6 +37,11 @@ const allFeatures = [
     icon: <Droplets className="h-10 w-10 text-primary" />,
   },
   {
+    title: "Riego01",
+    href: "/irrigation01",
+    icon: <Droplets className="h-10 w-10 text-primary" />,
+  },
+  {
     title: "C. Calidad",
     href: "/quality-control",
     icon: <ClipboardCheck className="h-10 w-10 text-primary" />,
