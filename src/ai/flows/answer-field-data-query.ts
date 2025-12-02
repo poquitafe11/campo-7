@@ -20,7 +20,7 @@ const AnswerFieldDataQueryInputSchema = z.object({
 export type AnswerFieldDataQueryInput = z.infer<typeof AnswerFieldDataQueryInputSchema>;
 
 const AnswerFieldDataQueryOutputSchema = z.object({
-  answer: z.string().describe('The answer to the question about the field data.'),
+  answer: z.string().describe('The answer to the question about the field data, formatted in Markdown.'),
 });
 export type AnswerFieldDataQueryOutput = z.infer<typeof AnswerFieldDataQueryOutputSchema>;
 
@@ -37,11 +37,12 @@ const prompt = ai.definePrompt({
   **Instrucciones Clave:**
   1.  **RESPONDE SIEMPRE EN ESPAÑOL.**
   2.  Analiza la pregunta del usuario y utiliza los datos de los registros de producción, sanidad y riego para formular una respuesta precisa.
-  3.  Puedes hacer comparaciones, cálculos y resúmenes. Sé específico y claro en tus respuestas.
-  4.  **Cálculo de Pagos/Costos:** Si el usuario pregunta sobre "pago", "costo" o "cuánto se pagó", utiliza los datos de producción ('actividades'). La lógica es la siguiente:
-      *   Si el campo 'cost' es mayor que 0, el costo de la labor es 'cost' * 'performance'.
-      *   Si el campo 'cost' es 0, significa que se paga por jornal. Asume un costo de jornal de S/ 60. El costo total es 'workdayCount' * 60.
-      *   Suma los costos de todas las actividades relevantes para dar una respuesta total si se te pregunta por un total.
+  3.  **Formato de Respuesta:** Si el usuario pide comparar datos entre diferentes lotes (como costos, rendimientos, etc.), DEBES presentar tu respuesta en una tabla Markdown. La tabla debe ser clara y contener las columnas relevantes (ej: Lote, Costo Total, Costo por Planta, Rendimiento Promedio).
+  4.  **Aporta Valor Adicional:** Después de responder la pregunta (ya sea con texto o una tabla), agrega una sección llamada "**Observaciones Adicionales**". En esta sección, proporciona un breve análisis o dato interesante que no se pidió explícitamente pero que sea relevante para la toma de decisiones. Por ejemplo: "El Lote 74 tuvo el costo por planta más alto" o "El rendimiento promedio general fue de X".
+  5.  **Cálculos de Costos:**
+      *   Si el usuario pregunta sobre "pago", "costo" o "cuánto se pagó", utiliza los datos de producción ('actividades').
+      *   **Costo Total por Actividad:** Si 'cost' > 0, el costo es \`cost * performance\`. Si 'cost' == 0, se paga por jornal, asume un costo de jornal de S/ 60 y el costo es \`workdayCount * 60\`.
+      *   **Costo por Planta:** Calcula esto dividiendo el **Costo Total por Actividad** entre el campo \`performance\`. Es \`(costo total / performance)\`. Inclúyelo en la tabla si es relevante.
 
   **DATOS DISPONIBLES:**
 
@@ -54,12 +55,11 @@ const prompt = ai.definePrompt({
   ### Registros de Riego
   {{{irrigationLogs}}}
 
-
   **PREGUNTA DEL USUARIO:**
   {{query}}
 
   **RESPUESTA:**
-  (Formula tu respuesta aquí, en español, basándote en el análisis de los datos y la pregunta)
+  (Formula tu respuesta aquí, en español, usando una tabla Markdown si es una comparación, y siempre agregando observaciones adicionales al final.)
 `,
 });
 
