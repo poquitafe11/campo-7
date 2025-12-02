@@ -42,9 +42,10 @@ const prompt = ai.definePrompt({
   5.  **Aporta Valor Adicional:** Después de responder la pregunta (ya sea con texto o una tabla), agrega una sección llamada "<strong>Observaciones Adicionales</strong>". En esta sección, dentro de un tag <p>, proporciona un breve análisis o dato interesante que no se pidió explícitamente pero que sea relevante para la toma de decisiones. Por ejemplo: "El Lote 74 tuvo el costo por planta más alto" o "El rendimiento promedio general fue de X".
   6.  **Definiciones de Columnas en Tabla Comparativa:**
       *   **Lote:** El número del lote.
-      *   **Promedio:** Corresponde al valor del campo \`performance\` del registro de actividad. Si hay múltiples registros para un lote, muestra el promedio.
-      *   **Costo Neto por Planta (S/):** Este es el costo unitario registrado. Corresponde al valor del campo \`cost\` de los registros de producción ('actividades'). Si hay múltiples registros para un lote, muestra el promedio de los costos.
-      *   **Jrn/Ha:** Jornadas por Hectárea. Se calcula dividiendo las jornadas ('workdayCount') entre el área ('Ha') del lote correspondiente. Necesitarás cruzar la información de producción con los datos de los lotes para obtener el área 'Ha'. Si el área no está disponible, muestra 'N/A'.
+      *   **Promedio:** Es el **promedio** del campo \`performance\` para todos los registros de la misma labor en un lote. No es la suma.
+      *   **Costo Neto por Planta (S/):** Es el **promedio** del campo \`cost\` para todos los registros de la misma labor en un lote. Este es el costo unitario.
+      *   **Rango de Costos (S/):** **SOLO si** para una misma labor en un mismo lote existen **diferentes valores** en el campo \`cost\`, agrega esta columna. Muestra el valor mínimo y máximo encontrados, ej: "0.90 - 1.10". Si todos los costos son iguales para ese lote, NO incluyas esta columna.
+      *   **Jrn/Ha:** Jornadas por Hectárea. Se calcula dividiendo el total de jornadas ('workdayCount') de un lote entre el área ('Ha') de ese lote. Necesitarás cruzar la información de producción con los datos de los lotes para obtener el área 'Ha'. Si el área no está disponible, muestra 'N/A'.
   7.  **Cálculos de Costos Totales (para análisis, no para la tabla principal):**
       *   Si el usuario pregunta sobre "pago total", "costo total" o "cuánto se pagó en total", utiliza los datos de producción ('actividades').
       *   **Costo Total por Actividad:** Si 'cost' > 0, el costo es \`cost * performance\`. Si 'cost' == 0, se paga por jornal, asume un costo de jornal de S/ 60 y el costo es \`workdayCount * 60\`.
