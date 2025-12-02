@@ -117,9 +117,10 @@ export default function QueriesPage() {
                 </div>
               )}
               {answer && (
-                <div className="p-4 bg-primary/10 rounded-md prose dark:prose-invert max-w-none text-foreground">
-                    <p>{answer}</p>
-                </div>
+                <div 
+                  className="p-4 bg-primary/10 rounded-md prose dark:prose-invert max-w-none prose-sm sm:prose-base text-foreground"
+                  dangerouslySetInnerHTML={{ __html: answer }}
+                />
               )}
             </div>
           )}
