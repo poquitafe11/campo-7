@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { renameAndMergeHeader } from "./actions";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
@@ -324,157 +325,168 @@ export default function Irrigation01DatabasePage() {
 
   return (
     <>
-    <div className="container mx-auto p-0 sm:p-2 lg:p-4 space-y-8">
-      <Card>
-        <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2"><List className="h-6 w-6" />Base de Datos de Riego 01</CardTitle>
-                <CardDescription>Historial de todos los registros de riego guardados.</CardDescription>
-              </div>
-              <div className="flex gap-2">
-                  <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
-                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-9"><FileUp className="mr-2 h-4 w-4" />Subir</Button>
-                  <Button variant="outline" size="sm" onClick={handleDownloadExcel} disabled={filteredRecords.length === 0} className="h-9"><FileDown className="mr-2 h-4 w-4" />Descargar</Button>
-                   <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-9">
-                                <Filter className="mr-2 h-4 w-4" />
-                                Filtros
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80" align="end">
-                            <div className="grid gap-4">
-                                <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
-                                <div className="grid gap-2">
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Campaña</Label>
-                                        <Select value={filters.campana} onValueChange={(value) => setFilters(f => ({...f, campana: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campanas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Lote</Label>
-                                        <Select value={filters.lote} onValueChange={(value) => setFilters(f => ({...f, lote: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Etapa</Label>
-                                        <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
-                                    </div>
-                                    <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Fecha</Label>
-                                        <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+      <TooltipProvider>
+        <div className="container mx-auto p-0 sm:p-2 lg:p-4 space-y-8">
+          <Card>
+            <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><List className="h-6 w-6" />Base de Datos de Riego 01</CardTitle>
+                    <CardDescription>Historial de todos los registros de riego guardados.</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                      <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileSelect} />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Button variant="outline" size="icon" onClick={() => fileInputRef.current?.click()}><FileUp className="h-4 w-4" /></Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Subir desde Excel</p></TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Button variant="outline" size="icon" onClick={handleDownloadExcel} disabled={filteredRecords.length === 0}><FileDown className="h-4 w-4" /></Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Descargar a Excel</p></TooltipContent>
+                      </Tooltip>
+                       <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="icon">
+                                    <Filter className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80" align="end">
+                                <div className="grid gap-4">
+                                    <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
+                                    <div className="grid gap-2">
+                                        <div className="grid grid-cols-3 items-center gap-4">
+                                            <Label>Campaña</Label>
+                                            <Select value={filters.campana} onValueChange={(value) => setFilters(f => ({...f, campana: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campanas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        </div>
+                                        <div className="grid grid-cols-3 items-center gap-4">
+                                            <Label>Lote</Label>
+                                            <Select value={filters.lote} onValueChange={(value) => setFilters(f => ({...f, lote: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        </div>
+                                        <div className="grid grid-cols-3 items-center gap-4">
+                                            <Label>Etapa</Label>
+                                            <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        </div>
+                                        <div className="grid grid-cols-3 items-center gap-4">
+                                            <Label>Fecha</Label>
+                                            <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-              </div>
-            </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-             {selectedFile && (
-                <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
-                    <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
-                    <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
-                    <X className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
-                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-                    {isUploading ? 'Subiendo...' : 'Confirmar Carga'}
-                    </Button>
+                            </PopoverContent>
+                        </Popover>
+                  </div>
                 </div>
-            )}
-            {filteredRecords.length > 0 ? (
-                <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
-                    <Table className="bg-background">
-                        <TableHeader>
-                            <TableRow>
-                                {savedRecordsHeaders.map(header => (
-                                    <TableHead key={header} className="group whitespace-nowrap">
-                                        <div className="flex items-center gap-1">
-                                            {header}
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditHeader(header)}>
-                                                <Pencil className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                    </TableHead>
-                                ))}
-                                <TableHead>Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredRecords.map(record => (
-                                <TableRow key={record.id}>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 {selectedFile && (
+                    <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
+                        <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
+                        <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
+                        <X className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
+                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                        {isUploading ? 'Subiendo...' : 'Confirmar Carga'}
+                        </Button>
+                    </div>
+                )}
+                {filteredRecords.length > 0 ? (
+                    <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
+                        <Table className="bg-background">
+                            <TableHeader>
+                                <TableRow>
                                     {savedRecordsHeaders.map(header => (
-                                        <TableCell key={`${record.id}-${header}`} className='whitespace-nowrap'>
-                                            {String(record[header] ?? '')}
-                                        </TableCell>
+                                        <TableHead key={header} className="group whitespace-nowrap">
+                                            <div className="flex items-center gap-1">
+                                                {header}
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditHeader(header)}>
+                                                    <Pencil className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        </TableHead>
                                     ))}
-                                    <TableCell>
-                                        <div className="flex gap-2">
-                                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord(record)}><Pencil className="h-4 w-4" /></Button>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
-                                                    <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSaved(record.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </div>
-                                    </TableCell>
+                                    <TableHead>Acciones</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            ) : (
-                <CardDescription>Aún no se han registrado datos de riego o no hay resultados para los filtros seleccionados.</CardDescription>
-            )}
-        </CardContent>
-      </Card>
-    </div>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredRecords.map(record => (
+                                    <TableRow key={record.id}>
+                                        {savedRecordsHeaders.map(header => (
+                                            <TableCell key={`${record.id}-${header}`} className='whitespace-nowrap'>
+                                                {String(record[header] ?? '')}
+                                            </TableCell>
+                                        ))}
+                                        <TableCell>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setEditingRecord(record)}><Pencil className="h-4 w-4" /></Button>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
+                                                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSaved(record.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                ) : (
+                    <CardDescription>Aún no se han registrado datos de riego o no hay resultados para los filtros seleccionados.</CardDescription>
+                )}
+            </CardContent>
+          </Card>
+        </div>
+      </TooltipProvider>
     
-    <Dialog open={!!editingRecord} onOpenChange={(isOpen) => { if(!isOpen) setEditingRecord(null) }}>
-        <DialogContent>
-            <DialogHeader><DialogTitle>Editar Registro de Riego</DialogTitle></DialogHeader>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
-                    {renderEditFormFields()}
-                    <DialogFooter className="pt-4 sticky bottom-0 bg-background">
-                        <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
-                        <Button type="submit">Guardar Cambios</Button>
-                    </DialogFooter>
-                </form>
-            </Form>
-        </DialogContent>
-    </Dialog>
+      <Dialog open={!!editingRecord} onOpenChange={(isOpen) => { if(!isOpen) setEditingRecord(null) }}>
+          <DialogContent>
+              <DialogHeader><DialogTitle>Editar Registro de Riego</DialogTitle></DialogHeader>
+              <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
+                      {renderEditFormFields()}
+                      <DialogFooter className="pt-4 sticky bottom-0 bg-background">
+                          <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                          <Button type="submit">Guardar Cambios</Button>
+                      </DialogFooter>
+                  </form>
+              </Form>
+          </DialogContent>
+      </Dialog>
 
-    <Dialog open={!!editingHeader} onOpenChange={setEditingHeader}>
-        <DialogContent>
-            <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescription>Renombra o fusiona la columna "{editingHeader}".</DialogDescription></DialogHeader>
-            <Form {...editHeaderForm}>
-                <form onSubmit={editHeaderForm.handleSubmit(onEditHeaderSubmit)} className="space-y-4">
-                    <FormField
-                        control={editHeaderForm.control}
-                        name="newName"
-                        render={({ field }) => (
-                            <FormItem><FormLabel>Nuevo Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={editHeaderForm.control}
-                        name="mergeWith"
-                        render={({ field }) => (
-                            <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
-                        )}
-                    />
-                    <DialogFooter className="pt-4">
-                        <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
-                        <Button type="submit" disabled={isHeaderSubmitting}>{isHeaderSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar</Button>
-                    </DialogFooter>
-                </form>
-            </Form>
-        </DialogContent>
-    </Dialog>
+      <Dialog open={!!editingHeader} onOpenChange={setEditingHeader}>
+          <DialogContent>
+              <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescription>Renombra o fusiona la columna "{editingHeader}".</DialogDescription></DialogHeader>
+              <Form {...editHeaderForm}>
+                  <form onSubmit={editHeaderForm.handleSubmit(onEditHeaderSubmit)} className="space-y-4">
+                      <FormField
+                          control={editHeaderForm.control}
+                          name="newName"
+                          render={({ field }) => (
+                              <FormItem><FormLabel>Nuevo Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                          )}
+                      />
+                      <FormField
+                          control={editHeaderForm.control}
+                          name="mergeWith"
+                          render={({ field }) => (
+                              <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
+                          )}
+                      />
+                      <DialogFooter className="pt-4">
+                          <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                          <Button type="submit" disabled={isHeaderSubmitting}>{isHeaderSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar</Button>
+                      </DialogFooter>
+                  </form>
+              </Form>
+          </DialogContent>
+      </Dialog>
     </>
   );
 }
