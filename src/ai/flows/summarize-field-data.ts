@@ -1,4 +1,7 @@
 
+// This flow is no longer used for queries and has been effectively replaced by the logic in answer-field-data-query.ts
+// It is kept temporarily to avoid breaking any other potential dependencies.
+
 'use server';
 /**
  * @fileOverview Summarizes key field data from production, health, irrigation, and quality control logs.

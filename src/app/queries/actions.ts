@@ -2,10 +2,10 @@
 "use server";
 
 import { answerFieldDataQuery } from "@/ai/flows/answer-field-data-query";
-import { summarizeFieldData } from "@/ai/flows/summarize-field-data";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { format } from "date-fns";
+import { es } from 'date-fns/locale';
 
 function stringifyForLLM(data: any[], type: string): string {
     if (data.length === 0) return "No hay datos disponibles.";
@@ -22,7 +22,7 @@ function stringifyForLLM(data: any[], type: string): string {
                         readableValue = new Date().toISOString();
                     }
                 } else if (value instanceof Date) {
-                    readableValue = format(value, 'PPP');
+                    readableValue = format(value, 'PPP', { locale: es });
                 } else if (typeof value === 'object' && value !== null) {
                     readableValue = JSON.stringify(value);
                 } else {
@@ -52,21 +52,11 @@ export async function askQuery(query: string) {
         const healthData = healthSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const irrigationData = irrigationSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const fieldDataSummary = await summarizeFieldData({
+        const result = await answerFieldDataQuery({
+            query: query,
             productionLogs: stringifyForLLM(productionData, "Producción"),
             healthLogs: stringifyForLLM(healthData, "Sanidad"),
             irrigationLogs: stringifyForLLM(irrigationData, "Riego"),
-            qualityControlLogs: "No hay datos disponibles.",
-            biologicalControlLogs: "No hay datos disponibles.",
-        });
-
-        if (!fieldDataSummary.summary) {
-            return { error: "No se pudo generar un resumen de los datos del campo." };
-        }
-
-        const result = await answerFieldDataQuery({
-            query: query,
-            fieldDataSummary: fieldDataSummary.summary,
         });
 
         return { answer: result.answer };
