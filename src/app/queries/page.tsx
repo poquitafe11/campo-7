@@ -5,24 +5,21 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { BotMessageSquare, Sparkles, Gift } from "lucide-react";
+import { BotMessageSquare, Sparkles } from "lucide-react";
+import { es } from 'date-fns/locale';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { QuerySchema } from "@/lib/types";
-import { useAppData } from "@/context/AppDataContext";
 import { askQuery } from "./actions";
-import { useToast } from "@/hooks/use-toast";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 export default function QueriesPage() {
-  const { state: appData } = useAppData();
   const [isLoading, setIsLoading] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
   const { setActions } = useHeaderActions();
 
   useEffect(() => {
@@ -42,7 +39,7 @@ export default function QueriesPage() {
     setAnswer(null);
     setError(null);
 
-    const result = await askQuery(values.query, appData);
+    const result = await askQuery(values.query);
 
     if (result.error) {
       setError(result.error);
@@ -53,14 +50,6 @@ export default function QueriesPage() {
     setIsLoading(false);
   }
 
-  const hasData = [
-    ...appData.production, 
-    ...appData.health, 
-    ...appData.irrigation,
-    ...appData.qualityControl,
-    ...appData.biologicalControl
-  ].length > 0;
-
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <Card>
@@ -70,17 +59,10 @@ export default function QueriesPage() {
             Haz una Pregunta
           </CardTitle>
           <CardDescription>
-            Usa los datos recolectados del campo para obtener información. Mientras más datos ingreses, mejores serán las respuestas.
+            Usa los datos recolectados de producción, sanidad y riego para obtener información y análisis.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!hasData && (
-            <div className="mb-6 p-4 text-center bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
-              <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                Aún no has registrado datos. Por favor, añade información en otras secciones para que el asistente de IA funcione.
-              </p>
-            </div>
-          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -91,7 +73,7 @@ export default function QueriesPage() {
                     <FormLabel>Tu Pregunta</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Ej: '¿Cuál fue el rendimiento promedio de las fresas el mes pasado?' o '¿Hubo algún brote de enfermedad en las últimas dos semanas?'"
+                        placeholder="Ej: 'Compara el rendimiento por hectárea entre los lotes este mes' o '¿Qué tratamientos de sanidad se aplicaron la semana pasada?'"
                         rows={4}
                         {...field}
                       />
@@ -101,7 +83,7 @@ export default function QueriesPage() {
                 )}
               />
               <div className="flex flex-wrap gap-4 items-center">
-                <Button type="submit" size="lg" disabled={isLoading || !hasData}>
+                <Button type="submit" size="lg" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Sparkles className="mr-2 h-4 w-4 animate-spin" />
@@ -135,8 +117,8 @@ export default function QueriesPage() {
                 </div>
               )}
               {answer && (
-                <div className="p-4 bg-primary/10 text-primary-foreground rounded-md prose dark:prose-invert max-w-none">
-                    <p className="text-foreground">{answer}</p>
+                <div className="p-4 bg-primary/10 rounded-md prose dark:prose-invert max-w-none text-foreground">
+                    <p>{answer}</p>
                 </div>
               )}
             </div>

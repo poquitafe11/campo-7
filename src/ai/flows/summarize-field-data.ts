@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Summarizes key field data from production, health, irrigation, and quality control logs.
@@ -11,9 +12,9 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SummarizeFieldDataInputSchema = z.object({
-  productionLogs: z.string().describe('Summary of production logs.'),
-  healthLogs: z.string().describe('Summary of plant health logs.'),
-  irrigationLogs: z.string().describe('Summary of irrigation logs.'),
+  productionLogs: z.string().describe('Summary of production logs (from "actividades" collection).'),
+  healthLogs: z.string().describe('Summary of plant health logs (from "registros-sanidad" collection).'),
+  irrigationLogs: z.string().describe('Summary of irrigation logs (from "registros-riego" collection).'),
   qualityControlLogs: z.string().describe('Summary of quality control logs.'),
   biologicalControlLogs: z.string().describe('Summary of biological control logs.'),
 });
@@ -36,16 +37,17 @@ const prompt = ai.definePrompt({
 
   The user will provide data from different sections: Production, Health, Irrigation, Quality Control, and Biological Control.
   Review all the provided data and synthesize it into a single, coherent summary paragraph. Highlight key trends, potential issues, and important metrics.
+  When comparing data, be specific about dates, lotes (fields), and values.
 
   **Data Logs:**
 
-  Production Logs:
+  Production Logs (from "actividades" collection):
   {{{productionLogs}}}
 
-  Health Logs:
+  Health Logs (from "registros-sanidad" collection):
   {{{healthLogs}}}
 
-  Irrigation Logs:
+  Irrigation Logs (from "registros-riego" collection):
   {{{irrigationLogs}}}
 
   Quality Control Logs:
