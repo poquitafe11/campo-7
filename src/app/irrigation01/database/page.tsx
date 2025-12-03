@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -147,7 +147,8 @@ export default function Irrigation01DatabasePage() {
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, "registros-riego-01"), (snapshot) => {
+    const q = query(collection(db, "registros-riego-01"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
         const records = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -157,11 +158,7 @@ export default function Irrigation01DatabasePage() {
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(0) 
             };
         });
-        // Sort by createdAt to maintain upload order
-        const sortedRecords = records.sort((a, b) => {
-            return b.createdAt.getTime() - a.createdAt.getTime();
-        });
-        setSavedRecords(sortedRecords);
+        setSavedRecords(records);
         setLoading(false);
     }, (error) => {
         console.error("Failed to fetch records", error);
@@ -246,16 +243,37 @@ export default function Irrigation01DatabasePage() {
     ));
   };
   
-  const savedRecordsHeaders = useMemo(() => {
+ const savedRecordsHeaders = useMemo(() => {
     if (filteredRecords.length === 0) return [];
+
+    const PREFERRED_ORDER = [
+        'Lote', 'Campaña', 'Fecha de cianamida', 'N° APLICACION', 'DIAS', 'Fecha',
+        'Fecha de Término', 'Horas de Riego', 'Producto', 'CONCENTRACIÓN', 'Cant. Total',
+        'Cant x Ha.', 'U.M.', 'N', 'P', 'K', 'Ca', 'Mg', 'Zn', 'B', 'Cu', 'Fe', 'S', 'Mn'
+    ];
+
     const allHeaders = new Set<string>();
     filteredRecords.forEach(record => {
-      Object.keys(record).forEach(key => {
-        if (key !== 'id' && key !== 'createdAt') allHeaders.add(key);
-      });
+        Object.keys(record).forEach(key => {
+            if (key !== 'id' && key !== 'createdAt') allHeaders.add(key);
+        });
     });
-    return Array.from(allHeaders);
-  }, [filteredRecords]);
+
+    const headersArray = Array.from(allHeaders);
+
+    headersArray.sort((a, b) => {
+        const indexA = PREFERRED_ORDER.indexOf(a);
+        const indexB = PREFERRED_ORDER.indexOf(b);
+
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+    });
+
+    return headersArray;
+}, [filteredRecords]);
+
 
 
   const handleDownloadExcel = () => {
