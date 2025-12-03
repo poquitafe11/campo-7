@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch, serverTimestamp } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -90,7 +90,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const batch = writeBatch(db);
                 json.forEach(row => {
                     const docRef = doc(collection(db, 'registros-riego-01'));
-                    batch.set(docRef, row);
+                    batch.set(docRef, { ...row, createdAt: serverTimestamp() });
                 });
 
                 await batch.commit();
@@ -148,13 +148,18 @@ export default function Irrigation01DatabasePage() {
   useEffect(() => {
     setLoading(true);
     const unsubscribe = onSnapshot(collection(db, "registros-riego-01"), (snapshot) => {
-        const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const records = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                // Ensure createdAt is a JS Date object for sorting
+                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(0) 
+            };
+        });
+        // Sort by createdAt to maintain upload order
         const sortedRecords = records.sort((a, b) => {
-            const dateA = a.Fecha ? parseSpanishDate(a.Fecha) : new Date('invalid');
-            const dateB = b.Fecha ? parseSpanishDate(b.Fecha) : new Date('invalid');
-            if (dateA.toString() === 'Invalid Date') return 1;
-            if (dateB.toString() === 'Invalid Date') return -1;
-            return dateB.getTime() - dateA.getTime();
+            return b.createdAt.getTime() - a.createdAt.getTime();
         });
         setSavedRecords(sortedRecords);
         setLoading(false);
@@ -223,7 +228,7 @@ export default function Irrigation01DatabasePage() {
   
   const renderEditFormFields = () => {
     if (!editingRecord) return null;
-    const fieldsToRender = Object.keys(editingRecord).filter(key => key !== 'id' && key !== 'internalId');
+    const fieldsToRender = Object.keys(editingRecord).filter(key => key !== 'id' && key !== 'internalId' && key !== 'createdAt');
     
     return fieldsToRender.map(key => (
         <FormField
@@ -246,7 +251,7 @@ export default function Irrigation01DatabasePage() {
     const allHeaders = new Set<string>();
     filteredRecords.forEach(record => {
       Object.keys(record).forEach(key => {
-        if (key !== 'id') allHeaders.add(key);
+        if (key !== 'id' && key !== 'createdAt') allHeaders.add(key);
       });
     });
     return Array.from(allHeaders);
@@ -255,7 +260,7 @@ export default function Irrigation01DatabasePage() {
 
   const handleDownloadExcel = () => {
     const dataToExport = filteredRecords.map(record => {
-      const { id, ...rest } = record;
+      const { id, createdAt, ...rest } = record;
       return rest;
     });
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
@@ -496,3 +501,5 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
+
+    
