@@ -247,7 +247,7 @@ export default function Irrigation01DatabasePage() {
     if (filteredRecords.length === 0) return [];
 
     const PREFERRED_ORDER = [
-        'Lote', 'Campaña', 'Fecha de cianamida', 'N° APLICACION', 'DIAS', 'Fecha',
+        'Lote', 'Campaña', 'Fecha de cianamida', 'N° APLICACION', 'DIAS', 'Fecha', 
         'Fecha de Término', 'Horas de Riego', 'Producto', 'CONCENTRACIÓN', 'Cant. Total',
         'Cant x Ha.', 'U.M.', 'N', 'P', 'K', 'Ca', 'Mg', 'Zn', 'B', 'Cu', 'Fe', 'S', 'Mn'
     ];
