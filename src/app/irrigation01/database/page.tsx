@@ -43,8 +43,15 @@ const editHeaderSchema = z.object({
 });
 
 
-const parseSpanishDate = (dateString: string): Date => {
-    if (!dateString) return new Date('invalid');
+const parseSpanishDate = (dateValue: string | Date): Date => {
+    if (dateValue instanceof Date) {
+        return dateValue;
+    }
+    if (typeof dateValue !== 'string' || !dateValue) {
+        return new Date('invalid');
+    }
+    
+    const dateString = dateValue;
     const normalizedDateString = dateString.toLowerCase().replace('setiembre', 'septiembre');
     const months: { [key: string]: number } = {
         'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
