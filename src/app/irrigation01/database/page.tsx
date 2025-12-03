@@ -245,11 +245,11 @@ export default function Irrigation01DatabasePage() {
   
  const savedRecordsHeaders = useMemo(() => {
     if (filteredRecords.length === 0) return [];
-
+    
     const PREFERRED_ORDER = [
-        'Lote', 'Campaña', 'Fecha de cianamida', 'N° APLICACION', 'DIAS', 'Fecha', 
-        'Fecha de Término', 'Horas de Riego', 'Producto', 'CONCENTRACIÓN', 'Cant. Total',
-        'Cant x Ha.', 'U.M.', 'N', 'P', 'K', 'Ca', 'Mg', 'Zn', 'B', 'Cu', 'Fe', 'S', 'Mn'
+      'Lote', 'Campaña', 'Fecha de cianamida', 'N° APLICACION', 'DIAS', 'Fecha', 
+      'Fecha de Término', 'Horas de Riego', 'Producto', 'CONCENTRACIÓN', 'Cant. Total', 'Cant x Ha.', 
+      'U.M.', 'N', 'P', 'K', 'Ca', 'Mg', 'Zn', 'B', 'Cu', 'Fe', 'S', 'Mn'
     ];
 
     const allHeaders = new Set<string>();
@@ -260,20 +260,28 @@ export default function Irrigation01DatabasePage() {
     });
 
     const headersArray = Array.from(allHeaders);
+    
+    // Create a map for quick lookup of preferred order index
+    const orderMap = new Map(PREFERRED_ORDER.map((header, index) => [header, index]));
 
     headersArray.sort((a, b) => {
-        const indexA = PREFERRED_ORDER.indexOf(a);
-        const indexB = PREFERRED_ORDER.indexOf(b);
+        const indexA = orderMap.has(a) ? orderMap.get(a)! : Infinity;
+        const indexB = orderMap.has(b) ? orderMap.get(b)! : Infinity;
 
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
+        if (indexA !== Infinity && indexB !== Infinity) {
+            return indexA - indexB; // Both are in preferred order, sort by it
+        }
+        if (indexA !== Infinity) {
+            return -1; // A is preferred, B is not
+        }
+        if (indexB !== Infinity) {
+            return 1; // B is preferred, A is not
+        }
+        return a.localeCompare(b); // Neither is preferred, sort alphabetically
     });
 
     return headersArray;
 }, [filteredRecords]);
-
 
 
   const handleDownloadExcel = () => {
