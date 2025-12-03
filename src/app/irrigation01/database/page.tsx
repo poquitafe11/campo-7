@@ -519,5 +519,3 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
-
-    
