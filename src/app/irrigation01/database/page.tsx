@@ -117,6 +117,7 @@ export default function Irrigation01DatabasePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const editHeaderForm = useForm<z.infer<typeof editHeaderSchema>>({
     resolver: zodResolver(editHeaderSchema),
@@ -138,32 +139,30 @@ export default function Irrigation01DatabasePage() {
   }, [editingRecord, form]);
 
   useEffect(() => {
-    const fetchRecords = async () => {
-        try {
-            const snapshot = await getDocs(collection(db, "registros-riego-01"));
-            const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            const sortedRecords = records.sort((a, b) => {
-                const dateA = a.Fecha ? parseSpanishDate(a.Fecha) : new Date('invalid');
-                const dateB = b.Fecha ? parseSpanishDate(b.Fecha) : new Date('invalid');
-                
-                if (dateA.toString() === 'Invalid Date') return 1;
-                if (dateB.toString() === 'Invalid Date') return -1;
-
-                return dateB.getTime() - dateA.getTime();
-            });
-            setSavedRecords(sortedRecords);
-        } catch(error) {
-            console.error("Failed to fetch records", error);
-            toast({
-                title: "Error",
-                description: "No se pudieron cargar los registros. Comprueba tu conexión.",
-                variant: "destructive",
-            });
-        }
-    };
-    fetchRecords();
+    setLoading(true);
+    const unsubscribe = onSnapshot(collection(db, "registros-riego-01"), (snapshot) => {
+        const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const sortedRecords = records.sort((a, b) => {
+            const dateA = a.Fecha ? parseSpanishDate(a.Fecha) : new Date('invalid');
+            const dateB = b.Fecha ? parseSpanishDate(b.Fecha) : new Date('invalid');
+            if (dateA.toString() === 'Invalid Date') return 1;
+            if (dateB.toString() === 'Invalid Date') return -1;
+            return dateB.getTime() - dateA.getTime();
+        });
+        setSavedRecords(sortedRecords);
+        setLoading(false);
+    }, (error) => {
+        console.error("Failed to fetch records", error);
+        toast({
+            title: "Error",
+            description: "No se pudieron cargar los registros. Comprueba tu conexión.",
+            variant: "destructive",
+        });
+        setLoading(false);
+    });
+    return () => unsubscribe();
   }, [toast]);
+
 
   useEffect(() => {
     const result = savedRecords.filter(record => {
@@ -180,8 +179,7 @@ export default function Irrigation01DatabasePage() {
   const handleDeleteSaved = async (id: string) => {
     try {
         await deleteDoc(doc(db, "registros-riego-01", id));
-        toast({ title: "Éxito", description: "Registro eliminado." });
-        setSavedRecords(prev => prev.filter(r => r.id !== id));
+        toast({ title: "Éxito", description: "Registro eliminado correctamente." });
     } catch (error) {
         console.error("Error deleting record:", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el registro." });
@@ -204,7 +202,6 @@ export default function Irrigation01DatabasePage() {
           title: 'Éxito',
           description: 'Registro actualizado en la base de datos.',
         });
-        setSavedRecords(prev => prev.map(r => r.id === id ? { ...r, ...dataFromForm } : r));
       } catch (error) {
         console.error('Error updating record:', error);
         toast({
@@ -394,7 +391,9 @@ export default function Irrigation01DatabasePage() {
                         </Button>
                     </div>
                 )}
-                {filteredRecords.length > 0 ? (
+                {loading ? (
+                    <div className="flex items-center justify-center h-48"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                ) : filteredRecords.length > 0 ? (
                     <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
                         <Table className="bg-background">
                             <TableHeader>
