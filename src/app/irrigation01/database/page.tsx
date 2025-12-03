@@ -243,45 +243,39 @@ export default function Irrigation01DatabasePage() {
     ));
   };
   
- const savedRecordsHeaders = useMemo(() => {
-    if (filteredRecords.length === 0) return [];
-    
-    const PREFERRED_ORDER = [
-      'Lote', 'Campaña', 'Fecha de cianamida', 'N° APLICACION', 'DIAS', 'Fecha', 
-      'Fecha de Término', 'Horas de Riego', 'Producto', 'CONCENTRACIÓN', 'Cant. Total', 'Cant x Ha.', 
-      'U.M.', 'N', 'P', 'K', 'Ca', 'Mg', 'Zn', 'B', 'Cu', 'Fe', 'S', 'Mn'
-    ];
+  const savedRecordsHeaders = useMemo(() => {
+      if (filteredRecords.length === 0) return [];
+  
+      const PREFERRED_ORDER = [
+          "Lote", "Campaña", "Fecha de cianamida", "N° APLICACION", "DIAS", "Fecha", "Fecha de Término", "Horas de Riego",
+          "Producto", "CONCENTRACIÓN", "U.M.", "Cant. Total", "Cant x Ha.",
+          "N", "P", "K", "Ca", "Mg", "S", "Zn", "B", "Fe", "Mn", "Cu"
+      ];
+  
+      const allHeaders = new Set<string>();
+      filteredRecords.forEach(record => {
+          Object.keys(record).forEach(key => {
+              if (key !== 'id' && key !== 'createdAt') allHeaders.add(key);
+          });
+      });
+  
+      const headerOrderMap = new Map(PREFERRED_ORDER.map((header, index) => [header, index]));
+  
+      const sortedHeaders = Array.from(allHeaders).sort((a, b) => {
+          const posA = headerOrderMap.get(a) ?? Infinity;
+          const posB = headerOrderMap.get(b) ?? Infinity;
+          
+          if (posA !== Infinity && posB !== Infinity) {
+              return posA - posB;
+          }
+          if (posA !== Infinity) return -1;
+          if (posB !== Infinity) return 1;
+          return a.localeCompare(b);
+      });
+  
+      return sortedHeaders;
+  }, [filteredRecords]);
 
-    const allHeaders = new Set<string>();
-    filteredRecords.forEach(record => {
-        Object.keys(record).forEach(key => {
-            if (key !== 'id' && key !== 'createdAt') allHeaders.add(key);
-        });
-    });
-
-    const headersArray = Array.from(allHeaders);
-    
-    // Create a map for quick lookup of preferred order index
-    const orderMap = new Map(PREFERRED_ORDER.map((header, index) => [header, index]));
-
-    headersArray.sort((a, b) => {
-        const indexA = orderMap.has(a) ? orderMap.get(a)! : Infinity;
-        const indexB = orderMap.has(b) ? orderMap.get(b)! : Infinity;
-
-        if (indexA !== Infinity && indexB !== Infinity) {
-            return indexA - indexB; // Both are in preferred order, sort by it
-        }
-        if (indexA !== Infinity) {
-            return -1; // A is preferred, B is not
-        }
-        if (indexB !== Infinity) {
-            return 1; // B is preferred, A is not
-        }
-        return a.localeCompare(b); // Neither is preferred, sort alphabetically
-    });
-
-    return headersArray;
-}, [filteredRecords]);
 
 
   const handleDownloadExcel = () => {
@@ -421,7 +415,7 @@ export default function Irrigation01DatabasePage() {
                     <div className="flex items-center gap-4 p-3 border rounded-lg bg-muted/50">
                         <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
                         <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
-                        <X className="h-4 w-4" />
+                           <X className="h-4 w-4" />
                         </Button>
                         <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
                         {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
