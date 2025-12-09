@@ -90,7 +90,12 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const batch = writeBatch(db);
                 json.forEach(row => {
                     const docRef = doc(collection(db, 'registros-riego-01'));
-                    batch.set(docRef, { ...row, createdAt: serverTimestamp() });
+                    const cleanRow = Object.entries(row).reduce((acc, [key, value]) => {
+                        const cleanKey = key.trim();
+                        acc[cleanKey] = value;
+                        return acc;
+                    }, {} as any);
+                    batch.set(docRef, { ...cleanRow, createdAt: serverTimestamp() });
                 });
 
                 await batch.commit();
@@ -248,8 +253,8 @@ export default function Irrigation01DatabasePage() {
   
       const PREFERRED_ORDER = [
           "Lote", "Campaña", "Fecha de cianamida", "N° APLICACION", "DIAS", "Fecha", "Fecha de Término", "Horas de Riego",
-          "Producto", "CONCENTRACIÓN", "U.M.", "Cant. Total", "Cant x Ha.",
-          "N", "P", "K", "Ca", "Mg", "S", "Zn", "B", "Fe", "Mn", "Cu"
+          "Producto", "CONCENTRACIÓN", "Cant. Total", "Cant x Ha.", "U.M.",
+          "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
       ];
   
       const allHeaders = new Set<string>();
@@ -262,14 +267,12 @@ export default function Irrigation01DatabasePage() {
       const headerOrderMap = new Map(PREFERRED_ORDER.map((header, index) => [header, index]));
   
       const sortedHeaders = Array.from(allHeaders).sort((a, b) => {
-          const posA = headerOrderMap.get(a) ?? Infinity;
-          const posB = headerOrderMap.get(b) ?? Infinity;
+          const posA = headerOrderMap.get(a);
+          const posB = headerOrderMap.get(b);
           
-          if (posA !== Infinity && posB !== Infinity) {
-              return posA - posB;
-          }
-          if (posA !== Infinity) return -1;
-          if (posB !== Infinity) return 1;
+          if (posA !== undefined && posB !== undefined) return posA - posB;
+          if (posA !== undefined) return -1;
+          if (posB !== undefined) return 1;
           return a.localeCompare(b);
       });
   
