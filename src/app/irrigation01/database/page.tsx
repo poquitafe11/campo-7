@@ -43,32 +43,39 @@ const editHeaderSchema = z.object({
     mergeWith: z.string().optional(),
 });
 
-
-const parseSpanishDate = (dateValue: string | Date): Date => {
+function parseDynamicDate(dateValue: any): Date | null {
+    if (!dateValue) return null;
     if (dateValue instanceof Date) {
-        return dateValue;
+        return isValid(dateValue) ? dateValue : null;
     }
-    if (typeof dateValue !== 'string' || !dateValue) {
-        return new Date('invalid');
+    if (dateValue?.toDate && typeof dateValue.toDate === 'function') { // Firebase Timestamp
+        const d = dateValue.toDate();
+        return isValid(d) ? d : null;
     }
-    
-    const dateString = dateValue;
-    const normalizedDateString = dateString.toLowerCase().replace('setiembre', 'septiembre');
-    const months: { [key: string]: number } = {
-        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
-        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-    };
-    const parts = normalizedDateString.split(' de ');
-    if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = months[parts[1]];
-        const year = parseInt(parts[2], 10);
-        if (!isNaN(day) && month !== undefined && !isNaN(year)) {
-            return new Date(year, month, day);
+     if (typeof dateValue === 'number') { // Excel date number
+        const excelDate = new Date(Math.round((dateValue - 25569) * 86400 * 1000));
+        if(isValid(excelDate)) return excelDate;
+    }
+    if (typeof dateValue === 'string') {
+        const supportedFormats = [
+            "d/M/yyyy",
+            "dd/MM/yyyy",
+            "yyyy-MM-dd",
+            "MM/dd/yyyy",
+            "M/d/yyyy",
+        ];
+
+        for (const fmt of supportedFormats) {
+            const parsed = parseDate(dateValue, fmt, new Date());
+            if (isValid(parsed)) return parsed;
         }
+        
+        const isoParsed = parseISO(dateValue);
+        if (isValid(isoParsed)) return isoParsed;
     }
-    return new Date('invalid');
-};
+
+    return null;
+}
 
 
 async function processAndUploadFile(file: File): Promise<{ count: number }> {
@@ -157,9 +164,18 @@ export default function Irrigation01DatabasePage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const records = snapshot.docs.map(doc => {
             const data = doc.data();
+            const processedData = { ...data };
+
+            // Standardize date fields upon fetch
+            const fechaCianamida = parseDynamicDate(data['Fecha de cianamida']);
+            const fecha = parseDynamicDate(data['Fecha']);
+            
+            processedData['Fecha de cianamida'] = fechaCianamida;
+            processedData['Fecha'] = fecha;
+
             return {
                 id: doc.id,
-                ...data,
+                ...processedData,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(0) 
             };
         });
@@ -184,7 +200,7 @@ export default function Irrigation01DatabasePage() {
             (filters.campana ? record['Campaña'] === filters.campana : true) &&
             (filters.lote ? record.Lote === filters.lote : true) &&
             (filters.etapa ? record['Etapa'] === filters.etapa : true) &&
-            (filters.fecha ? record.Fecha === filters.fecha : true)
+            (filters.fecha ? format(record.Fecha, 'yyyy-MM-dd') === filters.fecha : true)
         );
     });
     setFilteredRecords(result);
@@ -255,7 +271,7 @@ export default function Irrigation01DatabasePage() {
       "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
     ];
 
-    if (filteredRecords.length === 0) return PREFERRED_ORDER.filter(h => h !== 'Nº APLICACIÓN' && h !== 'Fecha de cianamida');
+    if (filteredRecords.length === 0) return PREFERRED_ORDER.filter(h => h !== 'Nº APLICACIÓN');
 
     const allHeaders = new Set<string>();
     filteredRecords.forEach(record => {
@@ -276,7 +292,14 @@ export default function Irrigation01DatabasePage() {
   const handleDownloadExcel = () => {
     const dataToExport = filteredRecords.map(record => {
       const { id, createdAt, ...rest } = record;
-      return rest;
+      const formattedRecord: any = { ...rest };
+      if (rest['Fecha'] instanceof Date) {
+        formattedRecord['Fecha'] = format(rest['Fecha'], 'dd/MM/yyyy');
+      }
+      if (rest['Fecha de cianamida'] instanceof Date) {
+        formattedRecord['Fecha de cianamida'] = format(rest['Fecha de cianamida'], 'dd/MM/yyyy');
+      }
+      return formattedRecord;
     });
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
     const workbook = xlsx.utils.book_new();
@@ -289,7 +312,7 @@ export default function Irrigation01DatabasePage() {
       const campanas = [...new Set(savedRecords.map(r => r['Campaña']))].filter(Boolean);
       const lotes = [...new Set(savedRecords.map(r => r.Lote))].filter(Boolean);
       const etapas = [...new Set(savedRecords.map(r => r['Etapa']))].filter(Boolean);
-      const fechas = [...new Set(savedRecords.map(r => r.Fecha))].filter(Boolean);
+      const fechas = [...new Set(savedRecords.map(r => r.Fecha instanceof Date ? format(r.Fecha, 'yyyy-MM-dd') : r.Fecha))].filter(Boolean);
       return { campanas, lotes, etapas, fechas };
   }, [savedRecords]);
 
@@ -347,26 +370,12 @@ export default function Irrigation01DatabasePage() {
   };
 
   const formatCell = (value: any) => {
-    if (!value) return '';
-
-    if (value instanceof Timestamp) {
-        return format(value.toDate(), 'dd/MM/yyyy');
-    }
     if (value instanceof Date) {
         return format(value, 'dd/MM/yyyy');
     }
-    if (typeof value === 'string') {
-        const potentialDate = parseDate(value, 'dd/MM/yyyy', new Date());
-        if (isValid(potentialDate)) {
-            return value; 
-        }
-        const isoDate = parseISO(value);
-        if (isValid(isoDate)) {
-            return format(isoDate, 'dd/MM/yyyy');
-        }
-    }
+    if (!value) return '';
     return String(value);
-};
+  };
 
 
   return (
@@ -418,7 +427,7 @@ export default function Irrigation01DatabasePage() {
                                         </div>
                                         <div className="grid grid-cols-3 items-center gap-4">
                                             <Label>Fecha</Label>
-                                            <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                            <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{format(parseISO(o), 'dd/MM/yyyy')}</SelectItem>)}</SelectContent></Select>
                                         </div>
                                     </div>
                                 </div>
