@@ -264,19 +264,9 @@ export default function Irrigation01DatabasePage() {
         });
     });
 
-    const headersArray = Array.from(allHeaders);
+    const dynamicHeaders = [...allHeaders].filter(h => !PREFERRED_ORDER.includes(h)).sort();
     
-    headersArray.sort((a, b) => {
-        const indexA = PREFERRED_ORDER.indexOf(a);
-        const indexB = PREFERRED_ORDER.indexOf(b);
-
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
-    });
-    
-    return headersArray;
+    return [...PREFERRED_ORDER.filter(h => allHeaders.has(h)), ...dynamicHeaders];
 }, [filteredRecords]);
 
 
