@@ -19,13 +19,13 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { renameAndMergeHeader } from "./actions";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { format, isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO, parse as parseDate } from "date-fns";
 
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
@@ -160,7 +160,6 @@ export default function Irrigation01DatabasePage() {
             return {
                 id: doc.id,
                 ...data,
-                // Ensure createdAt is a JS Date object for sorting
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(0) 
             };
         });
@@ -256,7 +255,7 @@ export default function Irrigation01DatabasePage() {
       "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
     ];
 
-    if (filteredRecords.length === 0) return PREFERRED_ORDER;
+    if (filteredRecords.length === 0) return PREFERRED_ORDER.filter(h => h !== 'Nº APLICACIÓN' && h !== 'Fecha de cianamida');
 
     const allHeaders = new Set<string>();
     filteredRecords.forEach(record => {
@@ -348,24 +347,26 @@ export default function Irrigation01DatabasePage() {
   };
 
   const formatCell = (value: any) => {
+    if (!value) return '';
+
     if (value instanceof Timestamp) {
-      return format(value.toDate(), 'dd/MM/yyyy');
-    }
-    // Attempt to parse string as date if it looks like one
-    if (typeof value === 'string') {
-        const parsedDate = parseISO(value);
-        if (isValid(parsedDate)) {
-             // Check if it's not just a number string
-            if (isNaN(Number(value))) {
-                return format(parsedDate, 'dd/MM/yyyy');
-            }
-        }
+        return format(value.toDate(), 'dd/MM/yyyy');
     }
     if (value instanceof Date) {
-      return format(value, 'dd/MM/yyyy');
+        return format(value, 'dd/MM/yyyy');
     }
-    return String(value ?? '');
-  };
+    if (typeof value === 'string') {
+        const potentialDate = parseDate(value, 'dd/MM/yyyy', new Date());
+        if (isValid(potentialDate)) {
+            return value; 
+        }
+        const isoDate = parseISO(value);
+        if (isValid(isoDate)) {
+            return format(isoDate, 'dd/MM/yyyy');
+        }
+    }
+    return String(value);
+};
 
 
   return (
@@ -537,9 +538,3 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
-
-    
-
-    
-
-
