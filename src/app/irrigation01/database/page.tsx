@@ -81,7 +81,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const workbook = xlsx.read(e.target.result, { type: 'binary', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = xlsx.utils.sheet_to_json(worksheet);
+                const json: any[] = xlsx.utils.sheet_to_json(worksheet, { raw: false });
 
                 if (json.length === 0) {
                     return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
