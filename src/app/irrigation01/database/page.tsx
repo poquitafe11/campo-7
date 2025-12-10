@@ -250,6 +250,15 @@ export default function Irrigation01DatabasePage() {
   
  const savedRecordsHeaders = useMemo(() => {
     if (filteredRecords.length === 0) return [];
+    
+    const allHeaders = new Set<string>();
+    filteredRecords.forEach(record => {
+      Object.keys(record).forEach(key => {
+        if (key !== 'id' && key !== 'createdAt') {
+          allHeaders.add(key);
+        }
+      });
+    });
 
     const PREFERRED_ORDER = [
         "Lote", "Campaña", "Fecha de cianamida", "Nº APLICACIÓN", "DIAS", "Fecha", "Fecha de Término", "Horas de Riego",
@@ -257,16 +266,10 @@ export default function Irrigation01DatabasePage() {
         "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
     ];
 
-    const allHeaders = new Set<string>();
-    filteredRecords.forEach(record => {
-        Object.keys(record).forEach(key => {
-            if (key !== 'id' && key !== 'createdAt') allHeaders.add(key);
-        });
-    });
-
+    const orderedHeaders = PREFERRED_ORDER.filter(h => allHeaders.has(h));
     const dynamicHeaders = [...allHeaders].filter(h => !PREFERRED_ORDER.includes(h)).sort();
     
-    return [...PREFERRED_ORDER.filter(h => allHeaders.has(h)), ...dynamicHeaders];
+    return [...orderedHeaders, ...dynamicHeaders];
 }, [filteredRecords]);
 
 
