@@ -249,27 +249,26 @@ export default function Irrigation01DatabasePage() {
   };
   
  const savedRecordsHeaders = useMemo(() => {
-      if (filteredRecords.length === 0) return [];
-  
-      // Mandatory order as requested by the user
-      const PREFERRED_ORDER = [
-          "Lote", "Campaña", "Fecha de cianamida", "Nº APLICACIÓN", "DIAS", "Fecha", "Fecha de Término", "Horas de Riego",
-          "Producto", "CONCENTRACIÓN", "Cant. Total", "Cant x Ha.", "U.M.",
-          "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
-      ];
-  
-      const allHeaders = new Set<string>();
-      filteredRecords.forEach(record => {
-          Object.keys(record).forEach(key => {
-              if (key !== 'id' && key !== 'createdAt') allHeaders.add(key);
-          });
-      });
-  
-      const preferredHeadersInOrder = PREFERRED_ORDER.filter(header => allHeaders.has(header));
-      const otherHeaders = Array.from(allHeaders).filter(header => !PREFERRED_ORDER.includes(header)).sort();
-  
-      return [...preferredHeadersInOrder, ...otherHeaders];
-  }, [filteredRecords]);
+    if (filteredRecords.length === 0) return [];
+
+    const PREFERRED_ORDER = [
+        "Lote", "Campaña", "Fecha de cianamida", "Nº APLICACIÓN", "DIAS", "Fecha", "Fecha de Término", "Horas de Riego",
+        "Producto", "CONCENTRACIÓN", "Cant. Total", "Cant x Ha.", "U.M.",
+        "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
+    ];
+
+    const allHeaders = new Set<string>();
+    filteredRecords.forEach(record => {
+        Object.keys(record).forEach(key => {
+            if (key !== 'id' && key !== 'createdAt') allHeaders.add(key);
+        });
+    });
+
+    const preferredHeadersInOrder = PREFERRED_ORDER.filter(header => allHeaders.has(header));
+    const otherHeaders = Array.from(allHeaders).filter(header => !PREFERRED_ORDER.includes(header)).sort();
+
+    return [...preferredHeadersInOrder, ...otherHeaders];
+}, [filteredRecords]);
 
 
 
