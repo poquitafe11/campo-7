@@ -18,7 +18,7 @@ import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, wri
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription as DialogDescriptionComponent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -113,8 +113,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                     let hasData = false;
                     header.forEach((h, i) => {
                         const cleanKey = String(h).trim();
-                        // Only consider a cell as having data if it's not null/undefined/empty string
-                        if (rowArray[i] !== null && rowArray[i] !== undefined && String(rowArray[i]).trim() !== '') {
+                        // Use defval: null in sheet_to_json to get null for empty cells
+                        if (rowArray[i] !== null) {
                             row[cleanKey] = rowArray[i];
                             hasData = true;
                         }
@@ -137,8 +137,15 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                     
                     // Proceed only if the row has a product, which indicates it's a valid data entry for an insumo.
                     if (row['Producto']) {
+                        // Ensure all header fields exist in the final object to avoid 'undefined'
+                        const finalRowData: { [key: string]: any } = {};
+                        header.forEach(h => {
+                            const cleanKey = String(h).trim();
+                            finalRowData[cleanKey] = row[cleanKey] ?? null;
+                        });
+
                         const docRef = doc(collection(db, 'registros-riego-01'));
-                        batch.set(docRef, { ...row, createdAt: serverTimestamp() });
+                        batch.set(docRef, { ...finalRowData, createdAt: serverTimestamp() });
                         validRecordsCount++;
                     }
                 });
@@ -537,7 +544,7 @@ export default function Irrigation01DatabasePage() {
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                                                     <AlertDialogContent>
-                                                        <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><DialogDescriptionComponent>Esta acción es permanente.</DialogDescriptionComponent></AlertDialogHeader>
+                                                        <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><DialogDescription>Esta acción es permanente.</DialogDescription></AlertDialogHeader>
                                                         <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSaved(record.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
                                                     </AlertDialogContent>
                                                 </AlertDialog>
@@ -577,7 +584,7 @@ export default function Irrigation01DatabasePage() {
 
       <Dialog open={!!editingHeader} onOpenChange={setEditingHeader}>
           <DialogContent>
-              <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescriptionComponent>Renombra o fusiona la columna "{editingHeader}".</DialogDescriptionComponent></DialogHeader>
+              <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescription>Renombra o fusiona la columna "{editingHeader}".</DialogDescription></DialogHeader>
               <Form {...editHeaderForm}>
                   <form onSubmit={editHeaderForm.handleSubmit(onEditHeaderSubmit)} className="space-y-4">
                       <FormField
@@ -591,7 +598,7 @@ export default function Irrigation01DatabasePage() {
                           control={editHeaderForm.control}
                           name="mergeWith"
                           render={({ field }) => (
-                              <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><DialogDescriptionComponent>Los datos de "{editingHeader}" se añadirán a esta columna.</DialogDescriptionComponent><FormMessage /></FormItem>
+                              <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><DialogDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</DialogDescription><FormMessage /></FormItem>
                           )}
                       />
                       <DialogFooter className="pt-4">
