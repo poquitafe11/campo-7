@@ -248,9 +248,10 @@ export default function Irrigation01DatabasePage() {
     ));
   };
   
-  const savedRecordsHeaders = useMemo(() => {
+ const savedRecordsHeaders = useMemo(() => {
       if (filteredRecords.length === 0) return [];
   
+      // Mandatory order as requested by the user
       const PREFERRED_ORDER = [
           "Lote", "Campaña", "Fecha de cianamida", "N° APLICACION", "DIAS", "Fecha", "Fecha de Término", "Horas de Riego",
           "Producto", "CONCENTRACIÓN", "Cant. Total", "Cant x Ha.", "U.M.",
@@ -264,19 +265,10 @@ export default function Irrigation01DatabasePage() {
           });
       });
   
-      const headerOrderMap = new Map(PREFERRED_ORDER.map((header, index) => [header, index]));
+      const preferredHeadersInOrder = PREFERRED_ORDER.filter(header => allHeaders.has(header));
+      const otherHeaders = Array.from(allHeaders).filter(header => !PREFERRED_ORDER.includes(header)).sort();
   
-      const sortedHeaders = Array.from(allHeaders).sort((a, b) => {
-          const posA = headerOrderMap.get(a);
-          const posB = headerOrderMap.get(b);
-          
-          if (posA !== undefined && posB !== undefined) return posA - posB;
-          if (posA !== undefined) return -1;
-          if (posB !== undefined) return 1;
-          return a.localeCompare(b);
-      });
-  
-      return sortedHeaders;
+      return [...preferredHeadersInOrder, ...otherHeaders];
   }, [filteredRecords]);
 
 
