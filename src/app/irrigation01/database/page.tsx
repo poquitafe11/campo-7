@@ -18,8 +18,8 @@ import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, wri
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { renameAndMergeHeader } from "./actions";
@@ -100,46 +100,58 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const dataRows = json.slice(1);
                 const batch = writeBatch(db);
                 
-                let lastValidRowData: any = {};
+                let lastValidRowData: { [key: string]: any } = {};
+                let validRecordsCount = 0;
                 
                 dataRows.forEach(rowArray => {
                     const row: any = {};
+                    let hasData = false;
                     header.forEach((h, i) => {
                         const cleanKey = String(h).trim();
-                        if (rowArray[i] !== null) {
+                        if (rowArray[i] !== null && rowArray[i] !== undefined && String(rowArray[i]).trim() !== '') {
                             row[cleanKey] = rowArray[i];
+                            hasData = true;
                         }
                     });
 
-                    // Propagate data from merged cells. If a key cell is missing, use the last known value.
-                    // This is crucial for rows with multiple 'insumos'.
-                    const hasKeyData = row['Lote'] != null && row['Fecha'] != null;
-                    if (hasKeyData) {
-                        lastValidRowData = row;
-                    } else {
-                        // If it's a row for an additional "insumo", merge it with the last main row data.
-                        const mainDataToCarry = {
-                            'Lote': lastValidRowData['Lote'],
-                            'Campaña': lastValidRowData['Campaña'],
-                            'Fecha de cianamida': lastValidRowData['Fecha de cianamida'],
-                            'Nº APLICACIÓN': lastValidRowData['Nº APLICACIÓN'],
-                            'DIAS': lastValidRowData['DIAS'],
-                            'Fecha': lastValidRowData['Fecha'],
-                            'Fecha de Término': lastValidRowData['Fecha de Término'],
-                            'Horas de Riego': lastValidRowData['Horas de Riego'],
-                        };
-                         Object.assign(row, { ...mainDataToCarry, ...row });
-                    }
+                    if (!hasData) return; // Skip completely empty rows
+
+                    // Propagate data from merged cells.
+                    const keyColumns = ['Lote', 'Fecha', 'Campaña', 'Fecha de cianamida'];
+                    let isNewRecord = false;
+                    keyColumns.forEach(key => {
+                        if (row[key] != null) {
+                            lastValidRowData[key] = row[key];
+                            isNewRecord = true;
+                        } else {
+                            row[key] = lastValidRowData[key];
+                        }
+                    });
+
+                    // Carry over other potentially merged columns
+                    const otherMergedCols = ['Nº APLICACIÓN', 'DIAS', 'Horas de Riego'];
+                    otherMergedCols.forEach(key => {
+                        if (row[key] != null) {
+                            lastValidRowData[key] = row[key];
+                        } else {
+                            row[key] = lastValidRowData[key];
+                        }
+                    });
                     
                     // Proceed only if the row has a product, which indicates it's a valid data entry
                     if (row['Producto']) {
                         const docRef = doc(collection(db, 'registros-riego-01'));
                         batch.set(docRef, { ...row, createdAt: serverTimestamp() });
+                        validRecordsCount++;
                     }
                 });
 
+                if (validRecordsCount === 0) {
+                    return reject(new Error("No se encontraron registros válidos con un 'Producto' en el archivo."));
+                }
+
                 await batch.commit();
-                resolve({ count: dataRows.filter(r => r.length > 0).length });
+                resolve({ count: validRecordsCount });
 
             } catch (error: any) {
                 console.error('Error processing or uploading file: ', error);
@@ -311,7 +323,7 @@ export default function Irrigation01DatabasePage() {
       "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
     ];
 
-    if (filteredRecords.length === 0) return PREFERRED_ORDER.filter(h => h !== 'Nº APLICACIÓN');
+    if (filteredRecords.length === 0) return PREFERRED_ORDER;
 
     const allHeaders = new Set<string>();
     filteredRecords.forEach(record => {
@@ -559,7 +571,7 @@ export default function Irrigation01DatabasePage() {
 
       <Dialog open={!!editingHeader} onOpenChange={setEditingHeader}>
           <DialogContent>
-              <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescription>Renombra o fusiona la columna "{editingHeader}".</DialogDescription></DialogHeader>
+              <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescriptionComponent>Renombra o fusiona la columna "{editingHeader}".</DialogDescriptionComponent></DialogHeader>
               <Form {...editHeaderForm}>
                   <form onSubmit={editHeaderForm.handleSubmit(onEditHeaderSubmit)} className="space-y-4">
                       <FormField
@@ -587,5 +599,3 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
-
-    
