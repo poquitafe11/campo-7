@@ -117,20 +117,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                     if (!hasData) return; // Skip completely empty rows
 
                     // Propagate data from merged cells.
-                    const keyColumns = ['Lote', 'Fecha', 'Campaña', 'Fecha de cianamida'];
-                    let isNewRecord = false;
+                    const keyColumns = ['Lote', 'Fecha', 'Campaña', 'Fecha de cianamida', 'Nº APLICACIÓN', 'DIAS', 'Horas de Riego'];
                     keyColumns.forEach(key => {
-                        if (row[key] != null) {
-                            lastValidRowData[key] = row[key];
-                            isNewRecord = true;
-                        } else {
-                            row[key] = lastValidRowData[key];
-                        }
-                    });
-
-                    // Carry over other potentially merged columns
-                    const otherMergedCols = ['Nº APLICACIÓN', 'DIAS', 'Horas de Riego'];
-                    otherMergedCols.forEach(key => {
                         if (row[key] != null) {
                             lastValidRowData[key] = row[key];
                         } else {
@@ -422,7 +410,7 @@ export default function Irrigation01DatabasePage() {
   };
 
   const formatCell = (value: any) => {
-    if (value instanceof Date) {
+    if (value instanceof Date && isValid(value)) {
         return format(value, 'dd/MM/yyyy');
     }
     if (value == null) return '';
