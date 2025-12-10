@@ -89,21 +89,45 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const workbook = xlsx.read(e.target.result, { type: 'binary', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = xlsx.utils.sheet_to_json(worksheet, { raw: false });
+                const json: any[] = xlsx.utils.sheet_to_json(worksheet, { raw: true, defval: null });
 
                 if (json.length === 0) {
                     return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
                 }
                 
                 const batch = writeBatch(db);
-                json.forEach(row => {
-                    const docRef = doc(collection(db, 'registros-riego-01'));
+                
+                let lastValidRowData: any = {};
+                const processedRows = json.map(row => {
                     const cleanRow = Object.entries(row).reduce((acc, [key, value]) => {
                         const cleanKey = key.trim();
                         acc[cleanKey] = value;
                         return acc;
                     }, {} as any);
-                    batch.set(docRef, { ...cleanRow, createdAt: serverTimestamp() });
+
+                    // If a key cell (like 'Lote' or 'Fecha') is missing, fill it from the last valid row.
+                    // This handles merged cells in Excel.
+                    const newRow = { ...lastValidRowData, ...cleanRow };
+                    
+                    // Update lastValidRowData only if the current row has the key data points
+                    if (cleanRow['Lote'] != null && cleanRow['Fecha'] != null) {
+                        lastValidRowData = {
+                            'Lote': cleanRow['Lote'],
+                            'Campaña': cleanRow['Campaña'],
+                            'Fecha de cianamida': cleanRow['Fecha de cianamida'],
+                            'Nº APLICACIÓN': cleanRow['Nº APLICACIÓN'],
+                            'DIAS': cleanRow['DIAS'],
+                            'Fecha': cleanRow['Fecha'],
+                            'Fecha de Término': cleanRow['Fecha de Término'],
+                            'Horas de Riego': cleanRow['Horas de Riego'],
+                        };
+                    }
+                    return newRow;
+                });
+                
+                processedRows.forEach(row => {
+                    const docRef = doc(collection(db, 'registros-riego-01'));
+                    batch.set(docRef, { ...row, createdAt: serverTimestamp() });
                 });
 
                 await batch.commit();
@@ -164,7 +188,7 @@ export default function Irrigation01DatabasePage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const records = snapshot.docs.map(doc => {
             const data = doc.data();
-            const processedData = { ...data };
+            const processedData: any = { ...data };
 
             // Standardize date fields upon fetch
             const fechaCianamida = parseDynamicDate(data['Fecha de cianamida']);
@@ -196,11 +220,19 @@ export default function Irrigation01DatabasePage() {
 
   useEffect(() => {
     const result = savedRecords.filter(record => {
+        let dateFilterMatch = true;
+        if (filters.fecha && record.Fecha instanceof Date) {
+            try {
+                dateFilterMatch = format(record.Fecha, 'yyyy-MM-dd') === filters.fecha;
+            } catch (e) {
+                dateFilterMatch = false;
+            }
+        }
         return (
             (filters.campana ? record['Campaña'] === filters.campana : true) &&
-            (filters.lote ? record.Lote === filters.lote : true) &&
+            (filters.lote ? String(record.Lote) === filters.lote : true) &&
             (filters.etapa ? record['Etapa'] === filters.etapa : true) &&
-            (filters.fecha ? format(record.Fecha, 'yyyy-MM-dd') === filters.fecha : true)
+            dateFilterMatch
         );
     });
     setFilteredRecords(result);
@@ -310,9 +342,9 @@ export default function Irrigation01DatabasePage() {
   
   const filterOptions = useMemo(() => {
       const campanas = [...new Set(savedRecords.map(r => r['Campaña']))].filter(Boolean);
-      const lotes = [...new Set(savedRecords.map(r => r.Lote))].filter(Boolean);
+      const lotes = [...new Set(savedRecords.map(r => String(r.Lote)))].filter(Boolean);
       const etapas = [...new Set(savedRecords.map(r => r['Etapa']))].filter(Boolean);
-      const fechas = [...new Set(savedRecords.map(r => r.Fecha instanceof Date ? format(r.Fecha, 'yyyy-MM-dd') : r.Fecha))].filter(Boolean);
+      const fechas = [...new Set(savedRecords.map(r => r.Fecha instanceof Date ? format(r.Fecha, 'yyyy-MM-dd') : null))].filter(Boolean) as string[];
       return { campanas, lotes, etapas, fechas };
   }, [savedRecords]);
 
@@ -373,7 +405,7 @@ export default function Irrigation01DatabasePage() {
     if (value instanceof Date) {
         return format(value, 'dd/MM/yyyy');
     }
-    if (!value) return '';
+    if (value == null) return '';
     return String(value);
   };
 
