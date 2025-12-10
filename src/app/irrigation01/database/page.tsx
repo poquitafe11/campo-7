@@ -17,7 +17,7 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch, serverTimestamp, query, orderBy, Timestamp } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription as DialogDescriptionComponent } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -320,8 +320,6 @@ export default function Irrigation01DatabasePage() {
       "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
     ];
 
-    if (filteredRecords.length === 0) return PREFERRED_ORDER;
-
     const allHeaders = new Set<string>();
     filteredRecords.forEach(record => {
       Object.keys(record).forEach(key => {
@@ -334,6 +332,9 @@ export default function Irrigation01DatabasePage() {
     const orderedHeaders = PREFERRED_ORDER.filter(h => allHeaders.has(h));
     const dynamicHeaders = [...allHeaders].filter(h => !PREFERRED_ORDER.includes(h)).sort();
     
+    // If no records, return the preferred order so the header is always visible
+    if(filteredRecords.length === 0) return PREFERRED_ORDER;
+
     return [...orderedHeaders, ...dynamicHeaders];
 }, [filteredRecords]);
 
@@ -498,28 +499,32 @@ export default function Irrigation01DatabasePage() {
                         </Button>
                     </div>
                 )}
-                {loading ? (
-                    <div className="flex items-center justify-center h-48"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-                ) : filteredRecords.length > 0 ? (
-                    <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
-                        <Table className="bg-background">
-                            <TableHeader>
+                <div className="rounded-md border bg-muted/50 p-4 overflow-x-auto">
+                    <Table className="bg-background">
+                        <TableHeader>
+                            <TableRow>
+                                {savedRecordsHeaders.map(header => (
+                                    <TableHead key={header} className="group whitespace-nowrap">
+                                        <div className="flex items-center gap-1">
+                                            {header}
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditHeader(header)}>
+                                                <Pencil className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    </TableHead>
+                                ))}
+                                <TableHead>Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
                                 <TableRow>
-                                    {savedRecordsHeaders.map(header => (
-                                        <TableHead key={header} className="group whitespace-nowrap">
-                                            <div className="flex items-center gap-1">
-                                                {header}
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditHeader(header)}>
-                                                    <Pencil className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </TableHead>
-                                    ))}
-                                    <TableHead>Acciones</TableHead>
+                                    <TableCell colSpan={savedRecordsHeaders.length + 1} className="h-48 text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredRecords.map(record => (
+                            ) : filteredRecords.length > 0 ? (
+                                filteredRecords.map(record => (
                                     <TableRow key={record.id}>
                                         {savedRecordsHeaders.map(header => (
                                             <TableCell key={`${record.id}-${header}`} className='whitespace-nowrap'>
@@ -532,20 +537,24 @@ export default function Irrigation01DatabasePage() {
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild><Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                                                     <AlertDialogContent>
-                                                        <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
+                                                        <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><DialogDescriptionComponent>Esta acción es permanente.</DialogDescriptionComponent></AlertDialogHeader>
                                                         <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSaved(record.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
                                                     </AlertDialogContent>
                                                 </AlertDialog>
                                             </div>
                                         </TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                ) : (
-                    <CardDescription>Aún no se han registrado datos de riego o no hay resultados para los filtros seleccionados.</CardDescription>
-                )}
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={savedRecordsHeaders.length + 1} className="h-48 text-center">
+                                        Aún no se han registrado datos de riego o no hay resultados para los filtros seleccionados.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
           </Card>
         </div>
