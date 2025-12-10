@@ -19,7 +19,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { renameAndMergeHeader } from "./actions";
@@ -249,8 +249,14 @@ export default function Irrigation01DatabasePage() {
   };
   
  const savedRecordsHeaders = useMemo(() => {
-    if (filteredRecords.length === 0) return [];
-    
+    const PREFERRED_ORDER = [
+      "Lote", "Campaña", "Fecha de cianamida", "Nº APLICACIÓN", "DIAS", "Fecha", "Fecha de Término", "Horas de Riego",
+      "Producto", "CONCENTRACIÓN", "Cant. Total", "Cant x Ha.", "U.M.",
+      "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
+    ];
+
+    if (filteredRecords.length === 0) return PREFERRED_ORDER;
+
     const allHeaders = new Set<string>();
     filteredRecords.forEach(record => {
       Object.keys(record).forEach(key => {
@@ -259,12 +265,6 @@ export default function Irrigation01DatabasePage() {
         }
       });
     });
-
-    const PREFERRED_ORDER = [
-        "Lote", "Campaña", "Fecha de cianamida", "Nº APLICACIÓN", "DIAS", "Fecha", "Fecha de Término", "Horas de Riego",
-        "Producto", "CONCENTRACIÓN", "Cant. Total", "Cant x Ha.", "U.M.",
-        "N", "P", "K", "Ca", "Mg", "Zn", "B", "Cu", "Fe", "S", "Mn"
-    ];
 
     const orderedHeaders = PREFERRED_ORDER.filter(h => allHeaders.has(h));
     const dynamicHeaders = [...allHeaders].filter(h => !PREFERRED_ORDER.includes(h)).sort();
@@ -516,5 +516,7 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
+
+    
 
     
