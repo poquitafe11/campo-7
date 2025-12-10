@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch, serverTimestamp, query, orderBy, Timestamp } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { renameAndMergeHeader } from "./actions";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
 
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
@@ -346,6 +347,16 @@ export default function Irrigation01DatabasePage() {
     }
   };
 
+  const formatCell = (value: any) => {
+    if (value instanceof Timestamp) {
+      return format(value.toDate(), 'dd/MM/yyyy');
+    }
+    if (value instanceof Date) {
+      return format(value, 'dd/MM/yyyy');
+    }
+    return String(value ?? '');
+  };
+
 
   return (
     <>
@@ -443,7 +454,7 @@ export default function Irrigation01DatabasePage() {
                                     <TableRow key={record.id}>
                                         {savedRecordsHeaders.map(header => (
                                             <TableCell key={`${record.id}-${header}`} className='whitespace-nowrap'>
-                                                {String(record[header] ?? '')}
+                                                {formatCell(record[header])}
                                             </TableCell>
                                         ))}
                                         <TableCell>
@@ -520,3 +531,4 @@ export default function Irrigation01DatabasePage() {
     
 
     
+
