@@ -264,12 +264,20 @@ export default function Irrigation01DatabasePage() {
         });
     });
 
-    const preferredHeadersInOrder = PREFERRED_ORDER.filter(header => allHeaders.has(header));
-    const otherHeaders = Array.from(allHeaders).filter(header => !PREFERRED_ORDER.includes(header)).sort();
+    const headersArray = Array.from(allHeaders);
+    
+    headersArray.sort((a, b) => {
+        const indexA = PREFERRED_ORDER.indexOf(a);
+        const indexB = PREFERRED_ORDER.indexOf(b);
 
-    return [...preferredHeadersInOrder, ...otherHeaders];
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+    });
+    
+    return headersArray;
 }, [filteredRecords]);
-
 
 
   const handleDownloadExcel = () => {
@@ -515,3 +523,5 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
+
+    
