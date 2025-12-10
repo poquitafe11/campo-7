@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { renameAndMergeHeader } from "./actions";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { format } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
@@ -351,6 +351,16 @@ export default function Irrigation01DatabasePage() {
     if (value instanceof Timestamp) {
       return format(value.toDate(), 'dd/MM/yyyy');
     }
+    // Attempt to parse string as date if it looks like one
+    if (typeof value === 'string') {
+        const parsedDate = parseISO(value);
+        if (isValid(parsedDate)) {
+             // Check if it's not just a number string
+            if (isNaN(Number(value))) {
+                return format(parsedDate, 'dd/MM/yyyy');
+            }
+        }
+    }
     if (value instanceof Date) {
       return format(value, 'dd/MM/yyyy');
     }
@@ -531,4 +541,5 @@ export default function Irrigation01DatabasePage() {
     
 
     
+
 
