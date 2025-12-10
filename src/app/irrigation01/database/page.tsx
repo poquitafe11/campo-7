@@ -18,8 +18,8 @@ import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, wri
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as FormDescriptionComponent } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { renameAndMergeHeader } from "./actions";
@@ -117,7 +117,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                     if (!hasData) return; // Skip completely empty rows
 
                     // Propagate data from merged cells.
-                    const keyColumns = ['Lote', 'Campaña', 'Fecha de cianamida', 'Nº APLICACIÓN', 'DIAS', 'Horas de Riego', 'Fecha'];
+                    const keyColumns = ['Lote', 'Campaña', 'Fecha de cianamida', 'Nº APLICACIÓN', 'DIAS', 'Horas de Riego', 'Fecha', 'Fecha de Término'];
                     keyColumns.forEach(key => {
                         if (row[key] != null) {
                             lastValidRowData[key] = row[key];
@@ -573,7 +573,7 @@ export default function Irrigation01DatabasePage() {
                           control={editHeaderForm.control}
                           name="mergeWith"
                           render={({ field }) => (
-                              <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
+                              <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescriptionComponent>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescriptionComponent><FormMessage /></FormItem>
                           )}
                       />
                       <DialogFooter className="pt-4">
@@ -587,5 +587,3 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
-
-    
