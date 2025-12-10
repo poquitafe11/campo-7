@@ -19,7 +19,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { renameAndMergeHeader } from "./actions";
@@ -117,7 +117,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                     if (!hasData) return; // Skip completely empty rows
 
                     // Propagate data from merged cells.
-                    const keyColumns = ['Lote', 'Fecha', 'Campaña', 'Fecha de cianamida', 'Nº APLICACIÓN', 'DIAS', 'Horas de Riego'];
+                    const keyColumns = ['Lote', 'Campaña', 'Fecha de cianamida', 'Nº APLICACIÓN', 'DIAS', 'Horas de Riego', 'Fecha'];
                     keyColumns.forEach(key => {
                         if (row[key] != null) {
                             lastValidRowData[key] = row[key];
@@ -587,3 +587,5 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
+
+    
