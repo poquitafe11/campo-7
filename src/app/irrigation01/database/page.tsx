@@ -18,7 +18,7 @@ import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, wri
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as FormDescriptionComponent } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -63,6 +63,7 @@ function parseDynamicDate(dateValue: any): Date | null {
             "yyyy-MM-dd",
             "MM/dd/yyyy",
             "M/d/yyyy",
+            "d-MMM-yy"
         ];
 
         for (const fmt of supportedFormats) {
@@ -89,8 +90,8 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const workbook = xlsx.read(e.target.result, { type: 'binary', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                // Using raw: false helps with formulas, but we need to handle merged cells manually.
-                const json: any[] = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: null });
+                // Using header: 1 to get array of arrays, which is better for merged cells.
+                const json: any[][] = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: null });
 
                 if (json.length < 2) { // Expect at least a header and one data row
                     return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
@@ -108,6 +109,7 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                     let hasData = false;
                     header.forEach((h, i) => {
                         const cleanKey = String(h).trim();
+                        // Only consider a cell as having data if it's not null/undefined/empty string
                         if (rowArray[i] !== null && rowArray[i] !== undefined && String(rowArray[i]).trim() !== '') {
                             row[cleanKey] = rowArray[i];
                             hasData = true;
@@ -116,17 +118,22 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
 
                     if (!hasData) return; // Skip completely empty rows
 
-                    // Propagate data from merged cells.
+                    // Propagate data from what would have been merged cells.
+                    // These are the columns that span multiple rows of products.
                     const keyColumns = ['Lote', 'Campaña', 'Fecha de cianamida', 'Nº APLICACIÓN', 'DIAS', 'Horas de Riego', 'Fecha', 'Fecha de Término'];
                     keyColumns.forEach(key => {
                         if (row[key] != null) {
+                            // This row has a value for a key column, so it's a new "master" row.
+                            // We store its values.
                             lastValidRowData[key] = row[key];
                         } else {
+                            // This row is missing a value for a key column, so it's a sub-row.
+                            // We apply the value from the last master row.
                             row[key] = lastValidRowData[key];
                         }
                     });
                     
-                    // Proceed only if the row has a product, which indicates it's a valid data entry
+                    // Proceed only if the row has a product, which indicates it's a valid data entry for an insumo.
                     if (row['Producto']) {
                         const docRef = doc(collection(db, 'registros-riego-01'));
                         batch.set(docRef, { ...row, createdAt: serverTimestamp() });
@@ -559,7 +566,7 @@ export default function Irrigation01DatabasePage() {
 
       <Dialog open={!!editingHeader} onOpenChange={setEditingHeader}>
           <DialogContent>
-              <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescriptionComponent>Renombra o fusiona la columna "{editingHeader}".</DialogDescriptionComponent></DialogHeader>
+              <DialogHeader><DialogTitle>Editar Encabezado</DialogTitle><DialogDescription>Renombra o fusiona la columna "{editingHeader}".</DialogDescription></DialogHeader>
               <Form {...editHeaderForm}>
                   <form onSubmit={editHeaderForm.handleSubmit(onEditHeaderSubmit)} className="space-y-4">
                       <FormField
