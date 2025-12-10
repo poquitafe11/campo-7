@@ -89,49 +89,57 @@ async function processAndUploadFile(file: File): Promise<{ count: number }> {
                 const workbook = xlsx.read(e.target.result, { type: 'binary', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = xlsx.utils.sheet_to_json(worksheet, { raw: true, defval: null });
+                // Using raw: false helps with formulas, but we need to handle merged cells manually.
+                const json: any[] = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: null });
 
-                if (json.length === 0) {
+                if (json.length < 2) { // Expect at least a header and one data row
                     return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
                 }
                 
+                const header = json[0] as string[];
+                const dataRows = json.slice(1);
                 const batch = writeBatch(db);
                 
                 let lastValidRowData: any = {};
-                const processedRows = json.map(row => {
-                    const cleanRow = Object.entries(row).reduce((acc, [key, value]) => {
-                        const cleanKey = key.trim();
-                        acc[cleanKey] = value;
-                        return acc;
-                    }, {} as any);
-
-                    // If a key cell (like 'Lote' or 'Fecha') is missing, fill it from the last valid row.
-                    // This handles merged cells in Excel.
-                    const newRow = { ...lastValidRowData, ...cleanRow };
-                    
-                    // Update lastValidRowData only if the current row has the key data points
-                    if (cleanRow['Lote'] != null && cleanRow['Fecha'] != null) {
-                        lastValidRowData = {
-                            'Lote': cleanRow['Lote'],
-                            'Campaña': cleanRow['Campaña'],
-                            'Fecha de cianamida': cleanRow['Fecha de cianamida'],
-                            'Nº APLICACIÓN': cleanRow['Nº APLICACIÓN'],
-                            'DIAS': cleanRow['DIAS'],
-                            'Fecha': cleanRow['Fecha'],
-                            'Fecha de Término': cleanRow['Fecha de Término'],
-                            'Horas de Riego': cleanRow['Horas de Riego'],
-                        };
-                    }
-                    return newRow;
-                });
                 
-                processedRows.forEach(row => {
-                    const docRef = doc(collection(db, 'registros-riego-01'));
-                    batch.set(docRef, { ...row, createdAt: serverTimestamp() });
+                dataRows.forEach(rowArray => {
+                    const row: any = {};
+                    header.forEach((h, i) => {
+                        const cleanKey = String(h).trim();
+                        if (rowArray[i] !== null) {
+                            row[cleanKey] = rowArray[i];
+                        }
+                    });
+
+                    // Propagate data from merged cells. If a key cell is missing, use the last known value.
+                    // This is crucial for rows with multiple 'insumos'.
+                    const hasKeyData = row['Lote'] != null && row['Fecha'] != null;
+                    if (hasKeyData) {
+                        lastValidRowData = row;
+                    } else {
+                        // If it's a row for an additional "insumo", merge it with the last main row data.
+                        const mainDataToCarry = {
+                            'Lote': lastValidRowData['Lote'],
+                            'Campaña': lastValidRowData['Campaña'],
+                            'Fecha de cianamida': lastValidRowData['Fecha de cianamida'],
+                            'Nº APLICACIÓN': lastValidRowData['Nº APLICACIÓN'],
+                            'DIAS': lastValidRowData['DIAS'],
+                            'Fecha': lastValidRowData['Fecha'],
+                            'Fecha de Término': lastValidRowData['Fecha de Término'],
+                            'Horas de Riego': lastValidRowData['Horas de Riego'],
+                        };
+                         Object.assign(row, { ...mainDataToCarry, ...row });
+                    }
+                    
+                    // Proceed only if the row has a product, which indicates it's a valid data entry
+                    if (row['Producto']) {
+                        const docRef = doc(collection(db, 'registros-riego-01'));
+                        batch.set(docRef, { ...row, createdAt: serverTimestamp() });
+                    }
                 });
 
                 await batch.commit();
-                resolve({ count: json.length });
+                resolve({ count: dataRows.filter(r => r.length > 0).length });
 
             } catch (error: any) {
                 console.error('Error processing or uploading file: ', error);
@@ -579,3 +587,5 @@ export default function Irrigation01DatabasePage() {
     </>
   );
 }
+
+    
