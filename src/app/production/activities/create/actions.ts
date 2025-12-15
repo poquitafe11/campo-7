@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { ActivityRecordSchema } from '@/lib/types';
 
 export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>) {
@@ -12,11 +12,14 @@ export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>)
     if (!validatedData.createdBy) {
       return { success: false, message: 'Usuario no autenticado.' };
     }
+    
+    const dataToSave = {
+        ...validatedData,
+        registerDate: Timestamp.fromDate(validatedData.registerDate),
+        createdAt: serverTimestamp(),
+    };
 
-    const docRef = await addDoc(collection(db, 'actividades'), {
-      ...validatedData,
-      createdAt: serverTimestamp(),
-    });
+    const docRef = await addDoc(collection(db, 'actividades'), dataToSave);
 
     return { success: true, message: 'Actividad guardada correctamente.', id: docRef.id };
   } catch (error) {

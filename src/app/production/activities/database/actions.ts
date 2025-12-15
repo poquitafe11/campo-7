@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { ActivityRecordSchema } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -21,11 +21,12 @@ export async function updateActivity(id: string, values: UpdateActivityRecordDat
     
     const docRef = doc(db, 'actividades', id);
     
-    await updateDoc(docRef, {
-      ...validatedData,
-      // Ensure date is a Firestore-compatible format if it's being updated
-      ...(validatedData.registerDate ? { registerDate: validatedData.registerDate } : {}),
-    });
+    const dataToUpdate: any = { ...validatedData };
+    if (validatedData.registerDate) {
+      dataToUpdate.registerDate = Timestamp.fromDate(validatedData.registerDate);
+    }
+    
+    await updateDoc(docRef, dataToUpdate);
     
     revalidatePath('/production/activities/database');
     return { success: true, message: 'Actividad actualizada correctamente.' };
