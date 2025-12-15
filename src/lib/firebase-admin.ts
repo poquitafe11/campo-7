@@ -1,8 +1,9 @@
 
 import admin from 'firebase-admin';
-import { config } from 'dotenv';
 
-config();
+// Load environment variables
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 

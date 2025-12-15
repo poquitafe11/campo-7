@@ -37,6 +37,7 @@ import { getUsers, updateUserStatus, deleteUser } from "./actions";
 import UserFormDialog from "@/components/UserFormDialog";
 import { useAuth } from '@/hooks/useAuth';
 import PermissionsDialog from '@/components/PermissionsDialog';
+import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
 
 export default function UsersPage() {
@@ -48,10 +49,11 @@ export default function UsersPage() {
   const [isFormOpen, setFormOpen] = useState(false);
   const [isPermissionsOpen, setPermissionsOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const { setActions } = useHeaderActions();
   
   const currentUserRole = profile?.rol ?? null;
 
-  const fetchUsers = () => {
+  const fetchUsers = useCallback(() => {
     setLoading(true);
     startTransition(async () => {
         const usersResult = await getUsers();
@@ -65,14 +67,15 @@ export default function UsersPage() {
         }
         setLoading(false);
     });
-  };
+  }, [toast]);
   
   useEffect(() => {
+    setActions({ title: "Gestión de Usuarios" });
     if (currentUserRole) {
       fetchUsers();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserRole]);
+    return () => setActions({});
+  }, [currentUserRole, fetchUsers, setActions]);
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
