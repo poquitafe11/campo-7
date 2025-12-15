@@ -279,7 +279,7 @@ export default function CreateActivityPage() {
     
     startTransition(async () => {
         const loteId = data.lote;
-        const loteData = uniqueLotes.find(l => l.id === loteId);
+        const loteData = lotes.find(l => l.id === loteId);
         if (!loteData) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el lote seleccionado.' });
             return;
@@ -341,7 +341,7 @@ export default function CreateActivityPage() {
 
     const validHeaderData = headerForm.getValues();
     const loteId = validHeaderData.lote;
-    const loteData = uniqueLotes.find(l => l.id === loteId);
+    const loteData = lotes.find(l => l.id === loteId);
     
     if (!loteData) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el lote seleccionado.' });
@@ -742,5 +742,6 @@ export default function CreateActivityPage() {
     </>
   );
 }
+
 
 
