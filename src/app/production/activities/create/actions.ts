@@ -1,31 +1,31 @@
-
 'use server';
 
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, Timestamp, getDoc, doc } from 'firebase/firestore';
 import { ActivityRecordSchema } from '@/lib/types';
-import { auth } from 'firebase-admin';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>) {
   try {
     const validatedData = ActivityRecordSchema.parse(values);
     
-    // Ensure assistantDni has a value. If not provided, it means the user is self-registering.
-    // However, the form should already populate this for individual mode. This is a safeguard.
+    // Fallback to get assistantDni from the user record if it's not provided.
+    // This happens in individual mode when a non-assistant user (like an Admin) registers an activity.
     if (!validatedData.assistantDni) {
-        // This is a server-side check. A more robust way might be needed if users can submit without being logged in,
-        // but our app structure with useAuth prevents that. For now, we can assume createdBy is reliable.
-        // A better approach would be to get the logged-in user on the server.
-        // For now we will rely on createdBy which is set on the client.
         const userEmail = validatedData.createdBy;
-        const userDoc = await getDoc(doc(db, "usuarios", userEmail));
-        if (userDoc.exists()) {
-            validatedData.assistantDni = userDoc.data().dni;
-            validatedData.assistantName = userDoc.data().nombre;
+        if (userEmail) {
+            const userDoc = await getDoc(doc(db, "usuarios", userEmail));
+            if (userDoc.exists()) {
+                validatedData.assistantDni = userDoc.data().dni;
+                validatedData.assistantName = userDoc.data().nombre;
+            } else {
+                 // As a last resort, if user is not in 'usuarios' but is authenticated, use a placeholder.
+                 // This case should be rare.
+                 validatedData.assistantDni = 'N/A';
+                 validatedData.assistantName = validatedData.createdBy;
+            }
         } else {
-             throw new Error("No se pudo verificar el asistente. El usuario creador no existe en la base de datos.");
+            return { success: false, message: 'No se pudo identificar al creador del registro.' };
         }
     }
     
