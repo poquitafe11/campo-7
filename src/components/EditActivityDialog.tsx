@@ -31,12 +31,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityRecordData, ActivityRecordSchema, LoteData } from '@/lib/types';
 import { useMasterData } from '@/context/MasterDataContext';
-import { updateActivity } from '@/app/production/activities/database/actions';
 import { CalendarIcon, Grape, Boxes, Loader2, User as UserIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -107,18 +106,27 @@ export default function EditActivityDialog({ isOpen, onOpenChange, activity, onS
     if (!activity) return;
 
     startTransition(async () => {
-        const result = await updateActivity(activity.id, data);
-        if (result.success) {
+        try {
+            const docRef = doc(db, 'actividades', activity.id);
+            const { registerDate, ...restOfData } = data;
+
+            const dataToUpdate: Record<string, any> = {
+                ...restOfData,
+                registerDate: Timestamp.fromDate(registerDate),
+            };
+
+            await updateDoc(docRef, dataToUpdate);
+
             toast({
                 title: 'Éxito',
                 description: 'Actividad actualizada correctamente.',
             });
             onSuccess();
-        } else {
-            toast({
+        } catch (error: any) {
+             toast({
                 variant: 'destructive',
                 title: 'Error al Actualizar',
-                description: result.message || 'No se pudo actualizar la actividad.',
+                description: error.message || 'No se pudo actualizar la actividad.',
             });
         }
     });
