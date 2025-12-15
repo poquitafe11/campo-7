@@ -20,32 +20,11 @@ const roleHierarchy: { [key in UserRole]: number } = {
 
 export async function getUsers() {
     try {
-        const authAdmin = (await getFirebaseAdmin()).auth();
-        const userRecords = await authAdmin.listUsers();
         const usersFromDb = await getDocs(collection(db, "usuarios"));
-        
-        const dbUsersMap = new Map();
-        usersFromDb.docs.forEach(doc => {
-            dbUsersMap.set(doc.id, { ...doc.data(), id: doc.id });
-        });
-
-        const usersData = userRecords.users.map(userRecord => {
-            const dbUser = dbUsersMap.get(userRecord.email || '');
-            return {
-                email: userRecord.email || '',
-                nombre: dbUser?.nombre || userRecord.displayName || 'N/A',
-                dni: dbUser?.dni || '',
-                celular: dbUser?.celular || '',
-                rol: dbUser?.rol || 'Invitado',
-                active: !userRecord.disabled,
-                permissions: dbUser?.permissions || {},
-            };
-        }) as User[];
-        
+        const usersData = usersFromDb.docs.map(doc => ({ ...doc.data(), id: doc.id })) as User[];
         return { success: true, data: usersData };
-
     } catch (error) {
-        console.error("Error fetching users: ", error);
+        console.error("Error fetching users from Firestore: ", error);
         return { success: false, message: "No se pudieron obtener los usuarios.", data: [] };
     }
 }
