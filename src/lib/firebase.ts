@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBPoccPeNLmj1psrxCw5vMDJ5yrwPoITbk",
   authDomain: "brujos.firebaseapp.com",
   projectId: "brujos",
-  storageBucket: "brujos.firebasestorage.app",
+  storageBucket: "brujos.appspot.com",
   messagingSenderId: "171849909417",
   appId: "1:171849909417:web:0d594994387c214e5695b8"
 };
@@ -27,52 +27,58 @@ export const isOffline = () => {
 };
 
 // This function will be the single point of entry for getting Firebase services.
-export async function getFirebase() {
-  if (app && db && auth) {
-    return { app, db, auth };
-  }
-
-  if (getApps().length) {
-    app = getApp();
-  } else {
-    app = initializeApp(firebaseConfig);
-  }
-
-  db = getFirestore(app);
-  
-  if (typeof window !== 'undefined') {
-    auth = initializeAuth(app, {
-      persistence: indexedDBLocalPersistence
-    });
-
-    if (!persistenceEnabled) {
-      try {
-        await enableIndexedDbPersistence(db);
-        persistenceEnabled = true;
-        console.log("Firebase persistence enabled.");
-        if (isOffline()) {
-            console.log("NETWORK CONTROL: Starting in offline mode as per saved preference.");
-            await disableNetwork(db);
+export function getFirebase() {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+        if (typeof window !== 'undefined') {
+            auth = initializeAuth(app, { persistence: indexedDBLocalPersistence });
+            db = initializeFirestore(app, { cacheSizeBytes: CACHE_SIZE_UNLIMITED });
+        } else {
+            auth = getAuth(app);
+            db = getFirestore(app);
         }
-      } catch (err: any) {
-        if (err.code === 'failed-precondition') {
-            console.warn("Firestore persistence failed: Multiple tabs open. Offline data will not be saved.");
-        } else if (err.code === 'unimplemented') {
-            console.warn("Firestore persistence failed: Browser does not support it.");
+    } else {
+        app = getApp();
+        if (typeof window !== 'undefined') {
+             try {
+                auth = getAuth(app);
+            } catch (e) {
+                auth = initializeAuth(app, { persistence: indexedDBLocalPersistence });
+            }
+        } else {
+            auth = getAuth(app);
         }
-      }
+        db = getFirestore(app);
     }
-  } else {
-    // Server-side auth
-    auth = getAuth(app);
-  }
-
-  return { app, db, auth };
+    return { app, db, auth };
 }
+
+
+export async function enableFirebasePersistence() {
+    if (typeof window !== 'undefined' && !persistenceEnabled) {
+        const { db: firestoreDb } = getFirebase();
+        try {
+            await enableIndexedDbPersistence(firestoreDb);
+            persistenceEnabled = true;
+            console.log("Firebase persistence enabled.");
+            if (isOffline()) {
+                console.log("NETWORK CONTROL: Starting in offline mode as per saved preference.");
+                await disableNetwork(firestoreDb);
+            }
+        } catch (err: any) {
+            if (err.code === 'failed-precondition') {
+                console.warn("Firestore persistence failed: Multiple tabs open. Offline data will not be saved.");
+            } else if (err.code === 'unimplemented') {
+                console.warn("Firestore persistence failed: Browser does not support it.");
+            }
+        }
+    }
+}
+
 
 export const goOffline = async () => {
   if (typeof window !== 'undefined') {
-    const { db: firestoreDb } = await getFirebase();
+    const { db: firestoreDb } = getFirebase();
     window.localStorage.setItem(OFFLINE_PERSISTENCE_KEY, 'true');
     await disableNetwork(firestoreDb);
     window.dispatchEvent(new CustomEvent('online-status-changed'));
@@ -82,7 +88,7 @@ export const goOffline = async () => {
 
 export const goOnline = async () => {
   if (typeof window !== 'undefined') {
-    const { db: firestoreDb } = await getFirebase();
+    const { db: firestoreDb } = getFirebase();
     window.localStorage.removeItem(OFFLINE_PERSISTENCE_KEY);
     await enableNetwork(firestoreDb);
     window.dispatchEvent(new CustomEvent('online-status-changed'));
@@ -91,6 +97,10 @@ export const goOnline = async () => {
 };
 
 // Initialize and export immediately for files that import `db` directly.
-getFirebase();
+({ db, app, auth } = getFirebase());
+if (typeof window !== 'undefined') {
+    enableFirebasePersistence();
+}
+
 
 export { db, app, auth };
