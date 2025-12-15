@@ -215,7 +215,7 @@ export default function UsersPage() {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>{row.getVisibleCells().map((cell) => (
+                <TableRow key={row.original.email}>{row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                 ))}</TableRow>
               ))

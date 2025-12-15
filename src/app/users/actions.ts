@@ -20,8 +20,27 @@ const roleHierarchy: { [key in UserRole]: number } = {
 
 export async function getUsers() {
     try {
-        const usersSnapshot = await getDocs(collection(db, "usuarios"));
-        const usersData = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (User & {id: string})[];
+        const authAdmin = (await getFirebaseAdmin()).auth();
+        const userRecords = await authAdmin.listUsers();
+        const usersFromDb = await getDocs(collection(db, "usuarios"));
+        
+        const dbUsersMap = new Map();
+        usersFromDb.docs.forEach(doc => {
+            dbUsersMap.set(doc.id, { ...doc.data(), id: doc.id });
+        });
+
+        const usersData = userRecords.users.map(userRecord => {
+            const dbUser = dbUsersMap.get(userRecord.email || '');
+            return {
+                email: userRecord.email || '',
+                nombre: dbUser?.nombre || userRecord.displayName || 'N/A',
+                dni: dbUser?.dni || '',
+                celular: dbUser?.celular || '',
+                rol: dbUser?.rol || 'Invitado',
+                active: !userRecord.disabled,
+                permissions: dbUser?.permissions || {},
+            };
+        }) as User[];
         
         return { success: true, data: usersData };
 
@@ -71,8 +90,13 @@ export async function saveUser(values: z.infer<typeof UserSchema>) {
 
 export async function updateUserStatus(email: string, active: boolean) {
     try {
+        const authAdmin = (await getFirebaseAdmin()).auth();
+        const userRecord = await authAdmin.getUserByEmail(email);
+        await authAdmin.updateUser(userRecord.uid, { disabled: !active });
+
         const docRef = doc(db, "usuarios", email);
         await setDoc(docRef, { active }, { merge: true });
+
         revalidatePath("/users");
         return { success: true, message: "Estado del usuario actualizado." };
     } catch (error) {
