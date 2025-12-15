@@ -285,13 +285,16 @@ export default function CreateActivityPage() {
             return;
         }
 
-        const result = await saveActivity({
-          ...data,
-          lote: loteData.lote, // Send the lote number, not the ID
-          assistantDni: profile.dni,
-          assistantName: profile.nombre,
-          createdBy: profile.nombre,
-        });
+        const dataToSave = {
+            ...data,
+            lote: loteData.lote, // Ensure we send the lot number, not the complex ID
+            createdBy: profile.nombre,
+            assistantDni: profile.dni,
+            assistantName: profile.nombre
+        };
+
+        const result = await saveActivity(dataToSave as any);
+
         if (result.success) {
             toast({
                 title: 'Éxito',
@@ -368,7 +371,7 @@ export default function CreateActivityPage() {
                 observations: activity.observations || ''
             };
 
-            const result = await saveActivity(fullActivityData);
+            const result = await saveActivity(fullActivityData as any);
             if (result.success) {
                 successCount++;
             }
@@ -742,6 +745,3 @@ export default function CreateActivityPage() {
     </>
   );
 }
-
-
-

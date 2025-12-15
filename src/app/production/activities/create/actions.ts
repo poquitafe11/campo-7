@@ -6,17 +6,21 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { ActivityRecordSchema } from '@/lib/types';
 
-export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>) {
+
+// This schema is now simplified as most logic is on the client.
+const SaveActivitySchema = ActivityRecordSchema.extend({
+    registerDate: z.union([z.date(), z.string()]), // Accept string from server action
+});
+
+
+export async function saveActivity(values: z.infer<typeof SaveActivitySchema>) {
   try {
-    const validatedData = ActivityRecordSchema.parse(values);
-    
-    // This new logic is simpler and more robust.
-    // It trusts the validated data coming from the client and has fallbacks.
+    // The data is pre-validated and structured on the client.
+    // The server's job is just to save it.
     const dataToSave = {
-        ...validatedData,
-        assistantDni: validatedData.assistantDni || 'N/A',
-        assistantName: validatedData.assistantName || validatedData.createdBy,
-        registerDate: Timestamp.fromDate(validatedData.registerDate),
+        ...values,
+        // Ensure date is a Firestore Timestamp before saving.
+        registerDate: Timestamp.fromDate(new Date(values.registerDate)),
         createdAt: serverTimestamp(),
     };
 
@@ -29,6 +33,8 @@ export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>)
       return { success: false, message: `Datos de formulario inválidos: ${errorMessages}` };
     }
     console.error('Error saving activity:', error);
-    return { success: false, message: 'Ocurrió un error en el servidor.' };
+    // Provide a more specific error message if possible
+    const errorMessage = (error instanceof Error) ? error.message : 'Ocurrió un error desconocido en el servidor.';
+    return { success: false, message: `Ocurrió un error en el servidor: ${errorMessage}` };
   }
 }
