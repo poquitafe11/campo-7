@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, getDocs, query } from 'firebase/firestore';
-import { db, isOffline } from '@/lib/firebase';
+import { getFirebase, isOffline } from '@/lib/firebase';
 import type { LoteData, Labor, Assistant, MinMax, Jalador } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
@@ -49,6 +49,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     console.log(`MasterDataContext: Attempting to load data. Is app offline? ${isOffline()}. Force server? ${forceServer}`);
     
     try {
+        const { db } = await getFirebase(); // Ensure firebase is initialized
         const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
             const querySnapshot = await getDocs(query(collection(db, name)));
             return { key, data: querySnapshot.docs.map(processor) };
@@ -81,13 +82,11 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     if (user) {
         loadMasterData();
     } else {
-        // If there's no user, we shouldn't be trying to load data that might be protected.
-        // We can set loading to false. The login page will not show this error.
         setLoading(false);
     }
     
     const handleStatusChange = () => {
-        if(user) { // Only reload if user is logged in
+        if(user) {
             loadMasterData();
         }
     };

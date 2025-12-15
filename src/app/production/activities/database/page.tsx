@@ -11,7 +11,7 @@ import {
   getFilteredRowModel,
 } from '@tanstack/react-table';
 import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebase } from '@/lib/firebase';
 import { format, getWeek, parseISO, differenceInDays, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ActivityRecordData, User, LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
@@ -76,6 +76,7 @@ export default function ActivityDatabasePage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+        const { db } = await getFirebase();
         const [
             usersSnapshot, 
             presupuestoSnapshot, 
