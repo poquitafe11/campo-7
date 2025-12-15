@@ -3,7 +3,11 @@ import admin from 'firebase-admin';
 
 // Load environment variables
 import * as dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+
+// Explicitly load environment variables from the root .env file
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
 
 const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
