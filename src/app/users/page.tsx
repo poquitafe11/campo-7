@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
 import {
   ColumnDef,
   flexRender,
