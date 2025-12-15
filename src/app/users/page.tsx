@@ -37,6 +37,8 @@ import UserFormDialog from "@/components/UserFormDialog";
 import { useAuth } from '@/hooks/useAuth';
 import PermissionsDialog from '@/components/PermissionsDialog';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 export default function UsersPage() {
@@ -52,20 +54,18 @@ export default function UsersPage() {
   
   const currentUserRole = profile?.rol ?? null;
 
-  const fetchUsers = useCallback(() => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
-    startTransition(async () => {
-        const usersResult = await getUsers();
-        
-        if (usersResult.success) {
-            setData(usersResult.data);
-        } else if (usersResult.message) {
-            if (!usersResult.message.includes("permiso")) {
-               toast({ variant: "destructive", title: "Error", description: usersResult.message });
-            }
-        }
+    try {
+        const usersFromDb = await getDocs(collection(db, "usuarios"));
+        const usersData = usersFromDb.docs.map(doc => ({ ...doc.data(), id: doc.id })) as User[];
+        setData(usersData);
+    } catch (error) {
+        console.error("Error fetching users from Firestore: ", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron obtener los usuarios." });
+    } finally {
         setLoading(false);
-    });
+    }
   }, [toast]);
   
   useEffect(() => {
@@ -160,7 +160,7 @@ export default function UsersPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [fetchUsers]
   );
 
   const table = useReactTable({
