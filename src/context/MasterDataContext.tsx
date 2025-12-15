@@ -7,6 +7,7 @@ import { db, isOffline } from '@/lib/firebase';
 import type { LoteData, Labor, Assistant, MinMax, Jalador } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MasterData {
   lotes: LoteData[];
@@ -39,22 +40,16 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const loadMasterData = useCallback(async (forceServer = false) => {
     setLoading(true);
     setError(null);
     
-    // The isOffline() function is the SINGLE source of truth.
-    // The getDocs() call will either use the network or fail if offline,
-    // which is the desired behavior. The persistence layer will serve from cache if network is disabled.
     console.log(`MasterDataContext: Attempting to load data. Is app offline? ${isOffline()}. Force server? ${forceServer}`);
     
     try {
         const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
-            // We don't specify the source anymore. Firebase's SDK will handle it.
-            // If we called disableNetwork(), this will automatically fail to reach the server
-            // and the enabled persistence layer will serve the data from cache.
-            // If we called enableNetwork(), it will try the server.
             const querySnapshot = await getDocs(query(collection(db, name)));
             return { key, data: querySnapshot.docs.map(processor) };
         });
@@ -83,12 +78,18 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   }, [toast]);
   
   useEffect(() => {
-    loadMasterData();
+    if (user) {
+        loadMasterData();
+    } else {
+        // If there's no user, we shouldn't be trying to load data that might be protected.
+        // We can set loading to false. The login page will not show this error.
+        setLoading(false);
+    }
     
     const handleStatusChange = () => {
-        // This event is fired by our goOnline/goOffline functions.
-        // We reload the data to respect the new state.
-        loadMasterData();
+        if(user) { // Only reload if user is logged in
+            loadMasterData();
+        }
     };
 
     window.addEventListener('online-status-changed', handleStatusChange);
@@ -97,7 +98,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         window.removeEventListener('online-status-changed', handleStatusChange);
     };
 
-  }, [loadMasterData]);
+  }, [user, loadMasterData]);
 
   const value = { ...data, loading, error, refreshData: loadMasterData };
 
