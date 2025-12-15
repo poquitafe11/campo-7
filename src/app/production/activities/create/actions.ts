@@ -9,10 +9,6 @@ export async function saveActivity(values: z.infer<typeof ActivityRecordSchema>)
   try {
     const validatedData = ActivityRecordSchema.parse(values);
     
-    if (!validatedData.createdBy) {
-      return { success: false, message: 'Usuario no autenticado.' };
-    }
-    
     const dataToSave = {
         ...validatedData,
         registerDate: Timestamp.fromDate(validatedData.registerDate),
