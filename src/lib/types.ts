@@ -199,7 +199,7 @@ export const ActivityRecordSchema = z.object({
     maxRange: z.coerce.number().optional(),
     pass: z.coerce.number().int().optional(),
     observations: z.string().optional(),
-    assistantDni: z.string().min(1, "El DNI del asistente es requerido."),
+    assistantDni: z.string().optional(),
     assistantName: z.string().optional(),
     createdBy: z.string().min(1, "No se pudo identificar al creador del registro."),
 });
