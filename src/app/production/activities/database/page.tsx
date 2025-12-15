@@ -10,8 +10,8 @@ import {
   useReactTable,
   getFilteredRowModel,
 } from '@tanstack/react-table';
-import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
-import { getFirebase } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { getFirebase, db } from '@/lib/firebase';
 import { format, getWeek, parseISO, differenceInDays, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ActivityRecordData, User, LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, FileDown, Filter, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteActivity } from './actions';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import * as xlsx from "xlsx";
@@ -76,7 +75,6 @@ export default function ActivityDatabasePage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-        const { db } = await getFirebase();
         const [
             usersSnapshot, 
             presupuestoSnapshot, 
@@ -228,12 +226,13 @@ export default function ActivityDatabasePage() {
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
-        const result = await deleteActivity(id);
-        if (result.success) {
+        try {
+            await deleteDoc(doc(db, 'actividades', id));
             toast({ title: "Éxito", description: "Actividad eliminada correctamente." });
             setData(prev => prev.filter(item => item.id !== id));
-        } else {
-            toast({ variant: "destructive", title: "Error", description: result.message });
+        } catch(error) {
+            console.error("Error deleting activity:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la actividad." });
         }
     });
   };

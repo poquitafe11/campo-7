@@ -2,14 +2,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDocs, serverTimestamp, getDocsFromCache } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDocs, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Trash2, Pencil, Users, Sprout, Wrench, Briefcase, ChevronDown, Filter, Calendar as CalendarIcon, FileDown, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteAssistantFromRecord } from './actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -296,14 +295,41 @@ export default function AttendanceDatabasePage() {
   };
 
   const handleDeleteAssistant = async (recordId: string, assistantId: string) => {
-     startTransition(async () => {
-      const result = await deleteAssistantFromRecord(recordId, assistantId);
-      if (result.success) {
-        toast({ title: "Éxito", description: result.message });
-        fetchData();
-      } else {
-        toast({ variant: "destructive", title: "Error", description: result.message });
-      }
+    startTransition(async () => {
+        try {
+            const recordRef = doc(db, 'asistencia', recordId);
+            const recordSnap = await getDoc(recordRef);
+
+            if (!recordSnap.exists()) {
+                toast({ variant: "destructive", title: "Error", description: "No se encontró el registro." });
+                return;
+            }
+
+            const recordData = recordSnap.data();
+            const initialAssistants = recordData.assistants || [];
+            const updatedAssistants = initialAssistants.filter((a: any) => a.id !== assistantId);
+
+            if (updatedAssistants.length === 0) {
+                await deleteDoc(recordRef);
+                toast({ title: "Éxito", description: "Último asistente eliminado, registro completo borrado." });
+            } else {
+                const newTotals = updatedAssistants.reduce((acc: any, a: any) => {
+                    acc.personnelCount += a.personnelCount || 0;
+                    acc.absentCount += a.absentCount || 0;
+                    return acc;
+                }, { personnelCount: 0, absentCount: 0 });
+
+                await updateDoc(recordRef, {
+                    assistants: updatedAssistants,
+                    totals: newTotals
+                });
+                toast({ title: "Éxito", description: "Asistente eliminado del registro." });
+            }
+            fetchData();
+        } catch (error) {
+            console.error('Error deleting assistant from record:', error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el asistente." });
+        }
     });
   };
 
