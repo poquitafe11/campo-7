@@ -13,13 +13,13 @@ function getFirebaseAdmin() {
     return firebaseAdminApp;
   }
 
-  if (!serviceAccountString) {
-    throw new Error('La variable de entorno FIREBASE_SERVICE_ACCOUNT_KEY no está configurada.');
-  }
-
   if (admin.apps.length > 0) {
     firebaseAdminApp = admin.app();
     return firebaseAdminApp;
+  }
+
+  if (!serviceAccountString) {
+    throw new Error('La variable de entorno FIREBASE_SERVICE_ACCOUNT_KEY no está configurada.');
   }
 
   try {
