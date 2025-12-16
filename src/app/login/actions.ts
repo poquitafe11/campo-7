@@ -2,8 +2,7 @@
 "use server";
 
 import { z } from "zod";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { getFirebaseAdmin } from "@/lib/firebase-admin";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -19,19 +18,15 @@ export async function login(values: z.infer<typeof loginSchema>) {
       return { success: true };
     }
 
-    const userDocRef = doc(db, "usuarios", validatedData.email);
-    const userDocSnap = await getDoc(userDocRef);
+    const adminDb = getFirebaseAdmin().firestore();
+    const userDocRef = adminDb.collection("usuarios").doc(validatedData.email);
+    const userDocSnap = await userDocRef.get();
 
-    if (!userDocSnap.exists()) {
+    if (!userDocSnap.exists) {
         return { success: false, message: "Usuario no encontrado." };
     }
-
-    const userData = userDocSnap.data();
-
-    // Do not check for `active` status here.
-    // AuthProvider will handle inactive users by logging them out.
-    // This simplifies logic and prevents race conditions.
     
+    // The user exists in our database, now Firebase Auth will handle the password check.
     return { success: true };
 
   } catch (error) {
