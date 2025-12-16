@@ -218,9 +218,9 @@ export default function CreateActivityPage() {
           performance: 0, clustersOrJabas: 0, personnelCount: 1, workdayCount: 0,
           cost: 0, shift: '', minRange: 0, maxRange: 0, pass: 0,
           observations: '',
-          assistantDni: profile.rol === 'Asistente' ? profile.dni || '' : '',
-          assistantName: profile.rol === 'Asistente' ? profile.nombre || '' : '',
-          createdBy: profile.nombre || '',
+          assistantDni: profile.dni || '',
+          assistantName: profile.nombre || '',
+          createdBy: profile.email || '',
         });
     } else {
         headerForm.reset({
@@ -259,11 +259,12 @@ export default function CreateActivityPage() {
 
 
   useEffect(() => {
-    if (profile?.nombre) {
-      singleForm.setValue('createdBy', profile.nombre);
+    if (profile?.email) {
+      singleForm.setValue('createdBy', profile.email);
     }
-     if (profile?.rol === 'Asistente' && profile?.dni) {
-       singleForm.setValue('assistantDni', profile.dni);
+     if (profile) {
+       singleForm.setValue('assistantDni', profile.dni || '');
+       singleForm.setValue('assistantName', profile.nombre || '');
     }
   }, [profile, singleForm]);
   
@@ -273,7 +274,7 @@ export default function CreateActivityPage() {
   const ExtraPerformanceIcon = String(codeValue) === '46' ? Grape : Boxes;
 
   const onSingleSubmit = (data: SingleActivityFormValues) => {
-    if (!profile?.nombre) {
+    if (!profile?.email) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
       return;
     }
@@ -291,8 +292,8 @@ export default function CreateActivityPage() {
             lote: loteData.lote,
             registerDate: Timestamp.fromDate(data.registerDate),
             createdBy: profile.email,
-            assistantDni: data.assistantDni || profile.dni || 'N/A',
-            assistantName: data.assistantName || profile.nombre || 'N/A',
+            assistantDni: profile.dni || 'N/A',
+            assistantName: profile.nombre || 'N/A',
             createdAt: serverTimestamp(),
         };
 
@@ -618,22 +619,19 @@ export default function CreateActivityPage() {
                     
                   <FormField control={singleForm.control} name="registerDate" render={({ field }) => (<FormItem><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4"/>Fecha de Registro</IconWrapper></FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage/></FormItem>)}/>
                   
-                  <FormField control={singleForm.control} name="assistantDni" render={({ field }) => (
-                     <FormItem>
-                       <FormLabel className="flex items-center gap-2"><User className="h-4 w-4" />Asistente</FormLabel>
-                       <Select onValueChange={(value) => {
-                           field.onChange(value);
-                           const assistant = asistentes.find(a => a.id === value);
-                           singleForm.setValue('assistantName', assistant?.assistantName || '');
-                       }} value={field.value}>
-                           <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl>
-                           <SelectContent>
-                               {asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}
-                           </SelectContent>
-                       </Select>
-                       <FormMessage />
-                     </FormItem>
-                   )} />
+                  <FormField
+                    control={singleForm.control}
+                    name="assistantName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2"><User className="h-4 w-4" />Asistente</FormLabel>
+                        <FormControl>
+                          <Input {...field} readOnly disabled className="bg-muted" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
                       <FormField control={singleForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Briefcase className="h-4 w-4"/>Campaña</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
