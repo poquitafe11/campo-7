@@ -88,8 +88,6 @@ export async function updateUserPermissions(email: string, permissions: Record<s
     try {
         const userRef = doc(db, 'usuarios', email);
         
-        // Firestore's updateDoc can't handle dot notation for creating nested objects if the parent doesn't exist.
-        // It's safer to get the user, update the permissions object, and set it.
         const userDoc = await getDoc(userRef);
         if (!userDoc.exists()) {
             return { success: false, message: "Usuario no encontrado." };
