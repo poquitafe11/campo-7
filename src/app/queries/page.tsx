@@ -6,15 +6,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { BotMessageSquare, Sparkles } from "lucide-react";
-import { es } from 'date-fns/locale';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { QuerySchema } from "@/lib/types";
 import { askQuery } from "./actions";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+
+const QuerySchema = z.object({
+  query: z.string().min(10, "Por favor, introduce una consulta más detallada."),
+});
 
 export default function QueriesPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -40,11 +42,11 @@ export default function QueriesPage() {
     setError(null);
 
     const result = await askQuery(values.query);
-
-    if (result.error) {
-      setError(result.error);
+    
+    if (result.error || !result.answer) {
+      setError(result.error || "La IA no encontró información relevante o no pudo construir una respuesta. Intenta reformular tu pregunta.");
     } else {
-      setAnswer(result.answer ?? null);
+      setAnswer(result.answer);
     }
 
     setIsLoading(false);
