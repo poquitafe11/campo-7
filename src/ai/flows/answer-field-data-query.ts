@@ -44,9 +44,10 @@ const getProductionActivities = ai.defineTool(
         return JSON.stringify(allActivities);
     }
     
+    const lowerCaseSearchTerm = input.searchTerm.toLowerCase();
     const filtered = allActivities.filter(act => {
         // Make sure 'labor' exists and is a string before calling toLowerCase
-        return act.labor && typeof act.labor === 'string' && act.labor.toLowerCase().includes(input.searchTerm!.toLowerCase());
+        return act.labor && typeof act.labor === 'string' && act.labor.toLowerCase().includes(lowerCaseSearchTerm);
     });
     
     return JSON.stringify(filtered);
@@ -124,21 +125,24 @@ const answerer = ai.definePrompt({
   input: { schema: AnswerFieldDataQueryInputSchema },
   output: { schema: AnswerFieldDataQueryOutputSchema },
   tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
-  prompt: `Eres un asistente experto en agronomía y análisis de datos agrícolas. Tu principal tarea es responder preguntas del usuario.
+  prompt: `Eres un asistente experto en agronomía y análisis de datos agrícolas. Tu principal tarea es responder preguntas del usuario de forma precisa y clara.
   
   **Instrucciones Clave:**
   1.  **Analiza la pregunta del usuario**: Determina qué tipo de información necesita (costos, rendimiento, aplicaciones, riego, etc.).
   2.  **Usa las herramientas**: Llama a una o más de las herramientas disponibles para obtener los datos relevantes de la base de datos. Sé específico con el 'searchTerm' si es necesario. Por ejemplo, si el usuario pregunta por "poda", usa el término "poda" en la herramienta \`getProductionActivities\`.
-  3.  **RESPONDE SIEMPRE EN ESPAÑOL.**
+  3.  **Formato de Respuesta OBLIGATORIO**:
+      *   **Para comparaciones o listas de datos**: Si el usuario pide comparar, listar o resumir datos de varios lotes o registros, DEBES presentar tu respuesta en una tabla HTML. La tabla debe tener estilos básicos para ser legible (ej: <table style="width: 100%; border-collapse: collapse;">, <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;">, <td style="border: 1px solid #ddd; padding: 8px;">). Asegúrate de incluir las columnas relevantes.
+      *   **Para respuestas textuales**: Si la respuesta es un texto o un cálculo simple, DEBES envolverla en un tag <p>.
+      *   **IMPORTANTE**: TU RESPUESTA FINAL DEBE SER UN ÚNICO STRING HTML. No respondas solo texto plano.
   4.  **Agrupación y Comparación**: Si una pregunta requiere una comparación entre lotes (ej. "compara los costos de desbrote"), DEBES agrupar los datos por 'Lote'. Presenta una tabla con **una sola fila por cada lote**, mostrando los valores clave. NO listes cada registro individual.
-  5.  **Formato de Respuesta**: Si el usuario pide comparar datos, DEBES presentar tu respuesta en una tabla HTML. La tabla debe tener estilos básicos para ser legible (ej: <table style="width: 100%; border-collapse: collapse;">, <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;">, <td style="border: 1px solid #ddd; padding: 8px;">). Asegúrate de incluir las columnas relevantes. TU RESPUESTA FINAL DEBE SER UN ÚNICO STRING HTML.
-  6.  **Aporta Valor Adicional**: Después de responder la pregunta (ya sea con texto o una tabla), agrega una sección llamada "<strong>Observaciones Adicionales</strong>". En esta sección, dentro de un tag <p>, proporciona un breve análisis o dato interesante que no se pidió explícitamente pero que sea relevante para la toma de decisiones.
-  7.  **Cálculos de Costos**: Si el usuario pregunta sobre "pago total", "costo total" o "cuánto se pagó en total" para una actividad, usa los datos de producción ('actividades'). El costo se calcula así: si 'cost' > 0, el costo es 'cost * performance'. Si 'cost' == 0, se paga por jornal, asume un costo de jornal de S/ 60 y el costo es 'workdayCount * 60'.
+  5.  **Aporta Valor Adicional**: Después de responder la pregunta (ya sea con texto o una tabla), agrega una sección llamada "<strong>Observaciones Adicionales</strong>". En esta sección, dentro de un tag <p>, proporciona un breve análisis o dato interesante que no se pidió explícitamente pero que sea relevante para la toma de decisiones.
+  6.  **Cálculos de Costos**: Si el usuario pregunta sobre "pago total", "costo total" o "cuánto se pagó en total" para una actividad, usa los datos de producción ('actividades'). El costo se calcula así: si 'cost' > 0, el costo es 'cost * performance'. Si 'cost' == 0 o no está definido, se paga por jornal; asume un costo de jornal de S/ 60 y el costo es 'workdayCount * 60'. Suma todos los costos individuales para obtener el total.
+  7.  **Idioma**: RESPONDE SIEMPRE EN ESPAÑOL.
   
   **PREGUNTA DEL USUARIO:**
   {{query}}
 
-  Formula tu respuesta aquí, en español.
+  Formula tu respuesta aquí, en español y siguiendo estrictamente las reglas de formato HTML.
 `,
 });
 
@@ -157,5 +161,8 @@ const answerFieldDataQueryFlow = ai.defineFlow(
 export async function answerFieldDataQuery(input: AnswerFieldDataQueryInput): Promise<AnswerFieldDataQueryOutput> {
   const result = await answerFieldDataQueryFlow(input);
   // Asegurarnos de que siempre devolvemos un objeto válido, incluso si la IA devuelve null.
-  return result || { answer: "La IA no pudo generar una respuesta. Por favor, intenta reformular tu pregunta." };
+  if (!result || !result.answer) {
+    return { answer: "<p>La IA no pudo generar una respuesta con el formato esperado. Intenta ser más específico en tu pregunta.</p>" };
+  }
+  return result;
 }
