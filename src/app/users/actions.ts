@@ -20,7 +20,8 @@ const roleHierarchy: { [key in UserRole]: number } = {
 
 export async function getUsers() {
     try {
-        const usersFromDb = await getDocs(collection(db, "usuarios"));
+        const adminDb = getFirebaseAdmin().firestore();
+        const usersFromDb = await adminDb.collection("usuarios").get();
         const usersData = usersFromDb.docs.map(doc => ({ ...doc.data(), id: doc.id })) as User[];
         return { success: true, data: usersData };
     } catch (error) {
