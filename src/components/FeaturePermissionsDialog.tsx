@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -55,7 +54,15 @@ export default function FeaturePermissionsDialog({ isOpen, onOpenChange, feature
     if (result.success) {
       // Filter out roles higher than or equal to the current admin's role
       const currentUserLevel = profile?.rol ? roleHierarchy[profile.rol] : 0;
-      const manageableUsers = result.data.filter(u => roleHierarchy[u.rol] < currentUserLevel);
+      const manageableUsers = result.data.filter(u => {
+          // Robustness check: only filter if both roles are valid and exist in the hierarchy
+          if (u.rol && roleHierarchy[u.rol] !== undefined) {
+              return roleHierarchy[u.rol] < currentUserLevel;
+          }
+          // If a user has a missing or invalid role, an admin should still see them to be able to fix it.
+          // Or if the current user has no role, show no one.
+          return currentUserLevel > 0; 
+      });
       setUsers(manageableUsers);
     } else {
       toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los usuarios." });
