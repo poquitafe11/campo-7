@@ -8,6 +8,8 @@ import type { LoteData, Labor, Assistant, MinMax, Jalador } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+
 
 interface MasterData {
   lotes: LoteData[];
@@ -46,12 +48,10 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     
-    console.log(`MasterDataContext: Attempting to load data. Is app offline? ${isOffline()}. Force server? ${forceServer}`);
-    
     try {
-        const { db } = await getFirebase(); // Ensure firebase is initialized
+        const adminDb = getFirebaseAdmin().firestore();
         const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
-            const querySnapshot = await getDocs(query(collection(db, name)));
+            const querySnapshot = await adminDb.collection(name).get();
             return { key, data: querySnapshot.docs.map(processor) };
         });
 
@@ -63,7 +63,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
 
         setData(currentData => ({ ...currentData, ...newData as MasterData }));
         
-        console.log("Master data successfully loaded.");
+        console.log("Master data successfully loaded from server.");
 
     } catch (err: any) {
         console.error(`Critical error loading master data:`, err);
@@ -84,19 +84,6 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     } else {
         setLoading(false);
     }
-    
-    const handleStatusChange = () => {
-        if(user) {
-            loadMasterData();
-        }
-    };
-
-    window.addEventListener('online-status-changed', handleStatusChange);
-
-    return () => {
-        window.removeEventListener('online-status-changed', handleStatusChange);
-    };
-
   }, [user, loadMasterData]);
 
   const value = { ...data, loading, error, refreshData: loadMasterData };
