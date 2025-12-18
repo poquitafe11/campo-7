@@ -9,7 +9,8 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebase } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import { z } from 'genkit';
 
 const AnswerFieldDataQueryInputSchema = z.object({
@@ -34,9 +35,9 @@ const getProductionActivities = ai.defineTool(
     outputSchema: z.string().describe('Un string JSON de los registros de actividades encontrados.'),
   },
   async (input) => {
-    const adminDb = getFirebaseAdmin().firestore();
-    const activitiesRef = adminDb.collection('actividades');
-    const snapshot = await activitiesRef.get();
+    const { db } = getFirebase();
+    const activitiesRef = collection(db, 'actividades');
+    const snapshot = await getDocs(activitiesRef);
     
     const allActivities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -66,9 +67,9 @@ const getHealthRecords = ai.defineTool(
     outputSchema: z.string().describe('Un string JSON de los registros de sanidad encontrados.'),
   },
   async (input) => {
-    const adminDb = getFirebaseAdmin().firestore();
-    const healthRef = adminDb.collection('registros-sanidad');
-    const snapshot = await healthRef.get();
+    const { db } = getFirebase();
+    const healthRef = collection(db, 'registros-sanidad');
+    const snapshot = await getDocs(healthRef);
     
     const allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -98,9 +99,9 @@ const getIrrigationRecords = ai.defineTool(
     outputSchema: z.string().describe('Un string JSON de los registros de riego encontrados.'),
   },
   async (input) => {
-    const adminDb = getFirebaseAdmin().firestore();
-    const irrigationRef = adminDb.collection('registros-riego-01');
-    const snapshot = await irrigationRef.get();
+    const { db } = getFirebase();
+    const irrigationRef = collection(db, 'registros-riego-01');
+    const snapshot = await getDocs(irrigationRef);
     
     const allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 

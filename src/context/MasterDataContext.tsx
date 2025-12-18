@@ -8,8 +8,6 @@ import type { LoteData, Labor, Assistant, MinMax, Jalador } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
-
 
 interface MasterData {
   lotes: LoteData[];
@@ -49,9 +47,9 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-        const adminDb = getFirebaseAdmin().firestore();
+        const { db } = getFirebase();
         const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
-            const querySnapshot = await adminDb.collection(name).get();
+            const querySnapshot = await getDocs(collection(db, name));
             return { key, data: querySnapshot.docs.map(processor) };
         });
 
@@ -63,7 +61,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
 
         setData(currentData => ({ ...currentData, ...newData as MasterData }));
         
-        console.log("Master data successfully loaded from server.");
+        console.log("Master data successfully loaded from client.");
 
     } catch (err: any) {
         console.error(`Critical error loading master data:`, err);
