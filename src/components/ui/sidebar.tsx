@@ -147,9 +147,11 @@ function Header() {
               <SidebarContent />
             </SheetContent>
           </Sheet>
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <div>
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 flex justify-center items-center text-center px-2">
