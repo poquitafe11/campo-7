@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Save, Loader2, QrCode, LayoutGrid, Grape, Truck, BarChart3, TrendingUp, FilePlus2, Database } from 'lucide-react';
+import { CalendarIcon, Save, Loader2, QrCode, LayoutGrid, Grape, Truck, BarChart3, TrendingUp, FilePlus2, Database, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LoteData } from '@/lib/types';
 import {
@@ -90,6 +90,15 @@ function HarvestMenu() {
           <Link href="/production/harvest/shipment/projection">
             <DropdownMenuItem><TrendingUp className="mr-2 h-4 w-4" />Proyección</DropdownMenuItem>
           </Link>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+            <Link href="/production/harvest/groups">
+                <DropdownMenuItem>
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>Gestión de Grupos</span>
+                </DropdownMenuItem>
+            </Link>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
