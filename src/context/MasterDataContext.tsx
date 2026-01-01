@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
-import { getFirebase, isOffline } from '@/lib/firebase';
+import { getFirebase, isOffline, db } from '@/lib/firebase';
 import type { LoteData, Labor, Assistant, MinMax, Jalador, WorkerMasterItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
@@ -46,30 +46,19 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     
+    if (!db) {
+        setError(new Error("Firestore no está disponible."));
+        setLoading(false);
+        return;
+    }
+    
     try {
-        const { db } = getFirebase();
-        
-        const allDataPromises = collectionsConfig.map(({ name, key, processor }) =>
-            onSnapshot(collection(db, name), (snapshot) => {
-                const collectionData = snapshot.docs.map(processor);
-                setData(currentData => ({ ...currentData, [key]: collectionData }));
-            }, (err) => {
-                console.error(`Error loading ${name}:`, err);
-                setError(new Error(`Failed to load ${name}.`));
-            })
-        );
-        
-        // This sets up listeners, but we can resolve the loading state earlier
-        // as onSnapshot provides initial data immediately from cache if available.
-        // We'll manage a unified loading state.
-        
-        // Use getDocs for initial load to manage loading state properly
-        const initialLoadPromises = collectionsConfig.map(async ({ name, key, processor }) => {
+        const allDataPromises = collectionsConfig.map(async ({ name, key, processor }) => {
             const querySnapshot = await getDocs(collection(db, name));
             return { key, data: querySnapshot.docs.map(processor) };
         });
 
-        const allDataResults = await Promise.all(initialLoadPromises);
+        const allDataResults = await Promise.all(allDataPromises);
         const newData: Partial<MasterData> = {};
         allDataResults.forEach(result => {
             (newData as any)[result.key] = result.data;
