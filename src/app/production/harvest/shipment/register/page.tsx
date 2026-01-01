@@ -19,14 +19,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, User, Notebook, Sprout, Blocks, Group, Plane, Box, Clock, Tractor, CircleUser, MessageSquare, Save, Loader2 } from 'lucide-react';
+import { CalendarIcon, User, Notebook, Sprout, Blocks, Group, Plane, Box, Clock, Tractor, CircleUser, MessageSquare, Save, Loader2, QrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LoteData } from '@/lib/types';
 
 
 const harvestRegisterSchema = z.object({
   fecha: z.date({ required_error: 'La fecha es requerida.' }),
-  responsable: z.string(),
+  responsable: z.string().min(1, 'El responsable es requerido.'),
   guia: z.string().min(1, 'El N° de guía es requerido.'),
   lote: z.string().min(1, 'El lote es requerido.'),
   cuartel: z.string().min(1, 'El cuartel es requerido.'),
@@ -44,7 +44,7 @@ type HarvestRegisterValues = z.infer<typeof harvestRegisterSchema>;
 
 export default function RegisterShipmentPage() {
   const { setActions } = useHeaderActions();
-  const { lotes, loading: masterLoading } = useMasterData();
+  const { lotes, asistentes, loading: masterLoading } = useMasterData();
   const { profile } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,7 +53,7 @@ export default function RegisterShipmentPage() {
     resolver: zodResolver(harvestRegisterSchema),
     defaultValues: {
       fecha: new Date(),
-      responsable: profile?.nombre || '',
+      responsable: profile?.dni || '',
       guia: '',
       lote: '',
       cuartel: '',
@@ -75,8 +75,8 @@ export default function RegisterShipmentPage() {
   }, [setActions]);
 
   useEffect(() => {
-    if (profile?.nombre) {
-      form.setValue('responsable', profile.nombre);
+    if (profile?.dni) {
+      form.setValue('responsable', profile.dni);
     }
   }, [profile, form]);
   
@@ -101,20 +101,19 @@ export default function RegisterShipmentPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <Card className="max-w-4xl mx-auto">
+      <Card className="max-w-md mx-auto">
         <CardHeader>
-          <CardTitle>Formulario de Registro de Embarque</CardTitle>
-          <CardDescription>Complete todos los campos para registrar un nuevo embarque.</CardDescription>
+          <CardTitle>Formulario de Registro</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               
               <FormField control={form.control} name="fecha" render={({ field }) => (
-                <FormItem><FormLabel className="flex items-center gap-2"><CalendarIcon />Fecha</FormLabel>
+                <FormItem><FormLabel>Fecha</FormLabel>
                   <Popover><PopoverTrigger asChild><FormControl>
                     <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                      {field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                      {field.value ? format(field.value, "dd/MM/yyyy", { locale: es }) : <span>Selecciona una fecha</span>}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
@@ -123,21 +122,27 @@ export default function RegisterShipmentPage() {
               )}/>
               
               <FormField control={form.control} name="responsable" render={({ field }) => (
-                <FormItem><FormLabel className="flex items-center gap-2"><User />Responsable</FormLabel>
-                  <FormControl><Input {...field} readOnly disabled /></FormControl>
+                <FormItem><FormLabel>Responsable</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "Seleccionar"} /></SelectTrigger></FormControl>
+                        <SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent>
+                    </Select>
                   <FormMessage />
                 </FormItem>
               )}/>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="guia" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><Notebook />Guía</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                  <FormItem><FormLabel>Guía</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormControl><Input {...field} /></FormControl>
+                      <Button type="button" variant="outline" size="icon"><QrCode/></Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}/>
                 <FormField control={form.control} name="lote" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><Sprout />Lote</FormLabel>
+                  <FormItem><FormLabel>Lote</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "Seleccionar"} /></SelectTrigger></FormControl>
                       <SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.lote}>{l.lote}</SelectItem>)}</SelectContent>
@@ -148,7 +153,7 @@ export default function RegisterShipmentPage() {
               </div>
 
                <FormField control={form.control} name="cuartel" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><Blocks />Cuartel</FormLabel>
+                  <FormItem><FormLabel>Cuartel</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedLote}>
                       <FormControl><SelectTrigger><SelectValue placeholder={!selectedLote ? "Seleccione un lote" : "Seleccionar"} /></SelectTrigger></FormControl>
                       <SelectContent>{cuartelesOptions.map(c => <SelectItem key={c.id} value={c.cuartel}>{c.cuartel}</SelectItem>)}</SelectContent>
@@ -157,45 +162,45 @@ export default function RegisterShipmentPage() {
                   </FormItem>
               )}/>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="grupo" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><Group />N° Grupo</FormLabel>
+                  <FormItem><FormLabel>N° Grupo</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}/>
                  <FormField control={form.control} name="viaje" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><Plane />N° Viaje</FormLabel>
+                  <FormItem><FormLabel>N° Viaje</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}/>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="jabas" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><Box />N° Jabas</FormLabel>
+                  <FormItem><FormLabel>N° Jabas</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}/>
                 <FormField control={form.control} name="horaEmbarque" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><Clock />Hora de Embarque</FormLabel>
+                  <FormItem><FormLabel>Hora Embarque</FormLabel>
                     <FormControl><Input type="time" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}/>
               </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="tractor" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><Tractor />N° Tractor</FormLabel>
+                  <FormItem><FormLabel>N° Tractor</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}/>
                 <FormField control={form.control} name="operador" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><CircleUser />Operador</FormLabel>
+                  <FormItem><FormLabel>Operador</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -203,14 +208,14 @@ export default function RegisterShipmentPage() {
               </div>
 
               <FormField control={form.control} name="obs" render={({ field }) => (
-                  <FormItem><FormLabel className="flex items-center gap-2"><MessageSquare />Obs.</FormLabel>
+                  <FormItem><FormLabel>Obs.</FormLabel>
                     <FormControl><Textarea placeholder="Observaciones adicionales..." {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
               )}/>
 
-              <div className="flex justify-end pt-4">
-                 <Button type="submit" size="lg" disabled={isSubmitting}>
+              <div className="pt-4">
+                 <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                     Guardar Registro
                 </Button>
