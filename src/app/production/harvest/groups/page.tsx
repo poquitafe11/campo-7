@@ -46,15 +46,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 const groupSchema = z.object({
   id: z.string().optional(),
-  numeroGrupo: z.coerce.number().int().positive("El número de grupo es requerido."),
   asistenteId: z.string().min(1, "Debe seleccionar un asistente."),
-  tikeracembarcadorId: z.string().min(1, "Debe seleccionar un Tikerac/Embarcador."),
+  tickeraId: z.string().min(1, "Debe seleccionar una tickera."),
+  embarcadorId: z.string().min(1, "Debe seleccionar un embarcador."),
+  numeroGrupo: z.coerce.number().int().positive("El número de grupo es requerido."),
 });
 
 type GroupFormValues = z.infer<typeof groupSchema>;
 type Group = GroupFormValues & {
     asistenteName?: string;
-    tikeracembarcadorName?: string;
+    tickeraName?: string;
+    embarcadorName?: string;
 };
 
 export default function HarvestGroupsPage() {
@@ -87,7 +89,8 @@ export default function HarvestGroupsPage() {
     form.reset({
         numeroGrupo: (groups.length > 0 ? Math.max(...groups.map(g => g.numeroGrupo)) + 1 : 1),
         asistenteId: '',
-        tikeracembarcadorId: '',
+        tickeraId: '',
+        embarcadorId: '',
     });
     setIsFormOpen(true);
   }
@@ -119,7 +122,8 @@ export default function HarvestGroupsPage() {
     return groups.map(g => ({
         ...g,
         asistenteName: asistentes.find(a => a.id === g.asistenteId)?.assistantName,
-        tikeracembarcadorName: trabajadores.find(t => t.dni === g.tikeracembarcadorId)?.name,
+        tickeraName: trabajadores.find(t => t.dni === g.tickeraId)?.name,
+        embarcadorName: trabajadores.find(t => t.dni === g.embarcadorId)?.name,
     }))
   }, [groups, asistentes, trabajadores]);
 
@@ -143,19 +147,21 @@ export default function HarvestGroupsPage() {
                     <TableRow>
                         <TableHead>N° Grupo</TableHead>
                         <TableHead>Asistente</TableHead>
-                        <TableHead>Tikerac/Embarcador</TableHead>
+                        <TableHead>Tickera</TableHead>
+                        <TableHead>Embarcador</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {masterLoading ? (
-                        <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
                     ) : tableData.length > 0 ? (
                         tableData.map(group => (
                             <TableRow key={group.id}>
                                 <TableCell>{group.numeroGrupo}</TableCell>
                                 <TableCell>{group.asistenteName || group.asistenteId}</TableCell>
-                                <TableCell>{group.tikeracembarcadorName || group.tikeracembarcadorId}</TableCell>
+                                <TableCell>{group.tickeraName || group.tickeraId}</TableCell>
+                                <TableCell>{group.embarcadorName || group.embarcadorId}</TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleEdit(group)}><Pencil className="h-4 w-4"/></Button>
                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(group.id!)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
@@ -163,7 +169,7 @@ export default function HarvestGroupsPage() {
                             </TableRow>
                         ))
                     ) : (
-                         <TableRow><TableCell colSpan={4} className="h-24 text-center">No hay grupos creados.</TableCell></TableRow>
+                         <TableRow><TableCell colSpan={5} className="h-24 text-center">No hay grupos creados.</TableCell></TableRow>
                     )}
                 </TableBody>
               </Table>
@@ -189,7 +195,7 @@ export default function HarvestGroupsPage() {
                         control={form.control}
                         name="asistenteId"
                         render={({ field }) => (
-                            <FormItem><FormLabel>Asistente/Encargado</FormLabel>
+                            <FormItem><FormLabel>Asistente</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl>
                                     <SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent>
@@ -199,9 +205,21 @@ export default function HarvestGroupsPage() {
                     />
                     <FormField
                         control={form.control}
-                        name="tikeracembarcadorId"
+                        name="tickeraId"
                         render={({ field }) => (
-                            <FormItem><FormLabel>Tikerac/Embarcador</FormLabel>
+                            <FormItem><FormLabel>Tickera</FormLabel>
+                                 <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl>
+                                    <SelectContent>{trabajadores.map(t => <SelectItem key={t.dni} value={t.dni}>{t.name}</SelectItem>)}</SelectContent>
+                                </Select>
+                            <FormMessage /></FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="embarcadorId"
+                        render={({ field }) => (
+                            <FormItem><FormLabel>Embarcador</FormLabel>
                                  <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl>
                                     <SelectContent>{trabajadores.map(t => <SelectItem key={t.dni} value={t.dni}>{t.name}</SelectItem>)}</SelectContent>
