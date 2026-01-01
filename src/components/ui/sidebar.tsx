@@ -132,37 +132,39 @@ function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between p-2 h-16 bg-background border-b">
-        <div className="flex items-center gap-1">
-          <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64">
-              <DialogTitle className="sr-only">Menú Principal</DialogTitle>
-              <DialogDescription className="sr-only">
-                Navegación principal de la aplicación, perfil de usuario y estado de la conexión.
-              </DialogDescription>
-              <SidebarContent />
-            </SheetContent>
-          </Sheet>
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </div>
+      <div className="flex items-center gap-1">
+        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64">
+            <DialogTitle className="sr-only">Menú Principal</DialogTitle>
+            <DialogDescription className="sr-only">
+              Navegación principal de la aplicación, perfil de usuario y estado de la conexión.
+            </DialogDescription>
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      </div>
 
-        <div className="flex-1 flex justify-center items-center text-center px-2">
-          {renderTitle()}
-        </div>
+      <div className="flex-1 flex justify-center items-center text-center px-2 min-w-0">
+          <div className="truncate">
+            {renderTitle()}
+          </div>
+      </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0">
           {actions.right}
           <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}>
             <LayoutGrid className="h-5 w-5" />
           </Button>
-        </div>
-      </header>
+      </div>
+    </header>
   );
 }
 
