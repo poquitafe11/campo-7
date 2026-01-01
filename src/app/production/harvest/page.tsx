@@ -1,9 +1,8 @@
-
 "use client";
 
 import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilePlus2, Database, BarChart3, TrendingUp, Settings } from "lucide-react";
+import { Grape, Truck, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,33 +11,20 @@ import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const allHarvestFeatures = [
   {
-    icon: <FilePlus2 className="h-8 w-8 text-primary" />,
+    icon: <Grape className="h-8 w-8 text-primary" />,
     title: "Registro",
-    description: "Ingresa los datos de la cosecha diaria.",
+    description: "Gestiona el registro de la cosecha diaria.",
     href: "/production/harvest/register",
   },
   {
-    icon: <Database className="h-8 w-8 text-primary" />,
-    title: "Base de Datos",
-    description: "Consulta el historial completo de la cosecha.",
-    href: "/production/harvest/database",
-  },
-  {
-    icon: <BarChart3 className="h-8 w-8 text-primary" />,
-    title: "Resumen",
-    description: "Visualiza reportes y estadísticas de la cosecha.",
-    href: "/production/harvest/summary",
-  },
-   {
-    icon: <TrendingUp className="h-8 w-8 text-primary" />,
-    title: "Proyección",
-    description: "Estima y proyecta los resultados de la cosecha.",
-    href: "/production/harvest/projection",
+    icon: <Truck className="h-8 w-8 text-primary" />,
+    title: "Embarque",
+    description: "Gestiona y visualiza los datos de embarques.",
+    href: "/production/harvest/shipment",
   },
 ];
 
 type Feature = (typeof allHarvestFeatures)[0];
-
 
 export default function HarvestPage() {
   const { profile } = useAuth();
