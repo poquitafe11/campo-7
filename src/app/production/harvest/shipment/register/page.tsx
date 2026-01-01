@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Link from 'next/link';
 
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
@@ -19,9 +20,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, User, Notebook, Sprout, Blocks, Group, Plane, Box, Clock, Tractor, CircleUser, MessageSquare, Save, Loader2, QrCode } from 'lucide-react';
+import { CalendarIcon, Save, Loader2, QrCode, LayoutGrid, Grape, Truck, BarChart3, TrendingUp, FilePlus2, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LoteData } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 const harvestRegisterSchema = z.object({
@@ -40,6 +50,51 @@ const harvestRegisterSchema = z.object({
 });
 
 type HarvestRegisterValues = z.infer<typeof harvestRegisterSchema>;
+
+function HarvestMenu() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <LayoutGrid className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end">
+        <DropdownMenuLabel>Registro de Cosecha</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <Link href="/production/harvest/register/create">
+            <DropdownMenuItem><FilePlus2 className="mr-2 h-4 w-4" />Registro de Cosecha</DropdownMenuItem>
+          </Link>
+          <Link href="/production/harvest/database">
+            <DropdownMenuItem><Database className="mr-2 h-4 w-4" />Base de Datos</DropdownMenuItem>
+          </Link>
+          <Link href="/production/harvest/summary">
+            <DropdownMenuItem><BarChart3 className="mr-2 h-4 w-4" />Resumen</DropdownMenuItem>
+          </Link>
+          <Link href="/production/harvest/projection">
+            <DropdownMenuItem><TrendingUp className="mr-2 h-4 w-4" />Proyección</DropdownMenuItem>
+          </Link>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Embarque</DropdownMenuLabel>
+         <DropdownMenuGroup>
+          <Link href="/production/harvest/shipment/register">
+            <DropdownMenuItem><FilePlus2 className="mr-2 h-4 w-4" />Registro</DropdownMenuItem>
+          </Link>
+          <Link href="/production/harvest/shipment/database">
+            <DropdownMenuItem><Database className="mr-2 h-4 w-4" />Base de Datos</DropdownMenuItem>
+          </Link>
+          <Link href="/production/harvest/shipment/summary">
+            <DropdownMenuItem><BarChart3 className="mr-2 h-4 w-4" />Resumen</DropdownMenuItem>
+          </Link>
+          <Link href="/production/harvest/shipment/projection">
+            <DropdownMenuItem><TrendingUp className="mr-2 h-4 w-4" />Proyección</DropdownMenuItem>
+          </Link>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 
 export default function RegisterShipmentPage() {
@@ -70,7 +125,10 @@ export default function RegisterShipmentPage() {
   const selectedLote = useWatch({ control: form.control, name: 'lote' });
 
   useEffect(() => {
-    setActions({ title: "Registro de Embarque" });
+    setActions({ 
+        title: "Registro de Embarque",
+        right: <HarvestMenu />
+    });
     return () => setActions({});
   }, [setActions]);
 

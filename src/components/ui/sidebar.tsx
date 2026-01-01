@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -133,7 +132,7 @@ function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between p-2 h-16 bg-background border-b">
       <div className="flex items-center gap-1">
-        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
               <Menu className="h-6 w-6" />
@@ -159,10 +158,11 @@ function Header() {
       </div>
 
       <div className="flex items-center gap-1 flex-shrink-0">
-          {actions.right}
-          <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}>
-            <LayoutGrid className="h-5 w-5" />
-          </Button>
+          {actions.right ? actions.right : (
+             <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}>
+                <LayoutGrid className="h-5 w-5" />
+             </Button>
+          )}
       </div>
     </header>
   );
