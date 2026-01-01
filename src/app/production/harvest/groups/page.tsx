@@ -145,10 +145,10 @@ export default function HarvestGroupsPage() {
               <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>N° Grupo</TableHead>
                         <TableHead>Asistente</TableHead>
                         <TableHead>Tickera</TableHead>
                         <TableHead>Embarcador</TableHead>
+                        <TableHead>N° Grupo</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -158,10 +158,10 @@ export default function HarvestGroupsPage() {
                     ) : tableData.length > 0 ? (
                         tableData.map(group => (
                             <TableRow key={group.id}>
-                                <TableCell>{group.numeroGrupo}</TableCell>
                                 <TableCell>{group.asistenteName || group.asistenteId}</TableCell>
                                 <TableCell>{group.tickeraName || group.tickeraId}</TableCell>
                                 <TableCell>{group.embarcadorName || group.embarcadorId}</TableCell>
+                                <TableCell>{group.numeroGrupo}</TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleEdit(group)}><Pencil className="h-4 w-4"/></Button>
                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(group.id!)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
@@ -184,14 +184,7 @@ export default function HarvestGroupsPage() {
             </DialogHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                    <FormField
-                        control={form.control}
-                        name="numeroGrupo"
-                        render={({ field }) => (
-                            <FormItem><FormLabel>N° de Grupo</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                        )}
-                    />
-                    <FormField
+                     <FormField
                         control={form.control}
                         name="asistenteId"
                         render={({ field }) => (
@@ -225,6 +218,13 @@ export default function HarvestGroupsPage() {
                                     <SelectContent>{trabajadores.map(t => <SelectItem key={t.dni} value={t.dni}>{t.name}</SelectItem>)}</SelectContent>
                                 </Select>
                             <FormMessage /></FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="numeroGrupo"
+                        render={({ field }) => (
+                            <FormItem><FormLabel>N° de Grupo</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                         )}
                     />
                     <DialogFooter>
