@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilePlus2, Database, BarChart3, Settings } from "lucide-react";
+import { FilePlus2, Database, BarChart3, TrendingUp, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,12 @@ const allHarvestFeatures = [
     title: "Resumen",
     description: "Visualiza reportes y estadísticas de la cosecha.",
     href: "/production/harvest/summary",
+  },
+   {
+    icon: <TrendingUp className="h-8 w-8 text-primary" />,
+    title: "Proyección",
+    description: "Estima y proyecta los resultados de la cosecha.",
+    href: "/production/harvest/projection",
   },
 ];
 
