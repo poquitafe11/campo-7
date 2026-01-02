@@ -137,6 +137,7 @@ export default function ShipmentSummaryPage() {
                   outerRadius="100%"
                   barSize={20}
                   cy="55%"
+                  domain={[0, 100]}
                 >
                   <RadialBar dataKey="value" background={{ fill: '#e0e0e0' }} cornerRadius={10} />
                   <ChartTooltip
