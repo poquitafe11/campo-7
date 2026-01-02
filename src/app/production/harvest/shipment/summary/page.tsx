@@ -8,7 +8,7 @@ import { collection, onSnapshot, query, where, Timestamp, getDocs } from 'fireba
 import { db } from '@/lib/firebase';
 import { format, startOfDay, endOfDay, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2, Calendar as CalendarIcon, RefreshCcw, ArrowLeft } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, RefreshCcw, ArrowLeft, ChevronsRight } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -35,6 +35,9 @@ type ShipmentRecord = {
   lote: string;
   cuartel: string;
   horaEmbarque: string;
+  responsable: string;
+  viaje: number;
+  guia: string;
   [key: string]: any;
 };
 type Group = {
@@ -45,6 +48,12 @@ type Group = {
   embarcadorId: string;
 };
 
+interface DrilldownState {
+  lote: string | null;
+  cuartel: string | null;
+  fecha: string | null;
+  asistente: string | null;
+}
 
 export default function ShipmentSummaryPage() {
   const { setActions } = useHeaderActions();
@@ -56,7 +65,7 @@ export default function ShipmentSummaryPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeTab, setActiveTab] = useState("por-grupo");
   const { asistentes } = useMasterData();
-  const [drilldownLote, setDrilldownLote] = useState<string | null>(null);
+  const [drilldown, setDrilldown] = useState<DrilldownState>({ lote: null, cuartel: null, fecha: null, asistente: null });
 
 
   const fetchData = useCallback(() => {
@@ -103,11 +112,10 @@ export default function ShipmentSummaryPage() {
         toast({variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los grupos de cosecha.'});
     });
 
-    // We can set loading to false after the main data (shipments) is fetched
     const checkLoadingDone = () => {
       const unsub = onSnapshot(shipmentsQuery, () => {
         setLoading(false);
-        unsub(); // Unsubscribe after first snapshot to avoid multiple triggers
+        unsub();
       });
     };
     checkLoadingDone();
@@ -123,9 +131,9 @@ export default function ShipmentSummaryPage() {
     return fetchData();
   }, [fetchData]);
   
-  useEffect(() => {
+   useEffect(() => {
     if (activeTab !== 'por-lote') {
-        setDrilldownLote(null);
+        setDrilldown({ lote: null, cuartel: null, fecha: null, asistente: null });
     }
   }, [activeTab]);
 
@@ -199,54 +207,156 @@ export default function ShipmentSummaryPage() {
 
   }, [executedData, groups, asistentes]);
   
-  const summaryByLote = useMemo(() => {
-    if (executedData.length === 0) return [];
+  const drilldownData = useMemo(() => {
+    if (!drilldown.lote) { // Level 0: Lote summary
+        const projectedByLote = projectedData.reduce((acc, p) => {
+            if(!acc[p.lote]) acc[p.lote] = 0;
+            acc[p.lote] += p.jabas;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const executedByLote = executedData.reduce((acc, r) => {
+            if(!acc[r.lote]) acc[r.lote] = { ejecutadas: 0, viajes: 0 };
+            acc[r.lote].ejecutadas += r.jabas;
+            acc[r.lote].viajes += 1;
+            return acc;
+        }, {} as Record<string, { ejecutadas: number, viajes: number }>);
+        
+        return Object.keys(executedByLote).map(lote => ({
+                lote,
+                proyectadas: projectedByLote[lote] || 0,
+                ...executedByLote[lote],
+                porcentaje: (projectedByLote[lote] || 0) > 0 ? (executedByLote[lote].ejecutadas / projectedByLote[lote]) * 100 : 0,
+        })).sort((a,b) => a.lote.localeCompare(b.lote, undefined, { numeric: true }));
+
+    } else if (drilldown.lote && !drilldown.cuartel) { // Level 1: Cuartel summary
+        const recordsInLote = executedData.filter(r => r.lote === drilldown.lote);
+        const grouped = recordsInLote.reduce((acc, r) => {
+            if(!acc[r.cuartel]) acc[r.cuartel] = { jabas: 0, viajes: 0 };
+            acc[r.cuartel].jabas += r.jabas;
+            acc[r.cuartel].viajes += 1;
+            return acc;
+        }, {} as Record<string, { jabas: number, viajes: number }>);
+        return Object.entries(grouped).map(([cuartel, data]) => ({ cuartel, ...data }));
     
-    const projectedByLote = projectedData.reduce((acc, p) => {
-        if(!acc[p.lote]) acc[p.lote] = 0;
-        acc[p.lote] += p.jabas;
-        return acc;
-    }, {} as Record<string, number>);
+    } else if (drilldown.lote && drilldown.cuartel && !drilldown.fecha) { // Level 2: Fecha summary
+        const recordsInCuartel = executedData.filter(r => r.lote === drilldown.lote && r.cuartel === drilldown.cuartel);
+        const grouped = recordsInCuartel.reduce((acc, r) => {
+            const fechaKey = format(r.fecha, 'yyyy-MM-dd');
+            if(!acc[fechaKey]) acc[fechaKey] = { jabas: 0, viajes: 0 };
+            acc[fechaKey].jabas += r.jabas;
+            acc[fechaKey].viajes += 1;
+            return acc;
+        }, {} as Record<string, { jabas: number, viajes: number }>);
+        return Object.entries(grouped).map(([fecha, data]) => ({ fecha, ...data }));
 
-    const executedByLote = executedData.reduce((acc, r) => {
-        if(!acc[r.lote]) acc[r.lote] = { ejecutadas: 0, viajes: 0 };
-        acc[r.lote].ejecutadas += r.jabas;
-        acc[r.lote].viajes += 1;
-        return acc;
-    }, {} as Record<string, { ejecutadas: number, viajes: number }>);
+    } else if (drilldown.lote && drilldown.cuartel && drilldown.fecha && !drilldown.asistente) { // Level 3: Asistente summary
+        const recordsOnDate = executedData.filter(r => r.lote === drilldown.lote && r.cuartel === drilldown.cuartel && format(r.fecha, 'yyyy-MM-dd') === drilldown.fecha);
+        const grouped = recordsOnDate.reduce((acc, r) => {
+            if(!acc[r.responsable]) acc[r.responsable] = { jabas: 0, viajes: 0 };
+            acc[r.responsable].jabas += r.jabas;
+            acc[r.responsable].viajes += 1;
+            return acc;
+        }, {} as Record<string, { jabas: number, viajes: number }>);
+        return Object.entries(grouped).map(([asistenteId, data]) => ({ 
+            asistenteId,
+            asistenteName: asistentes.find(a => a.id === asistenteId)?.assistantName || asistenteId, 
+            ...data 
+        }));
 
-    return Object.entries(executedByLote).map(([lote, data]) => {
-        const proyectadas = projectedByLote[lote] || 0;
-        const porcentaje = proyectadas > 0 ? (data.ejecutadas / proyectadas) * 100 : 0;
-        return {
-            lote,
-            proyectadas,
-            ...data,
-            porcentaje,
-        };
-    }).sort((a,b) => a.lote.localeCompare(b.lote, undefined, { numeric: true }));
+    } else if (drilldown.lote && drilldown.cuartel && drilldown.fecha && drilldown.asistente) { // Level 4: Viaje details
+        return executedData.filter(r => r.lote === drilldown.lote && r.cuartel === drilldown.cuartel && format(r.fecha, 'yyyy-MM-dd') === drilldown.fecha && r.responsable === drilldown.asistente)
+                         .sort((a, b) => a.viaje - b.viaje);
+    }
+    return [];
+  }, [drilldown, executedData, projectedData, asistentes]);
 
-  }, [executedData, projectedData]);
-  
-  const loteTrendData = useMemo(() => {
-    if (!drilldownLote) return null;
-    
-    const loteRecords = executedData
-      .filter(r => r.lote === drilldownLote)
-      .map(r => ({...r, parsedTime: parse(r.horaEmbarque, 'HH:mm', new Date()) }))
-      .sort((a,b) => a.parsedTime.getTime() - b.parsedTime.getTime());
-    
-    let cumulativeJabas = 0;
-    return loteRecords.map(r => {
-        cumulativeJabas += r.jabas;
-        return {
-            hora: r.horaEmbarque,
-            jabasAcumuladas: cumulativeJabas,
-        };
-    });
+  const handleDrilldown = (level: keyof DrilldownState, value: string) => {
+    setDrilldown(prev => ({...prev, [level]: value}));
+  };
 
-  }, [drilldownLote, executedData]);
+  const handleBreadcrumbClick = (level: keyof DrilldownState | 'root') => {
+    if (level === 'root') {
+      setDrilldown({ lote: null, cuartel: null, fecha: null, asistente: null });
+    } else {
+      const newDrilldown: DrilldownState = { lote: null, cuartel: null, fecha: null, asistente: null };
+      if (level !== 'lote') newDrilldown.lote = drilldown.lote;
+      if (level !== 'cuartel' && level !== 'lote') newDrilldown.cuartel = drilldown.cuartel;
+      if (level !== 'fecha' && level !== 'cuartel' && level !== 'lote') newDrilldown.fecha = drilldown.fecha;
+      setDrilldown(newDrilldown);
+    }
+  };
 
+  const renderBreadcrumbs = () => {
+    return (
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4">
+            <Button variant="link" className="p-0 h-auto" onClick={() => handleBreadcrumbClick('root')}>Todos los Lotes</Button>
+            {drilldown.lote && (
+              <>
+                <ChevronsRight className="h-4 w-4" />
+                <Button variant="link" className="p-0 h-auto" onClick={() => handleBreadcrumbClick('lote')}>Lote {drilldown.lote}</Button>
+              </>
+            )}
+            {drilldown.cuartel && (
+              <>
+                <ChevronsRight className="h-4 w-4" />
+                <Button variant="link" className="p-0 h-auto" onClick={() => handleBreadcrumbClick('cuartel')}>Cuartel {drilldown.cuartel}</Button>
+              </>
+            )}
+            {drilldown.fecha && (
+              <>
+                <ChevronsRight className="h-4 w-4" />
+                 <Button variant="link" className="p-0 h-auto" onClick={() => handleBreadcrumbClick('fecha')}>{format(parseISO(drilldown.fecha), "d MMM", { locale: es })}</Button>
+              </>
+            )}
+            {drilldown.asistente && (
+              <>
+                <ChevronsRight className="h-4 w-4" />
+                <span>{asistentes.find(a => a.id === drilldown.asistente)?.assistantName}</span>
+              </>
+            )}
+        </div>
+    )
+  }
+
+  const renderDrilldownTable = () => {
+      if (!drilldown.lote) { // Lote View
+          return (
+              <Table>
+                  <TableHeader><TableRow><TableHead>Lote</TableHead><TableHead className="text-right">Proyectado</TableHead><TableHead className="text-right">Ejecutado</TableHead><TableHead className="text-right">Viajes</TableHead><TableHead className="w-[200px]">Cumplimiento</TableHead></TableRow></TableHeader>
+                  <TableBody>{(drilldownData as any[]).map(lote => (<TableRow key={lote.lote} onClick={() => handleDrilldown('lote', lote.lote)} className="cursor-pointer hover:bg-muted/50"><TableCell className="font-medium">{lote.lote}</TableCell><TableCell className="text-right">{lote.proyectadas.toLocaleString('es-PE')}</TableCell><TableCell className="text-right">{lote.ejecutadas.toLocaleString('es-PE')}</TableCell><TableCell className="text-right">{lote.viajes}</TableCell><TableCell><div className="flex items-center gap-2"><Progress value={lote.porcentaje} indicatorClassName={lote.porcentaje >= 95 ? "bg-green-500" : lote.porcentaje >= 80 ? "bg-yellow-500" : "bg-red-500"} className="h-3"/><span className="text-xs font-medium">{lote.porcentaje.toFixed(0)}%</span></div></TableCell></TableRow>))}</TableBody>
+              </Table>
+          )
+      } else if (!drilldown.cuartel) { // Cuartel View
+          return (
+              <Table>
+                  <TableHeader><TableRow><TableHead>Cuartel</TableHead><TableHead className="text-right">Jabas</TableHead><TableHead className="text-right">Viajes</TableHead></TableRow></TableHeader>
+                  <TableBody>{(drilldownData as any[]).map(c => (<TableRow key={c.cuartel} onClick={() => handleDrilldown('cuartel', c.cuartel)} className="cursor-pointer hover:bg-muted/50"><TableCell className="font-medium">{c.cuartel}</TableCell><TableCell className="text-right">{c.jabas.toLocaleString('es-PE')}</TableCell><TableCell className="text-right">{c.viajes}</TableCell></TableRow>))}</TableBody>
+              </Table>
+          )
+      } else if (!drilldown.fecha) { // Fecha View
+          return (
+             <Table>
+                  <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead className="text-right">Jabas</TableHead><TableHead className="text-right">Viajes</TableHead></TableRow></TableHeader>
+                  <TableBody>{(drilldownData as any[]).map(f => (<TableRow key={f.fecha} onClick={() => handleDrilldown('fecha', f.fecha)} className="cursor-pointer hover:bg-muted/50"><TableCell className="font-medium">{format(parseISO(f.fecha), "EEEE, d 'de' MMMM", { locale: es })}</TableCell><TableCell className="text-right">{f.jabas.toLocaleString('es-PE')}</TableCell><TableCell className="text-right">{f.viajes}</TableCell></TableRow>))}</TableBody>
+              </Table>
+          )
+      } else if (!drilldown.asistente) { // Asistente View
+          return (
+              <Table>
+                  <TableHeader><TableRow><TableHead>Asistente</TableHead><TableHead className="text-right">Jabas</TableHead><TableHead className="text-right">Viajes</TableHead></TableRow></TableHeader>
+                  <TableBody>{(drilldownData as any[]).map(a => (<TableRow key={a.asistenteId} onClick={() => handleDrilldown('asistente', a.asistenteId)} className="cursor-pointer hover:bg-muted/50"><TableCell className="font-medium">{a.asistenteName}</TableCell><TableCell className="text-right">{a.jabas.toLocaleString('es-PE')}</TableCell><TableCell className="text-right">{a.viajes}</TableCell></TableRow>))}</TableBody>
+              </Table>
+          )
+      } else { // Viaje View
+          return (
+              <Table>
+                  <TableHeader><TableRow><TableHead>Viaje</TableHead><TableHead>Guía</TableHead><TableHead>Hora</TableHead><TableHead className="text-right">Jabas</TableHead></TableRow></TableHeader>
+                  <TableBody>{(drilldownData as any[]).map(v => (<TableRow key={v.id}><TableCell>{v.viaje}</TableCell><TableCell>{v.guia}</TableCell><TableCell>{v.horaEmbarque}</TableCell><TableCell className="text-right">{v.jabas.toLocaleString('es-PE')}</TableCell></TableRow>))}</TableBody>
+              </Table>
+          )
+      }
+  }
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -347,78 +457,22 @@ export default function ShipmentSummaryPage() {
             </div>
         </TabsContent>
         <TabsContent value="por-lote">
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Resumen General por Lote</CardTitle>
-                        <CardDescription>Comparativa de jabas y viajes por lote. Haz clic en una fila para ver su tendencia.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {summaryByLote.length > 0 ? (
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Lote</TableHead>
-                                        <TableHead className="text-right">Proyectado</TableHead>
-                                        <TableHead className="text-right">Ejecutado</TableHead>
-                                        <TableHead className="text-right">Viajes</TableHead>
-                                        <TableHead className="w-[200px]">Cumplimiento</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {summaryByLote.map(lote => {
-                                        const percentage = lote.porcentaje;
-                                        const progressColor = percentage >= 95 ? "bg-green-500" : percentage >= 80 ? "bg-yellow-500" : "bg-red-500";
-                                        return (
-                                            <TableRow key={lote.lote} onClick={() => setDrilldownLote(lote.lote)} className="cursor-pointer hover:bg-muted/50">
-                                                <TableCell className="font-medium">{lote.lote}</TableCell>
-                                                <TableCell className="text-right">{lote.proyectadas.toLocaleString('es-PE')}</TableCell>
-                                                <TableCell className="text-right">{lote.ejecutadas.toLocaleString('es-PE')}</TableCell>
-                                                <TableCell className="text-right">{lote.viajes}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <Progress value={percentage} indicatorClassName={progressColor} className="h-3"/>
-                                                        <span className="text-xs font-medium">{percentage.toFixed(0)}%</span>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })}
-                                </TableBody>
-                             </Table>
-                        ) : (
-                             <div className="flex items-center justify-center h-48"><p className="text-muted-foreground">No hay datos por lote para este día.</p></div>
-                        )}
-                    </CardContent>
-                </Card>
-                
-                {drilldownLote && loteTrendData && (
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <CardTitle>Tendencia de Acopio - Lote {drilldownLote}</CardTitle>
-                                    <CardDescription>Acumulado de jabas durante el día.</CardDescription>
-                                </div>
-                                <Button variant="outline" size="sm" onClick={() => setDrilldownLote(null)}>
-                                    <ArrowLeft className="mr-2 h-4 w-4"/> Volver
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <ChartContainer config={{}} className="h-64 w-full">
-                                <LineChart data={loteTrendData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="hora" tick={{fontSize: 12}} />
-                                    <YAxis tickFormatter={(value) => `${value}`} />
-                                    <Tooltip content={<ChartTooltipContent indicator="line" />} />
-                                    <Line type="monotone" dataKey="jabasAcumuladas" name="Jabas Acumuladas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 6 }}/>
-                                </LineChart>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
-                )}
-           </div>
+           <Card>
+              <CardHeader>
+                  <CardTitle>Resumen por Lote</CardTitle>
+                  <CardDescription>Análisis interactivo de jabas y viajes por lote.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  {renderBreadcrumbs()}
+                  {drilldownData.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        {renderDrilldownTable()}
+                      </div>
+                  ) : (
+                       <div className="flex items-center justify-center h-48"><p className="text-muted-foreground">No hay datos por lote para este día.</p></div>
+                  )}
+              </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="por-cuartel">
             <Card>
