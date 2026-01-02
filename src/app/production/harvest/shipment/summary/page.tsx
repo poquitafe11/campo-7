@@ -15,6 +15,9 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { RadialBarChart, RadialBar } from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from '@/lib/utils';
+
 
 type ProjectionRecord = { jabas: number; fecha: Timestamp };
 type ShipmentRecord = { jabas: number; fecha: Timestamp };
@@ -26,6 +29,8 @@ export default function ShipmentSummaryPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [projectedData, setProjectedData] = useState<ProjectionRecord[]>([]);
   const [executedData, setExecutedData] = useState<ShipmentRecord[]>([]);
+  const [activeTab, setActiveTab] = useState("registros");
+
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -116,46 +121,86 @@ export default function ShipmentSummaryPage() {
     };
   }, [projectedData, executedData]);
 
+  const getTriggerClass = (value: string) => cn(
+    "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+    activeTab === value
+      ? "bg-primary/20 text-primary"
+      : "text-muted-foreground hover:bg-muted/50"
+  );
+
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
       {loading ? (
         <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Cumplimiento de Proyección</CardTitle>
-              <CardDescription>Comparación de jabas ejecutadas vs. proyectadas para el {format(selectedDate, "d 'de' MMMM", { locale: es })}.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center gap-4">
-              <ChartContainer config={{}} className="h-48 w-48">
-                <RadialBarChart
-                  data={summaryData.chartData}
-                  startAngle={90}
-                  endAngle={-270}
-                  innerRadius="70%"
-                  outerRadius="100%"
-                  barSize={20}
-                  cy="55%"
-                  domain={[0, 100]}
-                >
-                  <RadialBar dataKey="value" background={{ fill: '#e0e0e0' }} cornerRadius={10} />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                </RadialBarChart>
-              </ChartContainer>
-              <div className="text-center">
-                <p className="text-5xl font-bold text-primary">{summaryData.percentage.toFixed(0)}%</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  <span className="font-semibold text-foreground">{summaryData.totalExecuted.toLocaleString('es-PE')}</span> de <span className="font-semibold text-foreground">{summaryData.totalProjected.toLocaleString('es-PE')}</span> jabas
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Cumplimiento de Proyección</CardTitle>
+            <CardDescription>Comparación de jabas ejecutadas vs. proyectadas para el {format(selectedDate, "d 'de' MMMM", { locale: es })}.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center gap-4">
+            <ChartContainer config={{}} className="h-48 w-48">
+              <RadialBarChart
+                data={summaryData.chartData}
+                startAngle={90}
+                endAngle={-270}
+                innerRadius="70%"
+                outerRadius="100%"
+                barSize={20}
+                cy="55%"
+                domain={[0, 100]}
+              >
+                <RadialBar dataKey="value" background={{ fill: '#e0e0e0' }} cornerRadius={10} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+              </RadialBarChart>
+            </ChartContainer>
+            <div className="text-center">
+              <p className="text-5xl font-bold text-primary">{summaryData.percentage.toFixed(0)}%</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                <span className="font-semibold text-foreground">{summaryData.totalExecuted.toLocaleString('es-PE')}</span> de <span className="font-semibold text-foreground">{summaryData.totalProjected.toLocaleString('es-PE')}</span> jabas
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
+      
+       <Tabs defaultValue="registros" className="w-full" onValueChange={setActiveTab}>
+        <div className="flex justify-center mb-6">
+          <div className="flex items-center gap-2 rounded-xl bg-muted p-1">
+            <TabsTrigger value="registros" className={getTriggerClass("registros")}>Registros</TabsTrigger>
+            <TabsTrigger value="por-lote" className={getTriggerClass("por-lote")}>Por Lote</TabsTrigger>
+            <TabsTrigger value="por-cuartel" className={getTriggerClass("por-cuartel")}>Por Cuartel</TabsTrigger>
+            <TabsTrigger value="por-grupo" className={getTriggerClass("por-grupo")}>Por Grupo</TabsTrigger>
+          </div>
+        </div>
+        <TabsContent value="registros">
+            <Card>
+                <CardHeader><CardTitle>Resumen de Registros</CardTitle></CardHeader>
+                <CardContent><div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg"><p className="text-muted-foreground">Contenido en construcción.</p></div></CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="por-lote">
+           <Card>
+                <CardHeader><CardTitle>Resumen por Lote</CardTitle></CardHeader>
+                <CardContent><div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg"><p className="text-muted-foreground">Contenido en construcción.</p></div></CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="por-cuartel">
+            <Card>
+                <CardHeader><CardTitle>Resumen por Cuartel</CardTitle></CardHeader>
+                <CardContent><div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg"><p className="text-muted-foreground">Contenido en construcción.</p></div></CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="por-grupo">
+             <Card>
+                <CardHeader><CardTitle>Resumen por Grupo</CardTitle></CardHeader>
+                <CardContent><div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg"><p className="text-muted-foreground">Contenido en construcción.</p></div></CardContent>
+            </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
