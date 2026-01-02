@@ -54,9 +54,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
-import { PlusCircle, Trash2, Pencil, Loader2, Users, FileUp } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, Loader2, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { addAsistente } from '@/app/asistentes/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { db } from '@/lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
@@ -98,11 +97,6 @@ export default function HarvestGroupsPage() {
 
   const groupForm = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
-  });
-
-  const assistantForm = useForm<z.infer<typeof newAssistantSchema>>({
-    resolver: zodResolver(newAssistantSchema),
-    defaultValues: { nombre: '', dni: '', cargo: '' }
   });
 
   useEffect(() => {
