@@ -220,7 +220,7 @@ export default function ShipmentSummaryPage() {
         </Card>
       )}
       
-       <Tabs defaultValue="por-grupo" className="w-full" onValueChange={setActiveTab}>
+      <Tabs defaultValue="por-grupo" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="flex justify-center mb-6 h-auto p-1.5 gap-1.5 rounded-xl bg-muted">
             <TabsTrigger value="por-grupo">Por Grupo</TabsTrigger>
             <TabsTrigger value="por-lote">Por Lote</TabsTrigger>
@@ -229,18 +229,18 @@ export default function ShipmentSummaryPage() {
          <TabsContent value="por-grupo">
             <div className="space-y-4">
               {summaryByGroup.length > 0 ? summaryByGroup.map(groupData => (
-                <div key={groupData.groupNum} className="border-2 border-red-500 overflow-hidden text-xs">
+                <div key={groupData.groupNum} className="border-2 border-red-500 text-xs">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="bg-red-500 text-white font-bold">
-                        <th className="w-16 border-r border-white p-1">N° Grupo</th>
-                        <th className="w-32 border-r border-white p-1">Embarcador</th>
-                        <th className="w-16 border-r border-white p-1">N° Viaje</th>
-                        <th className="w-20 border-r border-white p-1">N° Guia</th>
-                        <th className="w-16 border-r border-white p-1">Cuartel</th>
-                        <th className="w-20 border-r border-white p-1">Hora Salida</th>
-                        <th className="w-20 border-r border-white p-1">N° Tractor</th>
-                        <th className="w-20 border-r border-white p-1">N° Jabas</th>
+                      <tr className="bg-red-500 text-white font-bold text-center">
+                        <th className="border-r border-white p-1">N° Grupo</th>
+                        <th className="border-r border-white p-1">Embarcador</th>
+                        <th className="border-r border-white p-1">N° Viaje</th>
+                        <th className="border-r border-white p-1">N° Guia</th>
+                        <th className="border-r border-white p-1">Cuartel</th>
+                        <th className="border-r border-white p-1">Hora Salida</th>
+                        <th className="border-r border-white p-1">N° Tractor</th>
+                        <th className="border-r border-white p-1">N° Jabas</th>
                         <th className="p-1">Operador</th>
                       </tr>
                     </thead>
@@ -249,26 +249,24 @@ export default function ShipmentSummaryPage() {
                         <tr key={record.id} className="bg-white text-center">
                           {index === 0 && (
                             <>
-                              <td rowSpan={groupData.records.length} className="border-r border-gray-300 font-bold align-middle text-base">{groupData.groupNum}</td>
-                              <td rowSpan={groupData.records.length} className="border-r border-gray-300 font-bold align-middle">{groupData.embarcadorName}</td>
+                              <td rowSpan={groupData.records.length + 1} className="border border-gray-300 font-bold align-middle text-base">{groupData.groupNum}</td>
+                              <td rowSpan={groupData.records.length + 1} className="border border-gray-300 font-bold align-middle">{groupData.embarcadorName}</td>
                             </>
                           )}
-                          <td className="border-t border-gray-300">{record.viaje}</td>
-                          <td className="border-t border-gray-300">{record.guia}</td>
-                          <td className="border-t border-gray-300">{record.cuartel}</td>
-                          <td className="border-t border-gray-300">{record.horaEmbarque}</td>
-                          <td className="border-t border-gray-300">{record.tractor}</td>
-                          <td className="border-t border-gray-300">{record.jabas}</td>
-                          <td className="border-t border-gray-300 text-left px-2">{record.operador}</td>
+                          <td className="border-b border-gray-300 px-1 py-0.5">{record.viaje}</td>
+                          <td className="border-b border-l border-gray-300 px-1 py-0.5">{record.guia}</td>
+                          <td className="border-b border-l border-gray-300 px-1 py-0.5">{record.cuartel}</td>
+                          <td className="border-b border-l border-gray-300 px-1 py-0.5">{record.horaEmbarque}</td>
+                          <td className="border-b border-l border-gray-300 px-1 py-0.5">{record.tractor}</td>
+                          <td className="border-b border-l border-gray-300 px-1 py-0.5">{record.jabas}</td>
+                          <td className="border-b border-l border-gray-300 px-1 py-0.5 text-left">{record.operador}</td>
                         </tr>
                       ))}
-                      {groupData.records.length > 0 && (
-                          <tr className="bg-white font-bold">
-                            <td colSpan={5}></td>
-                            <td className="border border-black text-center">{groupData.totalJabas}</td>
-                            <td></td>
-                          </tr>
-                      )}
+                      <tr className="bg-white font-bold">
+                        <td colSpan={5} className="text-right pr-2"></td>
+                        <td colSpan={1} className="text-center border-2 border-black font-bold">{groupData.totalJabas}</td>
+                        <td colSpan={1}></td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
