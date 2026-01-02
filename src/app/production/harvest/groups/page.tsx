@@ -44,13 +44,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
@@ -59,6 +52,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { db } from '@/lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
+import { AssistantSelector } from '@/components/AssistantSelector';
 
 
 const groupSchema = z.object({
@@ -75,13 +69,6 @@ type Group = GroupFormValues & {
     tickeraName?: string;
     embarcadorName?: string;
 };
-
-const newAssistantSchema = z.object({
-    dni: z.string().optional(),
-    nombre: z.string().min(1, "El nombre es requerido."),
-    cargo: z.string().min(1, "El cargo es requerido."),
-});
-
 
 export default function HarvestGroupsPage() {
   const { setActions } = useHeaderActions();
@@ -171,10 +158,10 @@ export default function HarvestGroupsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>N° Grupo</TableHead>
                             <TableHead>Asistente</TableHead>
                             <TableHead>Tickera</TableHead>
                             <TableHead>Embarcador</TableHead>
-                            <TableHead>N° Grupo</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -184,10 +171,10 @@ export default function HarvestGroupsPage() {
                         ) : tableData.length > 0 ? (
                             tableData.map(group => (
                                 <TableRow key={group.id}>
+                                    <TableCell>{group.numeroGrupo}</TableCell>
                                     <TableCell>{group.asistenteName || group.asistenteId}</TableCell>
                                     <TableCell>{group.tickeraName || group.tickeraId}</TableCell>
                                     <TableCell>{group.embarcadorName || group.embarcadorId}</TableCell>
-                                    <TableCell>{group.numeroGrupo}</TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" onClick={() => handleEdit(group)}><Pencil className="h-4 w-4"/></Button>
                                         <Button variant="ghost" size="icon" onClick={() => handleDelete(group.id!)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
@@ -210,47 +197,56 @@ export default function HarvestGroupsPage() {
                 </DialogHeader>
                 <Form {...groupForm}>
                     <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-4 pt-4">
+                       <FormField
+                          control={groupForm.control}
+                          name="numeroGrupo"
+                          render={({ field }) => (
+                            <FormItem><FormLabel>N° de Grupo</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}
+                        />
                         <FormField
                             control={groupForm.control}
                             name="asistenteId"
                             render={({ field }) => (
-                                <FormItem><FormLabel>Asistente</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl>
-                                        <SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                <FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel>Asistente</FormLabel>
+                                    <AssistantSelector
+                                        label="Asistente"
+                                        value={field.value}
+                                        onSelect={({ id }) => field.onChange(id)}
+                                    />
+                                    <FormMessage />
+                                </FormItem>
                             )}
                         />
-                        <FormField
+                         <FormField
                             control={groupForm.control}
                             name="tickeraId"
                             render={({ field }) => (
-                                <FormItem><FormLabel>Tickera</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl>
-                                        <SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                <FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel>Tickera</FormLabel>
+                                    <AssistantSelector
+                                        label="Tickera"
+                                        value={field.value}
+                                        onSelect={({ id }) => field.onChange(id)}
+                                    />
+                                    <FormMessage />
+                                </FormItem>
                             )}
                         />
                         <FormField
                             control={groupForm.control}
                             name="embarcadorId"
                             render={({ field }) => (
-                                <FormItem><FormLabel>Embarcador</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl>
-                                        <SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                <FormMessage /></FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={groupForm.control}
-                            name="numeroGrupo"
-                            render={({ field }) => (
-                                <FormItem><FormLabel>N° de Grupo</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel>Embarcador</FormLabel>
+                                    <AssistantSelector
+                                        label="Embarcador"
+                                        value={field.value}
+                                        onSelect={({ id }) => field.onChange(id)}
+                                    />
+                                    <FormMessage />
+                                </FormItem>
                             )}
                         />
                         <DialogFooter>
