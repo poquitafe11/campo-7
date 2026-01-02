@@ -12,8 +12,6 @@ import { Loader2, Calendar as CalendarIcon, RefreshCcw, ArrowLeft, ChevronsRight
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { RadialBarChart, RadialBar, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { useMasterData } from '@/context/MasterDataContext';
@@ -198,7 +196,6 @@ export default function ShipmentSummaryPage() {
       totalProjected,
       totalExecuted,
       percentage,
-      chartData: [{ name: 'cumplimiento', value: percentage, fill: 'hsl(var(--primary))' }]
     };
   }, [projectedData, executedData]);
 
@@ -400,30 +397,34 @@ export default function ShipmentSummaryPage() {
             <CardDescription>Comparación de jabas ejecutadas vs. proyectadas para el {format(selectedDate, "d 'de' MMMM", { locale: es })}.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center gap-4">
-            <ChartContainer config={{}} className="h-48 w-48">
-              <RadialBarChart
-                data={summaryData.chartData}
-                startAngle={90}
-                endAngle={-270}
-                innerRadius="70%"
-                outerRadius="100%"
-                barSize={20}
-                cy={"55%"}
-                domain={[0, 100]}
-              >
-                <RadialBar dataKey="value" background={{ fill: '#e0e0e0' }} cornerRadius={10} />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent hideLabel />}
-                />
-              </RadialBarChart>
-            </ChartContainer>
-            <div className="text-center">
-              <p className="text-5xl font-bold text-primary">{summaryData.percentage.toFixed(0)}%</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                <span className="font-semibold text-foreground">{summaryData.totalExecuted.toLocaleString('es-PE')}</span> de <span className="font-semibold text-foreground">{summaryData.totalProjected.toLocaleString('es-PE')}</span> jabas
-              </p>
-            </div>
+              <div className="relative h-40 w-40">
+                  <svg className="h-full w-full" viewBox="0 0 36 36">
+                      <path
+                          className="text-muted/50"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                      />
+                      <path
+                          className="text-primary"
+                          strokeDasharray={`${summaryData.percentage}, 100`}
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                      />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                       <p className="text-4xl font-bold text-primary">{summaryData.percentage.toFixed(0)}%</p>
+                  </div>
+              </div>
+              <div className="text-center">
+                  <p className="text-sm text-muted-foreground mt-1">
+                      <span className="font-semibold text-foreground">{summaryData.totalExecuted.toLocaleString('es-PE')}</span> de <span className="font-semibold text-foreground">{summaryData.totalProjected.toLocaleString('es-PE')}</span> jabas
+                  </p>
+              </div>
           </CardContent>
         </Card>
       )}
