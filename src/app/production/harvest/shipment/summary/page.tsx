@@ -6,7 +6,7 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useToast } from '@/hooks/use-toast';
 import { collection, onSnapshot, query, where, Timestamp, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, startOfDay, endOfDay, parse } from 'date-fns';
+import { format, startOfDay, endOfDay, parse, isValid, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, Calendar as CalendarIcon, RefreshCcw, ArrowLeft, ChevronsRight } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -23,14 +23,14 @@ import { Progress } from '@/components/ui/progress';
 
 type ProjectionRecord = { 
   jabas: number; 
-  fecha: Timestamp;
+  fecha: Date;
   lote: string;
   cuartel: string;
 };
 type ShipmentRecord = { 
   id: string; 
   jabas: number; 
-  fecha: Timestamp;
+  fecha: Date;
   grupo: number;
   lote: string;
   cuartel: string;
@@ -89,7 +89,13 @@ export default function ShipmentSummaryPage() {
     const groupsQuery = query(collection(db, "grupos-cosecha"));
 
     const unsubscribeProjections = onSnapshot(projectionsQuery, (snapshot) => {
-        const data = snapshot.docs.map(doc => doc.data() as ProjectionRecord);
+        const data = snapshot.docs.map(doc => {
+            const docData = doc.data();
+            return {
+                ...docData,
+                fecha: docData.fecha?.toDate ? docData.fecha.toDate() : new Date()
+            } as ProjectionRecord
+        });
         setProjectedData(data);
     }, (error) => {
         console.error("Error fetching projections:", error);
@@ -97,7 +103,14 @@ export default function ShipmentSummaryPage() {
     });
 
     const unsubscribeShipments = onSnapshot(shipmentsQuery, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ShipmentRecord));
+        const data = snapshot.docs.map(doc => {
+            const docData = doc.data();
+            return {
+                id: doc.id,
+                ...docData,
+                fecha: docData.fecha?.toDate ? docData.fecha.toDate() : new Date()
+            } as ShipmentRecord
+        });
         setExecutedData(data);
     }, (error) => {
         console.error("Error fetching shipments:", error);
@@ -242,6 +255,7 @@ export default function ShipmentSummaryPage() {
     } else if (drilldown.lote && drilldown.cuartel && !drilldown.fecha) { // Level 2: Fecha summary
         const recordsInCuartel = executedData.filter(r => r.lote === drilldown.lote && r.cuartel === drilldown.cuartel);
         const grouped = recordsInCuartel.reduce((acc, r) => {
+            if (!r.fecha || !isValid(r.fecha)) return acc;
             const fechaKey = format(r.fecha, 'yyyy-MM-dd');
             if(!acc[fechaKey]) acc[fechaKey] = { jabas: 0, viajes: 0 };
             acc[fechaKey].jabas += r.jabas;
@@ -251,7 +265,7 @@ export default function ShipmentSummaryPage() {
         return Object.entries(grouped).map(([fecha, data]) => ({ fecha, ...data }));
 
     } else if (drilldown.lote && drilldown.cuartel && drilldown.fecha && !drilldown.asistente) { // Level 3: Asistente summary
-        const recordsOnDate = executedData.filter(r => r.lote === drilldown.lote && r.cuartel === drilldown.cuartel && format(r.fecha, 'yyyy-MM-dd') === drilldown.fecha);
+        const recordsOnDate = executedData.filter(r => r.lote === drilldown.lote && r.cuartel === drilldown.cuartel && isValid(r.fecha) && format(r.fecha, 'yyyy-MM-dd') === drilldown.fecha);
         const grouped = recordsOnDate.reduce((acc, r) => {
             if(!acc[r.responsable]) acc[r.responsable] = { jabas: 0, viajes: 0 };
             acc[r.responsable].jabas += r.jabas;
@@ -265,7 +279,7 @@ export default function ShipmentSummaryPage() {
         }));
 
     } else if (drilldown.lote && drilldown.cuartel && drilldown.fecha && drilldown.asistente) { // Level 4: Viaje details
-        return executedData.filter(r => r.lote === drilldown.lote && r.cuartel === drilldown.cuartel && format(r.fecha, 'yyyy-MM-dd') === drilldown.fecha && r.responsable === drilldown.asistente)
+        return executedData.filter(r => r.lote === drilldown.lote && r.cuartel === drilldown.cuartel && isValid(r.fecha) && format(r.fecha, 'yyyy-MM-dd') === drilldown.fecha && r.responsable === drilldown.asistente)
                          .sort((a, b) => a.viaje - b.viaje);
     }
     return [];
@@ -303,7 +317,7 @@ export default function ShipmentSummaryPage() {
                 <Button variant="link" className="p-0 h-auto" onClick={() => handleBreadcrumbClick('cuartel')}>Cuartel {drilldown.cuartel}</Button>
               </>
             )}
-            {drilldown.fecha && (
+            {drilldown.fecha && isValid(parseISO(drilldown.fecha)) && (
               <>
                 <ChevronsRight className="h-4 w-4" />
                  <Button variant="link" className="p-0 h-auto" onClick={() => handleBreadcrumbClick('fecha')}>{format(parseISO(drilldown.fecha), "d MMM", { locale: es })}</Button>
@@ -338,7 +352,16 @@ export default function ShipmentSummaryPage() {
           return (
              <Table>
                   <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead className="text-right">Jabas</TableHead><TableHead className="text-right">Viajes</TableHead></TableRow></TableHeader>
-                  <TableBody>{(drilldownData as any[]).map(f => (<TableRow key={f.fecha} onClick={() => handleDrilldown('fecha', f.fecha)} className="cursor-pointer hover:bg-muted/50"><TableCell className="font-medium">{format(parseISO(f.fecha), "EEEE, d 'de' MMMM", { locale: es })}</TableCell><TableCell className="text-right">{f.jabas.toLocaleString('es-PE')}</TableCell><TableCell className="text-right">{f.viajes}</TableCell></TableRow>))}</TableBody>
+                  <TableBody>{(drilldownData as any[]).map(f => {
+                    const date = isValid(parseISO(f.fecha)) ? format(parseISO(f.fecha), "EEEE, d 'de' MMMM", { locale: es }) : 'Fecha inválida';
+                    return (
+                        <TableRow key={f.fecha} onClick={() => handleDrilldown('fecha', f.fecha)} className="cursor-pointer hover:bg-muted/50">
+                            <TableCell className="font-medium">{date}</TableCell>
+                            <TableCell className="text-right">{f.jabas.toLocaleString('es-PE')}</TableCell>
+                            <TableCell className="text-right">{f.viajes}</TableCell>
+                        </TableRow>
+                    )
+                  })}</TableBody>
               </Table>
           )
       } else if (!drilldown.asistente) { // Asistente View
@@ -399,9 +422,9 @@ export default function ShipmentSummaryPage() {
       
       <Tabs defaultValue="por-grupo" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="flex justify-center mb-6 h-auto p-1.5 gap-1.5 rounded-xl bg-muted">
-            <TabsTrigger value="por-grupo">Por Grupo</TabsTrigger>
-            <TabsTrigger value="por-lote">Por Lote</TabsTrigger>
-            <TabsTrigger value="por-cuartel">Por Cuartel</TabsTrigger>
+            <TabsTrigger value="por-grupo" className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-colors", activeTab === 'por-grupo' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50")}>Por Grupo</TabsTrigger>
+            <TabsTrigger value="por-lote" className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-colors", activeTab === 'por-lote' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50")}>Por Lote</TabsTrigger>
+            <TabsTrigger value="por-cuartel" className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-colors", activeTab === 'por-cuartel' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50")}>Por Cuartel</TabsTrigger>
         </TabsList>
          <TabsContent value="por-grupo">
             <div className="space-y-4">
