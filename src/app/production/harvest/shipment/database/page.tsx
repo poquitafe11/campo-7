@@ -8,18 +8,22 @@ import {
   useReactTable,
   getPaginationRowModel,
 } from "@tanstack/react-table";
-import { collection, onSnapshot, doc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, query, orderBy, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as xlsx from 'xlsx';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
 
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, Pencil, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Trash2, Pencil, FileDown, ChevronLeft, ChevronRight, CalendarIcon, QrCode } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +35,40 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useMasterData } from '@/context/MasterDataContext';
+import { cn } from '@/lib/utils';
+import type { LoteData } from '@/lib/types';
+
+
+const shipmentEditSchema = z.object({
+  fecha: z.date({ required_error: 'La fecha es requerida.' }),
+  responsable: z.string().min(1, 'El responsable es requerido.'),
+  guia: z.string().min(1, 'El N° de guía es requerido.'),
+  lote: z.string().min(1, 'El lote es requerido.'),
+  cuartel: z.string().min(1, 'El cuartel es requerido.'),
+  grupo: z.coerce.number().int().positive('Debe ser un número positivo.'),
+  viaje: z.coerce.number().int().positive('Debe ser un número positivo.'),
+  jabas: z.coerce.number().int().positive('Debe ser un número positivo.'),
+  horaEmbarque: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato HH:MM requerido."),
+  tractor: z.string().min(1, 'El N° de tractor es requerido.'),
+  operador: z.string().min(1, 'El nombre del operador es requerido.'),
+  obs: z.string().optional(),
+});
+type ShipmentEditValues = z.infer<typeof shipmentEditSchema>;
 
 type ShipmentRecord = {
   id: string;
@@ -52,9 +89,16 @@ type ShipmentRecord = {
 export default function ShipmentDatabasePage() {
   const { setActions } = useHeaderActions();
   const { toast } = useToast();
-  const { asistentes } = useMasterData();
+  const { asistentes, lotes, loading: masterLoading } = useMasterData();
   const [data, setData] = useState<ShipmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<ShipmentRecord | null>(null);
+
+  const form = useForm<ShipmentEditValues>({
+    resolver: zodResolver(shipmentEditSchema),
+  });
 
   useEffect(() => {
     setActions({ title: "Base de Datos de Embarques" });
@@ -64,11 +108,22 @@ export default function ShipmentDatabasePage() {
   useEffect(() => {
     const q = query(collection(db, "registros-embarque"), orderBy("fecha", "desc"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const recordsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        fecha: doc.data().fecha.toDate(), // Convert Timestamp to Date
-      } as ShipmentRecord));
+      const recordsData = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        let fecha;
+        if (data.fecha && data.fecha.toDate) {
+          fecha = data.fecha.toDate();
+        } else if (typeof data.fecha === 'string') {
+          fecha = parseISO(data.fecha);
+        } else {
+          fecha = new Date();
+        }
+        return {
+          id: doc.id,
+          ...data,
+          fecha,
+        } as ShipmentRecord
+      });
       setData(recordsData);
       setLoading(false);
     }, (error) => {
@@ -79,6 +134,28 @@ export default function ShipmentDatabasePage() {
     return () => unsubscribe();
   }, [toast]);
   
+  const handleEdit = (record: ShipmentRecord) => {
+    setEditingRecord(record);
+    form.reset({
+      ...record,
+      fecha: record.fecha instanceof Date ? record.fecha : record.fecha.toDate(),
+    });
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleSaveEdit = async (values: ShipmentEditValues) => {
+    if (!editingRecord) return;
+    try {
+      const docRef = doc(db, 'registros-embarque', editingRecord.id);
+      await updateDoc(docRef, { ...values, fecha: Timestamp.fromDate(values.fecha) });
+      toast({ title: 'Éxito', description: 'Registro actualizado.' });
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating record:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar el registro.' });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
         await deleteDoc(doc(db, "registros-embarque", id));
@@ -88,6 +165,18 @@ export default function ShipmentDatabasePage() {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el registro.' });
     }
   };
+  
+  const { watch } = form;
+  const selectedLote = watch('lote');
+  
+  const uniqueLotes = useMemo(() => {
+    return [...new Map(lotes.map(l => [l.lote, l])).values()];
+  }, [lotes]);
+
+  const cuartelesOptions = useMemo(() => {
+    if (!selectedLote) return [];
+    return lotes.filter(l => l.lote === selectedLote);
+  }, [selectedLote, lotes]);
 
   const columns = useMemo<ColumnDef<ShipmentRecord>[]>(() => [
     { accessorKey: "fecha", header: "Fecha", cell: ({ row }) => format(row.original.fecha, 'dd/MM/yyyy') },
@@ -111,7 +200,7 @@ export default function ShipmentDatabasePage() {
       header: "Acciones",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon" disabled>
+          <Button variant="ghost" size="icon" onClick={() => handleEdit(row.original)}>
             <Pencil className="h-4 w-4" />
           </Button>
           <AlertDialog>
@@ -232,6 +321,61 @@ export default function ShipmentDatabasePage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Registro de Embarque</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSaveEdit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+              <FormField control={form.control} name="fecha" render={({ field }) => (
+                <FormItem><FormLabel>Fecha</FormLabel>
+                  <Popover><PopoverTrigger asChild><FormControl>
+                    <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                      {field.value ? format(field.value, "dd/MM/yyyy", { locale: es }) : <span>Selecciona una fecha</span>}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                  <FormMessage />
+                </FormItem>
+              )}/>
+               <FormField control={form.control} name="responsable" render={({ field }) => (
+                <FormItem><FormLabel>Responsable</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "Seleccionar"} /></SelectTrigger></FormControl>
+                        <SelectContent>{asistentes.map(a => <SelectItem key={a.id} value={a.id}>{a.assistantName}</SelectItem>)}</SelectContent>
+                    </Select>
+                  <FormMessage />
+                </FormItem>
+              )}/>
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="guia" render={({ field }) => ( <FormItem><FormLabel>Guía</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "Seleccionar"} /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.lote}>{l.lote}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )}/>
+              </div>
+              <FormField control={form.control} name="cuartel" render={({ field }) => ( <FormItem><FormLabel>Cuartel</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!selectedLote}><FormControl><SelectTrigger><SelectValue placeholder={!selectedLote ? "Seleccione un lote" : "Seleccionar"} /></SelectTrigger></FormControl><SelectContent>{cuartelesOptions.map(c => <SelectItem key={c.id} value={c.cuartel}>{c.cuartel}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )}/>
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="grupo" render={({ field }) => ( <FormItem><FormLabel>N° Grupo</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  <FormField control={form.control} name="viaje" render={({ field }) => ( <FormItem><FormLabel>N° Viaje</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="jabas" render={({ field }) => ( <FormItem><FormLabel>N° Jabas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  <FormField control={form.control} name="horaEmbarque" render={({ field }) => ( <FormItem><FormLabel>Hora Embarque</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="tractor" render={({ field }) => ( <FormItem><FormLabel>N° Tractor</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  <FormField control={form.control} name="operador" render={({ field }) => ( <FormItem><FormLabel>Operador</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              </div>
+              <FormField control={form.control} name="obs" render={({ field }) => ( <FormItem><FormLabel>Obs.</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                <Button type="submit">Guardar Cambios</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
