@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -51,7 +50,7 @@ import { PlusCircle, Trash2, Pencil, Loader2, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { db } from '@/lib/firebase';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { AssistantSelector } from '@/components/AssistantSelector';
 
 
@@ -79,6 +78,7 @@ export default function HarvestGroupsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
 
   const groupForm = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
@@ -88,6 +88,21 @@ export default function HarvestGroupsPage() {
     setActions({ title: "Gestión de Grupos de Cosecha" });
     return () => setActions({});
   }, [setActions]);
+
+  useEffect(() => {
+    const q = collection(db, "grupos-cosecha");
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const groupsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+      setGroups(groupsData.sort((a,b) => a.numeroGrupo - b.numeroGrupo));
+      setIsDataLoading(false);
+    }, (error) => {
+        console.error("Error fetching groups:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los grupos.' });
+        setIsDataLoading(false);
+    });
+    return () => unsubscribe();
+  }, [toast]);
+
 
   const handleEdit = (group: Group) => {
     setEditingGroup(group);
@@ -106,27 +121,37 @@ export default function HarvestGroupsPage() {
     setIsFormOpen(true);
   }
 
-  const handleDelete = (id: string) => {
-    // TODO: Add Firestore deletion logic
-    console.log("Deleting group", id);
-    toast({ title: "Simulación", description: `Grupo con ID ${id} eliminado.` });
+  const handleDelete = async (id: string) => {
+    try {
+        await deleteDoc(doc(db, 'grupos-cosecha', id));
+        toast({ title: "Éxito", description: `Grupo eliminado.` });
+    } catch (error) {
+        console.error("Error deleting group", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el grupo." });
+    }
   };
   
   const onGroupSubmit = async (values: GroupFormValues) => {
     setIsSubmitting(true);
-    // TODO: Add Firestore saving logic (create or update)
-    console.log(values);
     
-    // Simulating API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-        title: editingGroup ? "Grupo Actualizado" : "Grupo Creado",
-        description: `El grupo N° ${values.numeroGrupo} ha sido guardado.`,
-    });
-
-    setIsSubmitting(false);
-    setIsFormOpen(false);
+    try {
+        if (editingGroup && editingGroup.id) {
+            const docRef = doc(db, 'grupos-cosecha', editingGroup.id);
+            await setDoc(docRef, values, { merge: true });
+        } else {
+            await addDoc(collection(db, 'grupos-cosecha'), values);
+        }
+        toast({
+            title: editingGroup ? "Grupo Actualizado" : "Grupo Creado",
+            description: `El grupo N° ${values.numeroGrupo} ha sido guardado.`,
+        });
+        setIsFormOpen(false);
+    } catch (error) {
+        console.error("Error saving group:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo guardar el grupo." });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   const tableData = useMemo(() => {
@@ -166,7 +191,7 @@ export default function HarvestGroupsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {masterLoading ? (
+                        {isDataLoading || masterLoading ? (
                             <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
                         ) : tableData.length > 0 ? (
                             tableData.map(group => (
@@ -177,7 +202,21 @@ export default function HarvestGroupsPage() {
                                     <TableCell>{group.embarcadorName || group.embarcadorId}</TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" onClick={() => handleEdit(group)}><Pencil className="h-4 w-4"/></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(group.id!)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+                                                    <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el grupo {group.numeroGrupo}.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(group.id!)}>Eliminar</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </TableCell>
                                 </TableRow>
                             ))
