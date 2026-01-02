@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -84,6 +85,8 @@ type ShipmentRecord = {
   tractor: string;
   operador: string;
   obs?: string;
+  createdBy?: string;
+  createdAt?: any;
 };
 
 export default function ShipmentDatabasePage() {
@@ -189,12 +192,23 @@ export default function ShipmentDatabasePage() {
     { accessorKey: "lote", header: "Lote" },
     { accessorKey: "cuartel", header: "Cuartel" },
     { accessorKey: "grupo", header: "Grupo" },
+    {
+      id: 'nombreAsistente',
+      header: 'Nombre Asistente',
+      cell: ({ row }) => asistentes.find(a => a.id === row.original.responsable)?.assistantName || 'N/A'
+    },
     { accessorKey: "viaje", header: "Viaje" },
     { accessorKey: "jabas", header: "Jabas" },
     { accessorKey: "horaEmbarque", header: "Hora" },
     { accessorKey: "tractor", header: "Tractor" },
     { accessorKey: "operador", header: "Operador" },
     { accessorKey: "obs", header: "Obs." },
+    { accessorKey: "createdBy", header: "Usuario" },
+    {
+      id: 'fechaCreacion',
+      header: 'Fecha Creación',
+      cell: ({ row }) => row.original.createdAt?.toDate ? format(row.original.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/A'
+    },
     {
       id: "actions",
       header: "Acciones",
@@ -246,6 +260,8 @@ export default function ShipmentDatabasePage() {
       Tractor: row.tractor,
       Operador: row.operador,
       Observaciones: row.obs,
+      Usuario: row.createdBy,
+      'Fecha Creación': row.createdAt?.toDate ? format(row.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'N/A',
     }));
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
     const workbook = xlsx.utils.book_new();
