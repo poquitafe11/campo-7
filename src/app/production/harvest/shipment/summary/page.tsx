@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -18,13 +19,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-type ProjectionRecord = { jabas: number; fecha: Timestamp };
+type ProjectionRecord = { 
+  jabas: number; 
+  fecha: Timestamp;
+  lote: string;
+  cuartel: string;
+};
 type ShipmentRecord = { 
   id: string; 
   jabas: number; 
   fecha: Timestamp;
   grupo: number;
+  lote: string;
+  cuartel: string;
   [key: string]: any;
 };
 type Group = {
@@ -179,6 +188,37 @@ export default function ShipmentSummaryPage() {
     }).sort((a,b) => parseInt(a.groupNum) - parseInt(b.groupNum));
 
   }, [executedData, groups, asistentes]);
+  
+  const summaryByLote = useMemo(() => {
+    if (executedData.length === 0) return [];
+    
+    const projectedByLote = projectedData.reduce((acc, p) => {
+        if(!acc[p.lote]) acc[p.lote] = 0;
+        acc[p.lote] += p.jabas;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const executedByLote = executedData.reduce((acc, r) => {
+        if(!acc[r.lote]) acc[r.lote] = { ejecutadas: 0, viajes: 0, records: [] };
+        acc[r.lote].ejecutadas += r.jabas;
+        acc[r.lote].viajes += 1;
+        acc[r.lote].records.push(r);
+        return acc;
+    }, {} as Record<string, { ejecutadas: number, viajes: number, records: ShipmentRecord[] }>);
+
+    return Object.entries(executedByLote).map(([lote, data]) => {
+        const proyectadas = projectedByLote[lote] || 0;
+        const porcentaje = proyectadas > 0 ? (data.ejecutadas / proyectadas) * 100 : 0;
+        return {
+            lote,
+            proyectadas,
+            ...data,
+            porcentaje,
+            chartData: [{ name: 'cumplimiento', value: porcentaje, fill: 'hsl(var(--primary))' }]
+        };
+    }).sort((a,b) => a.lote.localeCompare(b.lote, undefined, { numeric: true }));
+
+  }, [executedData, projectedData]);
 
 
   return (
@@ -280,10 +320,53 @@ export default function ShipmentSummaryPage() {
             </div>
         </TabsContent>
         <TabsContent value="por-lote">
-           <Card>
-                <CardHeader><CardTitle>Resumen por Lote</CardTitle></CardHeader>
-                <CardContent><div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg"><p className="text-muted-foreground">Contenido en construcción.</p></div></CardContent>
-            </Card>
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {summaryByLote.length > 0 ? summaryByLote.map(loteData => (
+                    <Card key={loteData.lote}>
+                        <CardHeader>
+                            <CardTitle>Lote {loteData.lote}</CardTitle>
+                            <CardDescription>Resumen del día</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center gap-4">
+                            <ChartContainer config={{}} className="h-36 w-36">
+                                <RadialBarChart data={loteData.chartData} startAngle={90} endAngle={-270} innerRadius="70%" outerRadius="100%" barSize={15} cy="55%" domain={[0, 100]}>
+                                    <RadialBar dataKey="value" background={{ fill: '#e0e0e0' }} cornerRadius={10} />
+                                </RadialBarChart>
+                            </ChartContainer>
+                            <div className="text-center">
+                                <p className="text-4xl font-bold text-primary">{loteData.porcentaje.toFixed(0)}%</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    <span className="font-semibold text-foreground">{loteData.ejecutadas.toLocaleString('es-PE')}</span> de <span className="font-semibold text-foreground">{loteData.proyectadas.toLocaleString('es-PE')}</span> jabas
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    <span className="font-semibold text-foreground">{loteData.viajes}</span> Viajes
+                                </p>
+                            </div>
+                            <Accordion type="single" collapsible className="w-full">
+                              <AccordionItem value="details">
+                                <AccordionTrigger>Ver Viajes</AccordionTrigger>
+                                <AccordionContent>
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Viaje</TableHead><TableHead>Guía</TableHead><TableHead>Hora</TableHead><TableHead className="text-right">Jabas</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {loteData.records.map(r => (
+                                                <TableRow key={r.id}><TableCell>{r.viaje}</TableCell><TableCell>{r.guia}</TableCell><TableCell>{r.horaEmbarque}</TableCell><TableCell className="text-right">{r.jabas}</TableCell></TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                        </CardContent>
+                    </Card>
+                )) : (
+                     <Card className="col-span-1 lg:col-span-2">
+                        <CardContent className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg">
+                            <p className="text-muted-foreground">No hay datos de embarque por lote para este día.</p>
+                        </CardContent>
+                    </Card>
+                )}
+           </div>
         </TabsContent>
         <TabsContent value="por-cuartel">
             <Card>
