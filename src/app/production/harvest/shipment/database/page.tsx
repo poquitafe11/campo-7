@@ -89,12 +89,21 @@ type ShipmentRecord = {
   createdAt?: any;
 };
 
+type Group = {
+  id: string;
+  numeroGrupo: number;
+  asistenteId: string;
+  tickeraId: string;
+  embarcadorId: string;
+};
+
 export default function ShipmentDatabasePage() {
   const { setActions } = useHeaderActions();
   const { toast } = useToast();
   const { asistentes, lotes, loading: masterLoading } = useMasterData();
   const [data, setData] = useState<ShipmentRecord[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -130,10 +139,17 @@ export default function ShipmentDatabasePage() {
       });
       setData(recordsData);
 
-      // Fetch users as well
-      const usersSnapshot = await getDocs(collection(db, "usuarios"));
+      // Fetch users and groups as well
+      const [usersSnapshot, groupsSnapshot] = await Promise.all([
+        getDocs(collection(db, "usuarios")),
+        getDocs(collection(db, "grupos-cosecha"))
+      ]);
       const usersData = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as User);
       setUsers(usersData);
+      
+      const groupsData = groupsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as Group);
+      setGroups(groupsData);
+
 
       setLoading(false);
     }, (error) => {
@@ -265,24 +281,34 @@ export default function ShipmentDatabasePage() {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
-
+  
   const handleDownload = () => {
-    const dataToExport = data.map(row => ({
-      Fecha: format(row.fecha, 'dd/MM/yyyy'),
-      Responsable: asistentes.find(a => a.id === row.responsable)?.assistantName || row.responsable,
-      Guia: row.guia,
-      Lote: row.lote,
-      Cuartel: row.cuartel,
-      Grupo: row.grupo,
-      Viaje: row.viaje,
-      Jabas: row.jabas,
-      Hora: row.horaEmbarque,
-      Tractor: row.tractor,
-      Operador: row.operador,
-      Observaciones: row.obs,
-      Usuario: userMap.get(row.createdBy || '')?.nombre || row.createdBy,
-      'Fecha Creación': row.createdAt?.toDate ? format(row.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'N/A',
-    }));
+    const dataToExport = data.map(row => {
+      const groupData = groups.find(g => g.numeroGrupo === row.grupo);
+      const asistenteName = groupData ? asistentes.find(a => a.id === groupData.asistenteId)?.assistantName : 'N/A';
+      const tickeraName = groupData ? asistentes.find(a => a.id === groupData.tickeraId)?.assistantName : 'N/A';
+      const embarcadorName = groupData ? asistentes.find(a => a.id === groupData.embarcadorId)?.assistantName : 'N/A';
+
+      return {
+        Fecha: format(row.fecha, 'dd/MM/yyyy'),
+        Responsable: asistentes.find(a => a.id === row.responsable)?.assistantName || row.responsable,
+        Guia: row.guia,
+        Lote: row.lote,
+        Cuartel: row.cuartel,
+        Grupo: row.grupo,
+        'Nombre Asistente (Grupo)': asistenteName,
+        'Nombre Tickera': tickeraName,
+        'Nombre Embarcador': embarcadorName,
+        Viaje: row.viaje,
+        Jabas: row.jabas,
+        Hora: row.horaEmbarque,
+        Tractor: row.tractor,
+        Operador: row.operador,
+        Observaciones: row.obs,
+        Usuario: userMap.get(row.createdBy || '')?.nombre || row.createdBy,
+        'Fecha Creación': row.createdAt?.toDate ? format(row.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'N/A',
+      }
+    });
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Embarques');
