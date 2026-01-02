@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -7,19 +6,20 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useToast } from '@/hooks/use-toast';
 import { collection, onSnapshot, query, where, Timestamp, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, RefreshCcw, ArrowLeft } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { RadialBarChart, RadialBar } from 'recharts';
+import { RadialBarChart, RadialBar, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { useMasterData } from '@/context/MasterDataContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Progress } from '@/components/ui/progress';
+
 
 type ProjectionRecord = { 
   jabas: number; 
@@ -34,6 +34,7 @@ type ShipmentRecord = {
   grupo: number;
   lote: string;
   cuartel: string;
+  horaEmbarque: string;
   [key: string]: any;
 };
 type Group = {
@@ -55,6 +56,8 @@ export default function ShipmentSummaryPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeTab, setActiveTab] = useState("por-grupo");
   const { asistentes } = useMasterData();
+  const [drilldownLote, setDrilldownLote] = useState<string | null>(null);
+
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -119,6 +122,13 @@ export default function ShipmentSummaryPage() {
   useEffect(() => {
     return fetchData();
   }, [fetchData]);
+  
+  useEffect(() => {
+    if (activeTab !== 'por-lote') {
+        setDrilldownLote(null);
+    }
+  }, [activeTab]);
+
 
   useEffect(() => {
     setActions({
@@ -153,7 +163,7 @@ export default function ShipmentSummaryPage() {
   const summaryData = useMemo(() => {
     const totalProjected = projectedData.reduce((sum, item) => sum + item.jabas, 0);
     const totalExecuted = executedData.reduce((sum, item) => sum + item.jabas, 0);
-    const percentage = totalProjected > 0 ? (totalExecuted / totalProjected) * 100 : 0;
+    const percentage = totalProjected > 0 ? (totalExecuted / totalProjected) * 100 : (totalExecuted > 0 ? 100 : 0);
 
     return {
       totalProjected,
@@ -199,12 +209,11 @@ export default function ShipmentSummaryPage() {
     }, {} as Record<string, number>);
 
     const executedByLote = executedData.reduce((acc, r) => {
-        if(!acc[r.lote]) acc[r.lote] = { ejecutadas: 0, viajes: 0, records: [] };
+        if(!acc[r.lote]) acc[r.lote] = { ejecutadas: 0, viajes: 0 };
         acc[r.lote].ejecutadas += r.jabas;
         acc[r.lote].viajes += 1;
-        acc[r.lote].records.push(r);
         return acc;
-    }, {} as Record<string, { ejecutadas: number, viajes: number, records: ShipmentRecord[] }>);
+    }, {} as Record<string, { ejecutadas: number, viajes: number }>);
 
     return Object.entries(executedByLote).map(([lote, data]) => {
         const proyectadas = projectedByLote[lote] || 0;
@@ -214,11 +223,29 @@ export default function ShipmentSummaryPage() {
             proyectadas,
             ...data,
             porcentaje,
-            chartData: [{ name: 'cumplimiento', value: porcentaje, fill: 'hsl(var(--primary))' }]
         };
     }).sort((a,b) => a.lote.localeCompare(b.lote, undefined, { numeric: true }));
 
   }, [executedData, projectedData]);
+  
+  const loteTrendData = useMemo(() => {
+    if (!drilldownLote) return null;
+    
+    const loteRecords = executedData
+      .filter(r => r.lote === drilldownLote)
+      .map(r => ({...r, parsedTime: parse(r.horaEmbarque, 'HH:mm', new Date()) }))
+      .sort((a,b) => a.parsedTime.getTime() - b.parsedTime.getTime());
+    
+    let cumulativeJabas = 0;
+    return loteRecords.map(r => {
+        cumulativeJabas += r.jabas;
+        return {
+            hora: r.horaEmbarque,
+            jabasAcumuladas: cumulativeJabas,
+        };
+    });
+
+  }, [drilldownLote, executedData]);
 
 
   return (
@@ -321,48 +348,73 @@ export default function ShipmentSummaryPage() {
         </TabsContent>
         <TabsContent value="por-lote">
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {summaryByLote.length > 0 ? summaryByLote.map(loteData => (
-                    <Card key={loteData.lote}>
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Resumen General por Lote</CardTitle>
+                        <CardDescription>Comparativa de jabas y viajes por lote. Haz clic en una fila para ver su tendencia.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {summaryByLote.length > 0 ? (
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Lote</TableHead>
+                                        <TableHead className="text-right">Proyectado</TableHead>
+                                        <TableHead className="text-right">Ejecutado</TableHead>
+                                        <TableHead className="text-right">Viajes</TableHead>
+                                        <TableHead className="w-[200px]">Cumplimiento</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {summaryByLote.map(lote => {
+                                        const percentage = lote.porcentaje;
+                                        const progressColor = percentage >= 95 ? "bg-green-500" : percentage >= 80 ? "bg-yellow-500" : "bg-red-500";
+                                        return (
+                                            <TableRow key={lote.lote} onClick={() => setDrilldownLote(lote.lote)} className="cursor-pointer hover:bg-muted/50">
+                                                <TableCell className="font-medium">{lote.lote}</TableCell>
+                                                <TableCell className="text-right">{lote.proyectadas.toLocaleString('es-PE')}</TableCell>
+                                                <TableCell className="text-right">{lote.ejecutadas.toLocaleString('es-PE')}</TableCell>
+                                                <TableCell className="text-right">{lote.viajes}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Progress value={percentage} indicatorClassName={progressColor} className="h-3"/>
+                                                        <span className="text-xs font-medium">{percentage.toFixed(0)}%</span>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                             </Table>
+                        ) : (
+                             <div className="flex items-center justify-center h-48"><p className="text-muted-foreground">No hay datos por lote para este día.</p></div>
+                        )}
+                    </CardContent>
+                </Card>
+                
+                {drilldownLote && loteTrendData && (
+                    <Card className="lg:col-span-2">
                         <CardHeader>
-                            <CardTitle>Lote {loteData.lote}</CardTitle>
-                            <CardDescription>Resumen del día</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center gap-4">
-                            <ChartContainer config={{}} className="h-36 w-36">
-                                <RadialBarChart data={loteData.chartData} startAngle={90} endAngle={-270} innerRadius="70%" outerRadius="100%" barSize={15} cy="55%" domain={[0, 100]}>
-                                    <RadialBar dataKey="value" background={{ fill: '#e0e0e0' }} cornerRadius={10} />
-                                </RadialBarChart>
-                            </ChartContainer>
-                            <div className="text-center">
-                                <p className="text-4xl font-bold text-primary">{loteData.porcentaje.toFixed(0)}%</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    <span className="font-semibold text-foreground">{loteData.ejecutadas.toLocaleString('es-PE')}</span> de <span className="font-semibold text-foreground">{loteData.proyectadas.toLocaleString('es-PE')}</span> jabas
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    <span className="font-semibold text-foreground">{loteData.viajes}</span> Viajes
-                                </p>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Tendencia de Acopio - Lote {drilldownLote}</CardTitle>
+                                    <CardDescription>Acumulado de jabas durante el día.</CardDescription>
+                                </div>
+                                <Button variant="outline" size="sm" onClick={() => setDrilldownLote(null)}>
+                                    <ArrowLeft className="mr-2 h-4 w-4"/> Volver
+                                </Button>
                             </div>
-                            <Accordion type="single" collapsible className="w-full">
-                              <AccordionItem value="details">
-                                <AccordionTrigger>Ver Viajes</AccordionTrigger>
-                                <AccordionContent>
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Viaje</TableHead><TableHead>Guía</TableHead><TableHead>Hora</TableHead><TableHead className="text-right">Jabas</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {loteData.records.map(r => (
-                                                <TableRow key={r.id}><TableCell>{r.viaje}</TableCell><TableCell>{r.guia}</TableCell><TableCell>{r.horaEmbarque}</TableCell><TableCell className="text-right">{r.jabas}</TableCell></TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </AccordionContent>
-                              </AccordionItem>
-                            </Accordion>
-                        </CardContent>
-                    </Card>
-                )) : (
-                     <Card className="col-span-1 lg:col-span-2">
-                        <CardContent className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">No hay datos de embarque por lote para este día.</p>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={{}} className="h-64 w-full">
+                                <LineChart data={loteTrendData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="hora" tick={{fontSize: 12}} />
+                                    <YAxis tickFormatter={(value) => `${value}`} />
+                                    <Tooltip content={<ChartTooltipContent indicator="line" />} />
+                                    <Line type="monotone" dataKey="jabasAcumuladas" name="Jabas Acumuladas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 6 }}/>
+                                </LineChart>
+                            </ChartContainer>
                         </CardContent>
                     </Card>
                 )}
