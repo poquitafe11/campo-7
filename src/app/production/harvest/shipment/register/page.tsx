@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import jsQR from "jsqr";
 
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
@@ -148,7 +147,7 @@ function QRCodeScannerDialog({ open, onOpenChange, onScanSuccess }: { open: bool
       }
     };
     
-    const tick = () => {
+    const tick = async () => {
         if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
             const canvas = canvasRef.current;
             const video = videoRef.current;
@@ -160,6 +159,10 @@ function QRCodeScannerDialog({ open, onOpenChange, onScanSuccess }: { open: bool
             if (ctx) {
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Dynamic import of jsQR
+                const jsQR = (await import('jsqr')).default;
+
                 const code = jsQR(imageData.data, imageData.width, imageData.height, {
                     inversionAttempts: "dontInvert",
                 });
