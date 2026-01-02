@@ -54,12 +54,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
-import { PlusCircle, Trash2, Pencil, Loader2, Users, FileUp, FileDown, CheckCircle, X } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, Loader2, Users, FileUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { addAsistente } from '@/app/asistentes/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { db } from '@/lib/firebase';
-import { writeBatch, doc, collection, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 
 const groupSchema = z.object({
@@ -83,69 +83,6 @@ const newAssistantSchema = z.object({
     cargo: z.string().min(1, "El cargo es requerido."),
 });
 
-function normalizeKey(key: string): string {
-    return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '');
-}
-
-async function processAndUploadFile(file: File): Promise<{ count: number }> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                if (!e.target?.result) {
-                    return reject(new Error('No se pudo leer el archivo.'));
-                }
-                const workbook = xlsx.read(e.target.result, { type: 'binary' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = xlsx.utils.sheet_to_json(worksheet, {raw: false});
-
-                if (json.length === 0) {
-                    return reject(new Error("El archivo está vacío o no tiene el formato correcto."));
-                }
-
-                const header = Object.keys(json[0]);
-                const dniKey = header.find(key => normalizeKey(key).includes('dni'));
-                const nombreKey = header.find(key => normalizeKey(key).includes('nombre'));
-                const cargoKey = header.find(key => normalizeKey(key).includes('cargo'));
-
-                if (!dniKey || !nombreKey || !cargoKey) {
-                  return reject(new Error("El archivo debe contener columnas para 'DNI', 'Nombre' y 'Cargo'."));
-                }
-
-                const normalizedData = json.map(row => {
-                  const dni = String(row[dniKey] || '').trim();
-                  const nombre = String(row[nombreKey] || '').trim();
-                  const cargo = String(row[cargoKey] || '').trim();
-                  return { dni, nombre, cargo };
-                }).filter(item => item.dni && item.nombre && item.cargo);
-
-
-                if (normalizedData.length === 0) {
-                    return reject(new Error("No se encontraron datos válidos con DNI, Nombre y Cargo en el archivo."));
-                }
-
-                const batch = writeBatch(db);
-                normalizedData.forEach((asistente) => {
-                    const docRef = doc(db, 'asistentes', asistente.dni);
-                    batch.set(docRef, { nombre: asistente.nombre, cargo: asistente.cargo }, { merge: true });
-                });
-
-                await batch.commit();
-                resolve({ count: normalizedData.length });
-
-            } catch (error: any) {
-                console.error('Error processing or uploading file: ', error);
-                reject(new Error(error.message || 'Hubo un error al procesar el archivo.'));
-            }
-        };
-        reader.onerror = (error) => {
-            reject(new Error('Error al leer el archivo.'));
-        };
-        reader.readAsBinaryString(file);
-    });
-}
-
 
 export default function HarvestGroupsPage() {
   const { setActions } = useHeaderActions();
@@ -157,11 +94,6 @@ export default function HarvestGroupsPage() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNewAssistantFormOpen, setNewAssistantFormOpen] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
 
   const groupForm = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
@@ -198,16 +130,6 @@ export default function HarvestGroupsPage() {
     // TODO: Add Firestore deletion logic
     console.log("Deleting group", id);
     toast({ title: "Simulación", description: `Grupo con ID ${id} eliminado.` });
-  };
-
-  const handleDeleteAssistant = async (id: string) => {
-    try {
-        await deleteDoc(doc(db, "asistentes", id));
-        toast({ title: "Éxito", description: "Asistente eliminado." });
-        refreshData();
-    } catch(e) {
-        toast({ title: "Error", description: "No se pudo eliminar el asistente."});
-    }
   };
   
   const onGroupSubmit = async (values: GroupFormValues) => {
@@ -250,32 +172,6 @@ export default function HarvestGroupsPage() {
     }))
   }, [groups, asistentes]);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-    }
-  };
-
-  const handleConfirmUpload = async () => {
-    if (!selectedFile) return;
-    setIsUploading(true);
-    try {
-      const { count } = await processAndUploadFile(selectedFile);
-      toast({ title: "Éxito", description: `${count} registros cargados/actualizados.` });
-      refreshData();
-    } catch (error: any) {
-      toast({ title: "Error al Cargar", description: error.message, variant: "destructive" });
-    } finally {
-      setIsUploading(false);
-      setSelectedFile(null);
-      if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-      }
-    }
-  };
-
-
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
       <TooltipProvider>
@@ -283,10 +179,13 @@ export default function HarvestGroupsPage() {
             <CardHeader>
             <div className="flex justify-between items-center">
                 <div>
-                <CardTitle className="flex items-center gap-2"><Users /> Grupos de Cosecha</CardTitle>
-                <CardDescription>Crea y administra los grupos para la cosecha.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><Users /> Grupos de Cosecha</CardTitle>
+                  <CardDescription>Crea y administra los grupos para la cosecha.</CardDescription>
                 </div>
-                <Button onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4"/>Crear Grupo</Button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={() => setNewAssistantFormOpen(true)} variant="outline"><PlusCircle className="mr-2 h-4 w-4"/>Agregar Asistente</Button>
+                  <Button onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4"/>Crear Grupo</Button>
+                </div>
             </div>
             </CardHeader>
             <CardContent>
@@ -325,89 +224,7 @@ export default function HarvestGroupsPage() {
             </div>
             </CardContent>
         </Card>
-        
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>Maestro de Asistentes</CardTitle>
-                    <div className="flex items-center gap-2">
-                         <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept=".xlsx, .xls, .csv"
-                            onChange={handleFileSelect}
-                            />
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="icon"><FileUp className="h-4 w-4" /></Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Cargar desde Excel</p></TooltipContent>
-                        </Tooltip>
-                        <Button onClick={() => setNewAssistantFormOpen(true)}><PlusCircle className="h-4 w-4 mr-2"/>Agregar Asistente</Button>
-                    </div>
-                </div>
-                {selectedFile && (
-                    <div className="flex items-center gap-4 p-3 mt-4 border rounded-lg bg-muted/50">
-                        <span className="flex-grow text-sm font-medium text-muted-foreground truncate">{selectedFile.name}</span>
-                        <Button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} variant="ghost" size="icon">
-                        <X className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
-                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-                        {isUploading ? 'Subiendo...' : 'Confirmar'}
-                        </Button>
-                    </div>
-                )}
-            </CardHeader>
-            <CardContent>
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Nombre</TableHead>
-                                <TableHead>DNI</TableHead>
-                                <TableHead>Cargo</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {masterLoading ? (
-                            <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow>
-                        ) : asistentes.length > 0 ? (
-                            asistentes.map(asistente => (
-                                <TableRow key={asistente.id}>
-                                    <TableCell>{asistente.assistantName}</TableCell>
-                                    <TableCell>{asistente.id}</TableCell>
-                                    <TableCell>{asistente.cargo}</TableCell>
-                                    <TableCell className="text-right">
-                                         <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                                    <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará permanentemente al asistente.</AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDeleteAssistant(asistente.id)}>Eliminar</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow><TableCell colSpan={4} className="h-24 text-center">No hay asistentes.</TableCell></TableRow>
-                        )}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
-        </Card>
-      
+              
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogContent>
                 <DialogHeader>
