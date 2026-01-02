@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -230,48 +229,48 @@ export default function ShipmentSummaryPage() {
          <TabsContent value="por-grupo">
             <div className="space-y-4">
               {summaryByGroup.length > 0 ? summaryByGroup.map(groupData => (
-                <div key={groupData.groupNum} className="border-2 border-red-500 overflow-hidden">
-                  <Table className="w-full border-collapse">
-                    <TableHeader>
-                      <TableRow className="bg-red-500 text-white font-bold">
-                        <TableHead className="w-[80px] text-center text-white border-r border-white">N° Grupo</TableHead>
-                        <TableHead className="w-[150px] text-center text-white border-r border-white">Embarcador</TableHead>
-                        <TableHead className="w-[80px] text-center text-white border-r border-white">N° Viaje</TableHead>
-                        <TableHead className="text-center text-white border-r border-white">N° Guia</TableHead>
-                        <TableHead className="text-center text-white border-r border-white">Cuartel</TableHead>
-                        <TableHead className="text-center text-white border-r border-white">Hora Salida</TableHead>
-                        <TableHead className="text-center text-white border-r border-white">N° Tractor</TableHead>
-                        <TableHead className="text-center text-white border-r border-white">N° Jabas</TableHead>
-                        <TableHead className="text-center text-white">Operador</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <div key={groupData.groupNum} className="border-2 border-red-500 overflow-hidden text-xs">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-red-500 text-white font-bold">
+                        <th className="w-16 border-r border-white p-1">N° Grupo</th>
+                        <th className="w-32 border-r border-white p-1">Embarcador</th>
+                        <th className="w-16 border-r border-white p-1">N° Viaje</th>
+                        <th className="w-20 border-r border-white p-1">N° Guia</th>
+                        <th className="w-16 border-r border-white p-1">Cuartel</th>
+                        <th className="w-20 border-r border-white p-1">Hora Salida</th>
+                        <th className="w-20 border-r border-white p-1">N° Tractor</th>
+                        <th className="w-20 border-r border-white p-1">N° Jabas</th>
+                        <th className="p-1">Operador</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {groupData.records.map((record, index) => (
-                        <TableRow key={record.id} className="bg-white">
+                        <tr key={record.id} className="bg-white text-center">
                           {index === 0 && (
                             <>
-                              <TableCell rowSpan={groupData.records.length} className="text-center font-bold border-r border-gray-300 align-middle text-lg">{groupData.groupNum}</TableCell>
-                              <TableCell rowSpan={groupData.records.length} className="text-center font-bold border-r border-gray-300 align-middle">{groupData.embarcadorName}</TableCell>
+                              <td rowSpan={groupData.records.length} className="border-r border-gray-300 font-bold align-middle text-base">{groupData.groupNum}</td>
+                              <td rowSpan={groupData.records.length} className="border-r border-gray-300 font-bold align-middle">{groupData.embarcadorName}</td>
                             </>
                           )}
-                          <TableCell className="text-center border-r border-gray-300">{record.viaje}</TableCell>
-                          <TableCell className="text-center border-r border-gray-300">{record.guia}</TableCell>
-                          <TableCell className="text-center border-r border-gray-300">{record.cuartel}</TableCell>
-                          <TableCell className="text-center border-r border-gray-300">{record.horaEmbarque}</TableCell>
-                          <TableCell className="text-center border-r border-gray-300">{record.tractor}</TableCell>
-                          <TableCell className="text-center border-r border-gray-300">{record.jabas}</TableCell>
-                          <TableCell className="text-center">{record.operador}</TableCell>
-                        </TableRow>
+                          <td className="border-t border-gray-300">{record.viaje}</td>
+                          <td className="border-t border-gray-300">{record.guia}</td>
+                          <td className="border-t border-gray-300">{record.cuartel}</td>
+                          <td className="border-t border-gray-300">{record.horaEmbarque}</td>
+                          <td className="border-t border-gray-300">{record.tractor}</td>
+                          <td className="border-t border-gray-300">{record.jabas}</td>
+                          <td className="border-t border-gray-300 text-left px-2">{record.operador}</td>
+                        </tr>
                       ))}
-                    </TableBody>
-                     <TableFooter>
-                      <TableRow className="bg-white font-bold">
-                        <TableCell colSpan={7} className="text-right"></TableCell>
-                        <TableCell className="text-center border-t-2 border-l-2 border-r-2 border-red-500 bg-red-100">{groupData.totalJabas}</TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
+                      {groupData.records.length > 0 && (
+                          <tr className="bg-white font-bold">
+                            <td colSpan={5}></td>
+                            <td className="border border-black text-center">{groupData.totalJabas}</td>
+                            <td></td>
+                          </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               )) : (
                  <Card>
