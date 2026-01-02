@@ -105,10 +105,18 @@ export default function ShipmentSummaryPage() {
     const unsubscribeShipments = onSnapshot(shipmentsQuery, (snapshot) => {
         const data = snapshot.docs.map(doc => {
             const docData = doc.data();
+            let fecha;
+            if (docData.fecha?.toDate) {
+              fecha = docData.fecha.toDate();
+            } else if (typeof docData.fecha === 'string' && isValid(parseISO(docData.fecha))) {
+              fecha = parseISO(docData.fecha);
+            } else {
+              fecha = new Date();
+            }
             return {
                 id: doc.id,
                 ...docData,
-                fecha: docData.fecha?.toDate ? docData.fecha.toDate() : new Date()
+                fecha,
             } as ShipmentRecord
         });
         setExecutedData(data);
@@ -400,7 +408,7 @@ export default function ShipmentSummaryPage() {
                 innerRadius="70%"
                 outerRadius="100%"
                 barSize={20}
-                cy="55%"
+                cy={"55%"}
                 domain={[0, 100]}
               >
                 <RadialBar dataKey="value" background={{ fill: '#e0e0e0' }} cornerRadius={10} />
@@ -421,7 +429,7 @@ export default function ShipmentSummaryPage() {
       )}
       
       <Tabs defaultValue="por-grupo" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="flex justify-center mb-6 h-auto p-1.5 gap-1.5 rounded-xl bg-muted">
+         <TabsList className="flex justify-center mb-6 h-auto p-1.5 gap-1.5 rounded-xl bg-muted">
             <TabsTrigger value="por-grupo" className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-colors", activeTab === 'por-grupo' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50")}>Por Grupo</TabsTrigger>
             <TabsTrigger value="por-lote" className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-colors", activeTab === 'por-lote' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50")}>Por Lote</TabsTrigger>
             <TabsTrigger value="por-cuartel" className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-colors", activeTab === 'por-cuartel' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50")}>Por Cuartel</TabsTrigger>
