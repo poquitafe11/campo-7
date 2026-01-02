@@ -4,17 +4,18 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { collection, onSnapshot, doc, deleteDoc, addDoc, setDoc, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, addDoc, setDoc, query, orderBy, Timestamp, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth';
 
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, Pencil, Plus } from 'lucide-react';
+import { Loader2, Trash2, Pencil, Plus, CalendarIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,9 +41,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useMasterData } from '@/context/MasterDataContext';
+import { useMasterData } from '@/contexts/MasterDataContext';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import type { User } from '@/lib/types';
+
 
 const projectionSchema = z.object({
   fecha: z.date({ required_error: 'La fecha es requerida.' }),
@@ -53,13 +55,18 @@ const projectionSchema = z.object({
 });
 
 type ProjectionFormValues = z.infer<typeof projectionSchema>;
-type ProjectionRecord = ProjectionFormValues & { id: string };
+type ProjectionRecord = ProjectionFormValues & { 
+  id: string;
+  createdBy?: string;
+};
 
 export default function ShipmentProjectionPage() {
   const { setActions } = useHeaderActions();
   const { toast } = useToast();
   const { lotes, loading: masterLoading } = useMasterData();
+  const { user } = useAuth();
   const [data, setData] = useState<ProjectionRecord[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -81,17 +88,31 @@ export default function ShipmentProjectionPage() {
     return lotes.filter(l => l.lote === selectedLote);
   }, [selectedLote, lotes]);
 
+  const userMap = useMemo(() => {
+    const map = new Map<string, User>();
+    users.forEach(user => {
+        if(user.email) map.set(user.email, user);
+    });
+    return map;
+  }, [users]);
+
 
   useEffect(() => {
     setActions({ title: "Proyección de Embarques" });
     const q = query(collection(db, "proyeccion-embarque"), orderBy("fecha", "desc"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       const recordsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         fecha: doc.data().fecha.toDate(),
       }) as ProjectionRecord);
       setData(recordsData);
+
+      // Fetch users as well
+      const usersSnapshot = await getDocs(collection(db, "usuarios"));
+      const usersData = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as User);
+      setUsers(usersData);
+
       setLoading(false);
     }, (error) => {
       console.error("Error fetching projection records:", error);
@@ -129,13 +150,19 @@ export default function ShipmentProjectionPage() {
   };
   
   const onSubmit = async (values: ProjectionFormValues) => {
+    if (!user?.email) {
+       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
+       return;
+    }
+
     try {
       if (editingRecord) {
         const docRef = doc(db, 'proyeccion-embarque', editingRecord.id);
         await setDoc(docRef, { ...values, fecha: Timestamp.fromDate(values.fecha) }, { merge: true });
         toast({ title: 'Éxito', description: 'Proyección actualizada.' });
       } else {
-        await addDoc(collection(db, 'proyeccion-embarque'), { ...values, fecha: Timestamp.fromDate(values.fecha) });
+        const docData = { ...values, fecha: Timestamp.fromDate(values.fecha), createdBy: user.email };
+        await addDoc(collection(db, 'proyeccion-embarque'), docData);
         toast({ title: 'Éxito', description: 'Proyección guardada.' });
       }
       setIsFormOpen(false);
@@ -163,12 +190,13 @@ export default function ShipmentProjectionPage() {
                     <TableHead>Cuartel</TableHead>
                     <TableHead>N° Jabas</TableHead>
                     <TableHead>Obs.</TableHead>
+                    <TableHead>Usuario</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                    <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>
                 ) : data.length > 0 ? (
                   data.map((record) => (
                     <TableRow key={record.id}>
@@ -177,6 +205,7 @@ export default function ShipmentProjectionPage() {
                       <TableCell>{record.cuartel}</TableCell>
                       <TableCell>{record.jabas}</TableCell>
                       <TableCell>{record.obs}</TableCell>
+                      <TableCell>{userMap.get(record.createdBy || '')?.nombre || record.createdBy}</TableCell>
                       <TableCell className="text-right">
                          <Button variant="ghost" size="icon" onClick={() => handleEdit(record)}><Pencil className="h-4 w-4"/></Button>
                          <AlertDialog>
@@ -198,7 +227,7 @@ export default function ShipmentProjectionPage() {
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow><TableCell colSpan={6} className="h-24 text-center">No hay proyecciones guardadas.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="h-24 text-center">No hay proyecciones guardadas.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
