@@ -9,7 +9,7 @@ import {
   useReactTable,
   getPaginationRowModel,
 } from "@tanstack/react-table";
-import { collection, onSnapshot, doc, deleteDoc, query, orderBy, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, query, orderBy, updateDoc, serverTimestamp, Timestamp, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -52,7 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useMasterData } from '@/context/MasterDataContext';
 import { cn } from '@/lib/utils';
-import type { LoteData } from '@/lib/types';
+import type { LoteData, User } from '@/lib/types';
 
 
 const shipmentEditSchema = z.object({
@@ -94,6 +94,7 @@ export default function ShipmentDatabasePage() {
   const { toast } = useToast();
   const { asistentes, lotes, loading: masterLoading } = useMasterData();
   const [data, setData] = useState<ShipmentRecord[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -110,7 +111,7 @@ export default function ShipmentDatabasePage() {
 
   useEffect(() => {
     const q = query(collection(db, "registros-embarque"), orderBy("fecha", "desc"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       const recordsData = querySnapshot.docs.map(doc => {
         const data = doc.data();
         let fecha;
@@ -128,6 +129,12 @@ export default function ShipmentDatabasePage() {
         } as ShipmentRecord
       });
       setData(recordsData);
+
+      // Fetch users as well
+      const usersSnapshot = await getDocs(collection(db, "usuarios"));
+      const usersData = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as User);
+      setUsers(usersData);
+
       setLoading(false);
     }, (error) => {
       console.error("Error fetching shipment records:", error);
@@ -181,6 +188,15 @@ export default function ShipmentDatabasePage() {
     return lotes.filter(l => l.lote === selectedLote);
   }, [selectedLote, lotes]);
 
+  const userMap = useMemo(() => {
+    const map = new Map<string, User>();
+    users.forEach(user => {
+        if(user.email) map.set(user.email, user);
+    });
+    return map;
+  }, [users]);
+
+
   const columns = useMemo<ColumnDef<ShipmentRecord>[]>(() => [
     { accessorKey: "fecha", header: "Fecha", cell: ({ row }) => format(row.original.fecha, 'dd/MM/yyyy') },
     { 
@@ -203,7 +219,11 @@ export default function ShipmentDatabasePage() {
     { accessorKey: "tractor", header: "Tractor" },
     { accessorKey: "operador", header: "Operador" },
     { accessorKey: "obs", header: "Obs." },
-    { accessorKey: "createdBy", header: "Usuario" },
+    {
+      accessorKey: "createdBy", 
+      header: "Usuario",
+      cell: ({ row }) => userMap.get(row.original.createdBy || '')?.nombre || row.original.createdBy
+    },
     {
       id: 'fechaCreacion',
       header: 'Fecha Creación',
@@ -237,7 +257,7 @@ export default function ShipmentDatabasePage() {
         </div>
       ),
     },
-  ], [asistentes]);
+  ], [asistentes, userMap]);
 
   const table = useReactTable({
     data,
@@ -260,7 +280,7 @@ export default function ShipmentDatabasePage() {
       Tractor: row.tractor,
       Operador: row.operador,
       Observaciones: row.obs,
-      Usuario: row.createdBy,
+      Usuario: userMap.get(row.createdBy || '')?.nombre || row.createdBy,
       'Fecha Creación': row.createdAt?.toDate ? format(row.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'N/A',
     }));
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
