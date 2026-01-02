@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -32,6 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useMasterData } from '@/context/MasterDataContext';
 
 type ShipmentRecord = {
   id: string;
@@ -52,6 +52,7 @@ type ShipmentRecord = {
 export default function ShipmentDatabasePage() {
   const { setActions } = useHeaderActions();
   const { toast } = useToast();
+  const { asistentes } = useMasterData();
   const [data, setData] = useState<ShipmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,6 +91,11 @@ export default function ShipmentDatabasePage() {
 
   const columns = useMemo<ColumnDef<ShipmentRecord>[]>(() => [
     { accessorKey: "fecha", header: "Fecha", cell: ({ row }) => format(row.original.fecha, 'dd/MM/yyyy') },
+    { 
+      accessorKey: "responsable", 
+      header: "Responsable", 
+      cell: ({ row }) => asistentes.find(a => a.id === row.original.responsable)?.assistantName || row.original.responsable
+    },
     { accessorKey: "guia", header: "Guía" },
     { accessorKey: "lote", header: "Lote" },
     { accessorKey: "cuartel", header: "Cuartel" },
@@ -128,7 +134,7 @@ export default function ShipmentDatabasePage() {
         </div>
       ),
     },
-  ], []);
+  ], [asistentes]);
 
   const table = useReactTable({
     data,
@@ -140,6 +146,7 @@ export default function ShipmentDatabasePage() {
   const handleDownload = () => {
     const dataToExport = data.map(row => ({
       Fecha: format(row.fecha, 'dd/MM/yyyy'),
+      Responsable: asistentes.find(a => a.id === row.responsable)?.assistantName || row.responsable,
       Guia: row.guia,
       Lote: row.lote,
       Cuartel: row.cuartel,
