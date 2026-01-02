@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -58,7 +59,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { db } from '@/lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
-import AddAssistantOnlyDialog from '@/components/AddAssistantOnlyDialog';
 
 
 const groupSchema = z.object({
@@ -92,7 +92,6 @@ export default function HarvestGroupsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isNewAssistantFormOpen, setNewAssistantFormOpen] = useState(false);
 
   const groupForm = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
@@ -142,10 +141,6 @@ export default function HarvestGroupsPage() {
     setIsSubmitting(false);
     setIsFormOpen(false);
   };
-
-  const onAssistantSubmit = async () => {
-      refreshData();
-  };
   
   const tableData = useMemo(() => {
     return groups.map(g => ({
@@ -167,7 +162,6 @@ export default function HarvestGroupsPage() {
                   <CardDescription>Crea y administra los grupos para la cosecha.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button onClick={() => setNewAssistantFormOpen(true)} variant="outline"><PlusCircle className="mr-2 h-4 w-4"/>Agregar Asistente</Button>
                   <Button onClick={handleCreate}><PlusCircle className="mr-2 h-4 w-4"/>Crear Grupo</Button>
                 </div>
             </div>
@@ -270,13 +264,6 @@ export default function HarvestGroupsPage() {
                 </Form>
             </DialogContent>
         </Dialog>
-
-        <AddAssistantOnlyDialog 
-            isOpen={isNewAssistantFormOpen}
-            setIsOpen={setNewAssistantFormOpen}
-            onSuccess={onAssistantSubmit}
-        />
-
       </TooltipProvider>
     </div>
   );
