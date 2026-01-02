@@ -60,6 +60,7 @@ import { addAsistente } from '@/app/asistentes/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { db } from '@/lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
+import AddAssistantOnlyDialog from '@/components/AddAssistantOnlyDialog';
 
 
 const groupSchema = z.object({
@@ -149,18 +150,8 @@ export default function HarvestGroupsPage() {
     setIsFormOpen(false);
   };
 
-  const onAssistantSubmit = async (values: z.infer<typeof newAssistantSchema>) => {
-      setIsSubmitting(true);
-      const result = await addAsistente(values);
-      if (result.success) {
-          toast({ title: "Éxito", description: "Asistente agregado."});
-          setNewAssistantFormOpen(false);
-          assistantForm.reset();
-          refreshData();
-      } else {
-          toast({ title: "Error", description: result.message, variant: "destructive"});
-      }
-      setIsSubmitting(false);
+  const onAssistantSubmit = async () => {
+      refreshData();
   };
   
   const tableData = useMemo(() => {
@@ -287,25 +278,12 @@ export default function HarvestGroupsPage() {
             </DialogContent>
         </Dialog>
 
-        <Dialog open={isNewAssistantFormOpen} onOpenChange={setNewAssistantFormOpen}>
-             <DialogContent>
-                <DialogHeader><DialogTitle>Agregar Nuevo Asistente</DialogTitle></DialogHeader>
-                <Form {...assistantForm}>
-                    <form onSubmit={assistantForm.handleSubmit(onAssistantSubmit)} className="space-y-4 pt-4">
-                        <FormField control={assistantForm.control} name="nombre" render={({ field }) => (<FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                        <FormField control={assistantForm.control} name="dni" render={({ field }) => (<FormItem><FormLabel>DNI (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                        <FormField control={assistantForm.control} name="cargo" render={({ field }) => (<FormItem><FormLabel>Cargo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                         <DialogFooter>
-                            <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                Agregar
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-             </DialogContent>
-        </Dialog>
+        <AddAssistantOnlyDialog 
+            isOpen={isNewAssistantFormOpen}
+            setIsOpen={setNewAssistantFormOpen}
+            onSuccess={onAssistantSubmit}
+        />
+
       </TooltipProvider>
     </div>
   );
