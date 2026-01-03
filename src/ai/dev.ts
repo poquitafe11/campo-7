@@ -1,5 +1,5 @@
 
-import '@/ai/flows/summarize-field-data.ts';
-import '@/ai/flows/answer-field-data-query.ts';
-import '@/ai/flows/digitize-health-table.ts';
-import '@/ai/flows/digitize-irrigation-table.ts';
+import '@/ai/flows/summarize-field-data';
+import '@/ai/flows/answer-field-data-query';
+import '@/ai/flows/digitize-health-table';
+import '@/ai/flows/digitize-irrigation-table';
