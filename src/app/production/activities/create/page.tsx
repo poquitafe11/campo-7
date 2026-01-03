@@ -34,6 +34,7 @@ import {
   Camera,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import html2canvas from 'html2canvas';
 
 
 import { Button } from '@/components/ui/button';
@@ -162,6 +163,8 @@ export default function CreateActivityPage() {
   
   const [isAddActivityDialogOpen, setAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
+  const tableRef = useRef<HTMLTableElement>(null);
+
 
   useEffect(() => {
     setActions({ title: "Crear Ficha de Actividad" });
@@ -435,6 +438,30 @@ export default function CreateActivityPage() {
     setGroupActivities(prev => prev.filter(act => act.id !== id));
   };
   
+  const handleCapture = () => {
+    if (!tableRef.current) return;
+    
+    html2canvas(tableRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        onclone: (document) => {
+            // Hide action buttons on the cloned element before capture
+            const clonedTable = document.querySelector('table');
+            if (clonedTable) {
+                clonedTable.querySelectorAll('.print-hide').forEach(el => {
+                    (el as HTMLElement).style.display = 'none';
+                });
+            }
+        }
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `actividades-grupo-${format(new Date(), 'yyyy-MM-dd')}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+    });
+  };
+
   const renderSharedHeader = (formInstance: any) => (
     <>
       <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
@@ -552,7 +579,7 @@ export default function CreateActivityPage() {
                     {renderSharedHeader(headerForm)}
                     
                     <div className="overflow-x-auto">
-                        <Table>
+                        <Table ref={tableRef}>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[180px]">Asistente</TableHead>
@@ -615,6 +642,9 @@ export default function CreateActivityPage() {
                     <div className="flex items-center gap-2 mt-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => setAddActivityDialogOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
+                        </Button>
+                         <Button type="button" variant="outline" size="sm" onClick={handleCapture}>
+                           <Camera className="mr-2 h-4 w-4" /> Capturar Tabla
                         </Button>
                     </div>
 
