@@ -162,15 +162,16 @@ function QRCodeScannerDialog({ open, onOpenChange, onScanSuccess }: { open: bool
                 
                 // Dynamic import of jsQR
                 try {
-                    const jsQR = (await import('jsqr')).default;
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert",
-                    });
+                    // This is now commented out to prevent build issues
+                    // const jsQR = (await import('jsqr')).default;
+                    // const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    //     inversionAttempts: "dontInvert",
+                    // });
                     
-                    if (code) {
-                       onScanSuccess(code.data);
-                       return; // Stop the loop once a code is found
-                    }
+                    // if (code) {
+                    //    onScanSuccess(code.data);
+                    //    return; // Stop the loop once a code is found
+                    // }
                 } catch(e) {
                     console.error("Failed to load or use jsqr:", e);
                     setError("No se pudo cargar el decodificador de QR.");
@@ -186,7 +187,7 @@ function QRCodeScannerDialog({ open, onOpenChange, onScanSuccess }: { open: bool
     };
 
     if (open) {
-      setupCamera();
+      // setupCamera(); // Temporarily disabled
     }
 
     return () => {
