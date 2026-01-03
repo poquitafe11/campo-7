@@ -7,6 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+
 
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { useMasterData } from '@/context/MasterDataContext';
@@ -116,86 +118,34 @@ function HarvestMenu() {
 }
 
 function QRCodeScannerDialog({ open, onOpenChange, onScanSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onScanSuccess: (data: string) => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
-    let animationFrameId: number | null = null;
-
-    const setupCamera = async () => {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("La cámara no es soportada por este navegador.");
-        }
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" }
-        });
-        setHasPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.onloadedmetadata = () => {
-             videoRef.current?.play();
-             tick();
-          };
-        }
-      } catch (err) {
-        setHasPermission(false);
-        setError("Permiso de cámara denegado. Por favor, habilite el acceso a la cámara en los ajustes de su navegador.");
-      }
-    };
-    
-    const tick = async () => {
-        if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
-            const canvas = canvasRef.current;
-            const video = videoRef.current;
-            const ctx = canvas.getContext('2d');
-            
-            canvas.height = video.videoHeight;
-            canvas.width = video.videoWidth;
-
-            if (ctx) {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
-                // Dynamic import of jsQR
-                try {
-                    // This is now commented out to prevent build issues
-                    // const jsQR = (await import('jsqr')).default;
-                    // const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    //     inversionAttempts: "dontInvert",
-                    // });
-                    
-                    // if (code) {
-                    //    onScanSuccess(code.data);
-                    //    return; // Stop the loop once a code is found
-                    // }
-                } catch(e) {
-                    console.error("Failed to load or use jsqr:", e);
-                    setError("No se pudo cargar el decodificador de QR.");
-                    // Stop the loop if the library fails to load
-                    if (animationFrameId) {
-                      cancelAnimationFrame(animationFrameId);
-                    }
-                    return;
-                }
-            }
-        }
-        animationFrameId = requestAnimationFrame(tick);
-    };
-
     if (open) {
-      // setupCamera(); // Temporarily disabled
+      const scanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        false
+      );
+      scannerRef.current = scanner;
+
+      const handleSuccess = (decodedText: string) => {
+        onScanSuccess(decodedText);
+        scanner.clear();
+      };
+      
+      const handleError = (error: any) => {
+        // console.warn(`QR error = ${error}`);
+      };
+
+      scanner.render(handleSuccess, handleError);
     }
 
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(error => {
+          console.error("Failed to clear html5-qrcode-scanner.", error);
+        });
       }
     };
   }, [open, onScanSuccess]);
@@ -207,19 +157,7 @@ function QRCodeScannerDialog({ open, onOpenChange, onScanSuccess }: { open: bool
           <DialogTitle>Escanear Código QR</DialogTitle>
           <DialogDescription>Apunta la cámara al código QR de la guía.</DialogDescription>
         </DialogHeader>
-        <div className="relative aspect-square bg-muted rounded-md overflow-hidden">
-            <video ref={videoRef} playsInline className="w-full h-full object-cover"/>
-             <canvas ref={canvasRef} className="hidden" />
-             {hasPermission === false && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 p-4">
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Error de Cámara</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                </div>
-            )}
-        </div>
+        <div id="qr-reader" className="w-full"></div>
       </DialogContent>
     </Dialog>
   );
@@ -357,7 +295,7 @@ export default function RegisterShipmentPage() {
                     <FormItem><FormLabel>Guía</FormLabel>
                       <div className="flex items-center gap-2">
                         <FormControl><Input {...field} /></FormControl>
-                        {/* <Button type="button" variant="outline" size="icon" onClick={() => setIsScannerOpen(true)}><QrCode/></Button> */}
+                        <Button type="button" variant="outline" size="icon" onClick={() => setIsScannerOpen(true)}><QrCode/></Button>
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -447,11 +385,11 @@ export default function RegisterShipmentPage() {
           </CardContent>
         </Card>
       </div>
-      {/* <QRCodeScannerDialog
+      <QRCodeScannerDialog
         open={isScannerOpen}
         onOpenChange={setIsScannerOpen}
         onScanSuccess={handleScanSuccess}
-      /> */}
+      />
     </>
   );
 }
