@@ -34,7 +34,7 @@ import {
   Camera,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import html2canvas from 'html2canvas';
+
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -439,6 +439,9 @@ export default function CreateActivityPage() {
   const handleCapture = async () => {
     if (!tableRef.current) return;
     toast({ title: 'Capturando...', description: 'Generando imagen de la tabla.' });
+
+    // Dynamic import of html2canvas
+    const html2canvas = (await import('html2canvas')).default;
 
     const headerData = headerForm.getValues();
     const labor = headerData.labor || 'N/A';
