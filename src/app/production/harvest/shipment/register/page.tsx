@@ -161,15 +161,24 @@ function QRCodeScannerDialog({ open, onOpenChange, onScanSuccess }: { open: bool
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 
                 // Dynamic import of jsQR
-                const jsQR = (await import('jsqr')).default;
-
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                
-                if (code) {
-                   onScanSuccess(code.data);
-                   return;
+                try {
+                    const jsQR = (await import('jsqr')).default;
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+                    
+                    if (code) {
+                       onScanSuccess(code.data);
+                       return; // Stop the loop once a code is found
+                    }
+                } catch(e) {
+                    console.error("Failed to load or use jsqr:", e);
+                    setError("No se pudo cargar el decodificador de QR.");
+                    // Stop the loop if the library fails to load
+                    if (animationFrameId) {
+                      cancelAnimationFrame(animationFrameId);
+                    }
+                    return;
                 }
             }
         }
@@ -347,7 +356,7 @@ export default function RegisterShipmentPage() {
                     <FormItem><FormLabel>Guía</FormLabel>
                       <div className="flex items-center gap-2">
                         <FormControl><Input {...field} /></FormControl>
-                        <Button type="button" variant="outline" size="icon" onClick={() => setIsScannerOpen(true)}><QrCode/></Button>
+                        {/* <Button type="button" variant="outline" size="icon" onClick={() => setIsScannerOpen(true)}><QrCode/></Button> */}
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -437,11 +446,11 @@ export default function RegisterShipmentPage() {
           </CardContent>
         </Card>
       </div>
-      <QRCodeScannerDialog
+      {/* <QRCodeScannerDialog
         open={isScannerOpen}
         onOpenChange={setIsScannerOpen}
         onScanSuccess={handleScanSuccess}
-      />
+      /> */}
     </>
   );
 }
