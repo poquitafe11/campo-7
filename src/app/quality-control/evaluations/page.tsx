@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Camera, Save, Loader2, RefreshCw, AlertTriangle, ScanLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -44,16 +44,35 @@ export default function EvaluationsPage() {
     return () => setActions({});
   }, [setActions]);
 
-  useEffect(() => {
-    const checkCv = () => {
-      if (window.cv && window.cv.Mat) {
+  const loadOpenCv = useCallback(() => {
+    if (document.getElementById('opencv-script')) {
+      if (window.cv) {
         setCvReady(true);
-      } else {
-        setTimeout(checkCv, 100);
       }
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'opencv-script';
+    script.src = 'https://docs.opencv.org/4.9.0/opencv.js';
+    script.async = true;
+    script.onload = () => {
+      // Check for cv being loaded
+      const interval = setInterval(() => {
+        if (window.cv && window.cv.Mat) {
+          clearInterval(interval);
+          setCvReady(true);
+        }
+      }, 100);
     };
-    checkCv();
-  }, []);
+    script.onerror = () => {
+       toast({ title: "Error", description: "No se pudo cargar la librería de visión.", variant: "destructive" });
+    };
+    document.body.appendChild(script);
+  }, [toast]);
+
+  useEffect(() => {
+    loadOpenCv();
+  }, [loadOpenCv]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {

@@ -69,7 +69,6 @@ export default function RootLayout({
             </MasterDataProvider>
           </AuthWrapper>
         </AuthProvider>
-        <Script src="https://docs.opencv.org/4.9.0/opencv.js" strategy="lazyOnload" />
       </body>
     </html>
   );
