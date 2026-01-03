@@ -10,6 +10,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import * as xlsx from "xlsx";
 import { format, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
+import dynamic from "next/dynamic";
  
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,10 @@ import { renameAndMergeHeader } from "./actions";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from 'lucide-react';
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
+
+// Dynamic import for ReactCrop
+const ReactCrop = dynamic(() => import('react-image-crop'), { ssr: false });
+import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 
 
 type ParsedRow = { [key: string]: any; internalId?: string; id?: string };
@@ -77,6 +82,7 @@ export default function RegisterIrrigationPage() {
   const [isDigitizing, setIsDigitizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const [campaign, setCampaign] = useState('');
   const [stage, setStage] = useState('');
@@ -84,6 +90,8 @@ export default function RegisterIrrigationPage() {
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
 
   const [sourceImage, setSourceImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState<CropType>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   
   const form = useForm({
     resolver: zodResolver(editRecordSchema),
@@ -112,6 +120,35 @@ export default function RegisterIrrigationPage() {
     }
   };
 
+  const getCroppedImgDataUrl = (image: HTMLImageElement, crop: PixelCrop): string => {
+    const canvas = document.createElement("canvas");
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    canvas.width = crop.width;
+    canvas.height = crop.height;
+    const ctx = canvas.getContext("2d");
+  
+    if (ctx) {
+        const cropX = crop.x * scaleX;
+        const cropY = crop.y * scaleY;
+        const cropWidth = crop.width * scaleX;
+        const cropHeight = crop.height * scaleY;
+    
+        ctx.drawImage(
+          image,
+          cropX,
+          cropY,
+          cropWidth,
+          cropHeight,
+          0,
+          0,
+          crop.width,
+          crop.height
+        );
+    }
+    return canvas.toDataURL("image/jpeg");
+  };
+
   const handleDigitize = async () => {
     if (!sourceImage) {
       toast({ variant: "destructive", title: "Error", description: "Por favor, seleccione una imagen primero." });
@@ -122,11 +159,16 @@ export default function RegisterIrrigationPage() {
       return;
     }
     
+    let imageToProcess = sourceImage;
+    if (completedCrop && imgRef.current) {
+        imageToProcess = getCroppedImgDataUrl(imgRef.current, completedCrop);
+    }
+    
     setIsDigitizing(true);
     setParsedData([]);
 
     try {
-      const result = await digitizeIrrigationTable({ photoDataUri: sourceImage });
+      const result = await digitizeIrrigationTable({ photoDataUri: imageToProcess });
       
       try {
         const data = JSON.parse(result.tableContent);
@@ -186,10 +228,12 @@ export default function RegisterIrrigationPage() {
         const batch = writeBatch(db);
         parsedData.forEach(row => {
             const { internalId, ...rowData } = row;
+            // Use a stable, predictable ID to allow for overwrites.
+            // Using Campaña, Lote, Fecha, and now Sector for more uniqueness.
             const sector = rowData.Sector || 'General';
             const docId = `${rowData.Campaña}-${rowData.Lote}-${rowData.Fecha}-${sector}`.replace(/[\s/]/g, '-');
             const docRef = doc(db, "registros-riego", docId);
-            batch.set(docRef, rowData, { merge: true });
+            batch.set(docRef, rowData, { merge: true }); // Use merge: true to update if exists
         });
         await batch.commit();
         
@@ -296,7 +340,7 @@ export default function RegisterIrrigationPage() {
                 Digitalizar Tabla de Riego desde Imagen
             </CardTitle>
             <CardDescription>
-                Sube una foto de una tabla de riego y la IA extraerá los datos por ti.
+                Sube una foto de una tabla de riego, ajústala y la IA extraerá los datos por ti.
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -314,8 +358,16 @@ export default function RegisterIrrigationPage() {
 
             {sourceImage && (
               <div className="space-y-4">
-                <p className="text-sm font-medium">Vista Previa:</p>
-                <img src={sourceImage} alt="Vista previa" className="rounded-md border max-w-sm" />
+                <p className="text-sm font-medium">Recorta la tabla:</p>
+                <div className="max-w-full overflow-x-auto">
+                    <ReactCrop
+                        crop={crop}
+                        onChange={c => setCrop(c)}
+                        onComplete={c => setCompletedCrop(c)}
+                    >
+                        <img ref={imgRef} src={sourceImage} alt="Vista previa" />
+                    </ReactCrop>
+                </div>
                 <Button onClick={handleDigitize} disabled={isDigitizing || !campaign || !stage}>
                     {isDigitizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                     {isDigitizing ? "Digitalizando..." : "Digitalizar Tabla"}

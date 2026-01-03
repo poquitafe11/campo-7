@@ -69,6 +69,16 @@ const parseCustomDate = (dateString: string): Date | null => {
     return isValid(date) ? date : null;
 };
 
+const getBandColorClass = (band: string | undefined): string => {
+    if (!band) return '';
+    const lowerBand = band.toLowerCase();
+    if (lowerBand.includes('roja')) return 'bg-red-200 text-red-900';
+    if (lowerBand.includes('amarilla')) return 'bg-yellow-200 text-yellow-900';
+    if (lowerBand.includes('azul')) return 'bg-blue-200 text-blue-900';
+    if (lowerBand.includes('verde')) return 'bg-green-200 text-green-900';
+    return '';
+};
+
 
 export default function RegisterHealthPage() {
   const { toast } = useToast();
