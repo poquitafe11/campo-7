@@ -6,7 +6,6 @@ import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2, Cr
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import * as xlsx from "xlsx";
 import { format, parse, isValid } from 'date-fns';
@@ -49,54 +48,6 @@ const editHeaderSchema = z.object({
     mergeWith: z.string().optional(),
 });
 
-function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string> {
-  const canvas = document.createElement('canvas');
-  const scaleX = image.naturalWidth / image.width;
-  const scaleY = image.naturalHeight / image.height;
-  canvas.width = crop.width * scaleX;
-  canvas.height = crop.height * scaleY;
-  const ctx = canvas.getContext('2d');
-
-  if (!ctx) {
-    return Promise.reject(new Error('Canvas context not available'));
-  }
-
-  ctx.drawImage(
-    image,
-    crop.x * scaleX,
-    crop.y * scaleY,
-    crop.width * scaleX,
-    crop.height * scaleY,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  return new Promise((resolve) => {
-    resolve(canvas.toDataURL('image/jpeg'));
-  });
-}
-
-const parseSpanishDate = (dateString: string): Date => {
-    if (!dateString) return new Date('invalid');
-    const normalizedDateString = dateString.toLowerCase().replace('setiembre', 'septiembre');
-    const months: { [key: string]: number } = {
-        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
-        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-    };
-    const parts = normalizedDateString.split(' de ');
-    if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = months[parts[1]];
-        const year = parseInt(parts[2], 10);
-        if (!isNaN(day) && month !== undefined && !isNaN(year)) {
-            return new Date(year, month, day);
-        }
-    }
-    return new Date('invalid');
-};
-
 const headerGroups = {
   main: ['Fundo', 'Fecha', 'Dia', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones'],
   metrics: ['ETo', 'Kc', 'Total m3Dia', 'Ha', 'm3Ha Hora', 'Lps Ideal', 'Lps adicional 10%'],
@@ -131,12 +82,7 @@ export default function RegisterIrrigation01Page() {
   
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
 
-  // Cropping state
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const [crop, setCrop] = useState<CropType>();
-  const [completedCrop, setCompletedCrop] = useState<CropType>();
   const [sourceImage, setSourceImage] = useState<string | null>(null);
-  const [croppedImage, setCroppedImage] = useState<string | null>(null);
   
   const form = useForm({
     resolver: zodResolver(editRecordSchema),
@@ -159,36 +105,16 @@ export default function RegisterIrrigation01Page() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSourceImage(reader.result as string);
-        setCroppedImage(null);
         setParsedData([]);
-        setCrop(undefined);
       };
       reader.readAsDataURL(file);
     }
   };
   
-  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-      imgRef.current = e.currentTarget;
-      const { width, height } = e.currentTarget;
-      const initialCrop = centerCrop(
-        makeAspectCrop({ unit: '%', width: 90 }, 16 / 9, width, height),
-        width,
-        height
-      );
-      setCrop(initialCrop);
-  }
-
-  const handleApplyCrop = async () => {
-    if (imgRef.current && completedCrop) {
-      const croppedDataUrl = await getCroppedImg(imgRef.current, completedCrop);
-      setCroppedImage(croppedDataUrl);
-      setSourceImage(null);
-    }
-  }
 
   const handleDigitize = async () => {
-    if (!croppedImage) {
-      toast({ variant: "destructive", title: "Error", description: "Por favor, recorta y usa una imagen primero." });
+    if (!sourceImage) {
+      toast({ variant: "destructive", title: "Error", description: "Por favor, seleccione una imagen primero." });
       return;
     }
     if (!campaign || !stage) {
@@ -200,7 +126,7 @@ export default function RegisterIrrigation01Page() {
     setParsedData([]);
 
     try {
-      const result = await digitizeIrrigationTable({ photoDataUri: croppedImage });
+      const result = await digitizeIrrigationTable({ photoDataUri: sourceImage });
       
       try {
         const data = JSON.parse(result.tableContent);
@@ -272,7 +198,6 @@ export default function RegisterIrrigation01Page() {
         toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados o actualizados.` });
         
         setSourceImage(null);
-        setCroppedImage(null);
         setParsedData([]);
         setCampaign('');
         setStage('');
@@ -375,7 +300,7 @@ export default function RegisterIrrigation01Page() {
                 Digitalizar Tabla de Riego desde Imagen
             </CardTitle>
             <CardDescription>
-                Sube una foto de una tabla de riego, ajústala y la IA extraerá los datos por ti.
+                Sube una foto de una tabla de riego y la IA extraerá los datos por ti.
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -392,23 +317,9 @@ export default function RegisterIrrigation01Page() {
              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
 
             {sourceImage && (
-                <div className="space-y-4">
-                    <div className="relative max-w-lg mx-auto">
-                        <ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)}>
-                            <img ref={imgRef} src={sourceImage} alt="Recortar imagen" onLoad={onImageLoad} style={{ maxHeight: '70vh' }}/>
-                        </ReactCrop>
-                    </div>
-                    <div className="flex justify-center gap-4">
-                        <Button onClick={handleApplyCrop} disabled={!completedCrop?.width || !completedCrop?.height}><Crop className="mr-2 h-4 w-4"/> Cortar y Usar Imagen</Button>
-                        <Button variant="destructive" onClick={() => { setSourceImage(null); setCroppedImage(null); if(fileInputRef.current) fileInputRef.current.value = ''; }}><X className="mr-2 h-4 w-4"/> Cancelar</Button>
-                    </div>
-                </div>
-            )}
-            
-            {croppedImage && (
               <div className="space-y-4">
-                <p className="text-sm font-medium">Vista Previa Recortada:</p>
-                <img src={croppedImage} alt="Vista previa recortada" className="rounded-md border max-w-sm" />
+                <p className="text-sm font-medium">Vista Previa:</p>
+                <img src={sourceImage} alt="Vista previa" className="rounded-md border max-w-sm" />
                 <Button onClick={handleDigitize} disabled={isDigitizing || !campaign || !stage}>
                     {isDigitizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                     {isDigitizing ? "Digitalizando..." : "Digitalizar Tabla"}
@@ -477,4 +388,3 @@ export default function RegisterIrrigation01Page() {
     </>
   );
 }
-
