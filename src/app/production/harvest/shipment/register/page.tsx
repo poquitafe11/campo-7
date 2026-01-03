@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import dynamic from 'next/dynamic';
 
 
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
@@ -22,13 +22,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { CalendarIcon, Save, Loader2, QrCode, LayoutGrid, Grape, Truck, BarChart3, TrendingUp, FilePlus2, Database, Users, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LoteData } from '@/lib/types';
@@ -45,6 +38,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 
+const QRCodeScannerDialog = dynamic(() => import('@/components/QRCodeScannerDialog'), { ssr: false });
 
 const shipmentRegisterSchema = z.object({
   fecha: z.date({ required_error: 'La fecha es requerida.' }),
@@ -116,53 +110,6 @@ function HarvestMenu() {
     </DropdownMenu>
   )
 }
-
-function QRCodeScannerDialog({ open, onOpenChange, onScanSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onScanSuccess: (data: string) => void }) {
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      const scanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        false
-      );
-      scannerRef.current = scanner;
-
-      const handleSuccess = (decodedText: string) => {
-        onScanSuccess(decodedText);
-        scanner.clear();
-      };
-      
-      const handleError = (error: any) => {
-        // console.warn(`QR error = ${error}`);
-      };
-
-      scanner.render(handleSuccess, handleError);
-    }
-
-    return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(error => {
-          console.error("Failed to clear html5-qrcode-scanner.", error);
-        });
-      }
-    };
-  }, [open, onScanSuccess]);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Escanear Código QR</DialogTitle>
-          <DialogDescription>Apunta la cámara al código QR de la guía.</DialogDescription>
-        </DialogHeader>
-        <div id="qr-reader" className="w-full"></div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 
 export default function RegisterShipmentPage() {
   const { setActions } = useHeaderActions();
@@ -385,11 +332,13 @@ export default function RegisterShipmentPage() {
           </CardContent>
         </Card>
       </div>
-      <QRCodeScannerDialog
-        open={isScannerOpen}
-        onOpenChange={setIsScannerOpen}
-        onScanSuccess={handleScanSuccess}
-      />
+      {isScannerOpen && (
+        <QRCodeScannerDialog
+          open={isScannerOpen}
+          onOpenChange={setIsScannerOpen}
+          onScanSuccess={handleScanSuccess}
+        />
+      )}
     </>
   );
 }
