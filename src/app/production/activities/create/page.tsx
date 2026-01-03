@@ -159,7 +159,6 @@ export default function CreateActivityPage() {
   const { labors, lotes, asistentes, loading: masterLoading, refreshData } = useMasterData();
   const { setActions } = useHeaderActions();
   const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
-  const tableRef = useRef<HTMLTableElement>(null);
   
   const [isAddActivityDialogOpen, setAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
@@ -436,121 +435,6 @@ export default function CreateActivityPage() {
     setGroupActivities(prev => prev.filter(act => act.id !== id));
   };
   
-  const handleCapture = async () => {
-    if (!tableRef.current) return;
-    toast({ title: 'Capturando...', description: 'Generando imagen de la tabla.' });
-
-    // Dynamic import of html2canvas
-    const html2canvas = (await import('html2canvas')).default;
-
-    const headerData = headerForm.getValues();
-    const labor = headerData.labor || 'N/A';
-    const loteId = headerData.lote;
-    const lote = lotes.find(l => l.id === loteId)?.lote || 'N/A';
-    const responsable = profile?.nombre || 'N/A';
-
-    const activitiesData = groupActivities;
-    const totalsData = activitiesData.reduce((acc, curr) => {
-        acc.performance += Number(curr.performance) || 0;
-        acc.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
-        acc.personnelCount += Number(curr.personnelCount) || 0;
-        acc.workdayCount += Number(curr.workdayCount) || 0;
-        const min = Number(curr.minRange) || 0;
-        const max = Number(curr.maxRange) || 0;
-        if (min > 0) acc.minRange = acc.minRange === 0 ? min : Math.min(acc.minRange, min);
-        if (max > 0) acc.maxRange = Math.max(acc.maxRange, max);
-        return acc;
-      }, { performance: 0, clustersOrJabas: 0, personnelCount: 0, workdayCount: 0, minRange: 0, maxRange: 0 });
-    
-    const numerator = showExtraPerformanceField ? totalsData.clustersOrJabas : totalsData.performance;
-    const totalAverage = (totalsData.workdayCount > 0 ? numerator / totalsData.workdayCount : 0).toFixed(2);
-
-
-    const captureHeader = `
-        <div style="padding: 16px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; font-family: sans-serif;">
-            <h2 style="font-size: 1.125rem; font-weight: 600; margin: 0;">Labor: ${labor}</h2>
-            <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: #4b5563; margin-top: 4px;">
-                <span><strong>Lote:</strong> ${lote}</span>
-                <span><strong>Responsable:</strong> ${responsable}</span>
-            </div>
-        </div>
-    `;
-
-    const headerRow = `
-        <tr style="background-color: #f3f4f6; font-weight: bold;">
-            <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Asistente</th>
-            <th style="padding: 8px; border: 1px solid #e5e7eb;">${performanceLabel}</th>
-            ${showExtraPerformanceField ? `<th style="padding: 8px; border: 1px solid #e5e7eb;">${extraPerformanceLabel}</th>` : ''}
-            <th style="padding: 8px; border: 1px solid #e5e7eb;">Personas</th>
-            <th style="padding: 8px; border: 1px solid #e5e7eb;">JHU</th>
-            <th style="padding: 8px; border: 1px solid #e5e7eb;">Prom.</th>
-            <th style="padding: 8px; border: 1px solid #e5e7eb;">Mínimo</th>
-            <th style="padding: 8px; border: 1px solid #e5e7eb;">Máximo</th>
-            <th style="padding: 8px; border: 1px solid #e5e7eb;">Obs.</th>
-        </tr>`;
-
-    const bodyRows = activitiesData.map(row => {
-        const numerator = showExtraPerformanceField ? (row.clustersOrJabas || 0) : (row.performance || 0);
-        const average = (row.workdayCount || 0) > 0 ? (numerator / (row.workdayCount || 1)).toFixed(2) : '0.00';
-        return `
-        <tr>
-            <td style="padding: 8px; border: 1px solid #e5e7eb;">${row.assistantName}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.performance || ''}</td>
-            ${showExtraPerformanceField ? `<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.clustersOrJabas || ''}</td>` : ''}
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.personnelCount}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.workdayCount || ''}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${average}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.minRange || ''}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${row.maxRange || ''}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb;">${row.observations || ''}</td>
-        </tr>`}).join('');
-    
-    const footerRow = `
-        <tr style="font-weight: bold; background-color: #f3f4f6;">
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: right;">Total</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.performance.toLocaleString('es-PE')}</td>
-             ${showExtraPerformanceField ? `<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.clustersOrJabas.toLocaleString('es-PE')}</td>` : ''}
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.personnelCount}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.workdayCount.toFixed(1)}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalAverage}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.minRange}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">${totalsData.maxRange}</td>
-            <td style="padding: 8px; border: 1px solid #e5e7eb;"></td>
-        </tr>`;
-
-    const captureContainer = document.createElement('div');
-    captureContainer.style.position = 'absolute';
-    captureContainer.style.left = '-9999px';
-    captureContainer.style.background = 'white';
-    
-    captureContainer.innerHTML = `
-        ${captureHeader}
-        <table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px; width: 100%;">
-            <thead>${headerRow}</thead>
-            <tbody>${bodyRows}</tbody>
-            <tfoot>${footerRow}</tfoot>
-        </table>`;
-    
-    document.body.appendChild(captureContainer);
-
-    try {
-        const canvas = await html2canvas(captureContainer, {
-            scale: 2,
-            useCORS: true,
-        });
-        const link = document.createElement('a');
-        link.download = `registro-grupal-${format(new Date(), 'yyyy-MM-dd')}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-    } catch (error) {
-        console.error("Error capturing table: ", error);
-        toast({ title: 'Error de Captura', description: 'No se pudo generar la imagen.', variant: 'destructive'});
-    } finally {
-        document.body.removeChild(captureContainer);
-    }
-  };
-
-
   const renderSharedHeader = (formInstance: any) => (
     <>
       <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
@@ -667,7 +551,7 @@ export default function CreateActivityPage() {
                <div className="rounded-lg border bg-card text-card-foreground p-4 shadow-sm space-y-4">
                     {renderSharedHeader(headerForm)}
                     
-                    <div className="overflow-x-auto" ref={tableRef}>
+                    <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -732,11 +616,6 @@ export default function CreateActivityPage() {
                         <Button type="button" variant="outline" size="sm" onClick={() => setAddActivityDialogOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
                         </Button>
-                        {groupActivities.length > 0 && (
-                            <Button type="button" variant="outline" size="sm" onClick={handleCapture}>
-                                <Camera className="mr-2 h-4 w-4"/> Capturar Tabla
-                            </Button>
-                        )}
                     </div>
 
                     <div className="flex justify-end pt-4">
