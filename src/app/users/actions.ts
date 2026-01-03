@@ -32,7 +32,7 @@ export async function getUsers() {
 
 export async function createUserInAuth(password: string, email: string) {
     try {
-        const authAdmin = (await getFirebaseAdmin()).auth();
+        const authAdmin = getFirebaseAdmin().auth();
         await authAdmin.createUser({
             email: email,
             password: password,
@@ -70,7 +70,7 @@ export async function saveUser(values: z.infer<typeof UserSchema>) {
 
 export async function updateUserStatus(email: string, active: boolean) {
     try {
-        const authAdmin = (await getFirebaseAdmin()).auth();
+        const authAdmin = getFirebaseAdmin().auth();
         const userRecord = await authAdmin.getUserByEmail(email);
         await authAdmin.updateUser(userRecord.uid, { disabled: !active });
 
@@ -112,7 +112,7 @@ export async function updateUserPermissions(email: string, permissions: Record<s
 
 export async function deleteUser(email: string) {
     try {
-        const authAdmin = (await getFirebaseAdmin()).auth();
+        const authAdmin = getFirebaseAdmin().auth();
         const userRecord = await authAdmin.getUserByEmail(email).catch(() => null);
         if (userRecord) {
             await authAdmin.deleteUser(userRecord.uid);

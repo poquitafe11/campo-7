@@ -9,10 +9,12 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 import { z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
+
+const db = getFirestore(getFirebaseAdmin());
 
 const AnswerFieldDataQueryInputSchema = z.object({
   query: z.string().describe('La pregunta sobre los datos de campo.'),
@@ -36,8 +38,8 @@ const getProductionActivities = ai.defineTool(
     outputSchema: z.string().describe('Un string JSON de los registros de actividades encontrados.'),
   },
   async (input) => {
-    const activitiesRef = collection(db, 'actividades');
-    const snapshot = await getDocs(activitiesRef);
+    const activitiesRef = db.collection('actividades');
+    const snapshot = await activitiesRef.get();
     
     const allActivities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -67,8 +69,8 @@ const getHealthRecords = ai.defineTool(
     outputSchema: z.string().describe('Un string JSON de los registros de sanidad encontrados.'),
   },
   async (input) => {
-    const healthRef = collection(db, 'registros-sanidad');
-    const snapshot = await getDocs(healthRef);
+    const healthRef = db.collection('registros-sanidad');
+    const snapshot = await healthRef.get();
     
     const allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -98,8 +100,8 @@ const getIrrigationRecords = ai.defineTool(
     outputSchema: z.string().describe('Un string JSON de los registros de riego encontrados.'),
   },
   async (input) => {
-    const irrigationRef = collection(db, 'registros-riego-01');
-    const snapshot = await getDocs(irrigationRef);
+    const irrigationRef = db.collection('registros-riego-01');
+    const snapshot = await irrigationRef.get();
     
     const allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
