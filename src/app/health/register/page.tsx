@@ -2,12 +2,10 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2, Crop } from "lucide-react";
+import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
 import { isValid, parse } from 'date-fns';
 
 
@@ -45,35 +43,6 @@ const editHeaderSchema = z.object({
     mergeWith: z.string().optional(),
 });
 
-
-function getCroppedImg(image: HTMLImageElement, crop: CropType): Promise<string> {
-  const canvas = document.createElement('canvas');
-  const scaleX = image.naturalWidth / image.width;
-  const scaleY = image.naturalHeight / image.height;
-  canvas.width = crop.width * scaleX;
-  canvas.height = crop.height * scaleY;
-  const ctx = canvas.getContext('2d');
-
-  if (!ctx) {
-    return Promise.reject(new Error('Canvas context not available'));
-  }
-
-  ctx.drawImage(
-    image,
-    crop.x * scaleX,
-    crop.y * scaleY,
-    crop.width * scaleX,
-    crop.height * scaleY,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  return new Promise((resolve) => {
-    resolve(canvas.toDataURL('image/jpeg'));
-  });
-}
 
 const parseCustomDate = (dateString: string): Date | null => {
     if (!dateString || typeof dateString !== 'string') return null;
@@ -117,13 +86,7 @@ export default function RegisterHealthPage() {
   
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
 
-  // Cropping state
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const [crop, setCrop] = useState<CropType>();
-  const [completedCrop, setCompletedCrop] = useState<CropType>();
   const [sourceImage, setSourceImage] = useState<string | null>(null);
-  const [croppedImage, setCroppedImage] = useState<string | null>(null);
-
   const [editingHeader, setEditingHeader] = useState<string | null>(null);
   const [isHeaderSubmitting, setIsHeaderSubmitting] = useState(false);
   
@@ -190,37 +153,16 @@ export default function RegisterHealthPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSourceImage(reader.result as string);
-        setCroppedImage(null);
         setParsedData([]);
         setTableHeaders([]);
-        setCrop(undefined);
       };
       reader.readAsDataURL(file);
     }
   };
   
-  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-      imgRef.current = e.currentTarget;
-      const { width, height } = e.currentTarget;
-      const initialCrop = centerCrop(
-        makeAspectCrop({ unit: '%', width: 90 }, 16 / 9, width, height),
-        width,
-        height
-      );
-      setCrop(initialCrop);
-  }
-
-  const handleApplyCrop = async () => {
-    if (imgRef.current && completedCrop) {
-      const croppedDataUrl = await getCroppedImg(imgRef.current, completedCrop);
-      setCroppedImage(croppedDataUrl);
-      setSourceImage(null);
-    }
-  }
-
   const handleDigitize = async () => {
-    if (!croppedImage) {
-      toast({ variant: "destructive", title: "Error", description: "Por favor, recorta y usa una imagen primero." });
+    if (!sourceImage) {
+      toast({ variant: "destructive", title: "Error", description: "Por favor, seleccione una imagen primero." });
       return;
     }
     if (!campaign || !stage) {
@@ -233,7 +175,7 @@ export default function RegisterHealthPage() {
     setTableHeaders([]);
 
     try {
-      const result = await digitizeHealthTable({ photoDataUri: croppedImage });
+      const result = await digitizeHealthTable({ photoDataUri: sourceImage });
       
       try {
         const data = JSON.parse(result.tableContent);
@@ -297,7 +239,6 @@ export default function RegisterHealthPage() {
         toast({ title: "Éxito", description: `${parsedData.length} registros han sido guardados.` });
         
         setSourceImage(null);
-        setCroppedImage(null);
         setParsedData([]);
         setTableHeaders([]);
         setCampaign('');
@@ -348,16 +289,6 @@ export default function RegisterHealthPage() {
         }
     }
     setEditingRecord(null);
-  };
-  
-  const getBandColorClass = (bandValue: any) => {
-    const lowerCaseBand = String(bandValue || '').toLowerCase();
-    switch (lowerCaseBand) {
-        case 'rojo': return 'bg-red-200 text-red-800';
-        case 'amarillo': return 'bg-yellow-200 text-yellow-800';
-        case 'verde': return 'bg-green-200 text-green-800';
-        default: return '';
-    }
   };
   
   const renderEditFormFields = () => {
@@ -478,29 +409,18 @@ export default function RegisterHealthPage() {
 
             {sourceImage && (
                 <div className="space-y-4">
-                    <div className="relative max-w-lg mx-auto">
-                        <ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)}>
-                            <img ref={imgRef} src={sourceImage} alt="Recortar imagen" onLoad={onImageLoad} style={{ maxHeight: '70vh' }}/>
-                        </ReactCrop>
-                    </div>
+                     <p className="text-sm font-medium">Vista Previa:</p>
+                    <img src={sourceImage} alt="Vista previa" className="rounded-md border max-w-sm" />
                     <div className="flex justify-center gap-4">
-                        <Button onClick={handleApplyCrop} disabled={!completedCrop?.width || !completedCrop?.height}><Crop className="mr-2 h-4 w-4"/> Cortar y Usar Imagen</Button>
-                        <Button variant="destructive" onClick={() => { setSourceImage(null); setCroppedImage(null); if(fileInputRef.current) fileInputRef.current.value = ''; }}><X className="mr-2 h-4 w-4"/> Cancelar</Button>
+                        <Button onClick={handleDigitize} disabled={isDigitizing || !campaign || !stage}>
+                            {isDigitizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                            {isDigitizing ? "Digitalizando..." : "Digitalizar Tabla"}
+                        </Button>
+                        <Button variant="destructive" onClick={() => { setSourceImage(null); if(fileInputRef.current) fileInputRef.current.value = ''; }}><X className="mr-2 h-4 w-4"/> Cancelar</Button>
                     </div>
                 </div>
             )}
             
-            {croppedImage && (
-              <div className="space-y-4">
-                <p className="text-sm font-medium">Vista Previa Recortada:</p>
-                <img src={croppedImage} alt="Vista previa recortada" className="rounded-md border max-w-sm" />
-                <Button onClick={handleDigitize} disabled={isDigitizing || !campaign || !stage}>
-                    {isDigitizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                    {isDigitizing ? "Digitalizando..." : "Digitalizar Tabla"}
-                </Button>
-              </div>
-            )}
-
             {isDigitizing && ( <div className="space-y-2"><Label htmlFor="digitized-result">Resultado</Label><div className="space-y-2 rounded-md border p-4"><div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-1/2 animate-pulse"></div><div className="h-4 bg-muted rounded-full w-5/6 animate-pulse"></div></div></div> )}
             
             {!isDigitizing && parsedData.length > 0 && (
