@@ -12,6 +12,7 @@ import { ai } from '@/ai/genkit';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const AnswerFieldDataQueryInputSchema = z.object({
   query: z.string().describe('La pregunta sobre los datos de campo.'),
@@ -151,8 +152,17 @@ const answerFieldDataQueryFlow = ai.defineFlow(
     outputSchema: AnswerFieldDataQueryOutputSchema,
   },
   async (input) => {
-    const llmResponse = await answerer(input);
-    return llmResponse;
+    const llmResponse = await ai.generate({
+      prompt: answerer.prompt,
+      model: googleAI.model('gemini-1.5-flash'),
+      input: input,
+      tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
+      output: {
+        schema: AnswerFieldDataQueryOutputSchema,
+      }
+    });
+
+    return llmResponse.output() || { answer: '' };
   }
 );
 

@@ -1,4 +1,5 @@
 
+
 // This flow is no longer used for queries and has been effectively replaced by the logic in answer-field-data-query.ts
 // It is kept temporarily to avoid breaking any other potential dependencies.
 
@@ -13,6 +14,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const SummarizeFieldDataInputSchema = z.object({
   productionLogs: z.string().describe('Summary of production logs (from "actividades" collection).'),
@@ -71,7 +73,14 @@ const summarizeFieldDataFlow = ai.defineFlow(
     outputSchema: SummarizeFieldDataOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await ai.generate({
+      prompt: prompt.prompt,
+      model: googleAI.model('gemini-1.5-flash'),
+      input: input,
+      output: {
+        schema: SummarizeFieldDataOutputSchema
+      }
+    });
     return output!;
   }
 );

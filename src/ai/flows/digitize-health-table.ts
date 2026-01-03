@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const DigitizeHealthTableInputSchema = z.object({
   photoDataUri: z
@@ -72,7 +73,14 @@ const digitizeHealthTableFlow = ai.defineFlow(
     outputSchema: DigitizeHealthTableOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await ai.generate({
+      prompt: prompt.prompt,
+      model: googleAI.model('gemini-1.5-flash'),
+      input: input,
+      output: {
+        schema: DigitizeHealthTableOutputSchema
+      }
+    });
     return output!;
   }
 );
