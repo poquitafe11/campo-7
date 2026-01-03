@@ -6,7 +6,6 @@ import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2, Cr
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import 'react-image-crop/dist/ReactCrop.css';
 import * as xlsx from "xlsx";
 import { format, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
