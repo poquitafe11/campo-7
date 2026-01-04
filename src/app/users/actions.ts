@@ -85,31 +85,6 @@ export async function updateUserStatus(email: string, active: boolean) {
     }
 }
 
-export async function updateUserPermissions(email: string, permissions: Record<string, boolean>) {
-    try {
-        const userRef = doc(db, 'usuarios', email);
-        
-        const userDoc = await getDoc(userRef);
-        if (!userDoc.exists()) {
-            return { success: false, message: "Usuario no encontrado." };
-        }
-        
-        const userData = userDoc.data();
-        const updatedPermissions = { ...userData.permissions, ...permissions };
-
-        await updateDoc(userRef, {
-            permissions: updatedPermissions
-        });
-        
-        revalidatePath('/dashboard');
-        return { success: true, message: "Permisos actualizados." };
-    } catch (error) {
-        console.error("Error updating user permissions:", error);
-        return { success: false, message: "No se pudieron actualizar los permisos." };
-    }
-}
-
-
 export async function deleteUser(email: string) {
     try {
         const authAdmin = getFirebaseAdmin().auth();

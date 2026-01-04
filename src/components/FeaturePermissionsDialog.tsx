@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useForm, Controller } from 'react-hook-form';
 import {
   Dialog,
   DialogContent,
@@ -22,9 +21,12 @@ import { useToast } from '@/hooks/use-toast';
 import { type User, type UserRole } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { getUsers, updateUserPermissions } from '@/app/users/actions';
+import { getUsers } from '@/app/users/actions';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
 
 interface FeaturePermissionsDialogProps {
   isOpen: boolean;
@@ -41,6 +43,30 @@ const roleHierarchy: { [key in UserRole]: number } = {
     "Apoyo": 1,
     "Invitado": 0,
 };
+
+async function updateUserPermissionsClient(email: string, permissions: Record<string, boolean>) {
+    try {
+        const userRef = doc(db, 'usuarios', email);
+        
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) {
+            return { success: false, message: "Usuario no encontrado." };
+        }
+        
+        const userData = userDoc.data();
+        const updatedPermissions = { ...userData.permissions, ...permissions };
+
+        await updateDoc(userRef, {
+            permissions: updatedPermissions
+        });
+        
+        return { success: true, message: "Permisos actualizados." };
+    } catch (error) {
+        console.error("Error updating user permissions:", error);
+        return { success: false, message: "No se pudieron actualizar los permisos." };
+    }
+}
+
 
 export default function FeaturePermissionsDialog({ isOpen, onOpenChange, feature, onSuccess }: FeaturePermissionsDialogProps) {
   const { toast } = useToast();
@@ -78,18 +104,22 @@ export default function FeaturePermissionsDialog({ isOpen, onOpenChange, feature
 
   const handlePermissionChange = async (email: string, hasAccess: boolean) => {
     const permissionsToUpdate = { [feature.href]: hasAccess };
-    const result = await updateUserPermissions(email, permissionsToUpdate);
+    
+    // Optimistically update UI
+    setUsers(prev => prev.map(u => u.email === email ? { ...u, permissions: { ...u.permissions, [feature.href]: hasAccess } } : u));
+
+    const result = await updateUserPermissionsClient(email, permissionsToUpdate);
+
     if (!result.success) {
       toast({ variant: "destructive", title: "Error", description: result.message });
       // Revert UI change on failure
       setUsers(prev => prev.map(u => u.email === email ? { ...u, permissions: { ...u.permissions, [feature.href]: !hasAccess } } : u));
-    } else {
-        setUsers(prev => prev.map(u => u.email === email ? { ...u, permissions: { ...u.permissions, [feature.href]: hasAccess } } : u));
     }
   };
 
   const groupedUsersByRole = users.reduce((acc, user) => {
-    (acc[user.rol] = acc[user.rol] || []).push(user);
+    const role = user.rol || 'Invitado';
+    (acc[role] = acc[role] || []).push(user);
     return acc;
   }, {} as Record<UserRole, User[]>);
   
