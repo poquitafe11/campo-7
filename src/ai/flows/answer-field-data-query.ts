@@ -11,7 +11,6 @@
 import { ai } from '@/ai/genkit';
 import { getFirestore } from 'firebase-admin/firestore';
 import { z } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const db = getFirestore();
 
@@ -153,18 +152,7 @@ const answerFieldDataQueryFlow = ai.defineFlow(
     outputSchema: AnswerFieldDataQueryOutputSchema,
   },
   async (input) => {
-    const llmResponse = await ai.generate({
-      prompt: {
-        prompt: answerer.prompt,
-        input: { query: input.query }
-      },
-      model: googleAI.model('gemini-1.5-flash'),
-      tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
-      output: {
-        schema: AnswerFieldDataQueryOutputSchema,
-      }
-    });
-
+    const llmResponse = await answerer(input);
     return llmResponse.output() || { answer: '' };
   }
 );
