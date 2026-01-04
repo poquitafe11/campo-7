@@ -9,12 +9,11 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
-const db = getFirestore(getFirebaseAdmin());
+const db = getFirestore();
 
 const AnswerFieldDataQueryInputSchema = z.object({
   query: z.string().describe('La pregunta sobre los datos de campo.'),
@@ -48,7 +47,7 @@ const getProductionActivities = ai.defineTool(
     }
     
     const lowerCaseSearchTerm = input.searchTerm.toLowerCase();
-    const filtered = allActivities.filter(act => {
+    const filtered = allActivities.filter((act: any) => {
         // Make sure 'labor' exists and is a string before calling toLowerCase
         return act.labor && typeof act.labor === 'string' && act.labor.toLowerCase().includes(lowerCaseSearchTerm);
     });
