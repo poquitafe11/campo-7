@@ -62,6 +62,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@genkit-ai/firebase": "1.16.1",
     "@types/node": "^20",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
