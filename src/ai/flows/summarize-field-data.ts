@@ -38,6 +38,7 @@ const prompt = ai.definePrompt({
   name: 'summarizeFieldDataPrompt',
   input: {schema: SummarizeFieldDataInputSchema},
   output: {schema: SummarizeFieldDataOutputSchema},
+  model: googleAI.model('gemini-1.5-flash'),
   prompt: `You are an expert agronomist AI assistant. Your task is to analyze raw, line-by-line data logs from various farm activities and provide a concise, high-level summary.
 
   The user will provide data from different sections: Production, Health, Irrigation, Quality Control, and Biological Control.
@@ -73,16 +74,7 @@ const summarizeFieldDataFlow = ai.defineFlow(
     outputSchema: SummarizeFieldDataOutputSchema,
   },
   async input => {
-    const {output} = await ai.generate({
-      prompt: {
-        prompt: prompt.prompt,
-        input: input
-      },
-      model: googleAI.model('gemini-1.5-flash'),
-      output: {
-        schema: SummarizeFieldDataOutputSchema
-      }
-    });
-    return output!;
+    const llmResponse = await prompt(input);
+    return llmResponse.output()!;
   }
 );

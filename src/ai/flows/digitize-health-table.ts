@@ -34,6 +34,7 @@ const prompt = ai.definePrompt({
   name: 'digitizeHealthTablePrompt',
   input: {schema: DigitizeHealthTableInputSchema},
   output: {schema: DigitizeHealthTableOutputSchema},
+  model: googleAI.model('gemini-1.5-flash'),
   prompt: `You are an expert data entry specialist. Your task is to accurately extract information from a table in the provided image and normalize the headers.
 
 Analyze the image and transcribe the entire content of the table into a structured JSON array format.
@@ -73,16 +74,7 @@ const digitizeHealthTableFlow = ai.defineFlow(
     outputSchema: DigitizeHealthTableOutputSchema,
   },
   async input => {
-    const {output} = await ai.generate({
-      prompt: {
-          prompt: prompt.prompt,
-          input: input,
-      },
-      model: googleAI.model('gemini-1.5-flash'),
-      output: {
-        schema: DigitizeHealthTableOutputSchema
-      }
-    });
-    return output!;
+    const llmResponse = await prompt(input);
+    return llmResponse.output()!;
   }
 );

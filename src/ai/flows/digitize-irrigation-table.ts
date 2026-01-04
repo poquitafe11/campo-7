@@ -39,6 +39,7 @@ const prompt = ai.definePrompt({
   name: 'digitizeIrrigationTablePrompt',
   input: {schema: DigitizeIrrigationTableInputSchema},
   output: {schema: DigitizeIrrigationTableOutputSchema},
+  model: googleAI.model('gemini-1.5-flash'),
   prompt: `You are an expert data entry specialist. Your task is to accurately extract information from an image containing a multi-section irrigation program and consolidate it into a SINGLE JSON array, and also extract the Fundo, date, day of the week, and ETo value from the top of the image.
 
 TASK 1: Extract Header Data
@@ -77,16 +78,7 @@ const digitizeIrrigationTableFlow = ai.defineFlow(
     outputSchema: DigitizeIrrigationTableOutputSchema,
   },
   async input => {
-    const {output} = await ai.generate({
-      prompt: {
-        prompt: prompt.prompt,
-        input: input,
-      },
-      model: googleAI.model('gemini-1.5-flash'),
-      output: {
-        schema: DigitizeIrrigationTableOutputSchema
-      }
-    });
-    return output!;
+    const llmResponse = await prompt(input);
+    return llmResponse.output()!;
   }
 );
