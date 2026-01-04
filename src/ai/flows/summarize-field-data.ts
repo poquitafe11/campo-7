@@ -74,9 +74,11 @@ const summarizeFieldDataFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await ai.generate({
-      prompt: prompt.prompt,
+      prompt: {
+        prompt: prompt.prompt,
+        input: input
+      },
       model: googleAI.model('gemini-1.5-flash'),
-      input: input,
       output: {
         schema: SummarizeFieldDataOutputSchema
       }

@@ -154,9 +154,11 @@ const answerFieldDataQueryFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await ai.generate({
-      prompt: answerer.prompt,
+      prompt: {
+        prompt: answerer.prompt,
+        input: { query: input.query }
+      },
       model: googleAI.model('gemini-1.5-flash'),
-      input: input,
       tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
       output: {
         schema: AnswerFieldDataQueryOutputSchema,
