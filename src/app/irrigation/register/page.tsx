@@ -10,12 +10,12 @@ import * as xlsx from "xlsx";
 import { format, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import dynamic from "next/dynamic";
+import { digitizeIrrigationTable } from "./actions";
  
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { digitizeIrrigationTable } from "@/ai/flows/digitize-irrigation-table";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";

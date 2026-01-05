@@ -7,12 +7,12 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { isValid, parse } from 'date-fns';
+import { digitizeHealthTable } from "./actions";
 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { digitizeHealthTable } from "@/ai/flows/digitize-health-table";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
@@ -574,5 +574,3 @@ export default function RegisterHealthPage() {
     </>
   );
 }
-
-    

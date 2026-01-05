@@ -1,7 +1,10 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
 import { collection, getDocs, writeBatch, deleteField } from 'firebase/firestore';
+import { digitizeHealthTable as digitizeHealthTableFlow } from '@/lib/ai/flows/digitize-health-table';
+import type { DigitizeHealthTableInput, DigitizeHealthTableOutput } from '@/lib/ai/flows/digitize-health-table';
 
 interface RenameAndMergePayload {
     oldHeader: string;
@@ -51,4 +54,8 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
         console.error("Error al renombrar y fusionar encabezado:", error);
         return { success: false, message: `Ocurrió un error en el servidor: ${error.message}` };
     }
+}
+
+export async function digitizeHealthTable(input: DigitizeHealthTableInput): Promise<DigitizeHealthTableOutput> {
+  return digitizeHealthTableFlow(input);
 }

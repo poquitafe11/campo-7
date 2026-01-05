@@ -3,6 +3,9 @@
 
 import { db } from '@/lib/firebase';
 import { collection, getDocs, writeBatch, FieldValue, deleteField } from 'firebase/firestore';
+import { digitizeIrrigationTable as digitizeIrrigationTableFlow } from '@/lib/ai/flows/digitize-irrigation-table';
+import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/lib/ai/flows/digitize-irrigation-table';
+
 
 interface RenameAndMergePayload {
     oldHeader: string;
@@ -57,4 +60,8 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
         console.error("Error al renombrar y fusionar encabezado:", error);
         return { success: false, message: `Ocurrió un error en el servidor: ${error.message}` };
     }
+}
+
+export async function digitizeIrrigationTable(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
+  return digitizeIrrigationTableFlow(input);
 }

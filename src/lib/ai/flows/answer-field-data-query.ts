@@ -8,11 +8,9 @@
  * - AnswerFieldDataQueryOutput - El tipo de retorno para la función answerFieldDataQuery.
  */
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { ai } from '@/ai/genkit';
 import { getFirestore } from 'firebase-admin/firestore';
 import { z } from 'genkit';
-import { defineFlow, Action } from 'genkit';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 const db = getFirestore(getFirebaseAdmin());
@@ -29,7 +27,7 @@ export type AnswerFieldDataQueryOutput = z.infer<typeof AnswerFieldDataQueryOutp
 
 
 // Herramienta para obtener registros de producción
-const getProductionActivities: Action = defineFlow(
+const getProductionActivities = ai.defineTool(
   {
     name: 'getProductionActivities',
     description: 'Obtiene registros de la colección "actividades" (datos de producción y labores). Úsalo para preguntas sobre costos, rendimiento, personal, jornadas, etc.',
@@ -60,7 +58,7 @@ const getProductionActivities: Action = defineFlow(
 
 
 // Herramienta para obtener registros de sanidad
-const getHealthRecords: Action = defineFlow(
+const getHealthRecords = ai.defineTool(
   {
     name: 'getHealthRecords',
     description: 'Obtiene registros de la colección "registros-sanidad". Úsalo para preguntas sobre aplicaciones de productos, enfermedades, plagas, ingredientes activos.',
@@ -91,7 +89,7 @@ const getHealthRecords: Action = defineFlow(
 );
 
 // Herramienta para obtener registros de riego
-const getIrrigationRecords: Action = defineFlow(
+const getIrrigationRecords = ai.defineTool(
   {
     name: 'getIrrigationRecords',
     description: 'Obtiene registros de la colección "registros-riego-01". Úsalo para preguntas sobre riego, fertilizantes, unidades de nutrientes (N, P, K, etc.).',
@@ -121,51 +119,50 @@ const getIrrigationRecords: Action = defineFlow(
   }
 );
 
+// Prompt principal que utiliza las herramientas
+const answerer = ai.definePrompt({
+  name: 'answerFieldDataQueryPrompt',
+  input: { schema: AnswerFieldDataQueryInputSchema },
+  output: { schema: AnswerFieldDataQueryOutputSchema },
+  tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
+  prompt: `Eres un asistente experto en agronomía y análisis de datos agrícolas. Tu principal tarea es responder preguntas del usuario de forma precisa y clara.
+  
+  **Instrucciones Clave:**
+  1.  **Analiza la pregunta del usuario**: Determina qué tipo de información necesita (costos, rendimiento, aplicaciones, riego, etc.).
+  2.  **Usa las herramientas**: Llama a una o más de las herramientas disponibles para obtener los datos relevantes de la base de datos. Sé específico con el 'searchTerm' si es necesario. Por ejemplo, si el usuario pregunta por "poda", usa el término "poda" en la herramienta \`getProductionActivities\`.
+  3.  **Formato de Respuesta OBLIGATORIO**:
+      *   **Para comparaciones o listas de datos**: Si el usuario pide comparar, listar o resumir datos de varios lotes o registros, DEBES presentar tu respuesta en una tabla HTML. La tabla debe tener estilos básicos para ser legible (ej: <table style="width: 100%; border-collapse: collapse;">, <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;">, <td style="border: 1px solid #ddd; padding: 8px;">). Asegúrate de incluir las columnas relevantes.
+      *   **Para respuestas textuales**: Si la respuesta es un texto o un cálculo simple, DEBES envolverla en un tag <p>.
+      *   **IMPORTANTE**: TU RESPUESTA FINAL DEBE SER UN ÚNICO STRING HTML. No respondas solo texto plano.
+  4.  **Agrupación y Comparación**: Si una pregunta requiere una comparación entre lotes (ej. "compara los costos de desbrote"), DEBES agrupar los datos por 'Lote'. Presenta una tabla con **una sola fila por cada lote**, mostrando los valores clave. NO listes cada registro individual.
+  5.  **Aporta Valor Adicional**: Después de responder la pregunta (ya sea con texto o una tabla), agrega una sección llamada "<strong>Observaciones Adicionales</strong>". En esta sección, dentro de un tag <p>, proporciona un breve análisis o dato interesante que no se pidió explícitamente pero que sea relevante para la toma de decisiones.
+  6.  **Cálculos de Costos**: Si el usuario pregunta sobre "pago total", "costo total" o "cuánto se pagó en total" para una actividad, usa los datos de producción ('actividades'). El costo se calcula así: si 'cost' > 0, el costo es 'cost * performance'. Si 'cost' == 0 o no está definido, se paga por jornal; asume un costo de jornal de S/ 60 y el costo es 'workdayCount * 60'. Suma todos los costos individuales para obtener el total.
+  7.  **Idioma**: RESPONDE SIEMPRE EN ESPAÑOL.
+  
+  **PREGUNTA DEL USUARIO:**
+  {{query}}
 
-export const answerFieldDataQueryFlow = defineFlow(
+  Formula tu respuesta aquí, en español y siguiendo estrictamente las reglas de formato HTML.
+`,
+});
+
+export const answerFieldDataQueryFlow = ai.defineFlow(
   {
     name: 'answerFieldDataQueryFlow',
     inputSchema: AnswerFieldDataQueryInputSchema,
     outputSchema: AnswerFieldDataQueryOutputSchema,
   },
   async (input) => {
-    
-    const ai = genkit({
-      plugins: [googleAI()],
-    });
-    
-    const llmResponse = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash-latest'),
-      tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
-      prompt: `Eres un asistente experto en agronomía y análisis de datos agrícolas. Tu principal tarea es responder preguntas del usuario de forma precisa y clara.
-  
-      **Instrucciones Clave:**
-      1.  **Analiza la pregunta del usuario**: Determina qué tipo de información necesita (costos, rendimiento, aplicaciones, riego, etc.).
-      2.  **Usa las herramientas**: Llama a una o más de las herramientas disponibles para obtener los datos relevantes de la base de datos. Sé específico con el 'searchTerm' si es necesario. Por ejemplo, si el usuario pregunta por "poda", usa el término "poda" en la herramienta \`getProductionActivities\`.
-      3.  **Formato de Respuesta OBLIGATORIO**:
-          *   **Para comparaciones o listas de datos**: Si el usuario pide comparar, listar o resumir datos de varios lotes o registros, DEBES presentar tu respuesta en una tabla HTML. La tabla debe tener estilos básicos para ser legible (ej: <table style="width: 100%; border-collapse: collapse;">, <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;">, <td style="border: 1px solid #ddd; padding: 8px;">). Asegúrate de incluir las columnas relevantes.
-          *   **Para respuestas textuales**: Si la respuesta es un texto o un cálculo simple, DEBES envolverla en un tag <p>.
-          *   **IMPORTANTE**: TU RESPUESTA FINAL DEBE SER UN ÚNICO STRING HTML. No respondas solo texto plano.
-      4.  **Agrupación y Comparación**: Si una pregunta requiere una comparación entre lotes (ej. "compara los costos de desbrote"), DEBES agrupar los datos por 'Lote'. Presenta una tabla con **una sola fila por cada lote**, mostrando los valores clave. NO listes cada registro individual.
-      5.  **Aporta Valor Adicional**: Después de responder la pregunta (ya sea con texto o una tabla), agrega una sección llamada "<strong>Observaciones Adicionales</strong>". En esta sección, dentro de un tag <p>, proporciona un breve análisis o dato interesante que no se pidió explícitamente pero que sea relevante para la toma de decisiones.
-      6.  **Cálculos de Costos**: Si el usuario pregunta sobre "pago total", "costo total" o "cuánto se pagó en total" para una actividad, usa los datos de producción ('actividades'). El costo se calcula así: si 'cost' > 0, el costo es 'cost * performance'. Si 'cost' == 0 o no está definido, se paga por jornal; asume un costo de jornal de S/ 60 y el costo es 'workdayCount * 60'. Suma todos los costos individuales para obtener el total.
-      7.  **Idioma**: RESPONDE SIEMPRE EN ESPAÑOL.
-      
-      **PREGUNTA DEL USUARIO:**
-      ${input.query}
-    
-      Formula tu respuesta aquí, en español y siguiendo estrictamente las reglas de formato HTML.
-    `,
-      output: {
-          format: 'json',
-          schema: AnswerFieldDataQueryOutputSchema
-      }
-    });
-
-    const output = llmResponse.output();
-    if (!output) {
-      throw new Error("La IA no pudo generar una respuesta.");
-    }
-    return output;
+    const llmResponse = await answerer(input);
+    return llmResponse.output!;
   }
 );
+
+export async function answerFieldDataQuery(input: AnswerFieldDataQueryInput): Promise<DigitizeHealthTableOutput> {
+  const result = await answerFieldDataQueryFlow(input);
+  // Asegurarnos de que siempre devolvemos un objeto válido, incluso si la IA devuelve null.
+  if (!result || !result.answer) {
+    return { answer: "<p>La IA no pudo generar una respuesta con el formato esperado. Intenta ser más específico en tu pregunta.</p>" };
+  }
+  return result;
+}
