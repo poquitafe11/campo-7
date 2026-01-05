@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
@@ -178,10 +177,11 @@ export default function AsistentesPage() {
   }, [setActions]);
 
   useEffect(() => {
-    const formattedData = asistentes.map(a => ({
+    const formattedData: Asistente[] = asistentes.map(a => ({
         id: a.id,
         dni: a.id,
         nombre: a.assistantName,
+        assistantName: a.assistantName, // Ensure assistantName is present
         cargo: a.cargo
     })).sort((a,b) => a.nombre.localeCompare(b.nombre));
 

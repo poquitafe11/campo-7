@@ -1,0 +1,171 @@
+
+'use server';
+/**
+ * @fileOverview Un agente de IA que responde preguntas sobre datos de campo utilizando herramientas para buscar en la base de datos.
+ *
+ * - answerFieldDataQuery - Función que maneja el proceso de respuesta a preguntas.
+ * - AnswerFieldDataQueryInput - El tipo de entrada para la función answerFieldDataQuery.
+ * - AnswerFieldDataQueryOutput - El tipo de retorno para la función answerFieldDataQuery.
+ */
+
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+import { getFirestore } from 'firebase-admin/firestore';
+import { z } from 'genkit';
+import { defineFlow, Action } from 'genkit';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+
+const db = getFirestore(getFirebaseAdmin());
+
+const AnswerFieldDataQueryInputSchema = z.object({
+  query: z.string().describe('La pregunta sobre los datos de campo.'),
+});
+export type AnswerFieldDataQueryInput = z.infer<typeof AnswerFieldDataQueryInputSchema>;
+
+const AnswerFieldDataQueryOutputSchema = z.object({
+  answer: z.string().describe('La respuesta a la pregunta sobre los datos de campo, formateada como un único string HTML.'),
+});
+export type AnswerFieldDataQueryOutput = z.infer<typeof AnswerFieldDataQueryOutputSchema>;
+
+
+// Herramienta para obtener registros de producción
+const getProductionActivities: Action = defineFlow(
+  {
+    name: 'getProductionActivities',
+    description: 'Obtiene registros de la colección "actividades" (datos de producción y labores). Úsalo para preguntas sobre costos, rendimiento, personal, jornadas, etc.',
+    inputSchema: z.object({
+      searchTerm: z.string().optional().describe('Un término de búsqueda opcional para filtrar por el campo "labor". Ej: "poda", "raleo", "desbrote".'),
+    }),
+    outputSchema: z.string().describe('Un string JSON de los registros de actividades encontrados.'),
+  },
+  async (input) => {
+    const activitiesRef = db.collection('actividades');
+    const snapshot = await activitiesRef.get();
+    
+    const allActivities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    if (!input.searchTerm) {
+        return JSON.stringify(allActivities);
+    }
+    
+    const lowerCaseSearchTerm = input.searchTerm.toLowerCase();
+    const filtered = allActivities.filter((act: any) => {
+        // Make sure 'labor' exists and is a string before calling toLowerCase
+        return act.labor && typeof act.labor === 'string' && act.labor.toLowerCase().includes(lowerCaseSearchTerm);
+    });
+    
+    return JSON.stringify(filtered);
+  }
+);
+
+
+// Herramienta para obtener registros de sanidad
+const getHealthRecords: Action = defineFlow(
+  {
+    name: 'getHealthRecords',
+    description: 'Obtiene registros de la colección "registros-sanidad". Úsalo para preguntas sobre aplicaciones de productos, enfermedades, plagas, ingredientes activos.',
+    inputSchema: z.object({
+      searchTerm: z.string().optional().describe('Un término de búsqueda opcional para filtrar por cualquier campo del registro (producto, objetivo, etc). Ej: "oidio", "insecticida".'),
+    }),
+    outputSchema: z.string().describe('Un string JSON de los registros de sanidad encontrados.'),
+  },
+  async (input) => {
+    const healthRef = db.collection('registros-sanidad');
+    const snapshot = await healthRef.get();
+    
+    const allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    if (!input.searchTerm) {
+        return JSON.stringify(allRecords);
+    }
+    
+    const lowerCaseSearchTerm = input.searchTerm.toLowerCase();
+    const filtered = allRecords.filter(record => 
+        Object.values(record).some(val => 
+            val && String(val).toLowerCase().includes(lowerCaseSearchTerm)
+        )
+    );
+    
+    return JSON.stringify(filtered);
+  }
+);
+
+// Herramienta para obtener registros de riego
+const getIrrigationRecords: Action = defineFlow(
+  {
+    name: 'getIrrigationRecords',
+    description: 'Obtiene registros de la colección "registros-riego-01". Úsalo para preguntas sobre riego, fertilizantes, unidades de nutrientes (N, P, K, etc.).',
+    inputSchema: z.object({
+      searchTerm: z.string().optional().describe('Un término de búsqueda opcional para filtrar por cualquier campo. Ej: "nitrógeno", "Lote 78".'),
+    }),
+    outputSchema: z.string().describe('Un string JSON de los registros de riego encontrados.'),
+  },
+  async (input) => {
+    const irrigationRef = db.collection('registros-riego-01');
+    const snapshot = await irrigationRef.get();
+    
+    const allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    if (!input.searchTerm) {
+        return JSON.stringify(allRecords);
+    }
+
+    const lowerCaseSearchTerm = input.searchTerm.toLowerCase();
+    const filtered = allRecords.filter(record => 
+        Object.values(record).some(val => 
+            val && String(val).toLowerCase().includes(lowerCaseSearchTerm)
+        )
+    );
+
+    return JSON.stringify(filtered);
+  }
+);
+
+
+export const answerFieldDataQueryFlow = defineFlow(
+  {
+    name: 'answerFieldDataQueryFlow',
+    inputSchema: AnswerFieldDataQueryInputSchema,
+    outputSchema: AnswerFieldDataQueryOutputSchema,
+  },
+  async (input) => {
+    
+    const ai = genkit({
+      plugins: [googleAI()],
+    });
+    
+    const llmResponse = await ai.generate({
+      model: googleAI.model('gemini-1.5-flash-latest'),
+      tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
+      prompt: `Eres un asistente experto en agronomía y análisis de datos agrícolas. Tu principal tarea es responder preguntas del usuario de forma precisa y clara.
+  
+      **Instrucciones Clave:**
+      1.  **Analiza la pregunta del usuario**: Determina qué tipo de información necesita (costos, rendimiento, aplicaciones, riego, etc.).
+      2.  **Usa las herramientas**: Llama a una o más de las herramientas disponibles para obtener los datos relevantes de la base de datos. Sé específico con el 'searchTerm' si es necesario. Por ejemplo, si el usuario pregunta por "poda", usa el término "poda" en la herramienta \`getProductionActivities\`.
+      3.  **Formato de Respuesta OBLIGATORIO**:
+          *   **Para comparaciones o listas de datos**: Si el usuario pide comparar, listar o resumir datos de varios lotes o registros, DEBES presentar tu respuesta en una tabla HTML. La tabla debe tener estilos básicos para ser legible (ej: <table style="width: 100%; border-collapse: collapse;">, <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;">, <td style="border: 1px solid #ddd; padding: 8px;">). Asegúrate de incluir las columnas relevantes.
+          *   **Para respuestas textuales**: Si la respuesta es un texto o un cálculo simple, DEBES envolverla en un tag <p>.
+          *   **IMPORTANTE**: TU RESPUESTA FINAL DEBE SER UN ÚNICO STRING HTML. No respondas solo texto plano.
+      4.  **Agrupación y Comparación**: Si una pregunta requiere una comparación entre lotes (ej. "compara los costos de desbrote"), DEBES agrupar los datos por 'Lote'. Presenta una tabla con **una sola fila por cada lote**, mostrando los valores clave. NO listes cada registro individual.
+      5.  **Aporta Valor Adicional**: Después de responder la pregunta (ya sea con texto o una tabla), agrega una sección llamada "<strong>Observaciones Adicionales</strong>". En esta sección, dentro de un tag <p>, proporciona un breve análisis o dato interesante que no se pidió explícitamente pero que sea relevante para la toma de decisiones.
+      6.  **Cálculos de Costos**: Si el usuario pregunta sobre "pago total", "costo total" o "cuánto se pagó en total" para una actividad, usa los datos de producción ('actividades'). El costo se calcula así: si 'cost' > 0, el costo es 'cost * performance'. Si 'cost' == 0 o no está definido, se paga por jornal; asume un costo de jornal de S/ 60 y el costo es 'workdayCount * 60'. Suma todos los costos individuales para obtener el total.
+      7.  **Idioma**: RESPONDE SIEMPRE EN ESPAÑOL.
+      
+      **PREGUNTA DEL USUARIO:**
+      ${input.query}
+    
+      Formula tu respuesta aquí, en español y siguiendo estrictamente las reglas de formato HTML.
+    `,
+      output: {
+          format: 'json',
+          schema: AnswerFieldDataQueryOutputSchema
+      }
+    });
+
+    const output = llmResponse.output();
+    if (!output) {
+      throw new Error("La IA no pudo generar una respuesta.");
+    }
+    return output;
+  }
+);
