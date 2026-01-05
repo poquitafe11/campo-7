@@ -12,12 +12,13 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { getFirestore } from 'firebase-admin/firestore';
 import { z } from 'genkit';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 const ai = genkit({
     plugins: [googleAI()],
 });
 
-const db = getFirestore();
+const db = getFirestore(getFirebaseAdmin());
 
 const AnswerFieldDataQueryInputSchema = z.object({
   query: z.string().describe('La pregunta sobre los datos de campo.'),
