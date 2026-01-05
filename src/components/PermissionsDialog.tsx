@@ -18,9 +18,11 @@ import { useToast } from "@/hooks/use-toast";
 import { User } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { updateUserPermissions } from "@/app/users/actions";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 
 const permissionsSchema = z.object({
   permissions: z.record(z.boolean()),
@@ -69,19 +71,23 @@ export default function PermissionsDialog({ isOpen, onOpenChange, user, onSucces
 
   const onSubmit = async (values: PermissionsFormValues) => {
     setIsSubmitting(true);
-    const result = await updateUserPermissions(user.email, values.permissions);
-    if (result.success) {
-      toast({
-        title: "Éxito",
-        description: "Permisos actualizados correctamente.",
-      });
-      onSuccess();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.message,
-      });
+    try {
+        const userRef = doc(db, 'usuarios', user.email);
+        await updateDoc(userRef, {
+            permissions: values.permissions
+        });
+        toast({
+            title: "Éxito",
+            description: "Permisos actualizados correctamente.",
+        });
+        onSuccess();
+    } catch (error) {
+        console.error("Error updating permissions:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudieron actualizar los permisos.",
+        });
     }
     setIsSubmitting(false);
   };

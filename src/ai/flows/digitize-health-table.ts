@@ -8,9 +8,13 @@
  * - DigitizeHealthTableOutput - The return type for the digitizeHealthTable function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
+import { z } from 'genkit';
+
+const ai = genkit({
+  plugins: [googleAI()],
+});
 
 const DigitizeHealthTableInputSchema = z.object({
   photoDataUri: z

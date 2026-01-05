@@ -8,9 +8,14 @@
  * - AnswerFieldDataQueryOutput - El tipo de retorno para la función answerFieldDataQuery.
  */
 
-import { ai } from '@/ai/genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import { getFirestore } from 'firebase-admin/firestore';
 import { z } from 'genkit';
+
+const ai = genkit({
+    plugins: [googleAI()],
+});
 
 const db = getFirestore();
 
@@ -153,7 +158,7 @@ const answerFieldDataQueryFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await answerer(input);
-    return llmResponse.output || { answer: '' };
+    return llmResponse.output!;
   }
 );
 

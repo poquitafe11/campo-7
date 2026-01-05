@@ -12,9 +12,13 @@
  * - SummarizeFieldDataOutput - The return type for the summarizeFieldData function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
+import { z } from 'genkit';
+
+const ai = genkit({
+  plugins: [googleAI()],
+});
 
 const SummarizeFieldDataInputSchema = z.object({
   productionLogs: z.string().describe('Summary of production logs (from "actividades" collection).'),
