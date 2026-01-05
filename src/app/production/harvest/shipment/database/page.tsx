@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -60,6 +61,7 @@ const shipmentEditSchema = z.object({
   guia: z.string().min(1, 'El N° de guía es requerido.'),
   lote: z.string().min(1, 'El lote es requerido.'),
   cuartel: z.string().min(1, 'El cuartel es requerido.'),
+  turno: z.string().min(1, 'El turno es requerido.'),
   grupo: z.coerce.number().int().positive('Debe ser un número positivo.'),
   viaje: z.coerce.number().int().positive('Debe ser un número positivo.'),
   jabas: z.coerce.number().int().positive('Debe ser un número positivo.'),
@@ -77,6 +79,7 @@ type ShipmentRecord = {
   guia: string;
   lote: string;
   cuartel: string;
+  turno: string;
   grupo: number;
   viaje: number;
   jabas: number;
@@ -222,6 +225,7 @@ export default function ShipmentDatabasePage() {
     { accessorKey: "guia", header: "Guía" },
     { accessorKey: "lote", header: "Lote" },
     { accessorKey: "cuartel", header: "Cuartel" },
+    { accessorKey: "turno", header: "Turno" },
     { accessorKey: "grupo", header: "Grupo" },
     {
       id: 'asistenteGrupo',
@@ -313,6 +317,7 @@ export default function ShipmentDatabasePage() {
         Guia: row.guia,
         Lote: row.lote,
         Cuartel: row.cuartel,
+        Turno: row.turno,
         Grupo: row.grupo,
         'Nombre Asistente (Grupo)': asistenteName,
         'Nombre Tickera': tickeraName,
@@ -433,7 +438,22 @@ export default function ShipmentDatabasePage() {
                   <FormField control={form.control} name="guia" render={({ field }) => ( <FormItem><FormLabel>Guía</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
                   <FormField control={form.control} name="lote" render={({ field }) => ( <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "Seleccionar"} /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.lote}>{l.lote}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )}/>
               </div>
-              <FormField control={form.control} name="cuartel" render={({ field }) => ( <FormItem><FormLabel>Cuartel</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!selectedLote}><FormControl><SelectTrigger><SelectValue placeholder={!selectedLote ? "Seleccione un lote" : "Seleccionar"} /></SelectTrigger></FormControl><SelectContent>{cuartelesOptions.map(c => <SelectItem key={c.id} value={c.cuartel}>{c.cuartel}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )}/>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="cuartel" render={({ field }) => ( <FormItem><FormLabel>Cuartel</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!selectedLote}><FormControl><SelectTrigger><SelectValue placeholder={!selectedLote ? "Seleccione un lote" : "Seleccionar"} /></SelectTrigger></FormControl><SelectContent>{cuartelesOptions.map(c => <SelectItem key={c.id} value={c.cuartel}>{c.cuartel}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )}/>
+                <FormField control={form.control} name="turno" render={({ field }) => (
+                    <FormItem><FormLabel>Turno</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="Mañana">Mañana</SelectItem>
+                                <SelectItem value="Tarde">Tarde</SelectItem>
+                                <SelectItem value="Noche">Noche</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="grupo" render={({ field }) => ( <FormItem><FormLabel>N° Grupo</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )}/>
                   <FormField control={form.control} name="viaje" render={({ field }) => ( <FormItem><FormLabel>N° Viaje</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )}/>

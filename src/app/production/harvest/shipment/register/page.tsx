@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
@@ -46,6 +47,7 @@ const shipmentRegisterSchema = z.object({
   guia: z.string().min(1, 'El N° de guía es requerido.'),
   lote: z.string().min(1, 'El lote es requerido.'),
   cuartel: z.string().min(1, 'El cuartel es requerido.'),
+  turno: z.string().min(1, 'El turno es requerido.'),
   grupo: z.coerce.number().int().positive('Debe ser un número positivo.'),
   viaje: z.coerce.number().int().positive('Debe ser un número positivo.'),
   jabas: z.coerce.number().int().positive('Debe ser un número positivo.'),
@@ -127,6 +129,7 @@ export default function RegisterShipmentPage() {
       guia: '',
       lote: '',
       cuartel: '',
+      turno: 'Mañana',
       grupo: 1,
       viaje: 1,
       jabas: 0,
@@ -257,16 +260,31 @@ export default function RegisterShipmentPage() {
                     </FormItem>
                   )}/>
                 </div>
-
-                <FormField control={form.control} name="cuartel" render={({ field }) => (
-                    <FormItem><FormLabel>Cuartel</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedLote}>
-                        <FormControl><SelectTrigger><SelectValue placeholder={!selectedLote ? "Seleccione un lote" : "Seleccionar"} /></SelectTrigger></FormControl>
-                        <SelectContent>{cuartelesOptions.map(c => <SelectItem key={c.id} value={c.cuartel}>{c.cuartel}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                )}/>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="cuartel" render={({ field }) => (
+                        <FormItem><FormLabel>Cuartel</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!selectedLote}>
+                            <FormControl><SelectTrigger><SelectValue placeholder={!selectedLote ? "Seleccione un lote" : "Seleccionar"} /></SelectTrigger></FormControl>
+                            <SelectContent>{cuartelesOptions.map(c => <SelectItem key={c.id} value={c.cuartel}>{c.cuartel}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                    )}/>
+                     <FormField control={form.control} name="turno" render={({ field }) => (
+                        <FormItem><FormLabel>Turno</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="Mañana">Mañana</SelectItem>
+                                <SelectItem value="Tarde">Tarde</SelectItem>
+                                <SelectItem value="Noche">Noche</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                    )}/>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="grupo" render={({ field }) => (
