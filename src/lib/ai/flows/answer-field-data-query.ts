@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Un agente de IA que responde preguntas sobre datos de campo utilizando herramientas para buscar en la base de datos.
@@ -10,7 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { getFirestore } from 'firebase-admin/firestore';
-import { z } from 'genkit';
+import { defineFlow, definePrompt, z } from 'genkit';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 const db = getFirestore(getFirebaseAdmin());
@@ -120,7 +119,7 @@ const getIrrigationRecords = ai.defineTool(
 );
 
 // Prompt principal que utiliza las herramientas
-const answerer = ai.definePrompt({
+const answerer = definePrompt({
   name: 'answerFieldDataQueryPrompt',
   input: { schema: AnswerFieldDataQueryInputSchema },
   output: { schema: AnswerFieldDataQueryOutputSchema },
@@ -146,7 +145,7 @@ const answerer = ai.definePrompt({
 `,
 });
 
-export const answerFieldDataQueryFlow = ai.defineFlow(
+export const answerFieldDataQueryFlow = defineFlow(
   {
     name: 'answerFieldDataQueryFlow',
     inputSchema: AnswerFieldDataQueryInputSchema,
@@ -158,9 +157,8 @@ export const answerFieldDataQueryFlow = ai.defineFlow(
   }
 );
 
-export async function answerFieldDataQuery(input: AnswerFieldDataQueryInput): Promise<DigitizeHealthTableOutput> {
+export async function answerFieldDataQuery(input: AnswerFieldDataQueryInput): Promise<AnswerFieldDataQueryOutput> {
   const result = await answerFieldDataQueryFlow(input);
-  // Asegurarnos de que siempre devolvemos un objeto válido, incluso si la IA devuelve null.
   if (!result || !result.answer) {
     return { answer: "<p>La IA no pudo generar una respuesta con el formato esperado. Intenta ser más específico en tu pregunta.</p>" };
   }

@@ -12,7 +12,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { defineFlow, definePrompt, z } from 'genkit';
 
 
 const SummarizeFieldDataInputSchema = z.object({
@@ -30,7 +30,7 @@ const SummarizeFieldDataOutputSchema = z.object({
 export type SummarizeFieldDataOutput = z.infer<typeof SummarizeFieldDataOutputSchema>;
 
 
-const prompt = ai.definePrompt({
+const prompt = definePrompt({
   name: 'summarizeFieldDataPrompt',
   input: {schema: SummarizeFieldDataInputSchema},
   output: {schema: SummarizeFieldDataOutputSchema},
@@ -62,7 +62,7 @@ const prompt = ai.definePrompt({
 `,
 });
 
-export const summarizeFieldDataFlow = ai.defineFlow(
+export const summarizeFieldDataFlow = defineFlow(
   {
     name: 'summarizeFieldDataFlow',
     inputSchema: SummarizeFieldDataInputSchema,

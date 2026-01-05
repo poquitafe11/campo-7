@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { defineFlow, definePrompt, z } from 'genkit';
 
 
 const DigitizeIrrigationTableInputSchema = z.object({
@@ -31,7 +31,7 @@ const DigitizeIrrigationTableOutputSchema = z.object({
 export type DigitizeIrrigationTableOutput = z.infer<typeof DigitizeIrrigationTableOutputSchema>;
 
 
-const prompt = ai.definePrompt({
+const prompt = definePrompt({
   name: 'digitizeIrrigationTablePrompt',
   input: {schema: DigitizeIrrigationTableInputSchema},
   output: {schema: DigitizeIrrigationTableOutputSchema},
@@ -66,7 +66,7 @@ Image with the tables:
 });
 
 
-export const digitizeIrrigationTableFlow = ai.defineFlow(
+export const digitizeIrrigationTableFlow = defineFlow(
   {
     name: 'digitizeIrrigationTableFlow',
     inputSchema: DigitizeIrrigationTableInputSchema,

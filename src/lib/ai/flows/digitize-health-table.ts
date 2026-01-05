@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { defineFlow, definePrompt, z } from 'genkit';
 
 const DigitizeHealthTableInputSchema = z.object({
   photoDataUri: z
@@ -26,7 +26,7 @@ const DigitizeHealthTableOutputSchema = z.object({
 export type DigitizeHealthTableOutput = z.infer<typeof DigitizeHealthTableOutputSchema>;
 
 
-const prompt = ai.definePrompt({
+const prompt = definePrompt({
   name: 'digitizeHealthTablePrompt',
   input: {schema: DigitizeHealthTableInputSchema},
   output: {schema: DigitizeHealthTableOutputSchema},
@@ -62,7 +62,7 @@ Image with the table:
 {{media url=photoDataUri}}`,
 });
 
-export const digitizeHealthTableFlow = ai.defineFlow(
+export const digitizeHealthTableFlow = defineFlow(
   {
     name: 'digitizeHealthTableFlow',
     inputSchema: DigitizeHealthTableInputSchema,
