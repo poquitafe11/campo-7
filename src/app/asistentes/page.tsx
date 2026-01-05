@@ -181,9 +181,9 @@ export default function AsistentesPage() {
         id: a.id,
         dni: a.id,
         nombre: a.assistantName,
-        assistantName: a.assistantName, // Ensure assistantName is present
+        assistantName: a.assistantName,
         cargo: a.cargo
-    })).sort((a,b) => a.nombre.localeCompare(b.nombre));
+    })).sort((a,b) => (a.nombre || '').localeCompare(b.nombre || ''));
 
     setData(formattedData);
   }, [asistentes]);
@@ -509,3 +509,5 @@ export default function AsistentesPage() {
     </TooltipProvider>
   );
 }
+
+    

@@ -18,3 +18,5 @@ export async function askQuery(query: string) {
         return { error: error.message || 'Ocurrió un error al procesar tu consulta.' };
     }
 }
+
+    

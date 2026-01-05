@@ -6,7 +6,20 @@ import { db } from "@/lib/firebase";
 import { collection, doc, setDoc, getDocs, deleteDoc, updateDoc, getDoc } from "firebase/firestore";
 import { User, UserSchema, UserRole } from "@/lib/types";
 import { revalidatePath } from 'next/cache';
-import { getFirebaseAdmin } from "@/lib/firebase-admin";
+
+async function getFirebaseAdmin() {
+  const admin = await import('firebase-admin');
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+    : undefined;
+
+  if (admin.apps.length === 0) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  }
+  return admin;
+}
 
 
 const roleHierarchy: { [key in UserRole]: number } = {
@@ -20,7 +33,8 @@ const roleHierarchy: { [key in UserRole]: number } = {
 
 export async function getUsers() {
     try {
-        const adminDb = getFirebaseAdmin().firestore();
+        const admin = await getFirebaseAdmin();
+        const adminDb = admin.firestore();
         const usersFromDb = await adminDb.collection("usuarios").get();
         const usersData = usersFromDb.docs.map(doc => ({ ...doc.data(), id: doc.id })) as User[];
         return { success: true, data: usersData };
@@ -32,7 +46,8 @@ export async function getUsers() {
 
 export async function createUserInAuth(password: string, email: string) {
     try {
-        const authAdmin = getFirebaseAdmin().auth();
+        const admin = await getFirebaseAdmin();
+        const authAdmin = admin.auth();
         await authAdmin.createUser({
             email: email,
             password: password,
@@ -70,7 +85,8 @@ export async function saveUser(values: z.infer<typeof UserSchema>) {
 
 export async function updateUserStatus(email: string, active: boolean) {
     try {
-        const authAdmin = getFirebaseAdmin().auth();
+        const admin = await getFirebaseAdmin();
+        const authAdmin = admin.auth();
         const userRecord = await authAdmin.getUserByEmail(email);
         await authAdmin.updateUser(userRecord.uid, { disabled: !active });
 
@@ -87,7 +103,8 @@ export async function updateUserStatus(email: string, active: boolean) {
 
 export async function deleteUser(email: string) {
     try {
-        const authAdmin = getFirebaseAdmin().auth();
+        const admin = await getFirebaseAdmin();
+        const authAdmin = admin.auth();
         const userRecord = await authAdmin.getUserByEmail(email).catch(() => null);
         if (userRecord) {
             await authAdmin.deleteUser(userRecord.uid);
@@ -108,3 +125,5 @@ export async function deleteUser(email: string) {
         return { success: false, message: `Ocurrió un error al eliminar el usuario de la base de datos: ${error.message}` };
     }
 }
+
+    

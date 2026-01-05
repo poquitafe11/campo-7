@@ -1,7 +1,10 @@
 "use server";
 
+import { digitizeIrrigationTable } from '@/ai/flows/digitize-irrigation-table';
+import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/ai/flows/digitize-irrigation-table';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, writeBatch, FieldValue, deleteField } from 'firebase/firestore';
+
 
 interface RenameAndMergePayload {
     oldHeader: string;
@@ -57,3 +60,9 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
         return { success: false, message: `Ocurrió un error en el servidor: ${error.message}` };
     }
 }
+
+export async function digitizeIrrigationTableAction(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
+  return digitizeIrrigationTable(input);
+}
+
+    
