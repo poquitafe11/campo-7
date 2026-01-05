@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -8,7 +9,7 @@ import { collection, onSnapshot, query, where, Timestamp, getDocs } from 'fireba
 import { db } from '@/lib/firebase';
 import { format, startOfDay, endOfDay, parse, isValid, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2, Calendar as CalendarIcon, RefreshCcw, ArrowLeft, ChevronsRight } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, RefreshCcw, ArrowLeft, ChevronsRight, Clock } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,6 +37,7 @@ type ShipmentRecord = {
   responsable: string;
   viaje: number;
   guia: string;
+  turno: string;
   [key: string]: any;
 };
 type Group = {
@@ -64,6 +66,7 @@ export default function ShipmentSummaryPage() {
   const [activeTab, setActiveTab] = useState("por-grupo");
   const { asistentes } = useMasterData();
   const [drilldown, setDrilldown] = useState<DrilldownState>({ lote: null, cuartel: null, fecha: null, asistente: null });
+  const [turnoFilter, setTurnoFilter] = useState('todos');
 
 
   const fetchData = useCallback(() => {
@@ -168,20 +171,42 @@ export default function ShipmentSummaryPage() {
               />
             </PopoverContent>
           </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" className="gap-1 px-2 h-9">
+                    <Clock className="h-5 w-5" />
+                    <span className="text-sm capitalize">{turnoFilter === 'todos' ? 'Todos' : turnoFilter}</span>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-0" align="end">
+                <div className="p-2">
+                    {['todos', 'Mañana', 'Tarde', 'Noche'].map(turno => (
+                        <div key={turno} onClick={() => setTurnoFilter(turno)} className="px-2 py-1.5 text-sm rounded-sm hover:bg-accent cursor-pointer">
+                            {turno === 'todos' ? 'Todos los Turnos' : turno}
+                        </div>
+                    ))}
+                </div>
+            </PopoverContent>
+        </Popover>
         </div>
       )
     });
     return () => setActions({});
-  }, [setActions, selectedDate, loading, fetchData]);
+  }, [setActions, selectedDate, loading, fetchData, turnoFilter]);
 
   const summaryData = useMemo(() => {
     const dailyProjected = projectedData
         .filter(p => format(p.fecha, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
         .reduce((sum, item) => sum + item.jabas, 0);
 
-    const dailyExecuted = executedData
-        .filter(r => format(r.fecha, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
-        .reduce((sum, item) => sum + item.jabas, 0);
+    const dailyExecutedRecords = executedData
+        .filter(r => format(r.fecha, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'));
+
+    const filteredByTurno = turnoFilter === 'todos' 
+        ? dailyExecutedRecords
+        : dailyExecutedRecords.filter(r => (r.turno || 'Mañana') === turnoFilter);
+
+    const dailyExecuted = filteredByTurno.reduce((sum, item) => sum + item.jabas, 0);
         
     const percentage = dailyProjected > 0 ? (dailyExecuted / dailyProjected) * 100 : (dailyExecuted > 0 ? 100 : 0);
 
@@ -190,10 +215,15 @@ export default function ShipmentSummaryPage() {
       totalExecuted: dailyExecuted,
       percentage,
     };
-  }, [projectedData, executedData, selectedDate]);
+  }, [projectedData, executedData, selectedDate, turnoFilter]);
 
   const summaryByGroup = useMemo(() => {
-    const dailyExecuted = executedData.filter(r => format(r.fecha, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'));
+    let dailyExecuted = executedData.filter(r => format(r.fecha, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'));
+    
+    if (turnoFilter !== 'todos') {
+        dailyExecuted = dailyExecuted.filter(r => (r.turno || 'Mañana') === turnoFilter);
+    }
+    
     if (dailyExecuted.length === 0 || groups.length === 0 || asistentes.length === 0) return [];
     
     const grouped = dailyExecuted.reduce((acc, record) => {
@@ -217,7 +247,7 @@ export default function ShipmentSummaryPage() {
         };
     }).sort((a,b) => parseInt(a.groupNum) - parseInt(b.groupNum));
 
-  }, [executedData, groups, asistentes, selectedDate]);
+  }, [executedData, groups, asistentes, selectedDate, turnoFilter]);
   
   const drilldownData = useMemo(() => {
     if (!drilldown.lote) { // Level 0: Lote summary
