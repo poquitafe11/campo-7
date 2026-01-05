@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -225,9 +224,28 @@ export default function ShipmentDatabasePage() {
     { accessorKey: "cuartel", header: "Cuartel" },
     { accessorKey: "grupo", header: "Grupo" },
     {
-      id: 'nombreAsistente',
-      header: 'Nombre Asistente',
-      cell: ({ row }) => asistentes.find(a => a.id === row.original.responsable)?.assistantName || 'N/A'
+      id: 'asistenteGrupo',
+      header: 'Asistente Grupo',
+      cell: ({ row }) => {
+        const groupData = groups.find(g => g.numeroGrupo === row.original.grupo);
+        return groupData ? (asistentes.find(a => a.id === groupData.asistenteId)?.assistantName || 'N/A') : 'N/A';
+      },
+    },
+    {
+      id: 'tickeraGrupo',
+      header: 'Tickera',
+      cell: ({ row }) => {
+        const groupData = groups.find(g => g.numeroGrupo === row.original.grupo);
+        return groupData ? (asistentes.find(a => a.id === groupData.tickeraId)?.assistantName || 'N/A') : 'N/A';
+      },
+    },
+    {
+      id: 'embarcadorGrupo',
+      header: 'Embarcador',
+      cell: ({ row }) => {
+        const groupData = groups.find(g => g.numeroGrupo === row.original.grupo);
+        return groupData ? (asistentes.find(a => a.id === groupData.embarcadorId)?.assistantName || 'N/A') : 'N/A';
+      },
     },
     { accessorKey: "viaje", header: "Viaje" },
     { accessorKey: "jabas", header: "Jabas" },
@@ -273,7 +291,7 @@ export default function ShipmentDatabasePage() {
         </div>
       ),
     },
-  ], [asistentes, userMap]);
+  ], [asistentes, userMap, groups]);
 
   const table = useReactTable({
     data,
