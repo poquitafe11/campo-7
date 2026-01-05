@@ -69,23 +69,8 @@ export default function ShipmentSummaryPage() {
   const fetchData = useCallback(() => {
     setLoading(true);
     
-    const startOfSelectedDay = startOfDay(selectedDate);
-    const endOfSelectedDay = endOfDay(selectedDate);
-    
-    const projectionsQuery = query(
-      collection(db, "proyeccion-embarque"),
-      where("fecha", ">=", Timestamp.fromDate(startOfSelectedDay)),
-      where("fecha", "<=", Timestamp.fromDate(endOfSelectedDay))
-    );
-
-    const shipmentsQuery = query(
-      collection(db, "registros-embarque"),
-      where("fecha", ">=", Timestamp.fromDate(startOfSelectedDay)),
-      where("fecha", "<=", Timestamp.fromDate(endOfSelectedDay))
-    );
-    
-    const groupsQuery = query(collection(db, "grupos-cosecha"));
-
+    // Fetch all projections, not just for one day
+    const projectionsQuery = query(collection(db, "proyeccion-embarque"));
     const unsubscribeProjections = onSnapshot(projectionsQuery, (snapshot) => {
         const data = snapshot.docs.map(doc => {
             const docData = doc.data();
@@ -100,6 +85,7 @@ export default function ShipmentSummaryPage() {
         toast({variant: 'destructive', title: 'Error', description: 'No se pudieron cargar las proyecciones.'});
     });
 
+    const shipmentsQuery = query(collection(db, "registros-embarque"));
     const unsubscribeShipments = onSnapshot(shipmentsQuery, (snapshot) => {
         const data = snapshot.docs.map(doc => {
             const docData = doc.data();
@@ -122,7 +108,8 @@ export default function ShipmentSummaryPage() {
         console.error("Error fetching shipments:", error);
         toast({variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los embarques.'});
     });
-
+    
+    const groupsQuery = query(collection(db, "grupos-cosecha"));
     const unsubscribeGroups = onSnapshot(groupsQuery, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
         setGroups(data);
@@ -144,7 +131,7 @@ export default function ShipmentSummaryPage() {
       unsubscribeShipments();
       unsubscribeGroups();
     };
-  }, [selectedDate, toast]);
+  }, [toast]);
   
   useEffect(() => {
     return fetchData();
@@ -188,21 +175,28 @@ export default function ShipmentSummaryPage() {
   }, [setActions, selectedDate, loading, fetchData]);
 
   const summaryData = useMemo(() => {
-    const totalProjected = projectedData.reduce((sum, item) => sum + item.jabas, 0);
-    const totalExecuted = executedData.reduce((sum, item) => sum + item.jabas, 0);
-    const percentage = totalProjected > 0 ? (totalExecuted / totalProjected) * 100 : (totalExecuted > 0 ? 100 : 0);
+    const dailyProjected = projectedData
+        .filter(p => format(p.fecha, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
+        .reduce((sum, item) => sum + item.jabas, 0);
+
+    const dailyExecuted = executedData
+        .filter(r => format(r.fecha, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
+        .reduce((sum, item) => sum + item.jabas, 0);
+        
+    const percentage = dailyProjected > 0 ? (dailyExecuted / dailyProjected) * 100 : (dailyExecuted > 0 ? 100 : 0);
 
     return {
-      totalProjected,
-      totalExecuted,
+      totalProjected: dailyProjected,
+      totalExecuted: dailyExecuted,
       percentage,
     };
-  }, [projectedData, executedData]);
+  }, [projectedData, executedData, selectedDate]);
 
   const summaryByGroup = useMemo(() => {
-    if (executedData.length === 0 || groups.length === 0 || asistentes.length === 0) return [];
+    const dailyExecuted = executedData.filter(r => format(r.fecha, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'));
+    if (dailyExecuted.length === 0 || groups.length === 0 || asistentes.length === 0) return [];
     
-    const grouped = executedData.reduce((acc, record) => {
+    const grouped = dailyExecuted.reduce((acc, record) => {
         const groupNum = record.grupo;
         if (!acc[groupNum]) {
             acc[groupNum] = [];
@@ -223,7 +217,7 @@ export default function ShipmentSummaryPage() {
         };
     }).sort((a,b) => parseInt(a.groupNum) - parseInt(b.groupNum));
 
-  }, [executedData, groups, asistentes]);
+  }, [executedData, groups, asistentes, selectedDate]);
   
   const drilldownData = useMemo(() => {
     if (!drilldown.lote) { // Level 0: Lote summary
@@ -240,11 +234,12 @@ export default function ShipmentSummaryPage() {
             return acc;
         }, {} as Record<string, { ejecutadas: number, viajes: number }>);
         
-        return Object.keys(executedByLote).map(lote => ({
+        return Object.keys(projectedByLote).map(lote => ({
                 lote,
                 proyectadas: projectedByLote[lote] || 0,
-                ...executedByLote[lote],
-                porcentaje: (projectedByLote[lote] || 0) > 0 ? (executedByLote[lote].ejecutadas / projectedByLote[lote]) * 100 : 0,
+                ejecutadas: executedByLote[lote]?.ejecutadas || 0,
+                viajes: executedByLote[lote]?.viajes || 0,
+                porcentaje: (projectedByLote[lote] || 0) > 0 ? ((executedByLote[lote]?.ejecutadas || 0) / projectedByLote[lote]) * 100 : 0,
         })).sort((a,b) => a.lote.localeCompare(b.lote, undefined, { numeric: true }));
 
     } else if (drilldown.lote && !drilldown.cuartel) { // Level 1: Cuartel summary
@@ -393,7 +388,7 @@ export default function ShipmentSummaryPage() {
       ) : (
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Cumplimiento de Proyección</CardTitle>
+            <CardTitle>Cumplimiento de Proyección (Día)</CardTitle>
             <CardDescription>Comparación de jabas ejecutadas vs. proyectadas para el {format(selectedDate, "d 'de' MMMM", { locale: es })}.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center gap-4">
@@ -491,8 +486,8 @@ export default function ShipmentSummaryPage() {
         <TabsContent value="por-lote">
            <Card>
               <CardHeader>
-                  <CardTitle>Resumen por Lote</CardTitle>
-                  <CardDescription>Análisis interactivo de jabas y viajes por lote.</CardDescription>
+                  <CardTitle>Resumen Acumulado por Lote</CardTitle>
+                  <CardDescription>Análisis interactivo de jabas y viajes acumulados en la campaña.</CardDescription>
               </CardHeader>
               <CardContent>
                   {renderBreadcrumbs()}
@@ -501,7 +496,7 @@ export default function ShipmentSummaryPage() {
                         {renderDrilldownTable()}
                       </div>
                   ) : (
-                       <div className="flex items-center justify-center h-48"><p className="text-muted-foreground">No hay datos por lote para este día.</p></div>
+                       <div className="flex items-center justify-center h-48"><p className="text-muted-foreground">No hay datos para esta vista.</p></div>
                   )}
               </CardContent>
           </Card>
