@@ -153,7 +153,7 @@ const answerFieldDataQueryFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await answerer(input);
-    return llmResponse.output() || { answer: '' };
+    return llmResponse.output || { answer: '' };
   }
 );
 

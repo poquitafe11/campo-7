@@ -79,6 +79,6 @@ const digitizeIrrigationTableFlow = ai.defineFlow(
   },
   async input => {
     const llmResponse = await prompt(input);
-    return llmResponse.output()!;
+    return llmResponse.output!;
   }
 );
