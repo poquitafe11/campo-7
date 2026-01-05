@@ -119,7 +119,7 @@ const getIrrigationRecords = ai.defineTool(
 );
 
 // Prompt principal que utiliza las herramientas
-const answerer = definePrompt({
+const answerer = ai.definePrompt({
   name: 'answerFieldDataQueryPrompt',
   input: { schema: AnswerFieldDataQueryInputSchema },
   output: { schema: AnswerFieldDataQueryOutputSchema },

@@ -1,4 +1,3 @@
-
 // This flow is no longer used for queries and has been effectively replaced by the logic in answer-field-data-query.ts
 // It is kept temporarily to avoid breaking any other potential dependencies.
 
@@ -68,7 +67,7 @@ export const summarizeFieldDataFlow = defineFlow(
     inputSchema: SummarizeFieldDataInputSchema,
     outputSchema: SummarizeFieldDataOutputSchema,
   },
-  async input => {
+  async (input) => {
     const llmResponse = await prompt(input);
     return llmResponse.output!;
   }

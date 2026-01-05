@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that digitizes a multi-section irrigation program table from a single image into a single, unified table structure, also extracting the date and ETo.
@@ -72,8 +71,12 @@ export const digitizeIrrigationTableFlow = defineFlow(
     inputSchema: DigitizeIrrigationTableInputSchema,
     outputSchema: DigitizeIrrigationTableOutputSchema,
   },
-  async input => {
+  async (input) => {
     const llmResponse = await prompt(input);
     return llmResponse.output!;
   }
 );
+
+export async function digitizeIrrigationTable(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
+  return digitizeIrrigationTableFlow(input);
+}

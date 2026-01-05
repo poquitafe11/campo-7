@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that digitizes a table from an image.
@@ -68,8 +67,12 @@ export const digitizeHealthTableFlow = defineFlow(
     inputSchema: DigitizeHealthTableInputSchema,
     outputSchema: DigitizeHealthTableOutputSchema,
   },
-  async input => {
+  async (input) => {
     const llmResponse = await prompt(input);
     return llmResponse.output!;
   }
 );
+
+export async function digitizeHealthTable(input: DigitizeHealthTableInput): Promise<DigitizeHealthTableOutput> {
+  return digitizeHealthTableFlow(input);
+}
