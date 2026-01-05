@@ -7,7 +7,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { isValid, parse } from 'date-fns';
-import { digitizeHealthTable } from "./actions";
+import { digitizeHealthTableAction } from "./actions";
 
 
 import { Button } from "@/components/ui/button";
@@ -185,7 +185,7 @@ export default function RegisterHealthPage() {
     setTableHeaders([]);
 
     try {
-      const result = await digitizeHealthTable({ photoDataUri: sourceImage });
+      const result = await digitizeHealthTableAction({ photoDataUri: sourceImage });
       
       try {
         const data = JSON.parse(result.tableContent);

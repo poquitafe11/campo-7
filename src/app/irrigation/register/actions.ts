@@ -1,9 +1,9 @@
 'use server';
 
+import { digitizeIrrigationTable } from '@/ai-flows-server/digitize-irrigation-table';
+import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/ai-flows-server/digitize-irrigation-table';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, writeBatch, FieldValue, deleteField } from 'firebase/firestore';
-import { digitizeIrrigationTable as digitizeIrrigationTableFlow } from '@/lib/ai/flows/digitize-irrigation-table';
-import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/lib/ai/flows/digitize-irrigation-table';
 
 
 interface RenameAndMergePayload {
@@ -61,6 +61,6 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
     }
 }
 
-export async function digitizeIrrigationTable(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
-  return digitizeIrrigationTableFlow(input);
+export async function digitizeIrrigationTableAction(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
+  return digitizeIrrigationTable(input);
 }

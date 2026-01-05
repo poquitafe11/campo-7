@@ -10,7 +10,7 @@ import * as xlsx from "xlsx";
 import { format, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import dynamic from "next/dynamic";
-import { digitizeIrrigationTable } from "./actions";
+import { digitizeIrrigationTableAction } from "./actions";
  
 
 import { Button } from "@/components/ui/button";
@@ -167,7 +167,7 @@ export default function RegisterIrrigationPage() {
     setParsedData([]);
 
     try {
-      const result = await digitizeIrrigationTable({ photoDataUri: imageToProcess });
+      const result = await digitizeIrrigationTableAction({ photoDataUri: imageToProcess });
       
       try {
         const data = JSON.parse(result.tableContent);
