@@ -32,12 +32,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { type User, type UserRole } from "@/lib/types";
-import { getUsers, updateUserStatus, deleteUser } from "./actions";
 import UserFormDialog from "@/components/UserFormDialog";
 import { useAuth } from '@/hooks/useAuth';
 import PermissionsDialog from '@/components/PermissionsDialog';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -56,25 +55,54 @@ export default function UsersPage() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    try {
-        const usersFromDb = await getDocs(collection(db, "usuarios"));
-        const usersData = usersFromDb.docs.map(doc => ({ ...doc.data(), id: doc.id })) as User[];
+    const usersQuery = collection(db, "usuarios");
+    const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
+        const usersData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as User[];
         setData(usersData);
-    } catch (error) {
+        setLoading(false);
+    }, (error) => {
         console.error("Error fetching users from Firestore: ", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudieron obtener los usuarios." });
-    } finally {
         setLoading(false);
-    }
+    });
+
+    return unsubscribe;
   }, [toast]);
   
   useEffect(() => {
     setActions({ title: "Gestión de Usuarios" });
+    let unsubscribe: () => void;
     if (currentUserRole) {
-      fetchUsers();
+      fetchUsers().then(unsub => unsubscribe = unsub);
     }
-    return () => setActions({});
+    return () => {
+      if (unsubscribe) unsubscribe();
+      setActions({});
+    }
   }, [currentUserRole, fetchUsers, setActions]);
+
+  const handleDelete = async (email: string) => {
+    // Note: Deleting from Firebase Auth requires a backend function, which is not implemented here.
+    // This will only delete the user's profile from Firestore.
+    try {
+      await deleteDoc(doc(db, "usuarios", email));
+      toast({ title: "Éxito", description: "Usuario eliminado de la base de datos." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el perfil de usuario." });
+    }
+  };
+  
+  const handleStatusChange = async (email: string, active: boolean) => {
+    try {
+      const userRef = doc(db, "usuarios", email);
+      await updateDoc(userRef, { active });
+      toast({ title: "Éxito", description: "Estado del usuario actualizado." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el estado." });
+      // Revert UI change on failure
+      setData(prev => prev.map(u => u.email === email ? {...u, active: !active} : u));
+    }
+  };
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
@@ -84,26 +112,6 @@ export default function UsersPage() {
   const handlePermissions = (user: User) => {
     setEditingUser(user);
     setPermissionsOpen(true);
-  };
-
-  const handleDelete = async (email: string) => {
-    const result = await deleteUser(email);
-    if (result.success) {
-      toast({ title: "Éxito", description: result.message });
-      fetchUsers();
-    } else {
-      toast({ variant: "destructive", title: "Error", description: result.message });
-    }
-  };
-  
-  const handleStatusChange = async (email: string, active: boolean) => {
-    const result = await updateUserStatus(email, active);
-    if (result.success) {
-      toast({ title: "Éxito", description: result.message });
-       setData(prev => prev.map(u => u.email === email ? {...u, active} : u));
-    } else {
-      toast({ variant: "destructive", title: "Error", description: result.message });
-    }
   };
 
   const columns = useMemo<ColumnDef<User>[]>(
@@ -159,8 +167,7 @@ export default function UsersPage() {
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetchUsers]
+    []
   );
 
   const table = useReactTable({

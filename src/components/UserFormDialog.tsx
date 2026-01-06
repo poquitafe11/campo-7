@@ -25,8 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { UserSchema, UserRole, NewUserSchema } from "@/lib/types";
-import { saveUser, createUserInAuth } from "@/app/users/actions";
+import { UserSchema, UserRole } from "@/lib/types";
+import { saveUser } from "@/app/users/actions";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -47,8 +47,8 @@ const roleHierarchy: { [key in UserRole]: number } = {
     "Invitado": 0,
 };
 
-// Use the base schema without password for the form shape itself
-const DialogFormSchema = UserSchema.extend({});
+// Form schema without password for editing/creating profile
+const DialogFormSchema = UserSchema;
 
 export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, currentUserRole }: UserFormDialogProps) {
   const { toast } = useToast();
@@ -89,21 +89,8 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
   const onSubmit = async (values: z.infer<typeof DialogFormSchema>) => {
     setIsSubmitting(true);
     
-    // If it's a new user, create in Auth first using DNI as password
-    if (!user) {
-        const authResult = await createUserInAuth(values.dni, values.email);
-        if (!authResult.success) {
-            toast({
-                variant: "destructive",
-                title: "Error de Autenticación",
-                description: authResult.message,
-            });
-            setIsSubmitting(false);
-            return;
-        }
-    }
-    
-    // Now save/update the user profile in Firestore
+    // The user creation in Auth is no longer handled here, as it requires admin SDK.
+    // This dialog now only handles creating/updating the user profile in Firestore.
     const dbResult = await saveUser(values);
 
     if (dbResult.success) {
@@ -135,7 +122,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
         <DialogHeader>
           <DialogTitle>{user ? "Editar Usuario" : "Agregar Nuevo Usuario"}</DialogTitle>
           <DialogDescription>
-            {user ? "Modifica los datos del usuario." : "La contraseña se asignará automáticamente con el DNI."}
+            {user ? "Modifica los datos del usuario." : "Nota: La creación de la cuenta de autenticación (con contraseña) debe hacerse por separado en la consola de Firebase."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
