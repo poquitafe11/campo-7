@@ -10,26 +10,25 @@
     --card-foreground: 240 6% 10%;
     --popover: 240 5% 100%;
     --popover-foreground: 240 6% 10%;
-    --primary: 260 65% 55%; /* Accent Purple for active items */
+    --primary: 260 65% 55%;
     --primary-foreground: 240 5% 98%;
     --secondary: 240 5% 90%;
     --secondary-foreground: 240 6% 10%;
     --muted: 240 5% 90%;
     --muted-foreground: 240 4% 45%;
-    --accent: 260 65% 55%; /* Accent Purple */
+    --accent: 260 65% 55%;
     --accent-foreground: 240 5% 98%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 240 5% 98%;
     --border: 240 6% 88%;
     --input: 240 6% 92%;
-    --ring: 260 65% 55%; /* Accent Purple */
+    --ring: 260 65% 55%;
     --radius: 0.5rem;
 
-    /* Custom Sidebar Colors from reference image */
-    --sidebar: 256 34% 12%; /* Deep dark purple */
-    --sidebar-foreground: 240 5% 98%; /* White text */
-    --sidebar-muted-foreground: 260 15% 75%; /* Lighter purple text */
-    --sidebar-accent: 260 65% 55%; /* Bright purple for active item background */
+    --sidebar: 256 34% 12%;
+    --sidebar-foreground: 240 5% 98%;
+    --sidebar-muted-foreground: 260 15% 75%;
+    --sidebar-accent: 260 65% 55%;
   }
 
   .dark {

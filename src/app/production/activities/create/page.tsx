@@ -1,8 +1,6 @@
-
-
 "use client";
 
-import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
+import { useEffect, useMemo, useTransition, useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
@@ -24,18 +22,14 @@ import {
   Grape,
   PlusCircle,
   Trash2,
-  User,
-  Wrench,
-  FileInput,
-  FileOutput,
   Tag,
   Pencil,
   Save,
-  Camera,
+  Wrench,
+  FileInput,
+  FileOutput,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import html2canvas from 'html2canvas';
-
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -56,12 +50,10 @@ import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog'
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
   ssr: false,
   loading: () => <div className="h-[290px] w-[240px] bg-muted rounded-md animate-pulse" />,
 });
-
 
 type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
@@ -93,13 +85,11 @@ const headerSchema = ActivityRecordSchema.pick({
 
 type HeaderFormValues = z.infer<typeof headerSchema>;
 
-
 const IconWrapper = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center gap-2 text-sm text-muted-foreground">{children}</div>
 );
 
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
-  
     const totals = useMemo(() => {
       if (!activities || activities.length === 0) return { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0, average: 0 };
       
@@ -143,16 +133,6 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
     );
   }
 
-const formatAssistantName = (name: string) => {
-    if (!name) return '';
-    const parts = name.trim().split(' ');
-    if (parts.length < 2) return name;
-    const firstName = parts[0];
-    const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase() + '.';
-    return `${firstName} ${lastNameInitial}`;
-};
-
-
 export default function CreateActivityPage() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
@@ -163,8 +143,6 @@ export default function CreateActivityPage() {
   
   const [isAddActivityDialogOpen, setAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
-  const tableRef = useRef<HTMLTableElement>(null);
-
 
   useEffect(() => {
     setActions({ title: "Crear Ficha de Actividad" });
@@ -211,7 +189,6 @@ export default function CreateActivityPage() {
     }
   });
 
-  
   useEffect(() => {
     if (formMode === 'individual' && profile) {
         singleForm.reset({
@@ -233,7 +210,6 @@ export default function CreateActivityPage() {
     }
   }, [formMode, singleForm, headerForm, profile]);
 
-  
   const singleCodeValue = useWatch({ control: singleForm.control, name: 'code' });
   const headerCodeValue = useWatch({ control: headerForm.control, name: 'code' });
   
@@ -258,7 +234,6 @@ export default function CreateActivityPage() {
       activeForm.setValue('labor', '', { shouldValidate: true });
     }
   }, [codeValue, labors, activeForm]);
-
 
   useEffect(() => {
     if (profile?.email) {
@@ -301,10 +276,7 @@ export default function CreateActivityPage() {
 
         try {
             await addDoc(collection(db, 'actividades'), dataToSave);
-            toast({
-                title: 'Éxito',
-                description: 'Ficha de actividad guardada correctamente.',
-            });
+            toast({ title: 'Éxito', description: 'Ficha de actividad guardada correctamente.' });
             singleForm.reset({
               ...singleForm.getValues(),
               code: '',
@@ -389,10 +361,7 @@ export default function CreateActivityPage() {
         }
 
         if (successCount === groupActivities.length) {
-            toast({
-                title: 'Éxito',
-                description: `${successCount} fichas de actividad han sido guardadas.`,
-            });
+            toast({ title: 'Éxito', description: `${successCount} fichas de actividad han sido guardadas.` });
             headerForm.reset({
               registerDate: new Date(), campaign: '', stage: '', lote: '',
               code: '', labor: '', shift: '', pass: 0, cost: 0,
@@ -402,7 +371,7 @@ export default function CreateActivityPage() {
             toast({
                 variant: "destructive",
                 title: 'Error Parcial',
-                description: `Se guardaron ${successCount} de ${groupActivities.length} fichas. Por favor, revise los datos.`,
+                description: `Se guardaron ${successCount} de ${groupActivities.length} fichas.`,
             });
         }
     });
@@ -436,30 +405,6 @@ export default function CreateActivityPage() {
 
   const handleRemoveActivity = (id: string) => {
     setGroupActivities(prev => prev.filter(act => act.id !== id));
-  };
-  
-  const handleCapture = () => {
-    if (!tableRef.current) return;
-    
-    html2canvas(tableRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        onclone: (document) => {
-            // Hide action buttons on the cloned element before capture
-            const clonedTable = document.querySelector('table');
-            if (clonedTable) {
-                clonedTable.querySelectorAll('.print-hide').forEach(el => {
-                    (el as HTMLElement).style.display = 'none';
-                });
-            }
-        }
-    }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `actividades-grupo-${format(new Date(), 'yyyy-MM-dd')}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-    });
   };
 
   const renderSharedHeader = (formInstance: any) => (
@@ -497,9 +442,7 @@ export default function CreateActivityPage() {
           <FormField control={formInstance.control} name="shift" render={({ field }) => (
               <FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger>
-                      </FormControl>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl>
                       <SelectContent>
                           <SelectItem value="Mañana">Mañana</SelectItem>
                           <SelectItem value="Tarde">Tarde</SelectItem>
@@ -530,7 +473,6 @@ export default function CreateActivityPage() {
           <Form {...singleForm}>
              <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
                 <div className="rounded-lg border bg-card text-card-foreground p-6 shadow-sm space-y-6">
-                    
                   <FormField control={singleForm.control} name="registerDate" render={({ field }) => (<FormItem><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4"/>Fecha de Registro</IconWrapper></FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage/></FormItem>)}/>
 
                   <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
@@ -579,7 +521,7 @@ export default function CreateActivityPage() {
                     {renderSharedHeader(headerForm)}
                     
                     <div className="overflow-x-auto">
-                        <Table ref={tableRef}>
+                        <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[180px]">Asistente</TableHead>
@@ -591,7 +533,7 @@ export default function CreateActivityPage() {
                                     <TableHead className="min-w-[100px]">Mínimo</TableHead>
                                     <TableHead className="min-w-[100px]">Máximo</TableHead>
                                     <TableHead className="min-w-[150px]">Obs.</TableHead>
-                                    <TableHead className="w-[80px] text-center print-hide">Acciones</TableHead>
+                                    <TableHead className="w-[80px] text-center">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -625,7 +567,7 @@ export default function CreateActivityPage() {
                                             <TableCell>
                                                 <Input value={field.observations || ''} onChange={e => handleGroupActivityChange(index, 'observations', e.target.value)} className="w-36 h-8" />
                                             </TableCell>
-                                            <TableCell className="text-center print-hide">
+                                            <TableCell className="text-center">
                                                 <div className="flex gap-1 justify-center">
                                                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveActivity(field.id)}><Trash2 className="h-4 w-4"/></Button>
                                                 </div>
@@ -642,9 +584,6 @@ export default function CreateActivityPage() {
                     <div className="flex items-center gap-2 mt-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => setAddActivityDialogOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
-                        </Button>
-                         <Button type="button" variant="outline" size="sm" onClick={handleCapture}>
-                           <Camera className="mr-2 h-4 w-4" /> Capturar Tabla
                         </Button>
                     </div>
 

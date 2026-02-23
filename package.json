@@ -41,13 +41,11 @@
     "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^11.9.1",
-    "html5-qrcode": "^2.3.8",
-    "html2canvas": "^1.4.1",
     "lucide-react": "^0.475.0",
-    "next": "14.2.35",
-    "react": "^18.3.1",
+    "next": "^15.1.7",
+    "react": "^19.0.0",
     "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
     "react-image-crop": "^11.0.6",
     "recharts": "^2.15.1",
@@ -58,8 +56,8 @@
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@types/xlsx": "^0.0.36",
     "typescript": "5.5.3"
   }

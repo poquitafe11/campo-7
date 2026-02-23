@@ -2,8 +2,6 @@
 
 import { db } from '@/lib/firebase';
 import { collection, getDocs, writeBatch, deleteField } from 'firebase/firestore';
-import { digitizeHealthTable } from '@/ai-flows-server/digitize-health-table';
-import type { DigitizeHealthTableInput, DigitizeHealthTableOutput } from '@/ai-flows-server/digitize-health-table';
 
 interface RenameAndMergePayload {
     oldHeader: string;
@@ -54,9 +52,3 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
         return { success: false, message: `Ocurrió un error en el servidor: ${error.message}` };
     }
 }
-
-export async function digitizeHealthTableAction(input: DigitizeHealthTableInput): Promise<DigitizeHealthTableOutput> {
-  return digitizeHealthTable(input);
-}
-
-    

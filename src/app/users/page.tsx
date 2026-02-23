@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -39,7 +38,6 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { collection, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-
 export default function UsersPage() {
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -53,8 +51,14 @@ export default function UsersPage() {
   
   const currentUserRole = profile?.rol ?? null;
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    setActions({ title: "Gestión de Usuarios" });
+    
+    if (!currentUserRole) {
+      setLoading(false);
+      return;
+    }
+
     const usersQuery = collection(db, "usuarios");
     const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
         const usersData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as User[];
@@ -66,24 +70,13 @@ export default function UsersPage() {
         setLoading(false);
     });
 
-    return unsubscribe;
-  }, [toast]);
-  
-  useEffect(() => {
-    setActions({ title: "Gestión de Usuarios" });
-    let unsubscribe: () => void;
-    if (currentUserRole) {
-      fetchUsers().then(unsub => unsubscribe = unsub);
-    }
     return () => {
-      if (unsubscribe) unsubscribe();
+      unsubscribe();
       setActions({});
     }
-  }, [currentUserRole, fetchUsers, setActions]);
+  }, [currentUserRole, setActions, toast]);
 
   const handleDelete = async (email: string) => {
-    // Note: Deleting from Firebase Auth requires a backend function, which is not implemented here.
-    // This will only delete the user's profile from Firestore.
     try {
       await deleteDoc(doc(db, "usuarios", email));
       toast({ title: "Éxito", description: "Usuario eliminado de la base de datos." });
@@ -99,8 +92,6 @@ export default function UsersPage() {
       toast({ title: "Éxito", description: "Estado del usuario actualizado." });
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el estado." });
-      // Revert UI change on failure
-      setData(prev => prev.map(u => u.email === email ? {...u, active: !active} : u));
     }
   };
 
@@ -181,7 +172,6 @@ export default function UsersPage() {
     return ["Admin", "Jefe", "Supervisor"].includes(currentUserRole);
   }, [currentUserRole]);
 
-
   if (loading || isPending) {
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex h-[calc(100vh-10rem)] items-center justify-center">
@@ -242,7 +232,6 @@ export default function UsersPage() {
         onSuccess={() => {
             setFormOpen(false);
             setEditingUser(null);
-            fetchUsers();
         }}
         currentUserRole={currentUserRole}
       />
@@ -255,7 +244,6 @@ export default function UsersPage() {
           onSuccess={() => {
             setPermissionsOpen(false);
             setEditingUser(null);
-            fetchUsers();
           }}
         />
       )}

@@ -1,10 +1,7 @@
 'use server';
 
-import { digitizeIrrigationTable } from '@/ai-flows-server/digitize-irrigation-table';
-import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/ai-flows-server/digitize-irrigation-table';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, FieldValue, deleteField } from 'firebase/firestore';
-
+import { collection, getDocs, writeBatch, deleteField } from 'firebase/firestore';
 
 interface RenameAndMergePayload {
     oldHeader: string;
@@ -32,16 +29,11 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
         querySnapshot.forEach(doc => {
             const data = doc.data();
             
-            // Check if the document has the old header property.
             if (Object.prototype.hasOwnProperty.call(data, oldHeader)) {
                 const updateData: { [key: string]: any } = {};
                 const oldValueToMove = data[oldHeader];
 
-                // Assign the old value to the new key.
                 updateData[sanitizedNewHeader] = oldValueToMove;
-                
-                // IMPORTANT: Mark the old field for deletion.
-                // This will be part of the same update operation.
                 updateData[oldHeader] = deleteField();
 
                 batch.update(doc.ref, updateData);
@@ -60,9 +52,3 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
         return { success: false, message: `Ocurrió un error en el servidor: ${error.message}` };
     }
 }
-
-export async function digitizeIrrigationTableAction(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
-  return digitizeIrrigationTable(input);
-}
-
-    
