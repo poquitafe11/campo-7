@@ -1,15 +1,11 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that digitizes a table from an image.
- *
- * - digitizeHealthTable - A function that handles the table digitization process.
- * - DigitizeHealthTableInput - The input type for the digitizeHealthTable function.
- * - DigitizeHealthTableOutput - The return type for the digitizeHealthTable function.
  */
 
-import { genkit } from 'genkit';
-import { googleAI } from 'genkit/googleai';
-import { defineFlow, definePrompt, z } from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const DigitizeHealthTableInputSchema = z.object({
   photoDataUri: z
@@ -25,13 +21,7 @@ const DigitizeHealthTableOutputSchema = z.object({
 });
 export type DigitizeHealthTableOutput = z.infer<typeof DigitizeHealthTableOutputSchema>;
 
-genkit.config({
-  plugins: [googleAI()],
-  logLevel: 'debug',
-  enableTracingAndMetrics: true,
-});
-
-const prompt = definePrompt({
+const prompt = ai.definePrompt({
   name: 'digitizeHealthTablePrompt',
   input: {schema: DigitizeHealthTableInputSchema},
   output: {schema: DigitizeHealthTableOutputSchema},
@@ -67,15 +57,15 @@ Image with the table:
 {{media url=photoDataUri}}`,
 });
 
-export const digitizeHealthTableFlow = defineFlow(
+export const digitizeHealthTableFlow = ai.defineFlow(
   {
     name: 'digitizeHealthTableFlow',
     inputSchema: DigitizeHealthTableInputSchema,
     outputSchema: DigitizeHealthTableOutputSchema,
   },
   async (input) => {
-    const llmResponse = await prompt(input);
-    return llmResponse.output!;
+    const {output} = await prompt(input);
+    return output!;
   }
 );
 

@@ -211,7 +211,6 @@ export default function CreateActivityPage() {
   const headerCodeValue = useWatch({ control: headerForm.control, name: 'code' });
   
   const codeValue = formMode === 'individual' ? singleCodeValue : headerCodeValue;
-  const activeForm = formMode === 'individual' ? singleForm : headerForm;
   
   const uniqueLotes = useMemo(() => {
     const lotesMap = new Map<string, LoteData>();
@@ -226,11 +225,20 @@ export default function CreateActivityPage() {
   useEffect(() => {
     if (codeValue) {
       const matchedLabor = labors.find(l => String(l.codigo) === String(codeValue));
-      activeForm.setValue('labor', matchedLabor?.descripcion || '', { shouldValidate: true });
+      const label = matchedLabor?.descripcion || '';
+      if (formMode === 'individual') {
+        singleForm.setValue('labor', label, { shouldValidate: true });
+      } else {
+        headerForm.setValue('labor', label, { shouldValidate: true });
+      }
     } else {
-      activeForm.setValue('labor', '', { shouldValidate: true });
+      if (formMode === 'individual') {
+        singleForm.setValue('labor', '', { shouldValidate: true });
+      } else {
+        headerForm.setValue('labor', '', { shouldValidate: true });
+      }
     }
-  }, [codeValue, labors, activeForm]);
+  }, [codeValue, labors, formMode, singleForm, headerForm]);
 
   useEffect(() => {
     if (profile?.email) {
@@ -261,16 +269,15 @@ export default function CreateActivityPage() {
             return;
         }
 
-        // CAPTURA HISTÓRICA: Buscamos presupuesto y min/max actuales para guardarlos
         const currentPresupuesto = presupuestos.find(p => p.lote === loteData.lote && p.descripcionLabor === data.labor && p.campana === data.campaign);
         const currentMinMax = minMax.find(mm => mm.lote === loteData.lote && mm.labor === data.labor && mm.campana === data.campaign && mm.pasada === data.pass);
 
         const dataToSave = {
             ...data,
             lote: loteData.lote,
-            variedad: loteData.variedad, // Guardamos la variedad actual
-            budgetJrnHa: currentPresupuesto?.jrnHa || 0, // Guardamos presupuesto actual
-            minEstablished: currentMinMax?.min || 0, // Guardamos min/max actuales
+            variedad: loteData.variedad,
+            budgetJrnHa: currentPresupuesto?.jrnHa || 0,
+            minEstablished: currentMinMax?.min || 0,
             maxEstablished: currentMinMax?.max || 0,
             registerDate: Timestamp.fromDate(data.registerDate),
             createdBy: profile.email,
@@ -333,7 +340,6 @@ export default function CreateActivityPage() {
     }
     const loteNumber = loteData.lote;
 
-    // CAPTURA HISTÓRICA PARA EL GRUPO
     const currentPresupuesto = presupuestos.find(p => p.lote === loteNumber && p.descripcionLabor === validHeaderData.labor && p.campana === validHeaderData.campaign);
     const currentMinMax = minMax.find(mm => mm.lote === loteNumber && mm.labor === validHeaderData.labor && mm.campana === validHeaderData.campaign && mm.pasada === validHeaderData.pass);
 
@@ -538,7 +544,9 @@ export default function CreateActivityPage() {
                     
                      <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
                          <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                         <FormField control={singleForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
+                         <FormField control={singleForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl>
+                            <SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
                          <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
                      </div>
                       

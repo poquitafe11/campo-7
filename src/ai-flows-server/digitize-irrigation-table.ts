@@ -1,15 +1,11 @@
+
 'use server';
 /**
- * @fileOverview An AI agent that digitizes a multi-section irrigation program table from a single image into a single, unified table structure, also extracting the date and ETo.
- *
- * - digitizeIrrigationTable - A function that handles the table digitization process.
- * - DigitizeIrrigationTableInput - The input type for the digitizeIrrigationTable function.
- * - DigitizeIrrigationTableOutput - The return type for the digitizeIrrigationTable function.
+ * @fileOverview An AI agent that digitizes a multi-section irrigation program table from a single image.
  */
 
-import { genkit } from 'genkit';
-import { googleAI } from 'genkit/googleai';
-import { defineFlow, definePrompt, z } from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 
 const DigitizeIrrigationTableInputSchema = z.object({
@@ -30,13 +26,7 @@ const DigitizeIrrigationTableOutputSchema = z.object({
 });
 export type DigitizeIrrigationTableOutput = z.infer<typeof DigitizeIrrigationTableOutputSchema>;
 
-genkit.config({
-  plugins: [googleAI()],
-  logLevel: 'debug',
-  enableTracingAndMetrics: true,
-});
-
-const prompt = definePrompt({
+const prompt = ai.definePrompt({
   name: 'digitizeIrrigationTablePrompt',
   input: {schema: DigitizeIrrigationTableInputSchema},
   output: {schema: DigitizeIrrigationTableOutputSchema},
@@ -71,15 +61,15 @@ Image with the tables:
 });
 
 
-export const digitizeIrrigationTableFlow = defineFlow(
+export const digitizeIrrigationTableFlow = ai.defineFlow(
   {
     name: 'digitizeIrrigationTableFlow',
     inputSchema: DigitizeIrrigationTableInputSchema,
     outputSchema: DigitizeIrrigationTableOutputSchema,
   },
   async (input) => {
-    const llmResponse = await prompt(input);
-    return llmResponse.output!;
+    const {output} = await prompt(input);
+    return output!;
   }
 );
 
