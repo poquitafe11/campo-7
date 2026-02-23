@@ -154,7 +154,7 @@ export default function ActivityDatabasePage() {
     const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
       if (!map.has(lote.lote)) {
-        lotesMap.set(lote.lote, lote);
+        map.set(lote.lote, lote);
       }
     });
     return map;
