@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useToast } from '@/hooks/use-toast';
-import { addAsistente } from '@/app/asistentes/actions';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -11,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlusCircle, Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Assistant } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
 interface AssistantSelectorProps {
   label: string;
@@ -21,7 +21,7 @@ interface AssistantSelectorProps {
 }
 
 export function AssistantSelector({ label, value, onSelect, disabled }: AssistantSelectorProps) {
-  const { asistentes, refreshData } = useMasterData();
+  const { asistentes, refreshData, loading } = useMasterData();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -43,7 +43,7 @@ export function AssistantSelector({ label, value, onSelect, disabled }: Assistan
     }
     return asistentes.filter(a =>
       a.assistantName.toLowerCase().includes(search.toLowerCase()) ||
-      a.id.includes(search)
+      a.id.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, asistentes]);
   
@@ -54,16 +54,19 @@ export function AssistantSelector({ label, value, onSelect, disabled }: Assistan
     setIsCreating(true);
     const newName = search.trim();
     
-    const result = await addAsistente({ nombre: newName, cargo: "Indefinido" });
-    if (result.success && result.id) {
+    try {
+      const docRef = doc(collection(db, "asistentes"));
+      await setDoc(docRef, { nombre: newName, cargo: "Indefinido" });
       toast({ title: "Éxito", description: `Asistente "${newName}" creado.` });
       await refreshData();
-      onSelect({ id: result.id, name: newName });
+      onSelect({ id: docRef.id, name: newName });
       setOpen(false);
-    } else {
-      toast({ title: "Error", description: result.message, variant: "destructive" });
+    } catch (error) {
+      console.error("Error creating assistant:", error);
+      toast({ title: "Error", description: "No se pudo crear el asistente.", variant: "destructive" });
+    } finally {
+      setIsCreating(false);
     }
-    setIsCreating(false);
   };
 
   return (
@@ -74,13 +77,13 @@ export function AssistantSelector({ label, value, onSelect, disabled }: Assistan
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={disabled}
+          disabled={disabled || loading}
         >
           {value ? selectedAssistantName : `Seleccionar ${label}...`}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <div className="p-2">
             <Input
                 placeholder={`Buscar ${label}...`}
@@ -102,7 +105,7 @@ export function AssistantSelector({ label, value, onSelect, disabled }: Assistan
                 {assistant.assistantName}
                 <Check
                 className={cn(
-                    "mr-2 h-4 w-4",
+                    "ml-2 h-4 w-4",
                     value === assistant.id ? "opacity-100" : "opacity-0"
                 )}
                 />
@@ -113,6 +116,11 @@ export function AssistantSelector({ label, value, onSelect, disabled }: Assistan
                     {isCreating ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4"/>}
                     Crear "{search.trim()}"
                 </div>
+            )}
+            {search && filteredAssistants.length === 0 && !canCreateNew && (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                No se encontraron resultados.
+              </div>
             )}
         </ScrollArea>
       </PopoverContent>
