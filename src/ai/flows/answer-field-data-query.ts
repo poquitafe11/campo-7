@@ -1,15 +1,10 @@
 'use server';
 /**
  * @fileOverview An AI agent that answers questions about field data using tools to search the database.
- *
- * - answerFieldDataQuery - A function that handles the question-answering process.
- * - AnswerFieldDataQueryInput - The input type for the answerFieldDataQuery function.
- * - AnswerFieldDataQueryOutput - The return type for the answerFieldDataQuery function.
  */
 
-import { genkit } from 'genkit';
-import { googleAI } from 'genkit/googleai';
-import { z } from 'genkit/zod';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import * as admin from 'firebase-admin';
 
 async function getFirebaseAdmin() {
@@ -38,7 +33,7 @@ export type AnswerFieldDataQueryOutput = z.infer<typeof AnswerFieldDataQueryOutp
 
 
 // Tool to get production records
-const getProductionActivities = genkit.defineTool(
+const getProductionActivities = ai.defineTool(
   {
     name: 'getProductionActivities',
     description: 'Retrieves records from the "actividades" collection (production and labor data). Use for questions about costs, yield, personnel, workdays, etc.',
@@ -70,7 +65,7 @@ const getProductionActivities = genkit.defineTool(
 
 
 // Tool to get health records
-const getHealthRecords = genkit.defineTool(
+const getHealthRecords = ai.defineTool(
   {
     name: 'getHealthRecords',
     description: 'Retrieves records from the "registros-sanidad" collection. Use for questions about product applications, diseases, pests, active ingredients.',
@@ -103,7 +98,7 @@ const getHealthRecords = genkit.defineTool(
 );
 
 // Tool to get irrigation records
-const getIrrigationRecords = genkit.defineTool(
+const getIrrigationRecords = ai.defineTool(
   {
     name: 'getIrrigationRecords',
     description: 'Retrieves records from the "registros-riego-01" collection. Use for questions about irrigation, fertilizers, nutrient units (N, P, K, etc.).',
@@ -135,15 +130,9 @@ const getIrrigationRecords = genkit.defineTool(
   }
 );
 
-genkit.config({
-  plugins: [googleAI()],
-  logLevel: 'debug',
-  enableTracingAndMetrics: true,
-});
-
 
 // Main prompt that uses the tools
-const answerer = genkit.definePrompt({
+const answerer = ai.definePrompt({
   name: 'answerFieldDataQueryPrompt',
   input: { schema: AnswerFieldDataQueryInputSchema },
   output: { schema: AnswerFieldDataQueryOutputSchema },
@@ -169,37 +158,15 @@ const answerer = genkit.definePrompt({
 `,
 });
 
-export const answerFieldDataQueryFlow = genkit.defineFlow(
+export const answerFieldDataQueryFlow = ai.defineFlow(
   {
     name: 'answerFieldDataQueryFlow',
     inputSchema: AnswerFieldDataQueryInputSchema,
     outputSchema: AnswerFieldDataQueryOutputSchema,
   },
   async (input) => {
-    const llmResponse = await genkit.generate({
-        prompt: `You are an expert agronomist and agricultural data analyst. Your main task is to answer user questions accurately and clearly.
-  
-        **Key Instructions:**
-        1.  **Analyze the user's question**: Determine what kind of information they need (costs, yield, applications, irrigation, etc.).
-        2.  **Use the tools**: Call one or more of the available tools to get the relevant data from the database. Be specific with the 'searchTerm' if necessary. For example, if the user asks about "poda", use the term "poda" in the \`getProductionActivities\` tool.
-        3.  **MANDATORY Response Format**:
-            *   **For comparisons or data lists**: If the user asks to compare, list, or summarize data from multiple lots or records, you MUST present your answer in an HTML table. The table must have basic styles to be readable (e.g., <table style="width: 100%; border-collapse: collapse;">, <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;">, <td style="border: 1px solid #ddd; padding: 8px;">). Make sure to include the relevant columns.
-            *   **For textual answers**: If the answer is text or a simple calculation, you MUST wrap it in a <p> tag.
-            *   **IMPORTANT**: YOUR FINAL RESPONSE MUST BE A SINGLE HTML STRING. Do not just respond with plain text.
-        4.  **Grouping and Comparison**: If a question requires a comparison between lots (e.g., "compare the costs of desbrote"), you MUST group the data by 'Lote'. Present a table with **a single row for each lot**, showing the key values. DO NOT list every individual record.
-        5.  **Provide Additional Value**: After answering the question (either with text or a table), add a section called "<strong>Observaciones Adicionales</strong>". In this section, within a <p> tag, provide a brief analysis or interesting fact that was not explicitly requested but is relevant for decision-making.
-        6.  **Cost Calculations**: If the user asks about "pago total", "costo total" o "cuánto se pagó en total" for an activity, use the production data ('actividades'). The cost is calculated as follows: if 'cost' > 0, the cost is 'cost * performance'. If 'cost' == 0 or is not defined, payment is by workday; assume a workday cost of S/ 60 and the cost is 'workdayCount * 60'. Sum all individual costs to get the total.
-        7.  **Language**: ALWAYS RESPOND IN SPANISH.
-        
-        **USER'S QUESTION:**
-        ${input.query}`,
-        tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
-        model: googleAI('gemini-1.5-flash'),
-        output: {
-            schema: AnswerFieldDataQueryOutputSchema
-        }
-    });
-    return llmResponse.output()!;
+    const { output } = await answerer(input);
+    return output!;
   }
 );
 
@@ -210,5 +177,3 @@ export async function answerFieldDataQuery(input: AnswerFieldDataQueryInput): Pr
   }
   return result;
 }
-
-    
