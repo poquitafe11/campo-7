@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -13,9 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useMasterData } from '@/context/MasterDataContext';
 import { PlusCircle, Loader2, Search } from 'lucide-react';
-import { addAsistente } from '@/app/asistentes/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
+import { db } from '@/lib/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
 interface AddAssistantActivityDialogProps {
   isOpen: boolean;
@@ -62,18 +62,20 @@ export default function AddAssistantActivityDialog({
     setIsCreatingAssistant(true);
     const newName = assistantSearch.trim();
 
-    const result = await addAsistente({ nombre: newName, dni: '', cargo: "Asistente" });
-
-    if (result.success && result.id) {
+    try {
+      const docRef = doc(collection(db, "asistentes"));
+      await setDoc(docRef, { nombre: newName, cargo: "Asistente" });
       toast({ title: 'Éxito', description: `Asistente "${newName}" creado.`});
       await refreshData();
-      onSelectAssistant({ assistantDni: result.id, assistantName: newName });
+      onSelectAssistant({ assistantDni: docRef.id, assistantName: newName });
       setIsOpen(false);
       resetState();
-    } else {
-      toast({ title: 'Error', description: result.message, variant: 'destructive'});
+    } catch (error) {
+      console.error("Error creating assistant:", error);
+      toast({ title: 'Error', description: "No se pudo crear el asistente.", variant: 'destructive'});
+    } finally {
+      setIsCreatingAssistant(false);
     }
-    setIsCreatingAssistant(false);
   }
   
   const resetState = () => {

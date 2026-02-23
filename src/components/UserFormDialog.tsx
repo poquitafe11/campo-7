@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -26,9 +25,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { UserSchema, UserRole } from "@/lib/types";
-import { saveUser } from "@/app/users/actions";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 interface UserFormDialogProps {
   isOpen: boolean;
@@ -47,15 +47,12 @@ const roleHierarchy: { [key in UserRole]: number } = {
     "Invitado": 0,
 };
 
-// Form schema without password for editing/creating profile
-const DialogFormSchema = UserSchema;
-
 export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, currentUserRole }: UserFormDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof DialogFormSchema>>({
-    resolver: zodResolver(DialogFormSchema),
+  const form = useForm<z.infer<typeof UserSchema>>({
+    resolver: zodResolver(UserSchema),
     defaultValues: {
       nombre: "",
       dni: "",
@@ -85,28 +82,19 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
     }
   }, [user, form, isOpen])
 
-
-  const onSubmit = async (values: z.infer<typeof DialogFormSchema>) => {
+  const onSubmit = async (values: z.infer<typeof UserSchema>) => {
     setIsSubmitting(true);
-    
-    // The user creation in Auth is no longer handled here, as it requires admin SDK.
-    // This dialog now only handles creating/updating the user profile in Firestore.
-    const dbResult = await saveUser(values);
-
-    if (dbResult.success) {
-      toast({
-        title: "Éxito",
-        description: dbResult.message,
-      });
-      onSuccess();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error de Base de Datos",
-        description: dbResult.message,
-      });
+    try {
+        const userRef = doc(db, "usuarios", values.email);
+        await setDoc(userRef, values, { merge: true });
+        toast({ title: "Éxito", description: "Usuario guardado correctamente." });
+        onSuccess();
+    } catch (error) {
+        console.error("Error saving user:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo guardar el usuario." });
+    } finally {
+        setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
   
   const availableRoles = useMemo(() => {
@@ -115,14 +103,13 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
     return UserRole.options.filter(role => currentUserLevel > roleHierarchy[role]);
   }, [currentUserRole]);
 
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{user ? "Editar Usuario" : "Agregar Nuevo Usuario"}</DialogTitle>
           <DialogDescription>
-            {user ? "Modifica los datos del usuario." : "Nota: La creación de la cuenta de autenticación (con contraseña) debe hacerse por separado en la consola de Firebase."}
+            {user ? "Modifica los datos del usuario." : "Completa los datos para crear un nuevo perfil de usuario."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -147,7 +134,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
                 <FormItem>
                   <FormLabel>DNI</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: 12345678" {...field} />
+                    <Input placeholder="Ej: 12345678" {...field} maxLength={8} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -160,7 +147,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
                 <FormItem>
                   <FormLabel>Celular</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: 987654321" {...field} />
+                    <Input placeholder="Ej: 987654321" {...field} maxLength={9} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -203,9 +190,7 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
             />
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="secondary">
-                  Cancelar
-                </Button>
+                <Button type="button" variant="secondary">Cancelar</Button>
               </DialogClose>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
