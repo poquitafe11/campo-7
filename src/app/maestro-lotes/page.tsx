@@ -106,21 +106,14 @@ function normalizeKey(key: string): string {
   return key.trim().toLowerCase().replace(/ó/g, 'o').replace(/ /g, '').replace(/\./g, '');
 }
 
-function parseExcelDate(excelDate: number | string): Date | null {
-  if (typeof excelDate === 'string') {
-    const date = new Date(excelDate);
-    if (isValid(date)) {
-      return date;
-    }
+function parseDateValue(value: any): Date {
+  if (value instanceof Date && isValid(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = parseISO(value);
+    if (isValid(parsed)) return parsed;
   }
-  if (typeof excelDate === 'number') {
-    const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
-    if (isValid(date)) return date;
-  }
-  const parsed = parseISO(String(excelDate));
-  if(isValid(parsed)) return parsed;
-  
-  return null;
+  if (value?.toDate) return value.toDate();
+  return new Date();
 }
 
 async function processAndUploadFile(file: File, lotesData: Lote[]): Promise<{ count: number }> {
@@ -166,11 +159,8 @@ async function processAndUploadFile(file: File, lotesData: Lote[]): Promise<{ co
 
                 if (value === undefined || value === null || String(value).trim() === '') continue;
 
-                if (fieldSchema instanceof z.ZodDate) {
-                  const parsedDate = parseExcelDate(value);
-                  if (parsedDate && isValid(parsedDate)) {
-                    loteData[field] = parsedDate;
-                  }
+                if (field === 'fechaCianamida') {
+                  loteData[field] = parseDateValue(value);
                 } else if (fieldSchema._def.typeName === 'ZodNumber') {
                   const num = parseFloat(String(value).replace(',', '.'));
                   if (!isNaN(num)) {
@@ -349,7 +339,7 @@ export default function MaestroLotesPage() {
     setEditingLote(lote);
     form.reset({
       ...lote,
-      fechaCianamida: lote.fechaCianamida instanceof Date && isValid(lote.fechaCianamida) ? lote.fechaCianamida : new Date(),
+      fechaCianamida: parseDateValue(lote.fechaCianamida),
     });
   };
 
@@ -406,10 +396,8 @@ export default function MaestroLotesPage() {
         accessorKey: 'fechaCianamida',
         header: 'Fecha Cianamida',
         cell: ({ row }) => {
-          const date = row.getValue('fechaCianamida') as Date;
-          return date instanceof Date && isValid(date)
-            ? format(date, 'dd/MM/yyyy', { locale: es })
-            : 'N/A';
+          const date = parseDateValue(row.getValue('fechaCianamida'));
+          return format(date, 'dd/MM/yyyy', { locale: es });
         },
       },
       { accessorKey: 'campana', header: 'Campaña' },
@@ -571,7 +559,7 @@ export default function MaestroLotesPage() {
         render={({ field }) => (
           <FormItem className="flex flex-col">
             <FormLabel>Fecha Cianamida</FormLabel>
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen} modal={true}>
               <PopoverTrigger asChild>
                 <FormControl>
                   <Button

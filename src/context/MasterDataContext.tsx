@@ -6,7 +6,7 @@ import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { LoteData, Labor, Assistant, MinMax, Jalador, WorkerMasterItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { parseISO } from 'date-fns';
+import { parseISO, isValid } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 
 interface MasterData {
@@ -30,11 +30,28 @@ const collectionsConfig = [
     { 
         name: 'maestro-lotes', 
         key: 'lotes', 
-        processor: (doc: any) => ({ 
-            id: doc.id, 
-            ...doc.data(), 
-            fechaCianamida: doc.data().fechaCianamida?.toDate ? doc.data().fechaCianamida.toDate() : (doc.data().fechaCianamida ? parseISO(doc.data().fechaCianamida) : new Date()) 
-        }) 
+        processor: (doc: any) => {
+            const data = doc.data();
+            const val = data.fechaCianamida;
+            let date: Date;
+            
+            if (val?.toDate) {
+                date = val.toDate();
+            } else if (val instanceof Date) {
+                date = val;
+            } else if (typeof val === 'string') {
+                const parsed = parseISO(val);
+                date = isValid(parsed) ? parsed : new Date();
+            } else {
+                date = new Date();
+            }
+
+            return { 
+                id: doc.id, 
+                ...data, 
+                fechaCianamida: date 
+            };
+        } 
     },
     { name: 'maestro-labores', key: 'labors', processor: (doc: any) => ({ codigo: doc.id, ...doc.data() }) },
     { 
@@ -60,7 +77,6 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Implementación de tiempo real con onSnapshot
   useEffect(() => {
     if (!user || !db) {
         setLoading(false);
@@ -82,7 +98,6 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     return () => unsubscribes.forEach(unsub => unsub());
   }, [user]);
 
-  // Mantener refreshData para compatibilidad y fuerce de carga
   const refreshData = useCallback(async () => {
     if (!db) return;
     try {
