@@ -1,7 +1,9 @@
 'use server';
 
-// Deprecated in favor of client-side Firestore SDK usage to avoid environment conflicts.
-// This file is kept temporarily to avoid import breakages during transition.
+// Todas las funciones de gestión de usuarios se han migrado al lado del cliente (Firebase Client SDK)
+// para evitar dependencias de servidor (firebase-admin) que causan errores en el despliegue.
+// Este archivo se mantiene solo por compatibilidad de rutas.
+
 export async function saveUser() {
     return { success: false, message: "Use client-side logic in UsersPage." };
 }

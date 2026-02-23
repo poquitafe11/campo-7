@@ -21,10 +21,9 @@ import { useToast } from '@/hooks/use-toast';
 import { type User, type UserRole } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { getUsers } from '@/app/users/actions';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -76,24 +75,25 @@ export default function FeaturePermissionsDialog({ isOpen, onOpenChange, feature
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const result = await getUsers();
-    if (result.success) {
-      // Filter out roles higher than or equal to the current admin's role
-      const currentUserLevel = profile?.rol ? roleHierarchy[profile.rol] : 0;
-      const manageableUsers = result.data.filter(u => {
-          // Robustness check: only filter if both roles are valid and exist in the hierarchy
-          if (u.rol && roleHierarchy[u.rol] !== undefined) {
-              return roleHierarchy[u.rol] < currentUserLevel;
-          }
-          // If a user has a missing or invalid role, an admin should still see them to be able to fix it.
-          // Or if the current user has no role, show no one.
-          return currentUserLevel > 0; 
-      });
-      setUsers(manageableUsers);
-    } else {
-      toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los usuarios." });
+    try {
+        const querySnapshot = await getDocs(collection(db, "usuarios"));
+        const allUsers = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as User[];
+        
+        // Filter out roles higher than or equal to the current admin's role
+        const currentUserLevel = profile?.rol ? roleHierarchy[profile.rol] : 0;
+        const manageableUsers = allUsers.filter(u => {
+            if (u.rol && roleHierarchy[u.rol] !== undefined) {
+                return roleHierarchy[u.rol] < currentUserLevel;
+            }
+            return currentUserLevel > 0; 
+        });
+        setUsers(manageableUsers);
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los usuarios." });
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   }, [toast, profile]);
 
   useEffect(() => {
@@ -123,7 +123,7 @@ export default function FeaturePermissionsDialog({ isOpen, onOpenChange, feature
     return acc;
   }, {} as Record<UserRole, User[]>);
   
-  const sortedRoles = Object.keys(groupedUsersByRole).sort((a,b) => roleHierarchy[b as UserRole] - roleHierarchy[a as UserRole]) as UserRole[];
+  const sortedRoles = (Object.keys(groupedUsersByRole) as UserRole[]).sort((a,b) => roleHierarchy[b] - roleHierarchy[a]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -138,6 +138,10 @@ export default function FeaturePermissionsDialog({ isOpen, onOpenChange, feature
             {loading ? (
                 <div className="flex justify-center items-center h-32">
                     <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            ) : users.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                    No tienes usuarios con roles inferiores para gestionar sus permisos.
                 </div>
             ) : (
                 <Accordion type="multiple" className="w-full">
