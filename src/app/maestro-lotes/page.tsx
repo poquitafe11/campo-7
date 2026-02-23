@@ -79,17 +79,13 @@ import {
 import { db } from '@/lib/firebase';
 import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import dynamic from 'next/dynamic';
+import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
-
-const Calendar = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
-  ssr: false,
-  loading: () => <div className="h-[290px] w-[240px] bg-muted rounded-md animate-pulse" />,
-});
 
 const loteSchema = z.object({
   lote: z.string().min(1, 'El lote es requerido'),
@@ -118,19 +114,16 @@ function parseExcelDate(excelDate: number | string): Date | null {
     }
   }
   if (typeof excelDate === 'number') {
-    // Excel's epoch starts on 1900-01-01, but has a bug where it thinks 1900 was a leap year.
-    // The convention is to treat dates as if they are based on 1899-12-30.
     const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
     if (isValid(date)) return date;
   }
-  // Try parsing common string formats as a fallback
   const parsed = parseISO(String(excelDate));
   if(isValid(parsed)) return parsed;
   
   return null;
 }
 
-async function processAndUploadFile(file: File): Promise<{ count: number }> {
+async function processAndUploadFile(file: File, lotesData: Lote[]): Promise<{ count: number }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = async e => {
@@ -304,7 +297,7 @@ export default function MaestroLotesPage() {
     if (!selectedFile) return;
     setIsUploading(true);
     try {
-      const { count } = await processAndUploadFile(selectedFile);
+      const { count } = await processAndUploadFile(selectedFile, lotes);
       toast({ title: 'Éxito', description: `${count} registros cargados/actualizados.` });
     } catch (error: any) {
       toast({ title: 'Error al Cargar', description: error.message, variant: 'destructive' });
@@ -367,7 +360,6 @@ export default function MaestroLotesPage() {
       await setDoc(docRef, values, { merge: true });
 
       if (editingLote) {
-        // If the ID changed, delete the old document
         if (editingLote.id !== id) {
           await deleteDoc(doc(db, 'maestro-lotes', editingLote.id));
         }
@@ -387,6 +379,7 @@ export default function MaestroLotesPage() {
         cuartel: '',
         variedad: '',
         campana: '',
+        fechaCianamida: new Date(),
       });
     } catch (error) {
       toast({
@@ -412,9 +405,9 @@ export default function MaestroLotesPage() {
         accessorKey: 'fechaCianamida',
         header: 'Fecha Cianamida',
         cell: ({ row }) => {
-          const date = row.getValue('fechaCianamida');
+          const date = row.getValue('fechaCianamida') as Date;
           return date instanceof Date && isValid(date)
-            ? format(date, 'dd/MM/yyyy')
+            ? format(date, 'dd/MM/yyyy', { locale: es })
             : 'N/A';
         },
       },
@@ -587,13 +580,19 @@ export default function MaestroLotesPage() {
                       !field.value && 'text-muted-foreground'
                     )}
                   >
-                    {field.value ? format(field.value, 'PPP') : <span>Elige una fecha</span>}
+                    {field.value && isValid(field.value) ? format(field.value, 'PPP', { locale: es }) : <span>Elige una fecha</span>}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
                 </FormControl>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                <Calendar 
+                  mode="single" 
+                  selected={field.value} 
+                  onSelect={field.onChange} 
+                  initialFocus 
+                  locale={es}
+                />
               </PopoverContent>
             </Popover>
             <FormMessage />
@@ -682,6 +681,7 @@ export default function MaestroLotesPage() {
                     cuartel: '',
                     variedad: '',
                     campana: '',
+                    fechaCianamida: new Date(),
                   });
               }}
             >
@@ -732,7 +732,7 @@ export default function MaestroLotesPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acción eliminará permanentemente los {lotes.length} registros.
+                    Esta acción no se puede deshacer. Esto eliminará permanentemente los {lotes.length} registros.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
