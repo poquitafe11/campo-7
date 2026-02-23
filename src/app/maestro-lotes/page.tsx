@@ -243,6 +243,7 @@ export default function MaestroLotesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     setActions({ title: "Maestro de Lotes" });
@@ -570,7 +571,7 @@ export default function MaestroLotesPage() {
         render={({ field }) => (
           <FormItem className="flex flex-col">
             <FormLabel>Fecha Cianamida</FormLabel>
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <FormControl>
                   <Button
@@ -580,7 +581,7 @@ export default function MaestroLotesPage() {
                       !field.value && 'text-muted-foreground'
                     )}
                   >
-                    {field.value && isValid(field.value) ? format(field.value, 'PPP', { locale: es }) : <span>Elige una fecha</span>}
+                    {field.value && isValid(field.value) ? format(field.value, "d 'de' MMMM 'de' yyyy", { locale: es }) : <span>Elige una fecha</span>}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
                 </FormControl>
@@ -589,7 +590,10 @@ export default function MaestroLotesPage() {
                 <Calendar 
                   mode="single" 
                   selected={field.value} 
-                  onSelect={field.onChange} 
+                  onSelect={(date) => {
+                    field.onChange(date);
+                    setIsCalendarOpen(false);
+                  }} 
                   initialFocus 
                   locale={es}
                 />
