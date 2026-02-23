@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -11,7 +10,7 @@ import { format, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import dynamic from "next/dynamic";
 import { digitizeIrrigationTableAction } from "./actions";
- 
+import 'react-image-crop/dist/ReactCrop.css';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
