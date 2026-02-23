@@ -18,7 +18,19 @@ import { ActivityRecordData, User, LoteData, Presupuesto, MinMax, Assistant } fr
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, FileDown, Filter, Calendar as CalendarIcon, RefreshCcw } from 'lucide-react';
+import { 
+  Pencil, 
+  Trash2, 
+  Loader2, 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronsLeft, 
+  ChevronsRight, 
+  FileDown, 
+  Filter, 
+  Calendar as CalendarIcon, 
+  RefreshCcw 
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import EditActivityDialog from '@/components/EditActivityDialog'; 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -142,7 +154,7 @@ export default function ActivityDatabasePage() {
     const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
       if (!map.has(lote.lote)) {
-        map.set(lote.lote, lote);
+        lotesMap.set(lote.lote, lote);
       }
     });
     return map;
@@ -238,7 +250,6 @@ export default function ActivityDatabasePage() {
         return 'N/A';
     }},
     { header: 'var', cell: ({row}) => {
-        // PREFERIR HISTÓRICO: Si el registro tiene variedad guardada, usarla. Si no, buscar en maestro.
         return row.original.Variety || row.original.variedad || lotesMap.get(row.original.lote)?.variedad || 'N/A';
     }},
     { header: 'Asistente', cell: ({ row }) => row.original.assistantName || assistantMap.get(row.original.assistantDni || '')?.assistantName || row.original.assistantDni || 'N/A' },
@@ -246,7 +257,6 @@ export default function ActivityDatabasePage() {
     { header: 'COD. LABOR', accessorKey: 'code' },
     { header: 'Labor', accessorKey: 'labor' },
     { header: 'JR presup.', cell: ({ row }) => {
-        // PREFERIR HISTÓRICO: Usar el presupuesto capturado al registrar.
         if (row.original.budgetJrnHa !== undefined) return row.original.budgetJrnHa;
         
         const key = `${row.original.lote}-${row.original.labor}-${row.original.campaign}`;
@@ -258,7 +268,6 @@ export default function ActivityDatabasePage() {
         return cumulativeJrHa !== undefined ? cumulativeJrHa.toFixed(2) : '0.00';
     }},
     { header: 'Saldo', cell: ({row}) => {
-        // PREFERIR HISTÓRICO:
         let jrPresup = 0;
         if (row.original.budgetJrnHa !== undefined) {
             jrPresup = row.original.budgetJrnHa;
@@ -292,7 +301,6 @@ export default function ActivityDatabasePage() {
     }},
     { header: 'Racimo o jabas', cell: ({ row }) => row.original.clustersOrJabas?.toLocaleString('en-US') || '0' },
     { header: 'Min Estab.', cell: ({ row }) => {
-        // PREFERIR HISTÓRICO:
         if (row.original.minEstablished !== undefined) return row.original.minEstablished;
         
         const { campaign, lote, code, pass } = row.original;
@@ -301,7 +309,6 @@ export default function ActivityDatabasePage() {
         return record ? record.min : 'N/A';
     }},
     { header: 'Max Estab.', cell: ({ row }) => {
-        // PREFERIR HISTÓRICO:
         if (row.original.maxEstablished !== undefined) return row.original.maxEstablished;
         
         const { campaign, lote, code, pass } = row.original;
@@ -424,6 +431,11 @@ export default function ActivityDatabasePage() {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 50,
+      },
+    },
   });
   
   const handleDownload = () => {
@@ -567,28 +579,73 @@ export default function ActivityDatabasePage() {
           </Table>
         </div>
   
-        <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">
-                  Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Select
+                value={`${table.getState().pagination.pageSize}`}
+                onValueChange={(value) => table.setPageSize(Number(value))}
+              >
+                <SelectTrigger className="w-[130px] h-9">
+                  <SelectValue placeholder="Mostrar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50, 100, 500, 1000].map((pageSize) => (
+                    <SelectItem key={pageSize} value={`${pageSize}`}>
+                      Mostrar {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-
+                {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{" "}
+                de {table.getFilteredRowModel().rows.length}
               </span>
+            </div>
+
             <div className="flex items-center gap-2">
               <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
+                variant="outline"
+                size="sm"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+                className="h-9 w-9 p-0"
               >
-                  <ChevronLeft className="h-4 w-4 mr-1"/>
-                  Anterior
+                <span className="sr-only">Ir a primera página</span>
+                <ChevronsLeft className="h-4 w-4" />
               </Button>
               <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="h-9 px-3"
               >
-                  Siguiente
-                  <ChevronRight className="h-4 w-4 ml-1"/>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Ant.
+              </Button>
+              <span className="text-sm font-medium">
+                {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="h-9 px-3"
+              >
+                Sig.
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+                className="h-9 w-9 p-0"
+              >
+                <span className="sr-only">Ir a última página</span>
+                <ChevronsRight className="h-4 w-4" />
               </Button>
             </div>
         </div>
