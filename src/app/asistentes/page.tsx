@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
@@ -81,7 +82,7 @@ import { useMasterData } from "@/context/MasterDataContext";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
 
 const asistenteSchema = z.object({
-    dni: z.string().min(1, "El DNI es requerido"),
+    dni: z.string().min(1, "El DNI/ID es requerido"),
     nombre: z.string().min(1, "El nombre es requerido"),
     cargo: z.string().min(1, "El cargo es requerido"),
 });
@@ -254,7 +255,11 @@ export default function AsistentesPage() {
 
   const handleEdit = (asistente: Asistente) => {
     setEditingAsistente(asistente);
-    form.reset(asistente);
+    form.reset({
+        dni: asistente.id,
+        nombre: asistente.assistantName,
+        cargo: asistente.cargo
+    });
   };
 
   const onSubmit = async (values: z.infer<typeof asistenteSchema>) => {
@@ -264,8 +269,8 @@ export default function AsistentesPage() {
         await setDoc(docRef, { nombre: values.nombre, cargo: values.cargo }, { merge: true });
 
         if (editingAsistente) {
-            if (editingAsistente.dni !== values.dni) {
-                await deleteDoc(doc(db, "asistentes", editingAsistente.dni!));
+            if (editingAsistente.id !== values.dni) {
+                await deleteDoc(doc(db, "asistentes", editingAsistente.id));
             }
             toast({ title: "Éxito", description: "Registro actualizado correctamente." });
             setEditingAsistente(null);
@@ -282,7 +287,7 @@ export default function AsistentesPage() {
 
   const columns = useMemo<ColumnDef<Asistente>[]>(
     () => [
-      { accessorKey: "dni", header: "DNI" },
+      { accessorKey: "dni", header: "DNI / ID" },
       { accessorKey: "nombre", header: "Nombre" },
       { accessorKey: "cargo", header: "Cargo" },
       {
@@ -333,7 +338,7 @@ export default function AsistentesPage() {
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel>DNI</FormLabel><FormControl><Input {...field} disabled={!!editingAsistente} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel>DNI / ID</FormLabel><FormControl><Input {...field} disabled={!!editingAsistente} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         <FormField control={form.control} name="cargo" render={({ field }) => ( <FormItem><FormLabel>Cargo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
     </div>
@@ -344,7 +349,7 @@ export default function AsistentesPage() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <Input
-                placeholder="Buscar por DNI..."
+                placeholder="Buscar por DNI/ID..."
                 value={(table.getColumn('dni')?.getFilterValue() as string) ?? ''}
                 onChange={(event) =>
                   table.getColumn('dni')?.setFilterValue(event.target.value)
@@ -509,5 +514,3 @@ export default function AsistentesPage() {
     </TooltipProvider>
   );
 }
-
-    
