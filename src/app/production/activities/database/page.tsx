@@ -33,7 +33,7 @@ import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 
 
-type ActivityRecordWithId = ActivityRecordData & { id: string };
+type ActivityRecordWithId = ActivityRecordData & { id: string, Variety?: string, budgetJrnHa?: number, minEstablished?: number, maxEstablished?: number };
 
 interface Filters {
     campaign: string;
@@ -56,15 +56,13 @@ const getInitialFilters = (): Filters => ({
 export default function ActivityDatabasePage() {
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
-  const [minMax, setMinMax] = useState<MinMax[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecordWithId | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   
-  const { lotes, asistentes, loading: masterLoading } = useMasterData();
+  const { lotes, asistentes, presupuestos, minMax, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
 
   const [globalFilter, setGlobalFilter] = useState('');
@@ -77,24 +75,14 @@ export default function ActivityDatabasePage() {
     try {
         const [
             usersSnapshot, 
-            presupuestoSnapshot, 
-            minMaxSnapshot, 
             activitiesSnapshot
         ] = await Promise.all([
             getDocs(collection(db, "usuarios")),
-            getDocs(collection(db, "presupuesto")),
-            getDocs(collection(db, "min-max")),
             getDocs(query(collection(db, "actividades"), orderBy("registerDate", "desc")))
         ]);
 
         const usersData = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as User);
         setUsers(usersData);
-        
-        const presupuestoData = presupuestoSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as Presupuesto);
-        setPresupuestos(presupuestoData);
-        
-        const minMaxData = minMaxSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as MinMax));
-        setMinMax(minMaxData);
         
         const recordsData = activitiesSnapshot.docs.map(doc => {
             const docData = doc.data();
@@ -153,7 +141,6 @@ export default function ActivityDatabasePage() {
   const lotesMap = useMemo(() => {
     const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
-      // Create a representative entry for each unique lot number
       if (!map.has(lote.lote)) {
         map.set(lote.lote, lote);
       }
@@ -173,8 +160,7 @@ export default function ActivityDatabasePage() {
   const presupuestoMap = useMemo(() => {
     const map = new Map<string, Presupuesto>();
     presupuestos.forEach(p => {
-        const loteKey = parseInt(p.lote, 10);
-        const key = `${loteKey}-${p.descripcionLabor}`;
+        const key = `${p.lote}-${p.descripcionLabor}-${p.campana}`;
         map.set(key, p);
     });
     return map;
@@ -201,7 +187,6 @@ export default function ActivityDatabasePage() {
     const cumulativeMap = new Map<string, number>();
     const tempTotals = new Map<string, number>();
 
-    // Sort data chronologically (oldest first) to calculate cumulative sum correctly
     const sortedData = [...data].sort((a, b) => a.registerDate.getTime() - b.registerDate.getTime());
 
     sortedData.forEach(item => {
@@ -252,14 +237,19 @@ export default function ActivityDatabasePage() {
         }
         return 'N/A';
     }},
-    { header: 'var', cell: ({row}) => lotesMap.get(row.original.lote)?.variedad || 'N/A' },
-    { header: 'Asistente', cell: ({ row }) => assistantMap.get(row.original.assistantDni)?.assistantName || row.original.assistantDni },
+    { header: 'var', cell: ({row}) => {
+        // PREFERIR HISTÓRICO: Si el registro tiene variedad guardada, usarla. Si no, buscar en maestro.
+        return row.original.Variety || row.original.variedad || lotesMap.get(row.original.lote)?.variedad || 'N/A';
+    }},
+    { header: 'Asistente', cell: ({ row }) => row.original.assistantName || assistantMap.get(row.original.assistantDni || '')?.assistantName || row.original.assistantDni || 'N/A' },
     { header: 'Cod Lote', accessorKey: 'lote' },
     { header: 'COD. LABOR', accessorKey: 'code' },
     { header: 'Labor', accessorKey: 'labor' },
     { header: 'JR presup.', cell: ({ row }) => {
-        const loteKey = parseInt(row.original.lote, 10);
-        const key = `${loteKey}-${row.original.labor}`;
+        // PREFERIR HISTÓRICO: Usar el presupuesto capturado al registrar.
+        if (row.original.budgetJrnHa !== undefined) return row.original.budgetJrnHa;
+        
+        const key = `${row.original.lote}-${row.original.labor}-${row.original.campaign}`;
         const presupuesto = presupuestoMap.get(key);
         return presupuesto ? presupuesto.jrnHa : '0';
     }},
@@ -268,27 +258,27 @@ export default function ActivityDatabasePage() {
         return cumulativeJrHa !== undefined ? cumulativeJrHa.toFixed(2) : '0.00';
     }},
     { header: 'Saldo', cell: ({row}) => {
-        const loteKey = parseInt(row.original.lote, 10);
-        const key = `${loteKey}-${row.original.labor}`;
-        const presupuesto = presupuestoMap.get(key);
-        const jrPresup = presupuesto ? Number(presupuesto.jrnHa) : 0;
+        // PREFERIR HISTÓRICO:
+        let jrPresup = 0;
+        if (row.original.budgetJrnHa !== undefined) {
+            jrPresup = row.original.budgetJrnHa;
+        } else {
+            const key = `${row.original.lote}-${row.original.labor}-${row.original.campaign}`;
+            const presupuesto = presupuestoMap.get(key);
+            jrPresup = presupuesto ? Number(presupuesto.jrnHa) : 0;
+        }
         
         const jhuHa = cumulativeJrHaMap.get(row.original.id) || 0;
-        
         const saldo = jrPresup - jhuHa;
-        
         const saldoClassName = saldo < 0 ? 'text-red-600 font-bold' : 'text-blue-600';
-        
         return <span className={saldoClassName}>{saldo.toFixed(2)}</span>;
     }},
     { header: 'N° Pasada', accessorKey: 'pass' },
     { header: 'JR/Ha', cell: ({ row }) => {
         const totalHaProdForLote = loteHaProdMap.get(row.original.lote) || 0;
         if (totalHaProdForLote === 0) return '0.00';
-        
         const jhu = row.original.workdayCount || 0;
-        const result = jhu / totalHaProdForLote;
-        return result.toFixed(2);
+        return (jhu / totalHaProdForLote).toFixed(2);
     }},
     { header: 'Rdto total', accessorKey: 'performance', cell: ({ row }) => row.original.performance?.toLocaleString('en-US') || '0' },
     { header: 'Area Avanzada', cell: ({row}) => {
@@ -302,12 +292,18 @@ export default function ActivityDatabasePage() {
     }},
     { header: 'Racimo o jabas', cell: ({ row }) => row.original.clustersOrJabas?.toLocaleString('en-US') || '0' },
     { header: 'Min Estab.', cell: ({ row }) => {
+        // PREFERIR HISTÓRICO:
+        if (row.original.minEstablished !== undefined) return row.original.minEstablished;
+        
         const { campaign, lote, code, pass } = row.original;
         const key = `${campaign}-${lote}-${code}-${pass}`;
         const record = minMaxMap.get(key);
         return record ? record.min : 'N/A';
     }},
     { header: 'Max Estab.', cell: ({ row }) => {
+        // PREFERIR HISTÓRICO:
+        if (row.original.maxEstablished !== undefined) return row.original.maxEstablished;
+        
         const { campaign, lote, code, pass } = row.original;
         const key = `${campaign}-${lote}-${code}-${pass}`;
         const record = minMaxMap.get(key);
@@ -339,88 +335,19 @@ export default function ActivityDatabasePage() {
         const cost = row.original.cost || 0;
         const specialLabors = ['46', '67'];
         const isSpecial = specialLabors.includes(row.original.code || '');
-        
         const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
         const divisor = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-
-        let costoLabor = 0;
-        if (cost === 0) {
-            costoLabor = (row.original.workdayCount || 0) * 60;
-        } else {
-            costoLabor = numerator * cost;
-        }
-
-        let costoPorUnidad = 0;
-        if (divisor > 0) {
-            costoPorUnidad = costoLabor / divisor;
-        }
+        let costoLabor = cost === 0 ? (row.original.workdayCount || 0) * 60 : numerator * cost;
+        let costoPorUnidad = divisor > 0 ? costoLabor / divisor : 0;
         return `S/ ${costoPorUnidad.toFixed(2)}`;
-    } },
-    { header: 'costo plta emp.', cell: ({ row }) => {
-        const cost = row.original.cost || 0;
-        const specialLabors = ['46', '67'];
-        const isSpecial = specialLabors.includes(row.original.code || '');
-
-        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-        const divisor = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-        
-        let costoLabor = 0;
-        if (cost === 0) {
-            costoLabor = (row.original.workdayCount || 0) * 60;
-        } else {
-            costoLabor = numerator * cost;
-        }
-        const costoEmpresa = costoLabor * 1.30;
-        
-        let costoUnidadEmp = 0;
-        if (divisor > 0) {
-            costoUnidadEmp = costoEmpresa / divisor;
-        }
-        return `S/ ${costoUnidadEmp.toFixed(2)}`;
-    } },
-    { header: 'Pago Neto Prom. / JHU', cell: ({ row }) => {
-        const cost = row.original.cost || 0;
-        let pagoNeto = 0;
-        if (cost === 0) {
-            pagoNeto = 60; // jornal
-        } else {
-            const specialLabors = ['46', '67'];
-            const isSpecial = specialLabors.includes(row.original.code || '');
-            const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-            const jhu = row.original.workdayCount || 0;
-            const promJhu = jhu > 0 ? numerator / jhu : 0;
-            pagoNeto = promJhu * cost;
-        }
-        return `S/ ${pagoNeto.toFixed(2)}`;
     } },
     { header: 'Costo Labor', cell: ({ row }) => {
         const cost = row.original.cost || 0;
         const specialLabors = ['46', '67'];
         const isSpecial = specialLabors.includes(row.original.code || '');
         const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-
-        let costoLabor = 0;
-        if (cost === 0) {
-            costoLabor = (row.original.workdayCount || 0) * 60;
-        } else {
-            costoLabor = numerator * cost;
-        }
+        let costoLabor = cost === 0 ? (row.original.workdayCount || 0) * 60 : numerator * cost;
         return `S/ ${costoLabor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    } },
-    { header: 'Costo Empresa', cell: ({ row }) => {
-        const cost = row.original.cost || 0;
-        const specialLabors = ['46', '67'];
-        const isSpecial = specialLabors.includes(row.original.code || '');
-        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-
-        let costoLabor = 0;
-        if (cost === 0) {
-            costoLabor = (row.original.workdayCount || 0) * 60;
-        } else {
-            costoLabor = numerator * cost;
-        }
-        const costoEmpresa = costoLabor * 1.30;
-        return `S/ ${costoEmpresa.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     } },
     { header: 'Obs.', accessorKey: 'observations' },
     { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy)?.nombre || row.original.createdBy },
@@ -501,12 +428,13 @@ export default function ActivityDatabasePage() {
   
   const handleDownload = () => {
     const dataToExport = table.getRowModel().rows.map(row => {
-      const { id, createdBy, ...rest } = row.original;
+      const { id, createdBy, Variety, budgetJrnHa, minEstablished, maxEstablished, ...rest } = row.original;
       return {
         Fecha: format(rest.registerDate, 'dd/MM/yyyy'),
         Campaña: rest.campaign,
         Etapa: rest.stage,
         Lote: rest.lote,
+        Variedad: Variety || rest.variedad || lotesMap.get(rest.lote)?.variedad || 'N/A',
         'Cód.': rest.code,
         Labor: rest.labor,
         Rendimiento: rest.performance,
@@ -515,10 +443,13 @@ export default function ActivityDatabasePage() {
         'Costo (S/)': rest.cost,
         Turno: rest.shift,
         Pasada: rest.pass,
+        'Presupuesto/Ha': budgetJrnHa || 'N/A',
+        'Min Estab.': minEstablished || 'N/A',
+        'Max Estab.': maxEstablished || 'N/A',
         Min: rest.minRange,
         Max: rest.maxRange,
         Observaciones: rest.observations,
-        Asistente: assistantMap.get(rest.assistantDni)?.assistantName || rest.assistantDni,
+        Asistente: rest.assistantName || assistantMap.get(rest.assistantDni || '')?.assistantName || rest.assistantDni,
         Usuario: userMap.get(createdBy)?.nombre || createdBy,
       };
     });
@@ -579,9 +510,9 @@ export default function ActivityDatabasePage() {
                                 <Label>Lote</Label>
                                 <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
                                 <Label>Labor</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
                                 <Label>Pasada</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pass: v === 'all' ? '' : v}))} value={popoverFilters.pass}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.passes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pass: v === 'all' ? '' : v}))} value={popoverFilters.pass}><SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.passes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
                                 <Label>Fecha</Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
@@ -676,5 +607,3 @@ export default function ActivityDatabasePage() {
       </div>
     );
   }
-
-    

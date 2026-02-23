@@ -131,9 +131,9 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
 
 export default function CreateActivityPage() {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const [isPending, startTransition] = useTransition();
-  const { labors, lotes, asistentes, loading: masterLoading, refreshData } = useMasterData();
+  const { labors, lotes, asistentes, presupuestos, minMax, loading: masterLoading, refreshData } = useMasterData();
   const { setActions } = useHeaderActions();
   const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
   
@@ -261,13 +261,21 @@ export default function CreateActivityPage() {
             return;
         }
 
+        // CAPTURA HISTÓRICA: Buscamos presupuesto y min/max actuales para guardarlos
+        const currentPresupuesto = presupuestos.find(p => p.lote === loteData.lote && p.descripcionLabor === data.labor && p.campana === data.campaign);
+        const currentMinMax = minMax.find(mm => mm.lote === loteData.lote && mm.labor === data.labor && mm.campana === data.campaign && mm.pasada === data.pass);
+
         const dataToSave = {
             ...data,
             lote: loteData.lote,
+            variedad: loteData.variedad, // Guardamos la variedad actual
+            budgetJrnHa: currentPresupuesto?.jrnHa || 0, // Guardamos presupuesto actual
+            minEstablished: currentMinMax?.min || 0, // Guardamos min/max actuales
+            maxEstablished: currentMinMax?.max || 0,
             registerDate: Timestamp.fromDate(data.registerDate),
             createdBy: profile.email,
-            assistantDni: profile.dni || 'N/A',
-            assistantName: profile.nombre || 'N/A',
+            assistantDni: data.assistantDni || profile.dni || 'N/A',
+            assistantName: data.assistantName || profile.nombre || 'N/A',
             createdAt: serverTimestamp(),
         };
 
@@ -284,7 +292,7 @@ export default function CreateActivityPage() {
               workdayCount: 0,
               minRange: 0,
               maxRange: 0,
-              pass: 0,
+              pass: (data.pass || 0),
               observations: '',
             });
         } catch(error: any) {
@@ -325,12 +333,20 @@ export default function CreateActivityPage() {
     }
     const loteNumber = loteData.lote;
 
+    // CAPTURA HISTÓRICA PARA EL GRUPO
+    const currentPresupuesto = presupuestos.find(p => p.lote === loteNumber && p.descripcionLabor === validHeaderData.labor && p.campana === validHeaderData.campaign);
+    const currentMinMax = minMax.find(mm => mm.lote === loteNumber && mm.labor === validHeaderData.labor && mm.campana === validHeaderData.campaign && mm.pasada === validHeaderData.pass);
+
     startTransition(async () => {
         let successCount = 0;
         for (const activity of groupActivities) {
             try {
                 const fullActivityData = {
                     ...validHeaderData,
+                    variedad: loteData.variedad,
+                    budgetJrnHa: currentPresupuesto?.jrnHa || 0,
+                    minEstablished: currentMinMax?.min || 0,
+                    maxEstablished: currentMinMax?.max || 0,
                     registerDate: Timestamp.fromDate(validHeaderData.registerDate),
                     lote: loteNumber,
                     createdBy: profile.email,
@@ -360,8 +376,8 @@ export default function CreateActivityPage() {
         if (successCount === groupActivities.length) {
             toast({ title: 'Éxito', description: `${successCount} fichas de actividad han sido guardadas.` });
             headerForm.reset({
-              registerDate: new Date(), campaign: '', stage: '', lote: '',
-              code: '', labor: '', shift: '', pass: 0, cost: 0,
+              registerDate: validHeaderData.registerDate, campaign: validHeaderData.campaign, stage: validHeaderData.stage, lote: '',
+              code: '', labor: '', shift: validHeaderData.shift, pass: validHeaderData.pass, cost: validHeaderData.cost,
             });
             setGroupActivities([]);
         } else {
@@ -514,7 +530,7 @@ export default function CreateActivityPage() {
                   </div>
                   
                    <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-                        <FormField control={singleForm.control} name="performance" render={({ field }) => (<FormItem><FormLabel><IconWrapper><TrendingUp className="h-4 w-4"/>{performanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                        <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel><IconWrapper><TrendingUp className="h-4 w-4"/>{performanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
                         {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/> )}
                          <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><Users className="h-4 w-4"/># Peronas</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="1" {...field}  /></FormControl><FormMessage/></FormItem>)}/>
                         <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel><IconWrapper><ClipboardList className="h-4 w-4"/># Jornadas (JHU)</IconWrapper></FormLabel><FormControl><Input type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>

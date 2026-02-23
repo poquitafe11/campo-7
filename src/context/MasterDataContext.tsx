@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { LoteData, Labor, Assistant, MinMax, Jalador, WorkerMasterItem } from '@/lib/types';
+import type { LoteData, Labor, Assistant, MinMax, Jalador, WorkerMasterItem, Presupuesto } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { parseISO, isValid } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +16,7 @@ interface MasterData {
   minMax: MinMax[];
   jaladores: Jalador[];
   trabajadores: WorkerMasterItem[];
+  presupuestos: Presupuesto[];
 }
 
 interface MasterDataContextType extends MasterData {
@@ -68,13 +69,13 @@ const collectionsConfig = [
     { name: 'min-max', key: 'minMax', processor: (doc: any) => ({ id: doc.id, ...doc.data() }) },
     { name: 'maestro-jaladores', key: 'jaladores', processor: (doc: any) => ({ id: doc.id, ...doc.data() }) },
     { name: 'maestro-trabajadores', key: 'trabajadores', processor: (doc: any) => ({ ...doc.data() as WorkerMasterItem }) },
+    { name: 'presupuesto', key: 'presupuestos', processor: (doc: any) => ({ id: doc.id, ...doc.data() }) },
 ];
 
 export function MasterDataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<MasterData>({ lotes: [], labors: [], asistentes: [], minMax: [], jaladores: [], trabajadores: [] });
+  const [data, setData] = useState<MasterData>({ lotes: [], labors: [], asistentes: [], minMax: [], jaladores: [], trabajadores: [], presupuestos: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
