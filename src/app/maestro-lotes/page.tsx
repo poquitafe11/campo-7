@@ -591,8 +591,10 @@ export default function MaestroLotesPage() {
                   mode="single" 
                   selected={field.value} 
                   onSelect={(date) => {
-                    field.onChange(date);
-                    setIsCalendarOpen(false);
+                    if (date) {
+                      field.onChange(date);
+                      setIsCalendarOpen(false);
+                    }
                   }} 
                   initialFocus 
                   locale={es}
