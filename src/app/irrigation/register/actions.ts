@@ -1,7 +1,15 @@
 'use server';
 
+import { digitizeIrrigationTable } from '@/ai/flows/digitize-irrigation-table';
+import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/ai/flows/digitize-irrigation-table';
 import { getFirebaseAdmin } from '@/ai-flows-server/firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+
+
+export async function digitizeIrrigationTableAction(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
+  return digitizeIrrigationTable(input);
+}
+
 
 interface RenameAndMergePayload {
     oldHeader: string;

@@ -1,7 +1,13 @@
 'use server';
 
+import { digitizeHealthTable } from '@/ai/flows/digitize-health-table';
+import type { DigitizeHealthTableInput, DigitizeHealthTableOutput } from '@/ai/flows/digitize-health-table';
 import { getFirebaseAdmin } from '@/ai-flows-server/firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+
+export async function digitizeHealthTableAction(input: DigitizeHealthTableInput): Promise<DigitizeHealthTableOutput> {
+  return digitizeHealthTable(input);
+}
 
 interface RenameAndMergePayload {
     oldHeader: string;

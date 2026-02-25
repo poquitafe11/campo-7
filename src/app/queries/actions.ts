@@ -1,7 +1,7 @@
 'use server';
 
-import { answerFieldDataQuery } from "@/ai-flows-server/answer-field-data-query";
-import type { AnswerFieldDataQueryInput } from "@/ai-flows-server/answer-field-data-query";
+import { answerFieldDataQuery } from "@/ai/flows/answer-field-data-query";
+import type { AnswerFieldDataQueryInput } from "@/ai/flows/answer-field-data-query";
 
 export async function askQuery(query: string) {
     try {
@@ -18,5 +18,3 @@ export async function askQuery(query: string) {
         return { error: error.message || 'Ocurrió un error al procesar tu consulta.' };
     }
 }
-
-    
