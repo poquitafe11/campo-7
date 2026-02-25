@@ -206,10 +206,10 @@ export default function ActivityDatabasePage() {
         const jrHa = totalHaProdForLote > 0 ? (item.workdayCount || 0) / totalHaProdForLote : 0;
         
         const currentCumulative = tempTotals.get(key) || 0;
-        const newCumulative = currentCumulative + jrHa;
+        const nCumulative = currentCumulative + jrHa;
         
-        tempTotals.set(key, newCumulative);
-        cumulativeMap.set(item.id, newCumulative);
+        tempTotals.set(key, nCumulative);
+        cumulativeMap.set(item.id, nCumulative);
     });
 
     return cumulativeMap;

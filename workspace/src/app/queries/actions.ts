@@ -1,7 +1,7 @@
 'use server';
 
-import { answerFieldDataQuery } from "@/lib/ai/flows/answer-field-data-query";
-import type { AnswerFieldDataQueryInput } from "@/lib/ai/flows/answer-field-data-query";
+import { answerFieldDataQuery } from "@/ai/flows/answer-field-data-query";
+import type { AnswerFieldDataQueryInput } from "@/ai/flows/answer-field-data-query";
 
 export async function askQuery(query: string) {
     try {

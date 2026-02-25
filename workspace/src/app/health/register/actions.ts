@@ -1,7 +1,7 @@
 'use server';
 
-import { digitizeHealthTable } from '@/lib/ai/flows/digitize-health-table';
-import type { DigitizeHealthTableInput, DigitizeHealthTableOutput } from '@/lib/ai/flows/digitize-health-table';
+import { digitizeHealthTable } from '@/ai/flows/digitize-health-table';
+import type { DigitizeHealthTableInput, DigitizeHealthTableOutput } from '@/ai/flows/digitize-health-table';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, writeBatch, deleteField } from 'firebase/firestore';
 
