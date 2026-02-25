@@ -327,7 +327,7 @@ export default function ActivityDatabasePage() {
     } },
     { header: 'Costo Labor', cell: ({ row }) => `S/ ${calculateCostoLabor(row.original).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
     { header: 'Obs.', accessorKey: 'observations' },
-    { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy)?.nombre || row.original.createdBy },
+    { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy || '')?.nombre || row.original.createdBy },
     {
       id: 'actions',
       header: 'Acciones',
@@ -458,7 +458,7 @@ export default function ActivityDatabasePage() {
         Max: rest.maxRange,
         Observaciones: rest.observations,
         Asistente: rest.assistantName || assistantMap.get(rest.assistantDni || '')?.assistantName || rest.assistantDni,
-        Usuario: userMap.get(createdBy)?.nombre || createdBy,
+        Usuario: userMap.get(createdBy || '')?.nombre || createdBy,
       };
     });
     const worksheet = xlsx.utils.json_to_sheet(dataToExport);
@@ -689,4 +689,4 @@ export default function ActivityDatabasePage() {
           )}
       </div>
     );
-  }
+}
