@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -7,7 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { isValid, parse } from 'date-fns';
-import { digitizeHealthTableAction } from "./actions";
+import { digitizeHealthTableAction, renameAndMergeHeader } from "./actions";
 
 
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { renameAndMergeHeader } from "./actions";
 
 
 interface ParsedRow {
@@ -131,11 +129,11 @@ export default function RegisterHealthPage() {
     const fetchRecords = async () => {
         try {
             const snapshot = await getDocs(collection(db, "registros-sanidad"));
-            const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const records: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            records.sort((a, b) => {
-                const dateA = parseCustomDate(a['fechaAplicacion']);
-                const dateB = parseCustomDate(b['fechaAplicacion']);
+            records.sort((a: any, b: any) => {
+                const dateA = parseCustomDate(a['fechaAplicacion'] || '');
+                const dateB = parseCustomDate(b['fechaAplicacion'] || '');
 
                 if (dateA && dateB) {
                     return dateB.getTime() - dateA.getTime();

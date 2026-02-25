@@ -9,7 +9,7 @@ import {
   useReactTable,
   getFilteredRowModel,
 } from '@tanstack/react-table';
-import { collection, onSnapshot, query, orderBy, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format, getWeek, parseISO, differenceInDays, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -65,13 +65,13 @@ const getInitialFilters = (): Filters => ({
 });
 
 export default function ActivityDatabasePage() {
+  const { toast } = useToast();
   const [data, setData] = useState<ActivityRecordWithId[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ActivityRecordWithId | null>(null);
   const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
   
   const { lotes, asistentes, presupuestos, minMax, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
@@ -131,7 +131,6 @@ export default function ActivityDatabasePage() {
     users.forEach(user => {
         map.set(user.email, user);
     });
-    // Add special admin user
     map.set('marcoromau@gmail.com', {
         email: 'marcoromau@gmail.com',
         nombre: 'Marco Romau',
@@ -186,14 +185,6 @@ export default function ActivityDatabasePage() {
     return map;
   }, [minMax]);
 
-  useEffect(() => {
-    setActions({
-        title: "Base de Datos de Actividades",
-        right: <Button onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button>
-    });
-    return () => setActions({});
-  }, [setActions, fetchData, loading]);
-  
   const cumulativeJrHaMap = useMemo(() => {
     const cumulativeMap = new Map<string, number>();
     const tempTotals = new Map<string, number>();
@@ -215,24 +206,24 @@ export default function ActivityDatabasePage() {
     return cumulativeMap;
   }, [data, loteHaProdMap]);
 
-  const handleEdit = (activity: ActivityRecordWithId) => {
-    setSelectedActivity(activity);
-    setIsEditDialogOpen(true);
-  };
+  const calculateCostoLabor = useCallback((reg: ActivityRecordWithId): number => {
+    const cost = reg.cost || 0;
+    const specialLabors = ['46', '67'];
+    const isSpecial = specialLabors.includes(reg.code || '');
+    const numerator = isSpecial ? (reg.clustersOrJabas || 0) : (reg.performance || 0);
+    if (cost === 0) return (reg.workdayCount || 0) * 60;
+    return numerator * cost;
+  }, []);
 
-  const handleDelete = (id: string) => {
-    startTransition(async () => {
-        try {
-            await deleteDoc(doc(db, 'actividades', id));
-            toast({ title: "Éxito", description: "Actividad eliminada correctamente." });
-            setData(prev => prev.filter(item => item.id !== id));
-        } catch(error) {
-            console.error("Error deleting activity:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la actividad." });
-        }
-    });
-  };
-  
+  const calculatePromJhu = useCallback((reg: ActivityRecordWithId): number => {
+    const specialLabors = ['46', '67'];
+    const isSpecial = specialLabors.includes(reg.code || '');
+    const numerator = isSpecial ? (reg.clustersOrJabas || 0) : (reg.performance || 0);
+    const jhu = reg.workdayCount || 0;
+    if (jhu === 0) return 0;
+    return numerator / jhu;
+  }, []);
+
   const columns = useMemo<ColumnDef<ActivityRecordWithId>[]>(() => [
     { header: 'Año', cell: ({ row }) => format(row.original.registerDate, 'yyyy')},
     { header: 'Mes', cell: ({ row }) => format(row.original.registerDate, 'LLL', { locale: es }).replace('.','') },
@@ -257,7 +248,6 @@ export default function ActivityDatabasePage() {
     { header: 'Labor', accessorKey: 'labor' },
     { header: 'JR presup.', cell: ({ row }) => {
         if (row.original.budgetJrnHa !== undefined) return row.original.budgetJrnHa;
-        
         const key = `${row.original.lote}-${row.original.labor}-${row.original.campaign}`;
         const presupuesto = presupuestoMap.get(key);
         return presupuesto ? presupuesto.jrnHa : '0';
@@ -275,7 +265,6 @@ export default function ActivityDatabasePage() {
             const presupuesto = presupuestoMap.get(key);
             jrPresup = presupuesto ? Number(presupuesto.jrnHa) : 0;
         }
-        
         const jhuHa = cumulativeJrHaMap.get(row.original.id) || 0;
         const saldo = jrPresup - jhuHa;
         const saldoClassName = saldo < 0 ? 'text-red-600 font-bold' : 'text-blue-600';
@@ -301,7 +290,6 @@ export default function ActivityDatabasePage() {
     { header: 'Racimo o jabas', cell: ({ row }) => row.original.clustersOrJabas?.toLocaleString('en-US') || '0' },
     { header: 'Min Estab.', cell: ({ row }) => {
         if (row.original.minEstablished !== undefined) return row.original.minEstablished;
-        
         const { campaign, lote, code, pass } = row.original;
         const key = `${campaign}-${lote}-${code}-${pass}`;
         const record = minMaxMap.get(key);
@@ -309,7 +297,6 @@ export default function ActivityDatabasePage() {
     }},
     { header: 'Max Estab.', cell: ({ row }) => {
         if (row.original.maxEstablished !== undefined) return row.original.maxEstablished;
-        
         const { campaign, lote, code, pass } = row.original;
         const key = `${campaign}-${lote}-${code}-${pass}`;
         const record = minMaxMap.get(key);
@@ -321,40 +308,24 @@ export default function ActivityDatabasePage() {
     { header: 'JHU', accessorKey: 'workdayCount' },
     { header: 'Costo Plta, Jaba, Racimo', accessorKey: 'cost', cell: ({ row }) => `S/ ${row.original.cost?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` },
     { header: 'TURNO', accessorKey: 'shift' },
-    { header: 'Prom./ Jhu', cell: ({ row }) => {
-        const specialLabors = ['46', '67'];
-        const isSpecial = specialLabors.includes(row.original.code || '');
-        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-        const jhu = row.original.workdayCount || 0;
-        if (jhu === 0) return '0.00';
-        return (numerator / jhu).toFixed(2);
-    } },
+    { header: 'Prom./ Jhu', cell: ({ row }) => calculatePromJhu(row.original).toFixed(2) },
     { header: 'Prom./ Persona', cell: ({ row }) => {
-        const specialLabors = ['46', '67'];
-        const isSpecial = specialLabors.includes(row.original.code || '');
-        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
         const personas = row.original.personnelCount || 0;
         if (personas === 0) return '0.00';
+        const specialLabors = ['46', '67'];
+        const isSpecial = specialLabors.includes(row.original.code || '');
+        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
         return (numerator / personas).toFixed(2);
     } },
     { header: 'costo por planta', cell: ({ row }) => {
-        const cost = row.original.cost || 0;
         const specialLabors = ['46', '67'];
         const isSpecial = specialLabors.includes(row.original.code || '');
-        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
         const divisor = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-        let costoLabor = cost === 0 ? (row.original.workdayCount || 0) * 60 : numerator * cost;
-        let costoPorUnidad = divisor > 0 ? costoLabor / divisor : 0;
+        const totalCosto = calculateCostoLabor(row.original);
+        const costoPorUnidad = divisor > 0 ? totalCosto / divisor : 0;
         return `S/ ${costoPorUnidad.toFixed(2)}`;
     } },
-    { header: 'Costo Labor', cell: ({ row }) => {
-        const cost = row.original.cost || 0;
-        const specialLabors = ['46', '67'];
-        const isSpecial = specialLabors.includes(row.original.code || '');
-        const numerator = isSpecial ? (row.original.clustersOrJabas || 0) : (row.original.performance || 0);
-        let costoLabor = cost === 0 ? (row.original.workdayCount || 0) * 60 : numerator * cost;
-        return `S/ ${costoLabor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    } },
+    { header: 'Costo Labor', cell: ({ row }) => `S/ ${calculateCostoLabor(row.original).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
     { header: 'Obs.', accessorKey: 'observations' },
     { header: 'Usuario', cell: ({ row }) => userMap.get(row.original.createdBy)?.nombre || row.original.createdBy },
     {
@@ -385,7 +356,33 @@ export default function ActivityDatabasePage() {
         </div>
       ),
     },
-  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap, minMaxMap, assistantMap]);
+  ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap, minMaxMap, assistantMap, calculatePromJhu, calculateCostoLabor]);
+
+  useEffect(() => {
+    setActions({
+        title: "Base de Datos de Actividades",
+        right: <Button onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button>
+    });
+    return () => setActions({});
+  }, [setActions, fetchData, loading]);
+
+  const handleEdit = (activity: ActivityRecordWithId) => {
+    setSelectedActivity(activity);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    startTransition(async () => {
+        try {
+            await deleteDoc(doc(db, 'actividades', id));
+            toast({ title: "Éxito", description: "Actividad eliminada correctamente." });
+            setData(prev => prev.filter(item => item.id !== id));
+        } catch(error) {
+            console.error("Error deleting activity:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la actividad." });
+        }
+    });
+  };
 
   const filteredData = useMemo(() => {
     let filtered = data;
@@ -473,10 +470,10 @@ export default function ActivityDatabasePage() {
   const filterOptions = useMemo(() => {
     const campaigns = [...new Set(data.map(item => item.campaign).filter(Boolean))];
     const stages = [...new Set(data.map(item => item.stage).filter(Boolean))];
-    const lotes = [...new Set(data.map(item => item.lote).filter(Boolean))];
-    const labors = [...new Set(data.map(item => item.labor).filter(Boolean))];
+    const lotesOptions = [...new Set(data.map(item => item.lote).filter(Boolean))];
+    const laborsOptions = [...new Set(data.map(item => item.labor).filter(Boolean))];
     const passes = [...new Set(data.map(item => String(item.pass)))];
-    return { campaigns, stages, lotes, labors, passes };
+    return { campaigns, stages, lotes: lotesOptions, labors: laborsOptions, passes };
   }, [data]);
   
   const handleApplyFilters = useCallback(() => {
@@ -515,15 +512,45 @@ export default function ActivityDatabasePage() {
                             </div>
                              <div className="grid gap-2">
                                 <Label>Campaña</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v, lote: ''}))} value={popoverFilters.campaign}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campaigns.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, campaign: v === 'all' ? '' : v, lote: ''}))} value={popoverFilters.campaign}>
+                                  <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {filterOptions.campaigns.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
                                 <Label>Etapa</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, stage: v === 'all' ? '' : v}))} value={popoverFilters.stage}><SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.stages.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, stage: v === 'all' ? '' : v}))} value={popoverFilters.stage}>
+                                  <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {filterOptions.stages.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
                                 <Label>Lote</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}><SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, lote: v === 'all' ? '' : v}))} value={popoverFilters.lote}>
+                                  <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    {filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
                                 <Label>Labor</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}><SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.labors.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, labor: v === 'all' ? '' : v}))} value={popoverFilters.labor}>
+                                  <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {filterOptions.labors.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
                                 <Label>Pasada</Label>
-                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pass: v === 'all' ? '' : v}))} value={popoverFilters.pass}><SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.passes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={(v) => setPopoverFilters(p => ({...p, pass: v === 'all' ? '' : v}))} value={popoverFilters.pass}>
+                                  <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {filterOptions.passes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
                                 <Label>Fecha</Label>
                                 <Popover>
                                     <PopoverTrigger asChild>

@@ -9,12 +9,12 @@ export async function digitizeHealthTableAction(input: DigitizeHealthTableInput)
   return digitizeHealthTable(input);
 }
 
-interface RenameAndMergePayload {
+interface RenameAndMergeHeaderPayload {
     oldHeader: string;
     newHeader: string;
 }
 
-export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMergePayload): Promise<{ success: boolean; message: string; count?: number }> {
+export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMergeHeaderPayload): Promise<{ success: boolean; message: string; count?: number }> {
     if (!oldHeader || !newHeader) {
         return { success: false, message: 'El nombre antiguo y el nuevo no pueden estar vacíos.' };
     }

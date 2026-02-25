@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -115,9 +114,9 @@ export default function IrrigationDatabasePage() {
     const fetchRecords = async () => {
         try {
             const snapshot = await getDocs(collection(db, "registros-riego"));
-            const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
-            const sortedRecords = records.sort((a, b) => {
+            const sortedRecords = records.sort((a: any, b: any) => {
                 const dateA = parseSpanishDate(a.Fecha);
                 const dateB = parseSpanishDate(b.Fecha);
                 
@@ -250,10 +249,10 @@ export default function IrrigationDatabasePage() {
   
   const filterOptions = useMemo(() => {
       const campanas = [...new Set(savedRecords.map(r => r['Campaña']))].filter(Boolean);
-      const lotes = [...new Set(savedRecords.map(r => r.Lote))].filter(Boolean);
+      const lotesOptions = [...new Set(savedRecords.map(r => r.Lote))].filter(Boolean);
       const etapas = [...new Set(savedRecords.map(r => r['Etapa']))].filter(Boolean);
       const fechas = [...new Set(savedRecords.map(r => r.Fecha))].filter(Boolean);
-      return { campanas, lotes, etapas, fechas };
+      return { campanas, lotes: lotesOptions, etapas, fechas };
   }, [savedRecords]);
 
   const handleEditHeader = (header: string) => {
