@@ -10,7 +10,7 @@ import {
   getFilteredRowModel,
 } from '@tanstack/react-table';
 import { collection, onSnapshot, query, orderBy, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { getFirebase, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { format, getWeek, parseISO, differenceInDays, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ActivityRecordData, User, LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';

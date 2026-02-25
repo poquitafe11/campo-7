@@ -1,7 +1,7 @@
 "use server";
 
-import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, FieldValue, deleteField } from 'firebase/firestore';
+import { getFirebaseAdmin } from '@/ai-flows-server/firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 interface RenameAndMergePayload {
     oldHeader: string;
@@ -16,14 +16,16 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
     const sanitizedNewHeader = newHeader.trim();
 
     try {
-        const collectionRef = collection(db, 'registros-riego-01');
-        const querySnapshot = await getDocs(collectionRef);
+        const adminApp = getFirebaseAdmin();
+        const db = getFirestore(adminApp);
+        const collectionRef = db.collection('registros-riego-01');
+        const querySnapshot = await collectionRef.get();
         
         if (querySnapshot.empty) {
             return { success: true, message: 'No hay registros para actualizar.', count: 0 };
         }
 
-        const batch = writeBatch(db);
+        const batch = db.batch();
         let updatedCount = 0;
 
         querySnapshot.forEach(doc => {
@@ -34,8 +36,7 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
                 const oldValueToMove = data[oldHeader];
 
                 updateData[sanitizedNewHeader] = oldValueToMove;
-                
-                updateData[oldHeader] = deleteField();
+                updateData[oldHeader] = (adminApp as any).firestore.FieldValue.delete();
 
                 batch.update(doc.ref, updateData);
                 updatedCount++;

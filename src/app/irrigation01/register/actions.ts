@@ -2,8 +2,8 @@
 
 import { digitizeIrrigationTable } from '@/ai/flows/digitize-irrigation-table';
 import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/ai/flows/digitize-irrigation-table';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, FieldValue, deleteField } from 'firebase/firestore';
+import { getFirebaseAdmin } from '@/ai-flows-server/firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 
 interface RenameAndMergePayload {
@@ -19,30 +19,27 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
     const sanitizedNewHeader = newHeader.trim();
 
     try {
-        const collectionRef = collection(db, 'registros-riego-01');
-        const querySnapshot = await getDocs(collectionRef);
+        const adminApp = getFirebaseAdmin();
+        const db = getFirestore(adminApp);
+        const collectionRef = db.collection('registros-riego-01');
+        const querySnapshot = await collectionRef.get();
         
         if (querySnapshot.empty) {
             return { success: true, message: 'No hay registros para actualizar.', count: 0 };
         }
 
-        const batch = writeBatch(db);
+        const batch = db.batch();
         let updatedCount = 0;
 
         querySnapshot.forEach(doc => {
             const data = doc.data();
             
-            // Check if the document has the old header property.
             if (Object.prototype.hasOwnProperty.call(data, oldHeader)) {
                 const updateData: { [key: string]: any } = {};
                 const oldValueToMove = data[oldHeader];
 
-                // Assign the old value to the new key.
                 updateData[sanitizedNewHeader] = oldValueToMove;
-                
-                // IMPORTANT: Mark the old field for deletion.
-                // This will be part of the same update operation.
-                updateData[oldHeader] = deleteField();
+                updateData[oldHeader] = (adminApp as any).firestore.FieldValue.delete();
 
                 batch.update(doc.ref, updateData);
                 updatedCount++;
@@ -64,5 +61,3 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
 export async function digitizeIrrigationTableAction(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
   return digitizeIrrigationTable(input);
 }
-
-    
