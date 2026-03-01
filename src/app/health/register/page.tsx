@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -129,11 +130,13 @@ export default function RegisterHealthPage() {
     const fetchRecords = async () => {
         try {
             const snapshot = await getDocs(collection(db, "registros-sanidad"));
-            const records: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const records: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
             records.sort((a: any, b: any) => {
-                const dateA = parseCustomDate(a['fechaAplicacion'] || '');
-                const dateB = parseCustomDate(b['fechaAplicacion'] || '');
+                const valA = a['fechaAplicacion'];
+                const valB = b['fechaAplicacion'];
+                const dateA = parseCustomDate(typeof valA === 'string' ? valA : '');
+                const dateB = parseCustomDate(typeof valB === 'string' ? valB : '');
 
                 if (dateA && dateB) {
                     return dateB.getTime() - dateA.getTime();

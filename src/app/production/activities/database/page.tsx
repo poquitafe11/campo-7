@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -263,7 +264,7 @@ export default function ActivityDatabasePage() {
         } else {
             const key = `${row.original.lote}-${row.original.labor}-${row.original.campaign}`;
             const presupuesto = presupuestoMap.get(key);
-            jrPresup = presupuesto ? Number(presupuesto.jrnHa) : 0;
+            jrPresup = presupuesto ? Number(presupuesto.jornadas) : 0;
         }
         const jhuHa = cumulativeJrHaMap.get(row.original.id) || 0;
         const saldo = jrPresup - jhuHa;
