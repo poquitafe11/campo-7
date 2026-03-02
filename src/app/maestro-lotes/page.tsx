@@ -37,7 +37,7 @@ import {
   FileUp,
   FileDown,
   Loader2,
-  CheckCircle,
+  CircleCheck,
   X,
 } from 'lucide-react';
 import {
@@ -759,7 +759,7 @@ export default function MaestroLotesPage() {
               {isUploading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <CheckCircle className="mr-2 h-4 w-4" />
+                <CircleCheck className="mr-2 h-4 w-4" />
               )}
               {isUploading ? 'Subiendo...' : 'Confirmar'}
             </Button>

@@ -1,10 +1,11 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that digitizes a multi-section irrigation program table from a single image.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 
 const DigitizeIrrigationTableInputSchema = z.object({

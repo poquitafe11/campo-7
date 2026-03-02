@@ -36,7 +36,7 @@ import {
   FileUp,
   FileDown,
   Loader2,
-  CheckCircle,
+  CircleCheck,
   X,
 } from "lucide-react";
 import {
@@ -288,7 +288,7 @@ export default function MaestroJaladoresPage() {
       { accessorKey: "dni", header: "DNI" },
       { accessorKey: "nombre", header: "Nombre" },
       { accessorKey: "alias", header: "Alias" },
-      { accessorKey: "celular", header: "Celular" },
+      { accessorKey: "cellar", header: "Celular" },
       {
         id: "actions",
         header: "Acciones",
@@ -440,7 +440,7 @@ export default function MaestroJaladoresPage() {
               <X className="h-4 w-4" />
             </Button>
             <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
-              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleCheck className="mr-2 h-4 w-4" />}
               {isUploading ? 'Subiendo...' : 'Confirmar'}
             </Button>
           </div>

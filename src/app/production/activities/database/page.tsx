@@ -137,7 +137,7 @@ export default function ActivityDatabasePage() {
         nombre: 'Marco Romau',
         rol: 'Admin',
         active: true,
-        dni: '00000000',
+        dni: '12345678',
         celular: '000000000'
     });
     return map;

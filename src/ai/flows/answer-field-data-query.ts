@@ -1,10 +1,11 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that answers questions about field data using tools to search the database.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import * as admin from 'firebase-admin';
 
 async function getFirebaseAdmin() {
@@ -32,7 +33,7 @@ const AnswerFieldDataQueryOutputSchema = z.object({
 export type AnswerFieldDataQueryOutput = z.infer<typeof AnswerFieldDataQueryOutputSchema>;
 
 
-// Tool to get production records
+// Tool to get production activities
 const getProductionActivities = ai.defineTool(
   {
     name: 'getProductionActivities',

@@ -44,7 +44,7 @@ const editHeaderSchema = z.object({
 });
 
 
-const parseCustomDate = (dateString: string): Date | null => {
+const parseCustomDate = (dateString: any): Date | null => {
     if (!dateString || typeof dateString !== 'string') return null;
 
     const normalizedDateString = dateString.toLowerCase().replace(/\./g, '').replace('setiembre', 'septiembre');
@@ -131,13 +131,13 @@ export default function RegisterHealthPage() {
     const fetchRecords = async () => {
         try {
             const snapshot = await getDocs(collection(db, "registros-sanidad"));
-            const records: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+            const records: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             records.sort((a: any, b: any) => {
                 const valA = a['fechaAplicacion'];
                 const valB = b['fechaAplicacion'];
-                const dateA = parseCustomDate(typeof valA === 'string' ? valA : '');
-                const dateB = parseCustomDate(typeof valB === 'string' ? valB : '');
+                const dateA = parseCustomDate(valA);
+                const dateB = parseCustomDate(valB);
 
                 if (dateA && dateB) {
                     return dateB.getTime() - dateA.getTime();

@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that answers questions about field data using tools to search the database.
@@ -5,10 +6,11 @@
 
 import { ai } from '@/ai/genkit';
 import { getFirestore } from 'firebase-admin/firestore';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { getFirebaseAdmin } from './firebase-admin';
 
-const db = getFirestore(getFirebaseAdmin());
+const adminApp = getFirebaseAdmin();
+const db = getFirestore(adminApp);
 
 const AnswerFieldDataQueryInputSchema = z.object({
   query: z.string().describe('The question about the field data.'),
@@ -21,7 +23,7 @@ const AnswerFieldDataQueryOutputSchema = z.object({
 export type AnswerFieldDataQueryOutput = z.infer<typeof AnswerFieldDataQueryOutputSchema>;
 
 
-// Tool to get production records
+// Tool to get production activities
 const getProductionActivities = ai.defineTool(
   {
     name: 'getProductionActivities',
@@ -156,7 +158,7 @@ export const answerFieldDataQueryFlow = ai.defineFlow(
 export async function answerFieldDataQuery(input: AnswerFieldDataQueryInput): Promise<AnswerFieldDataQueryOutput> {
   const result = await answerFieldDataQueryFlow(input);
   if (!result || !result.answer) {
-    return { answer: "<p>The AI could not generate a response with the expected format. Try being more specific in your question.</p>" };
+    return { answer: "<p>The IA could not generate a response with the expected format. Try being more specific in your question.</p>" };
   }
   return result;
 }

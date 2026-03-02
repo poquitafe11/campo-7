@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Loader2, Pencil, Trash2, FileDown, Filter, List, UploadCloud, FileUp, X, CheckCircle } from "lucide-react";
+import { Loader2, Pencil, Trash2, FileDown, Filter, List, UploadCloud, FileUp, X, CircleCheck } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,8 +17,8 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDocs, writeBatch, serverTimestamp, query, orderBy, Timestamp } from "firebase/firestore";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -358,7 +358,7 @@ export default function Irrigation01DatabasePage() {
       }
       return formattedRecord;
     });
-    const worksheet = xlsx.utils.json_to_sheet(dataToExport);
+    const worksheet = xlsx.utils.json_to_sheet(formattedRecord);
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, "RegistrosRiego01");
     xlsx.writeFile(workbook, "RegistrosRiego01.xlsx");
@@ -501,7 +501,7 @@ export default function Irrigation01DatabasePage() {
                            <X className="h-4 w-4" />
                         </Button>
                         <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
-                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleCheck className="mr-2 h-4 w-4" />}
                         {isUploading ? 'Subiendo...' : 'Confirmar Carga'}
                         </Button>
                     </div>

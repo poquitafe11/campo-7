@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
@@ -35,7 +36,7 @@ import {
   FileUp,
   FileDown,
   Loader2,
-  CheckCircle,
+  CircleCheck,
   X,
 } from "lucide-react";
 import {
@@ -254,7 +255,11 @@ export default function AsistentesPage() {
 
   const handleEdit = (asistente: Asistente) => {
     setEditingAsistente(asistente);
-    form.reset(asistente);
+    form.reset({
+        dni: asistente.id,
+        nombre: asistente.assistantName,
+        cargo: asistente.cargo
+    });
   };
 
   const onSubmit = async (values: z.infer<typeof asistenteSchema>) => {
@@ -264,8 +269,8 @@ export default function AsistentesPage() {
         await setDoc(docRef, { nombre: values.nombre, cargo: values.cargo }, { merge: true });
 
         if (editingAsistente) {
-            if (editingAsistente.dni !== values.dni) {
-                await deleteDoc(doc(db, "asistentes", editingAsistente.dni!));
+            if (editingAsistente.id !== values.dni) {
+                await deleteDoc(doc(db, "asistentes", editingAsistente.id));
             }
             toast({ title: "Éxito", description: "Registro actualizado correctamente." });
             setEditingAsistente(null);
@@ -435,7 +440,7 @@ export default function AsistentesPage() {
               <X className="h-4 w-4" />
             </Button>
             <Button size="sm" onClick={handleConfirmUpload} disabled={isUploading}>
-              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleCheck className="mr-2 h-4 w-4" />}
               {isUploading ? 'Subiendo...' : 'Confirmar'}
             </Button>
           </div>
