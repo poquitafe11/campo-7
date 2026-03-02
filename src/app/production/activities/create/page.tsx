@@ -87,26 +87,25 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
 
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
     const totals = useMemo(() => {
-      if (!activities || activities.length === 0) return { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0, average: 0 };
+      const summary = { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0, average: 0 };
+      if (!activities || activities.length === 0) return summary;
       
-      const summary = activities.reduce((acc: any, curr: any) => {
-        acc.performance += Number(curr.performance) || 0;
-        acc.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
-        acc.personnelCount += Number(curr.personnelCount) || 0;
-        acc.workdayCount += Number(curr.workdayCount) || 0;
+      activities.forEach((curr: any) => {
+        summary.performance += Number(curr.performance) || 0;
+        summary.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
+        summary.personnelCount += Number(curr.personnelCount) || 0;
+        summary.workdayCount += Number(curr.workdayCount) || 0;
         
         const min = Number(curr.minRange) || 0;
         const max = Number(curr.maxRange) || 0;
         
         if (min > 0) {
-          acc.minRange = acc.minRange === 0 ? min : Math.min(acc.minRange, min);
+          summary.minRange = summary.minRange === 0 ? min : Math.min(summary.minRange, min);
         }
         if (max > 0) {
-          acc.maxRange = Math.max(acc.maxRange, max);
+          summary.maxRange = Math.max(summary.maxRange, max);
         }
-        
-        return acc;
-      }, { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0 });
+      });
       
       const numerator = showExtraPerformanceField ? summary.clustersOrJabas : summary.performance;
       summary.average = summary.workdayCount > 0 ? numerator / summary.workdayCount : 0;
@@ -133,7 +132,7 @@ export default function CreateActivityPage() {
   const { toast } = useToast();
   const { profile } = useAuth();
   const [isPending, startTransition] = useTransition();
-  const { labors, lotes, asistentes, presupuestos, minMax, loading: masterLoading, refreshData } = useMasterData();
+  const { labors, lotes, asistentes, presupuestos, minMax, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
   const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
   
@@ -213,13 +212,13 @@ export default function CreateActivityPage() {
   const codeValue = formMode === 'individual' ? singleCodeValue : headerCodeValue;
   
   const uniqueLotes = useMemo(() => {
-    const lotesMap = new Map<string, LoteData>();
+    const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
-      if (!lotesMap.has(lote.lote)) {
-        lotesMap.set(lote.lote, lote);
+      if (!map.has(lote.lote)) {
+        map.set(lote.lote, lote);
       }
     });
-    return Array.from(lotesMap.values());
+    return Array.from(map.values());
   }, [lotes]);
 
   useEffect(() => {

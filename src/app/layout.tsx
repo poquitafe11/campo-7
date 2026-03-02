@@ -1,7 +1,4 @@
-
 import type { Metadata, Viewport } from 'next';
-import Head from 'next/head';
-import Script from 'next/script';
 import './globals.css';
 import { AppDataProvider } from '@/context/AppDataContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -21,12 +18,6 @@ export const metadata: Metadata = {
     template: `%s - ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: APP_NAME,
-  },
   icons: [
     { rel: "icon", url: "/icon-7.svg" },
     { rel: "apple-touch-icon", url: "/icon-7.svg" },

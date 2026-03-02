@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -138,7 +137,7 @@ export default function ActivityDatabasePage() {
         rol: 'Admin',
         active: true,
         dni: '12345678',
-        celular: '000000000'
+        celular: '987654321'
     });
     return map;
   }, [users]);

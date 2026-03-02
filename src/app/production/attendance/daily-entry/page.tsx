@@ -79,8 +79,8 @@ const assistantInFormSchema = z.object({
     absentCount: z.number(),
     supportedLabor: z.string().optional(),
   })),
-  personnelCount: z.number().optional(), // Make optional as it will be derived from jaladores
-  absentCount: z.number().optional(), // Make optional as it will be derived from jaladores
+  personnelCount: z.number().optional(),
+  absentCount: z.number().optional(),
 });
 
 
@@ -103,7 +103,7 @@ export default function DailyEntryPage() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAddAssistantDialogOpen, setIsAddAssistantDialogOpen] = useState(false);
+  const [isAddAssistantDialogOpen, setAddAssistantDialogOpen] = useState(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const { labors, lotes, asistentes: masterAssistants, loading: masterLoading } = useMasterData();
   const [laborsOnSameDay, setLaborsOnSameDay] = useState<Labor[]>([]);
@@ -131,13 +131,13 @@ export default function DailyEntryPage() {
   }, [loteIdValue, lotes]);
 
   const uniqueLotes = useMemo(() => {
-    const lotesMap = new Map<string, LoteData>();
+    const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
-      if (!lotesMap.has(lote.lote)) {
-        lotesMap.set(lote.lote, lote);
+      if (!map.has(lote.lote)) {
+        map.set(lote.lote, lote);
       }
     });
-    return Array.from(lotesMap.values());
+    return Array.from(map.values());
   }, [lotes]);
 
   const totals = useMemo(() => {
@@ -191,7 +191,7 @@ export default function DailyEntryPage() {
     const laborsSet = new Set<string>();
     querySnapshot.forEach(doc => {
       const data = doc.data();
-      if(data.labor && data.code !== '903') { // Exclude assistants labor itself
+      if(data.labor && data.code !== '903') {
         laborsSet.add(data.labor);
       }
     });
@@ -295,7 +295,6 @@ export default function DailyEntryPage() {
         let finalAssistants = assistantsToSave;
 
         if (docSnap.exists()) {
-            // Document exists, merge new assistants with existing ones.
             const existingData = docSnap.data() as AttendanceRecord;
             const existingAssistants = existingData.assistants || [];
             
@@ -344,7 +343,6 @@ export default function DailyEntryPage() {
         }, { personnelCount: 0, absentCount: 0 });
 
         if (docSnap.exists()) {
-            // Update existing document
              await updateDoc(docRef, {
                 assistants: assistantsPayload,
                 totals: recordTotals,
@@ -352,7 +350,6 @@ export default function DailyEntryPage() {
                 lastModifiedAt: serverTimestamp(),
              });
         } else {
-            // Create new document
             const finalData = {
                 date: format(data.date, 'yyyy-MM-dd'),
                 lote: data.lote,

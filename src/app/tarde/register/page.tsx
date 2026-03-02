@@ -25,7 +25,6 @@ import type { LoteData } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { WorkerMasterItem } from '@/lib/types';
 
-// Schema for the main form
 const afternoonRegisterSchema = z.object({
   date: z.date({ required_error: "La fecha es requerida." }),
   lote: z.string().min(1, "El lote es requerido."),
@@ -107,13 +106,13 @@ export default function RegisterTardePage() {
   }, [codeValue, labors, form]);
 
   const uniqueLotes = useMemo(() => {
-    const lotesMap = new Map<string, LoteData>();
+    const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
-      if (!lotesMap.has(lote.lote)) {
-        lotesMap.set(lote.lote, lote);
+      if (!map.has(lote.lote)) {
+        map.set(lote.lote, lote);
       }
     });
-    return Array.from(lotesMap.values());
+    return Array.from(map.values());
   }, [lotes]);
 
   const handleManualAdd = (trabajadoresList: WorkerMasterItem[]) => {

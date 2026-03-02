@@ -1,6 +1,14 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence, initializeFirestore, CACHE_SIZE_UNLIMITED, type Firestore, enableNetwork, disableNetwork } from "firebase/firestore";
+import { 
+  getFirestore, 
+  initializeFirestore, 
+  type Firestore, 
+  enableNetwork, 
+  disableNetwork,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from "firebase/firestore";
 import { getAuth, initializeAuth, indexedDBLocalPersistence, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -15,7 +23,6 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
-let persistenceEnabled = false;
 
 const OFFLINE_PERSISTENCE_KEY = 'firebase-offline-mode';
 
@@ -26,13 +33,17 @@ export const isOffline = () => {
   return false;
 };
 
-// This function will be the single point of entry for getting Firebase services.
 export function getFirebase() {
     if (!getApps().length) {
         app = initializeApp(firebaseConfig);
         if (typeof window !== 'undefined') {
             auth = initializeAuth(app, { persistence: indexedDBLocalPersistence });
-            db = initializeFirestore(app, { cacheSizeBytes: CACHE_SIZE_UNLIMITED });
+            // Using modern persistent cache configuration to avoid deprecation warnings
+            db = initializeFirestore(app, { 
+                localCache: persistentLocalCache({
+                    tabManager: persistentMultipleTabManager()
+                })
+            });
         } else {
             auth = getAuth(app);
             db = getFirestore(app);
@@ -53,36 +64,12 @@ export function getFirebase() {
     return { app, db, auth };
 }
 
-
-export async function enableFirebasePersistence() {
-    if (typeof window !== 'undefined' && !persistenceEnabled) {
-        const { db: firestoreDb } = getFirebase();
-        try {
-            await enableIndexedDbPersistence(firestoreDb);
-            persistenceEnabled = true;
-            console.log("Firebase persistence enabled.");
-            if (isOffline()) {
-                console.log("NETWORK CONTROL: Starting in offline mode as per saved preference.");
-                await disableNetwork(firestoreDb);
-            }
-        } catch (err: any) {
-            if (err.code === 'failed-precondition') {
-                console.warn("Firestore persistence failed: Multiple tabs open. Offline data will not be saved.");
-            } else if (err.code === 'unimplemented') {
-                console.warn("Firestore persistence failed: Browser does not support it.");
-            }
-        }
-    }
-}
-
-
 export const goOffline = async () => {
   if (typeof window !== 'undefined') {
     const { db: firestoreDb } = getFirebase();
     window.localStorage.setItem(OFFLINE_PERSISTENCE_KEY, 'true');
     await disableNetwork(firestoreDb);
     window.dispatchEvent(new CustomEvent('online-status-changed'));
-    console.log("NETWORK CONTROL: Network DISABLED. App is now explicitly offline.");
   }
 };
 
@@ -92,15 +79,12 @@ export const goOnline = async () => {
     window.localStorage.removeItem(OFFLINE_PERSISTENCE_KEY);
     await enableNetwork(firestoreDb);
     window.dispatchEvent(new CustomEvent('online-status-changed'));
-    console.log("NETWORK CONTROL: Network ENABLED. App is now explicitly online.");
   }
 };
 
-// Initialize and export immediately for files that import `db` directly.
-({ db, app, auth } = getFirebase());
-if (typeof window !== 'undefined') {
-    enableFirebasePersistence();
-}
-
+const instances = getFirebase();
+db = instances.db;
+app = instances.app;
+auth = instances.auth;
 
 export { db, app, auth };

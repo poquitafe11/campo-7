@@ -223,13 +223,13 @@ export default function MinMaxPage() {
   };
   
   const uniqueLotes = useMemo(() => {
-    const lotesMap = new Map<string, {id: string, lote: string}>();
+    const map = new Map<string, {id: string, lote: string}>();
     lotes.forEach(lote => {
-      if (!lotesMap.has(lote.lote)) {
-        lotesMap.set(lote.lote, { id: lote.id, lote: lote.lote });
+      if (!map.has(lote.lote)) {
+        map.set(lote.lote, { id: lote.id, lote: lote.lote });
       }
     });
-    return Array.from(lotesMap.values());
+    return Array.from(map.values());
   }, [lotes]);
 
   const form = useForm<z.infer<typeof minMaxSchema>>({
