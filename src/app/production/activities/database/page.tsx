@@ -63,7 +63,6 @@ const getInitialFilters = (): Filters => ({
     dateRange: { from: undefined, to: undefined },
 });
 
-// Define calculation functions BEFORE the component to avoid ReferenceError
 const calculateCostoLabor = (reg: ActivityRecordWithId): number => {
   const cost = reg.cost || 0;
   const specialLabors = ['46', '67'];
@@ -122,7 +121,6 @@ export default function ActivityDatabasePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Memoize maps BEFORE using them in columns
   const userMap = useMemo(() => {
     const map = new Map<string, User>();
     users.forEach(user => { if(user.email) map.set(user.email, user); });
@@ -257,7 +255,7 @@ export default function ActivityDatabasePage() {
     },
   ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap, minMaxMap, assistantMap]);
 
-  useEffect(() => { setActions({ title: "Base de Datos de Actividades", right: <Button onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button> }); return () => setActions({}); }, [setActions, fetchData, loading]);
+  useEffect(() => { setActions({ title: "Base de Datos de Actividades", right: <Button id="db-refresh-btn" name="db-refresh-btn" onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button> }); return () => setActions({}); }, [setActions, fetchData, loading]);
 
   const handleEdit = (activity: ActivityRecordWithId) => { setSelectedActivity(activity); setIsEditDialogOpen(true); };
   const handleDelete = (id: string) => { startTransition(async () => { try { await deleteDoc(doc(db, 'actividades', id)); toast({ title: "Éxito", description: "Actividad eliminada correctamente." }); setData(prev => prev.filter(item => item.id !== id)); } catch(e) { toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la actividad." }); } }); };
@@ -299,7 +297,7 @@ export default function ActivityDatabasePage() {
             <Input id="global-search-input" name="global-search-input" placeholder="Buscar por labor, lote..." value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="w-full sm:max-w-sm h-9" />
             <div className="flex items-center gap-2">
                 <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                    <PopoverTrigger asChild><Button variant="outline" size="sm" className="h-9"><Filter className="mr-2 h-4 w-4" /> Filtros</Button></PopoverTrigger>
+                    <PopoverTrigger asChild><Button id="filter-popover-trigger" name="filter-popover-trigger" variant="outline" size="sm" className="h-9"><Filter className="mr-2 h-4 w-4" /> Filtros</Button></PopoverTrigger>
                     <PopoverContent className="w-80" align="end">
                         <div className="grid gap-4">
                             <h4 className="font-medium leading-none">Filtros Avanzados</h4>
@@ -311,15 +309,15 @@ export default function ActivityDatabasePage() {
                                 <Label htmlFor="date-range-filter">Rango de Fecha</Label>
                                 <Popover><PopoverTrigger asChild><Button id="date-range-filter" name="date-range-filter" variant={'outline'} className={cn('w-full justify-start text-left font-normal h-9', !popoverFilters.dateRange?.from && 'text-muted-foreground' )}><CalendarIcon className="mr-2 h-4 w-4" /> {popoverFilters.dateRange?.from ? (popoverFilters.dateRange.to ? (<>{format(popoverFilters.dateRange.from, 'LLL dd', { locale: es })} - {format(popoverFilters.dateRange.to, 'LLL dd', { locale: es })}</>) : (format(popoverFilters.dateRange.from, 'LLL dd', { locale: es }))) : (<span>Seleccione rango</span>)}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar initialFocus mode="range" selected={popoverFilters.dateRange} onSelect={(r) => setPopoverFilters(p => ({...p, dateRange: r}))} locale={es}/></PopoverContent></Popover>
                             </div>
-                            <div className="flex justify-between items-center pt-2"><Button variant="ghost" size="sm" onClick={() => { const cl = getInitialFilters(); setPopoverFilters(cl); setActiveFilters(cl); setIsFilterOpen(false); }}>Limpiar</Button><Button size="sm" onClick={() => { setActiveFilters(popoverFilters); setIsFilterOpen(false); }}>Aplicar</Button></div>
+                            <div className="flex justify-between items-center pt-2"><Button id="clear-filters-btn" name="clear-filters-btn" variant="ghost" size="sm" onClick={() => { const cl = getInitialFilters(); setPopoverFilters(cl); setActiveFilters(cl); setIsFilterOpen(false); }}>Limpiar</Button><Button id="apply-filters-btn" name="apply-filters-btn" size="sm" onClick={() => { setActiveFilters(popoverFilters); setIsFilterOpen(false); }}>Aplicar</Button></div>
                         </div>
                     </PopoverContent>
                 </Popover>
-                <Button onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} size="sm" className="h-9"><FileDown className="h-4 w-4 mr-2" /> Descargar</Button>
+                <Button id="download-excel-btn" name="download-excel-btn" onClick={handleDownload} disabled={table.getRowModel().rows.length === 0} size="sm" className="h-9"><FileDown className="h-4 w-4 mr-2" /> Descargar</Button>
             </div>
         </div>
         <div className="flex-1 rounded-lg border overflow-x-auto min-h-0"><Table><TableHeader>{table.getHeaderGroups().map((hg) => (<TableRow key={hg.id}>{hg.headers.map((h) => (<TableHead key={h.id} className="whitespace-nowrap px-3 py-2 text-xs">{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}</TableRow>))}</TableHeader><TableBody>{(loading || masterLoading) ? (<TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /></TableCell></TableRow>) : table.getRowModel().rows?.length ? (table.getRowModel().rows.map((row) => (<TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id} className="whitespace-nowrap px-3 py-2 text-xs">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>))) : (<TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No se encontraron registros.</TableCell></TableRow>)}</TableBody></Table></div>
-        <div className="flex items-center justify-between gap-2 flex-wrap"><div className="flex items-center gap-2"><Select value={`${table.getState().pagination.pageSize}`} onValueChange={(v) => table.setPageSize(Number(v))}><SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Mostrar..." /></SelectTrigger><SelectContent>{[10, 20, 50, 100, 500].map((ps) => (<SelectItem key={ps} value={`${ps}`}>Mostrar {ps}</SelectItem>))}</SelectContent></Select><span className="text-sm text-muted-foreground whitespace-nowrap">Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} de {table.getFilteredRowModel().rows.length}</span></div><div className="flex items-center gap-2"><Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className="h-9 w-9 p-0"><ChevronsLeft className="h-4 w-4" /></Button><Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="h-9 px-3"><ChevronLeft className="h-4 w-4 mr-1" /> Ant.</Button><span className="text-sm font-medium">{table.getState().pagination.pageIndex + 1} / {table.getPageCount()}</span><Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="h-9 px-3">Sig. <ChevronRight className="h-4 w-4 ml-1" /></Button><Button variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className="h-9 w-9 p-0"><ChevronsRight className="h-4 w-4" /></Button></div></div>
+        <div className="flex items-center justify-between gap-2 flex-wrap"><div className="flex items-center gap-2"><Select value={`${table.getState().pagination.pageSize}`} onValueChange={(v) => table.setPageSize(Number(v))}><SelectTrigger id="page-size-select" name="page-size-select" className="w-[130px] h-9"><SelectValue placeholder="Mostrar..." /></SelectTrigger><SelectContent>{[10, 20, 50, 100, 500].map((ps) => (<SelectItem key={ps} value={`${ps}`}>Mostrar {ps}</SelectItem>))}</SelectContent></Select><span className="text-sm text-muted-foreground whitespace-nowrap">Fila {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}-{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} de {table.getFilteredRowModel().rows.length}</span></div><div className="flex items-center gap-2"><Button id="first-page-btn" name="first-page-btn" variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className="h-9 w-9 p-0"><ChevronsLeft className="h-4 w-4" /></Button><Button id="prev-page-btn" name="prev-page-btn" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="h-9 px-3"><ChevronLeft className="h-4 w-4 mr-1" /> Ant.</Button><span className="text-sm font-medium">{table.getState().pagination.pageIndex + 1} / {table.getPageCount()}</span><Button id="next-page-btn" name="next-page-btn" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="h-9 px-3">Sig. <ChevronRight className="h-4 w-4 ml-1" /></Button><Button id="last-page-btn" name="last-page-btn" variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className="h-9 w-9 p-0"><ChevronsRight className="h-4 w-4" /></Button></div></div>
         {selectedActivity && (<EditActivityDialog isOpen={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} activity={selectedActivity} onSuccess={() => { setIsEditDialogOpen(false); setSelectedActivity(null); fetchData(); }} />)}
     </div>
   );

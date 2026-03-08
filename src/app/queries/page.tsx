@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -87,7 +86,7 @@ export default function QueriesPage() {
                 )}
               />
               <div className="flex flex-wrap gap-4 items-center">
-                <Button type="submit" size="lg" disabled={isLoading}>
+                <Button type="submit" size="lg" disabled={isLoading} id="query-submit-btn" name="query-submit-btn">
                   {isLoading ? (
                     <>
                       <Sparkles className="mr-2 h-4 w-4 animate-spin" />
