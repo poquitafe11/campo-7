@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -219,13 +220,18 @@ export default function AddAssistantDialog({
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Agregar Asistente y su Personal</DialogTitle>
+          <DialogDescription>
+            Selecciona un encargado y registra el personal por jalador para la asistencia.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Paso 1: Seleccionar Asistente/Encargado</Label>
+            <Label htmlFor="assistant-search-at">Paso 1: Seleccionar Asistente/Encargado</Label>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
               <Input
+                id="assistant-search-at"
+                name="assistant-search-at"
                 placeholder="Buscar por nombre o DNI..."
                 value={assistantSearch}
                 onChange={e => {
@@ -268,7 +274,7 @@ export default function AddAssistantDialog({
                  <div className="space-y-1">
                     <Label htmlFor="supported-labor" className="text-xs">Labor Apoyada (Opcional)</Label>
                     <Select onValueChange={setSupportedLabor} value={supportedLabor}>
-                        <SelectTrigger id="supported-labor">
+                        <SelectTrigger id="supported-labor" name="supported-labor">
                             <SelectValue placeholder="Seleccionar labor..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -282,11 +288,12 @@ export default function AddAssistantDialog({
               )}
               <div className="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2">
                 <div className="relative space-y-1">
-                  <Label htmlFor="jalador-search" className="text-xs">Jalador</Label>
+                  <Label htmlFor="jalador-search-at" className="text-xs">Jalador</Label>
                    <div className="relative">
                       <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                       <Input
-                        id="jalador-search"
+                        id="jalador-search-at"
+                        name="jalador-search-at"
                         placeholder="Buscar..."
                         value={jaladorSearch}
                         onChange={(e) => {
@@ -318,12 +325,12 @@ export default function AddAssistantDialog({
                   )}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Personal</Label>
-                  <Input type="number" min="0" value={personnelCount} onChange={(e) => setPersonnelCount(e.target.value)} />
+                  <Label htmlFor="at-pers-count" className="text-xs">Personal</Label>
+                  <Input id="at-pers-count" name="at-pers-count" type="number" min="0" value={personnelCount} onChange={(e) => setPersonnelCount(e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Faltos</Label>
-                  <Input type="number" min="0" value={absentCount} onChange={(e) => setAbsentCount(e.target.value)} />
+                  <Label htmlFor="at-absent-count" className="text-xs">Faltos</Label>
+                  <Input id="at-absent-count" name="at-absent-count" type="number" min="0" value={absentCount} onChange={(e) => setAbsentCount(e.target.value)} />
                 </div>
                 <Button type="button" size="icon" onClick={handleAddJaladorToList}>
                   <PlusCircle className="h-4 w-4" />

@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,13 +89,18 @@ export default function AddAssistantActivityDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Seleccionar Asistente</DialogTitle>
+          <DialogDescription>
+            Busca un asistente por nombre o DNI para agregarlo a la ficha de labor grupal.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
             <div className="space-y-2">
-                <Label>Buscar Asistente/Encargado</Label>
+                <Label htmlFor="search-assistant-input">Buscar Asistente/Encargado</Label>
                 <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                     <Input
+                        id="search-assistant-input"
+                        name="search-assistant-input"
                         placeholder="Buscar por nombre o DNI..."
                         value={assistantSearch}
                         onChange={e => {
