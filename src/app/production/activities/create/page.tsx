@@ -6,7 +6,6 @@ import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import html2canvas from 'html2canvas';
 import {
   Calendar as CalendarIcon,
   Users,
@@ -137,7 +136,7 @@ export default function CreateActivityPage() {
   const { setActions } = useHeaderActions();
   const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
   
-  const [isAddActivityDialogOpen, setAddActivityDialogOpen] = useState(false);
+  const [isAddActivityDialogOpen, setIsAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
@@ -245,7 +244,7 @@ export default function CreateActivityPage() {
     if (profile?.email) {
       singleForm.setValue('createdBy', profile.email);
     }
-     if (profile) {
+    if (profile) {
        singleForm.setValue('assistantDni', profile.dni || '');
        singleForm.setValue('assistantName', profile.nombre || '');
     }
@@ -260,6 +259,8 @@ export default function CreateActivityPage() {
     if (!tableRef.current || groupActivities.length === 0) return;
     
     try {
+      // Dynamic import to avoid build errors if the module is resolved differently in various environments
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(tableRef.current, {
         scale: 2,
         backgroundColor: "#ffffff",
@@ -656,7 +657,7 @@ export default function CreateActivityPage() {
                         </Table>
                     </div>
                     <div className="flex items-center gap-2 mt-2">
-                        <Button type="button" variant="outline" size="sm" onClick={() => setAddActivityDialogOpen(true)}>
+                        <Button type="button" variant="outline" size="sm" onClick={() => setIsAddActivityDialogOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
                         </Button>
                         <Button type="button" variant="outline" size="sm" onClick={handleCaptureTable} disabled={groupActivities.length === 0}>
@@ -678,7 +679,7 @@ export default function CreateActivityPage() {
 
        <AddAssistantActivityDialog
           isOpen={isAddActivityDialogOpen}
-          setIsOpen={setAddActivityDialogOpen}
+          setIsOpen={setIsAddActivityDialogOpen}
           onSelectAssistant={handleAddAssistant}
           currentAssistantsDnis={groupActivities.map(f => f.assistantDni)}
        />
