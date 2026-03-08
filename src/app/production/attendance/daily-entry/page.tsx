@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -17,10 +16,8 @@ import {
   PlusCircle,
   Trash2,
   Loader2,
-  ChevronDown,
   Clock,
 } from 'lucide-react';
-import { onAuthStateChanged } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -46,7 +43,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { type Assistant, type Labor, type LoteData, type AttendanceRecord, type JaladorAttendance } from '@/lib/types';
+import { type Assistant, type Labor, type LoteData, type AttendanceRecord } from '@/lib/types';
 import AddAssistantDialog from '@/components/AddAssistantDialog';
 import {
   Table,
@@ -62,9 +59,8 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs, serverTimestamp, Timestamp, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
 
 const assistantInFormSchema = z.object({
@@ -83,7 +79,6 @@ const assistantInFormSchema = z.object({
   absentCount: z.number().optional(),
 });
 
-
 const attendanceFormSchema = z.object({
   date: z.date({
     required_error: 'La fecha es obligatoria.',
@@ -97,16 +92,16 @@ const attendanceFormSchema = z.object({
 
 type AttendanceFormValues = z.infer<typeof attendanceFormSchema>;
 
-
 export default function DailyEntryPage() {
   const { setActions } = useHeaderActions();
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAddAssistantDialogOpen, setAddAssistantDialogOpen] = useState(false);
+  const [isAddAssistantDialogOpen, setIsAddAssistantDialogOpen] = useState(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
-  const { labors, lotes, asistentes: masterAssistants, loading: masterLoading } = useMasterData();
+  const { labors, lotes, loading: masterLoading } = useMasterData();
   const [laborsOnSameDay, setLaborsOnSameDay] = useState<Labor[]>([]);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceFormSchema),
@@ -124,7 +119,6 @@ export default function DailyEntryPage() {
   const loteIdValue = useWatch({ control: form.control, name: 'lote' });
   const laborValue = useWatch({ control: form.control, name: 'labor' });
   const dateValue = useWatch({ control: form.control, name: 'date' });
-
 
   const selectedLoteData = useMemo(() => {
     return lotes.find(l => l.id === loteIdValue);
@@ -169,10 +163,8 @@ export default function DailyEntryPage() {
       } else {
         form.setValue('labor', '', { shouldValidate: true });
       }
-    } else {
-        if (!form.getValues('labor')) {
-            form.setValue('labor', '', { shouldValidate: true });
-        }
+    } else if (!form.getValues('labor')) {
+        form.setValue('labor', '', { shouldValidate: true });
     }
   }, [codeValue, labors, form]);
 
@@ -203,7 +195,6 @@ export default function DailyEntryPage() {
     fetchLaborsOnSameDay();
   }, [fetchLaborsOnSameDay]);
 
-
   useEffect(() => {
     form.setValue('assistants', assistants, { shouldValidate: true });
   }, [assistants, form]);
@@ -212,23 +203,19 @@ export default function DailyEntryPage() {
     if (codeValue === '902' && selectedLoteData && profile) {
         const currentUserDni = profile.dni;
         const currentUserName = profile.nombre;
-        
         const alreadyExists = assistants.some(a => a.assistantDni === currentUserDni);
-
         if (!alreadyExists) {
             const newUserAssistant: Assistant = {
                 id: crypto.randomUUID(),
                 assistantDni: currentUserDni,
                 assistantName: currentUserName,
-                jaladores: [
-                    {
-                        id: crypto.randomUUID(),
-                        jaladorId: 'empresa',
-                        jaladorAlias: 'Empresa',
-                        personnelCount: 1,
-                        absentCount: 0,
-                    }
-                ]
+                jaladores: [{
+                    id: crypto.randomUUID(),
+                    jaladorId: 'empresa',
+                    jaladorAlias: 'Empresa',
+                    personnelCount: 1,
+                    absentCount: 0,
+                }]
             };
             setAssistants(prev => [...prev, newUserAssistant]);
             toast({ title: "Asistencia de Supervisor", description: `Se agregó a ${currentUserName} con 1 persona.` });
@@ -238,21 +225,10 @@ export default function DailyEntryPage() {
 
   const handleAddAssistant = (newAssistant: Omit<Assistant, 'id'>) => {
     if (!selectedLoteData || !laborValue) return;
-
     const personnelCount = newAssistant.jaladores.reduce((sum, j) => sum + (Number(j.personnelCount) || 0), 0);
     const absentCount = newAssistant.jaladores.reduce((sum, j) => sum + (Number(j.absentCount) || 0), 0);
-    
-    setAssistants((prev) => [
-      ...prev,
-      { 
-        ...newAssistant, 
-        id: crypto.randomUUID(),
-        personnelCount,
-        absentCount
-      },
-    ]);
+    setAssistants((prev) => [...prev, { ...newAssistant, id: crypto.randomUUID(), personnelCount, absentCount }]);
   };
-
 
   const handleDeleteAssistant = (id: string) => {
     setAssistants((prev) => prev.filter((a) => a.id !== id));
@@ -265,17 +241,11 @@ export default function DailyEntryPage() {
         setIsSubmitting(false);
         return;
     }
-    
-    const assistantsToSave = assistants;
-    
-    if (assistantsToSave.length === 0) {
+    if (assistants.length === 0) {
         toast({ variant: 'destructive', title: 'Lista Vacía', description: 'Añade al menos un asistente a la lista antes de guardar.' });
         setIsSubmitting(false);
         return;
     }
-
-    const attendanceCollectionRef = collection(db, 'asistencia');
-    
     const loteMasterData = lotes.find(l => l.id === data.lote);
     if (!loteMasterData) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se encontró el lote maestro seleccionado.' });
@@ -285,108 +255,40 @@ export default function DailyEntryPage() {
     const laborMasterData = labors.find(l => l.descripcion === data.labor || l.codigo === data.code);
     const laborCode = laborMasterData?.codigo || '';
     const laborDesc = laborMasterData?.descripcion || data.labor || '';
-
-    const sanitizedLaborDesc = laborDesc.replace(/[\s\/]/g, '-');
-    const docId = `${format(data.date, 'yyyy-MM-dd')}-${loteMasterData.lote}-${sanitizedLaborDesc}-${data.turno}`;
-    const docRef = doc(attendanceCollectionRef, docId);
+    const docId = `${format(data.date, 'yyyy-MM-dd')}-${loteMasterData.lote}-${laborDesc.replace(/[\s\/]/g, '-')}-${data.turno}`;
+    const docRef = doc(db, 'asistencia', docId);
 
     try {
         const docSnap = await getDoc(docRef);
-        let finalAssistants = assistantsToSave;
-
+        let finalAssistants = assistants;
         if (docSnap.exists()) {
             const existingData = docSnap.data() as AttendanceRecord;
             const existingAssistants = existingData.assistants || [];
-            
-            const newAssistantsMap = new Map(assistantsToSave.map(a => [a.assistantDni, a]));
-            const mergedAssistants = existingAssistants.map(existingA => 
-                newAssistantsMap.has(existingA.assistantDni) ? newAssistantsMap.get(existingA.assistantDni)! : existingA
-            );
-
+            const newAssistantsMap = new Map(assistants.map(a => [a.assistantDni, a]));
+            const mergedAssistants = existingAssistants.map(exA => newAssistantsMap.has(exA.assistantDni) ? newAssistantsMap.get(exA.assistantDni)! : exA);
             newAssistantsMap.forEach((newA, dni) => {
-                if (!mergedAssistants.some(a => a.assistantDni === dni)) {
-                    mergedAssistants.push(newA);
-                }
+                if (!mergedAssistants.some(a => a.assistantDni === dni)) mergedAssistants.push(newA);
             });
             finalAssistants = mergedAssistants;
         }
-
-
         const assistantsPayload = finalAssistants.map(a => ({
-            id: a.id,
-            assistantDni: a.assistantDni,
-            assistantName: a.assistantName,
-            jaladores: (a.jaladores || []).map(j => {
-                const jaladorData: Partial<JaladorAttendance> = {
-                    id: j.id,
-                    jaladorId: j.jaladorId,
-                    jaladorAlias: j.jaladorAlias,
-                    personnelCount: j.personnelCount,
-                    absentCount: j.absentCount,
-                };
-                if (j.supportedLabor) {
-                    jaladorData.supportedLabor = j.supportedLabor;
-                }
-                return jaladorData as JaladorAttendance;
-            }),
+            id: a.id, assistantDni: a.assistantDni, assistantName: a.assistantName,
+            jaladores: (a.jaladores || []).map(j => ({ id: j.id, jaladorId: j.jaladorId, jaladorAlias: j.jaladorAlias, personnelCount: j.personnelCount, absentCount: j.absentCount, supportedLabor: j.supportedLabor })),
         }));
-
         const recordTotals = assistantsPayload.reduce((acc, a) => {
-            const assistantTotals = (a.jaladores || []).reduce((jAcc, j) => {
-                jAcc.personnelCount += j.personnelCount || 0;
-                jAcc.absentCount += j.absentCount || 0;
-                return jAcc;
-            }, { personnelCount: 0, absentCount: 0 });
-            acc.personnelCount += assistantTotals.personnelCount;
-            acc.absentCount += assistantTotals.absentCount;
-            return acc;
+            const jTotals = a.jaladores.reduce((jAcc, j) => { jAcc.personnelCount += j.personnelCount || 0; jAcc.absentCount += j.absentCount || 0; return jAcc; }, { personnelCount: 0, absentCount: 0 });
+            acc.personnelCount += jTotals.personnelCount; acc.absentCount += jTotals.absentCount; return acc;
         }, { personnelCount: 0, absentCount: 0 });
 
         if (docSnap.exists()) {
-             await updateDoc(docRef, {
-                assistants: assistantsPayload,
-                totals: recordTotals,
-                lastModifiedBy: auth.currentUser.email,
-                lastModifiedAt: serverTimestamp(),
-             });
+             await updateDoc(docRef, { assistants: assistantsPayload, totals: recordTotals, lastModifiedBy: auth.currentUser.email, lastModifiedAt: serverTimestamp() });
         } else {
-            const finalData = {
-                date: format(data.date, 'yyyy-MM-dd'),
-                lote: data.lote,
-                lotName: loteMasterData.lote,
-                turno: data.turno,
-                variedad: loteMasterData.variedad,
-                fechaCianamida: loteMasterData.fechaCianamida,
-                campana: loteMasterData.campana,
-                code: laborCode,
-                labor: laborDesc,
-                assistants: assistantsPayload,
-                totals: recordTotals,
-                registeredBy: auth.currentUser?.email,
-                createdAt: serverTimestamp(),
-                lastModifiedBy: auth.currentUser?.email,
-                lastModifiedAt: serverTimestamp(),
-            };
-            await setDoc(docRef, finalData);
+            await setDoc(docRef, { date: format(data.date, 'yyyy-MM-dd'), lote: data.lote, lotName: loteMasterData.lote, turno: data.turno, variedad: loteMasterData.variedad, fechaCianamida: loteMasterData.fechaCianamida, campana: loteMasterData.campana, code: laborCode, labor: laborDesc, assistants: assistantsPayload, totals: recordTotals, registeredBy: auth.currentUser.email, createdAt: serverTimestamp(), lastModifiedBy: auth.currentUser.email, lastModifiedAt: serverTimestamp() });
         }
-
-        toast({
-            title: "Operación Completada",
-            description: `Registro guardado con éxito.`,
-        });
-
+        toast({ title: "Operación Completada", description: `Registro guardado con éxito.` });
         fetchLaborsOnSameDay();
-
-        form.reset({
-          date: new Date(),
-          lote: '',
-          turno: '',
-          code: '',
-          labor: '',
-          assistants: [],
-        });
+        form.reset({ date: new Date(), lote: '', turno: '', code: '', labor: '', assistants: [] });
         setAssistants([]);
-
     } catch (error: any) {
          console.error("Error en transacción de guardado:", error);
          toast({ variant: 'destructive', title: "Error", description: error.message || `No se pudo guardar el registro.` });
@@ -395,193 +297,56 @@ export default function DailyEntryPage() {
     }
   }
 
-  const canAddAssistant = !!loteIdValue && !!laborValue;
-
-
   return (
     <div className="p-4 space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" /> Fecha
-                </FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                      >
-                        {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
-                        initialFocus
-                        locale={es}
-                      />
-                  </PopoverContent>
+          <FormField control={form.control} name="date" render={({ field }) => (
+              <FormItem className="flex flex-col"><FormLabel htmlFor="date-input" className="flex items-center gap-2"><CalendarIcon className="h-4 w-4" /> Fecha</FormLabel>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild><FormControl><Button id="date-input" name="date-input" variant={'outline'} className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>{field.value ? format(field.value, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} disabled={(date) => date > new Date() || date < new Date('1900-01-01')} initialFocus locale={es}/></PopoverContent>
                 </Popover>
                 <FormMessage />
               </FormItem>
             )}
           />
-
          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="lote"
-              render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2">
-                  <Sprout className="h-4 w-4" /> Lote
-                </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger><SelectValue placeholder="Selecciona un lote" /></SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {uniqueLotes
-                       .sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}))
-                       .map((lote) => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+            <FormField control={form.control} name="lote" render={({ field }) => (
+              <FormItem><FormLabel htmlFor="lote-select" className="flex items-center gap-2"><Sprout className="h-4 w-4" /> Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id="lote-select" name="lote-select"><SelectValue placeholder="Selecciona un lote" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true})).map((lote) => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="turno"
-              render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" /> Turno
-                </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger><SelectValue placeholder="Selecciona un turno" /></SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                      <SelectItem value="Mañana">Mañana</SelectItem>
-                      <SelectItem value="Tarde">Tarde</SelectItem>
-                      <SelectItem value="Noche">Noche</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+            <FormField control={form.control} name="turno" render={({ field }) => (
+              <FormItem><FormLabel htmlFor="turno-select" className="flex items-center gap-2"><Clock className="h-4 w-4" /> Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id="turno-select" name="turno-select"><SelectValue placeholder="Selecciona un turno" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage /></FormItem>
               )}
             />
          </div>
-
           <div className="grid grid-cols-3 gap-4">
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2"><Code className="h-4 w-4" /> Cód.</FormLabel>
-                  <FormControl><Input placeholder="Ej: 1001" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
+            <FormField control={form.control} name="code" render={({ field }) => (
+                <FormItem><FormLabel htmlFor="code-input" className="flex items-center gap-2"><Code className="h-4 w-4" /> Cód.</FormLabel><FormControl><Input id="code-input" name="code-input" placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="labor"
-              render={({ field }) => (
-                <FormItem className="col-span-2">
-                  <FormLabel className="flex items-center gap-2"><Wrench className="h-4 w-4" /> Labor</FormLabel>
-                  <FormControl><Input placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl>
-                  <FormMessage />
-                </FormItem>
+            <FormField control={form.control} name="labor" render={({ field }) => (
+                <FormItem className="col-span-2"><FormLabel htmlFor="labor-input" className="flex items-center gap-2"><Wrench className="h-4 w-4" /> Labor</FormLabel><FormControl><Input id="labor-input" name="labor-input" placeholder="Labor (auto-completado)" {...field} value={field.value || ''} readOnly /></FormControl><FormMessage /></FormItem>
               )}
             />
           </div>
-
           {assistants.length > 0 && (
-            <Card className="mt-6">
-              <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Asistente</TableHead>
-                        <TableHead className="text-center">Personal</TableHead>
-                        <TableHead className="text-center">Faltos</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {assistants.map((assistant) => {
-                            const assistantTotals = assistant.jaladores.reduce((acc, j) => {
-                                acc.personnelCount += Number(j.personnelCount) || 0;
-                                acc.absentCount += Number(j.absentCount) || 0;
-                                return acc;
-                            }, { personnelCount: 0, absentCount: 0 });
-
-                            return (
-                                <TableRow key={assistant.id}>
-                                    <TableCell className="font-medium">{assistant.assistantName}</TableCell>
-                                    <TableCell className="text-center">{assistantTotals.personnelCount}</TableCell>
-                                    <TableCell className="text-center">{assistantTotals.absentCount}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteAssistant(assistant.id)}>
-                                            <Trash2 className="h-4 w-4" /><span className="sr-only">Eliminar</span>
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow>
-                        <TableCell className="text-right font-bold">Total</TableCell>
-                        <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
-                        <TableCell className="font-bold text-center">{totals.absentCount}</TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
-              </CardContent>
-            </Card>
+            <Card className="mt-6"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Asistente</TableHead><TableHead className="text-center">Personal</TableHead><TableHead className="text-center">Faltos</TableHead><TableHead className="w-[50px]"></TableHead></TableRow></TableHeader><TableBody>{assistants.map((a) => { const aTotals = a.jaladores.reduce((acc, j) => { acc.personnelCount += Number(j.personnelCount) || 0; acc.absentCount += Number(j.absentCount) || 0; return acc; }, { personnelCount: 0, absentCount: 0 }); return (<TableRow key={a.id}><TableCell className="font-medium">{a.assistantName}</TableCell><TableCell className="text-center">{aTotals.personnelCount}</TableCell><TableCell className="text-center">{aTotals.absentCount}</TableCell><TableCell className="text-right"><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteAssistant(a.id)}><Trash2 className="h-4 w-4" /></Button></TableCell></TableRow>) })}</TableBody><TableFooter><TableRow><TableCell className="text-right font-bold">Total</TableCell><TableCell className="font-bold text-center">{totals.personnelCount}</TableCell><TableCell className="font-bold text-center">{totals.absentCount}</TableCell><TableCell></TableCell></TableRow></TableFooter></Table></CardContent></Card>
           )}
-          
           <div className="flex flex-col gap-2 pt-4">
-            <Button type="submit" disabled={isSubmitting || assistants.length === 0} className="w-full">
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsAddAssistantDialogOpen(true)}
-              disabled={!canAddAssistant}
-              title={!canAddAssistant ? 'Debes seleccionar un lote y una labor primero' : ''}
-              className="w-full"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />Agregar Asistente y Personal
-            </Button>
+            <Button type="submit" disabled={isSubmitting || assistants.length === 0} className="w-full" id="submit-attendance-btn" name="submit-attendance-btn">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} {isSubmitting ? 'Guardando...' : 'Guardar'}</Button>
+            <Button type="button" variant="outline" onClick={() => setIsAddAssistantDialogOpen(true)} disabled={!loteIdValue || !laborValue} className="w-full" id="add-assistant-btn" name="add-assistant-btn"><PlusCircle className="mr-2 h-4 w-4" />Agregar Asistente y Personal</Button>
           </div>
         </form>
       </Form>
-      <AddAssistantDialog
-        isOpen={isAddAssistantDialogOpen}
-        setIsOpen={setIsAddAssistantDialogOpen}
-        onAddAssistant={handleAddAssistant}
-        currentAssistantsDnis={assistants.map(a => a.assistantDni)}
-        isAssistantLabor={codeValue === '903'}
-        laborsOnSameDay={laborsOnSameDay}
+      <AddAssistantDialog 
+        isOpen={isAddAssistantDialogOpen} 
+        setIsOpen={setIsAddAssistantDialogOpen} 
+        onAddAssistant={handleAddAssistant} 
+        currentAssistantsDnis={assistants.map(a => a.assistantDni)} 
+        isAssistantLabor={codeValue === '903'} 
+        laborsOnSameDay={laborsOnSameDay} 
       />
     </div>
   );

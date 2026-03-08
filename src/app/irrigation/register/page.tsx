@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2, Crop, FileDown, Filter, Plus } from "lucide-react";
+import { Upload, FileDigit, Loader2, Sparkles, X, List, Save, Pencil, Trash2, Crop, FileDown, Filter } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -10,7 +11,7 @@ import { format, parse, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import dynamic from "next/dynamic";
 import { digitizeIrrigationTableAction } from "./actions";
-import 'react-image-crop/dist/ReactCrop.css';
+ 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -44,13 +45,19 @@ const editRecordSchema = z.object({
   internalId: z.string().optional(),
 }).passthrough();
 
+const editHeaderSchema = z.object({
+    newName: z.string().min(1, "El nuevo nombre no puede estar vacío.").refine(name => !name.match(/[.#$[\]/]/), {
+        message: "El nombre no puede contener los caracteres: . # $ [ ] /",
+    }),
+    mergeWith: z.string().optional(),
+});
+
+
 const headerGroups = {
   main: ['Fundo', 'Fecha', 'Dia', 'Campaña', 'Etapa', 'Bomba N°', 'Sector', 'Lote', 'De', 'Hasta', 'Total Horas', 'Observaciones'],
   metrics: ['ETo', 'Kc', 'Total m3Dia', 'Ha', 'm3Ha Hora', 'Lps Ideal', 'Lps adicional 10%'],
   units: ['N', 'P2O5', 'K', 'Ca', 'Mg', 'Zn', 'Mn', 'B', 'Fe', 'S']
 };
-
-const ALL_STANDARD_FIELDS = [...headerGroups.main, ...headerGroups.metrics, ...headerGroups.units];
 
 const getHeaderGroupColor = (header: string) => {
   if (headerGroups.main.includes(header)) return 'bg-blue-100';
@@ -208,28 +215,6 @@ export default function RegisterIrrigationPage() {
       setIsDigitizing(false);
     }
   };
-
-  const handleOpenManualEntry = () => {
-    if (!campaign || !stage) {
-      toast({ variant: "destructive", title: "Atención", description: "Por favor, selecciona Campaña y Etapa primero." });
-      return;
-    }
-    
-    const blankRecord: ParsedRow = {
-        internalId: `manual-${Date.now()}`,
-        Campaña: campaign,
-        Etapa: stage,
-        Fecha: format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: es }),
-        Dia: format(new Date(), "EEEE", { locale: es }).toUpperCase(),
-    };
-    
-    // Ensure all standard fields are present so they show up in the form
-    ALL_STANDARD_FIELDS.forEach(f => {
-        if (blankRecord[f] === undefined) blankRecord[f] = '';
-    });
-    
-    setEditingRecord(blankRecord);
-  };
   
   const handleSave = async () => {
     if (parsedData.length === 0) {
@@ -277,15 +262,8 @@ export default function RegisterIrrigationPage() {
     const { id, internalId, ...dataFromForm } = values;
 
     if (internalId) {
-        setParsedData(prev => {
-            const exists = prev.some(r => r.internalId === internalId);
-            if (exists) {
-                return prev.map(r => r.internalId === internalId ? {...r, ...dataFromForm} : r);
-            } else {
-                return [...prev, {...dataFromForm, internalId}];
-            }
-        });
-        toast({ title: "Éxito", description: "Registro actualizado en la vista previa." });
+        setParsedData(prev => prev.map(r => r.internalId === internalId ? {...r, ...dataFromForm} : r));
+        toast({ title: "Éxito", description: "Registro de la vista previa actualizado." });
     } else {
       try {
         const docRef = doc(db, 'registros-riego', id);
@@ -318,8 +296,8 @@ export default function RegisterIrrigationPage() {
             name={key}
             render={({ field }) => (
                 <FormItem>
-                    <FormLabel>{key}</FormLabel>
-                    <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
+                    <FormLabel htmlFor={key}>{key}</FormLabel>
+                    <FormControl><Input id={key} name={key} {...field} value={field.value ?? ''} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )}
@@ -361,27 +339,27 @@ export default function RegisterIrrigationPage() {
                 Digitalizar Tabla de Riego desde Imagen
             </CardTitle>
             <CardDescription>
-                Sube una foto de una tabla de riego o agrega filas manualmente para procesar.
+                Sube una foto de una tabla de riego, ajústala y la IA extraerá los datos por ti.
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 items-center">
-                <div className="flex gap-2 w-full sm:w-auto">
-                    <Button onClick={() => fileInputRef.current?.click()} variant="outline">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Seleccionar Imagen
-                    </Button>
-                    <Button onClick={handleOpenManualEntry} variant="outline">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Fila Manual
-                    </Button>
-                </div>
+                <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Seleccionar Imagen
+                </Button>
                 <div className="flex gap-4 w-full sm:w-auto">
-                    <Select value={campaign} onValueChange={setCampaign}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select>
-                    <Select value={stage} onValueChange={setStage}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger><SelectContent><SelectItem value="Habilitacion">Habilitacion</SelectItem><SelectItem value="Formacion">Formacion</SelectItem><SelectItem value="Produccion">Produccion</SelectItem></SelectContent></Select>
+                    <Select value={campaign} onValueChange={setCampaign}>
+                        <SelectTrigger id="campaign-select" name="campaign-select" className="w-full sm:w-[180px]"><SelectValue placeholder="Campaña" /></SelectTrigger>
+                        <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent>
+                    </Select>
+                    <Select value={stage} onValueChange={setStage}>
+                        <SelectTrigger id="stage-select" name="stage-select" className="w-full sm:w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger>
+                        <SelectContent><SelectItem value="Habilitacion">Habilitacion</SelectItem><SelectItem value="Formacion">Formacion</SelectItem><SelectItem value="Produccion">Produccion</SelectItem></SelectContent>
+                    </Select>
                 </div>
             </div>
-             <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+             <input type="file" id="image-upload" name="image-upload" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
 
             {sourceImage && (
               <div className="space-y-4">
@@ -448,15 +426,13 @@ export default function RegisterIrrigationPage() {
     
     <Dialog open={!!editingRecord} onOpenChange={(isOpen) => { if(!isOpen) setEditingRecord(null) }}>
         <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{editingRecord?.internalId?.startsWith('manual') ? 'Nueva Fila Manual' : 'Editar Registro'}</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Editar Registro de Riego</DialogTitle></DialogHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
                     {renderEditFormFields()}
                     <DialogFooter className="pt-4 sticky bottom-0 bg-background">
                         <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
-                        <Button type="submit">Guardar</Button>
+                        <Button type="submit">Guardar Cambios</Button>
                     </DialogFooter>
                 </form>
             </Form>

@@ -314,8 +314,8 @@ export default function RegisterHealthPage() {
                 name={key as any}
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>{key.charAt(0).toUpperCase() + key.slice(1)}</FormLabel>
-                        <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
+                        <FormLabel htmlFor={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</FormLabel>
+                        <FormControl><Input id={key} name={key} {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -413,11 +413,17 @@ export default function RegisterHealthPage() {
                     Seleccionar Imagen
                 </Button>
                 <div className="flex gap-4 w-full sm:w-auto">
-                    <Select value={campaign} onValueChange={setCampaign}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Campaña" /></SelectTrigger><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select>
-                    <Select value={stage} onValueChange={setStage}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger><SelectContent><SelectItem value="Habilitacion">Habilitacion</SelectItem><SelectItem value="Formacion">Formacion</SelectItem><SelectItem value="Produccion">Produccion</SelectItem></SelectContent></Select>
+                    <Select value={campaign} onValueChange={setCampaign}>
+                        <SelectTrigger id="campaign-select" name="campaign-select" className="w-full sm:w-[180px]"><SelectValue placeholder="Campaña" /></SelectTrigger>
+                        <SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent>
+                    </Select>
+                    <Select value={stage} onValueChange={setStage}>
+                        <SelectTrigger id="stage-select" name="stage-select" className="w-full sm:w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger>
+                        <SelectContent><SelectItem value="Habilitacion">Habilitacion</SelectItem><SelectItem value="Formacion">Formacion</SelectItem><SelectItem value="Produccion">Produccion</SelectItem></SelectContent>
+                    </Select>
                 </div>
             </div>
-             <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+             <input type="file" id="image-upload" name="image-upload" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
 
             {sourceImage && (
                 <div className="space-y-4">
@@ -554,14 +560,14 @@ export default function RegisterHealthPage() {
                         control={editHeaderForm.control}
                         name="newName"
                         render={({ field }) => (
-                            <FormItem><FormLabel>Nuevo Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel htmlFor="new-header-name">Nuevo Nombre</FormLabel><FormControl><Input id="new-header-name" name="new-header-name" {...field} /></FormControl><FormMessage /></FormItem>
                         )}
                     />
                     <FormField
                         control={editHeaderForm.control}
                         name="mergeWith"
                         render={({ field }) => (
-                            <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
+                            <FormItem><FormLabel htmlFor="merge-header-select">O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger id="merge-header-select" name="merge-header-select"><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
                         )}
                     />
                     <DialogFooter className="pt-4">

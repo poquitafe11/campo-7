@@ -72,9 +72,11 @@ export default function QueriesPage() {
                 name="query"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tu Pregunta</FormLabel>
+                    <FormLabel htmlFor="query-input">Tu Pregunta</FormLabel>
                     <FormControl>
                       <Textarea
+                        id="query-input"
+                        name="query"
                         placeholder="Ej: 'Compara el rendimiento por hectárea entre los lotes este mes' o '¿Qué tratamientos de sanidad se aplicaron la semana pasada?'"
                         rows={4}
                         {...field}

@@ -338,9 +338,9 @@ export default function AsistentesPage() {
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel>DNI / ID</FormLabel><FormControl><Input {...field} disabled={!!editingAsistente} /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="cargo" render={({ field }) => ( <FormItem><FormLabel>Cargo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel htmlFor="dni">DNI / ID</FormLabel><FormControl><Input id="dni" name="dni" {...field} disabled={!!editingAsistente} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem><FormLabel htmlFor="nombre">Nombre</FormLabel><FormControl><Input id="nombre" name="nombre" {...field} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="cargo" render={({ field }) => ( <FormItem><FormLabel htmlFor="cargo">Cargo</FormLabel><FormControl><Input id="cargo" name="cargo" {...field} /></FormControl><FormMessage /></FormItem> )} />
     </div>
   );
 
@@ -349,6 +349,8 @@ export default function AsistentesPage() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <Input
+                id="search-asistente"
+                name="search-asistente"
                 placeholder="Buscar por DNI/ID..."
                 value={(table.getColumn('dni')?.getFilterValue() as string) ?? ''}
                 onChange={(event) =>
@@ -359,6 +361,8 @@ export default function AsistentesPage() {
             <div className="flex gap-2 w-full sm:w-auto">
                 <input
                   type="file"
+                  id="file-asistentes"
+                  name="file-asistentes"
                   ref={fileInputRef}
                   className="hidden"
                   accept=".xlsx, .xls, .csv"

@@ -2,14 +2,12 @@
 
 import { digitizeIrrigationTable } from '@/ai/flows/digitize-irrigation-table';
 import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/ai/flows/digitize-irrigation-table';
-import { getFirebaseAdmin } from '@/ai-flows-server/firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
-
+import { db } from '@/lib/firebase';
+import { collection, getDocs, writeBatch, deleteField, doc } from 'firebase/firestore';
 
 export async function digitizeIrrigationTableAction(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
   return digitizeIrrigationTable(input);
 }
-
 
 interface RenameAndMergePayload {
     oldHeader: string;
@@ -24,29 +22,27 @@ export async function renameAndMergeHeader({ oldHeader, newHeader }: RenameAndMe
     const sanitizedNewHeader = newHeader.trim();
 
     try {
-        const adminApp = getFirebaseAdmin();
-        const db = getFirestore(adminApp);
-        const collectionRef = db.collection('registros-riego');
-        const querySnapshot = await collectionRef.get();
+        const collectionRef = collection(db, 'registros-riego');
+        const querySnapshot = await getDocs(collectionRef);
         
         if (querySnapshot.empty) {
             return { success: true, message: 'No hay registros para actualizar.', count: 0 };
         }
 
-        const batch = db.batch();
+        const batch = writeBatch(db);
         let updatedCount = 0;
 
-        querySnapshot.forEach(doc => {
-            const data = doc.data();
+        querySnapshot.forEach(snapshotDoc => {
+            const data = snapshotDoc.data();
             
             if (Object.prototype.hasOwnProperty.call(data, oldHeader)) {
                 const updateData: { [key: string]: any } = {};
                 const oldValueToMove = data[oldHeader];
 
                 updateData[sanitizedNewHeader] = oldValueToMove;
-                updateData[oldHeader] = (adminApp as any).firestore.FieldValue.delete();
+                updateData[oldHeader] = deleteField();
 
-                batch.update(doc.ref, updateData);
+                batch.update(snapshotDoc.ref, updateData);
                 updatedCount++;
             }
         });

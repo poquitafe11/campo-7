@@ -49,7 +49,6 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Redirect if user is already logged in and not loading
     if (!loading && user) {
       router.replace('/dashboard');
     }
@@ -59,7 +58,6 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof loginSchema>) {
     setIsSubmitting(true);
     
-    // First, validate user status on our backend
     const serverValidation = await login(values);
 
     if (!serverValidation.success) {
@@ -72,7 +70,6 @@ export default function LoginPage() {
         return;
     }
 
-    // If server validation is ok, try to sign in with Firebase Auth
     try {
         await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({
@@ -95,7 +92,6 @@ export default function LoginPage() {
     }
   }
 
-  // Show a generic loader while auth state is resolving
   if (loading) {
      return (
         <div className="flex h-screen items-center justify-center bg-background">
@@ -106,7 +102,6 @@ export default function LoginPage() {
       );
   }
 
-  // If user is resolved and exists, prevent rendering login page
   if (user) {
     return (
        <div className="flex h-screen items-center justify-center bg-background">
@@ -133,9 +128,12 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Correo Electrónico</FormLabel>
+                    <FormLabel htmlFor="login-email">Correo Electrónico</FormLabel>
                     <FormControl>
                       <Input
+                        id="login-email"
+                        name="email"
+                        autoComplete="email"
                         type="email"
                         placeholder="tu@correo.com"
                         {...field}
@@ -150,9 +148,12 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contraseña</FormLabel>
+                    <FormLabel htmlFor="login-password">Contraseña</FormLabel>
                     <FormControl>
                       <Input
+                        id="login-password"
+                        name="password"
+                        autoComplete="current-password"
                         type="password"
                         placeholder="••••••••"
                         {...field}
@@ -163,7 +164,7 @@ export default function LoginPage() {
                 )}
               />
               <div className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full" disabled={isSubmitting} id="login-submit-btn" name="login-submit-btn">
                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Iniciar Sesión
                 </Button>

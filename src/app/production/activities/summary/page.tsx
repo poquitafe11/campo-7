@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -364,37 +363,45 @@ export default function ActivitySummaryPage() {
                         <h4 className="font-medium leading-none">Filtros de Resumen</h4>
                       </div>
                       <div className="grid gap-2">
-                        <Label>Campaña</Label>
-                        <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v, lote: '' }))} value={popoverFilters.campaign}>
-                          <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todas</SelectItem>
-                            {filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <Label>Lote</Label>
-                        <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, lote: v === 'all' ? '' : v }))} value={popoverFilters.lote}>
-                          <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todos"} /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            {filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <Label>Labor</Label>
-                        <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, labor: v === 'all' ? '' : v }))} value={popoverFilters.labor}>
-                          <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
-                          <SelectContent>
-                            {filterOptions.labors.map((l, i) => <SelectItem key={l+i} value={l}>{l}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <Label>Pasada</Label>
-                        <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, pasada: v === 'all' ? '' : v }))} value={popoverFilters.pasada}>
-                          <SelectTrigger><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todas</SelectItem>
-                            {filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <div className="grid gap-1">
+                            <Label htmlFor="campaign-filter-summary">Campaña</Label>
+                            <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v, lote: '' }))} value={popoverFilters.campaign}>
+                            <SelectTrigger id="campaign-filter-summary" name="campaign-filter-summary"><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas</SelectItem>
+                                {filterOptions.campaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-1">
+                            <Label htmlFor="lote-filter-summary">Lote</Label>
+                            <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, lote: v === 'all' ? '' : v }))} value={popoverFilters.lote}>
+                            <SelectTrigger id="lote-filter-summary" name="lote-filter-summary"><SelectValue placeholder={loading ? "Cargando..." : "Todos"} /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos</SelectItem>
+                                {filterOptions.lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-1">
+                            <Label htmlFor="labor-filter-summary">Labor</Label>
+                            <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, labor: v === 'all' ? '' : v }))} value={popoverFilters.labor}>
+                            <SelectTrigger id="labor-filter-summary" name="labor-filter-summary"><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
+                            <SelectContent>
+                                {filterOptions.labors.map((l, i) => <SelectItem key={l+i} value={l}>{l}</SelectItem>)}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-1">
+                            <Label htmlFor="pasada-filter-summary">Pasada</Label>
+                            <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, pasada: v === 'all' ? '' : v }))} value={popoverFilters.pasada}>
+                            <SelectTrigger id="pasada-filter-summary" name="pasada-filter-summary"><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas</SelectItem>
+                                {filterOptions.pasadas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                            </SelectContent>
+                            </Select>
+                        </div>
                       </div>
                       <div className="flex justify-end pt-2">
                         <Button size="sm" onClick={handleApplyFilters}>Aplicar</Button>
@@ -479,7 +486,7 @@ export default function ActivitySummaryPage() {
                                     <div className="flex items-center gap-2">
                                         <Popover>
                                             <PopoverTrigger asChild>
-                                                <Button id="date" variant={"outline"} size="sm" className={cn("w-full sm:w-[240px] justify-start text-left font-normal", !chartDateRange && "text-muted-foreground")}>
+                                                <Button id="chart-date-range-summary" variant={"outline"} size="sm" className={cn("w-full sm:w-[240px] justify-start text-left font-normal", !chartDateRange && "text-muted-foreground")}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {chartDateRange?.from ? (chartDateRange.to ? (<>{format(chartDateRange.from, "LLL dd", {locale: es})} - {format(chartDateRange.to, "LLL dd", {locale: es})}</>) : (format(chartDateRange.from, "LLL dd, y", {locale: es}))) : (<span>Fecha</span>)}
                                                 </Button>
@@ -488,16 +495,18 @@ export default function ActivitySummaryPage() {
                                                 <Calendar initialFocus mode="range" defaultMonth={chartDateRange?.from} selected={chartDateRange} onSelect={setChartDateRange} numberOfMonths={2} locale={es}/>
                                             </PopoverContent>
                                         </Popover>
-                                        <Select value={chartShiftFilter} onValueChange={setChartShiftFilter}>
-                                            <SelectTrigger className="w-[120px]">
-                                                <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><SelectValue /></div>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="todos">Todos</SelectItem>
-                                                <SelectItem value="Mañana">Mañana</SelectItem>
-                                                <SelectItem value="Tarde">Tarde</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="grid gap-1">
+                                            <Select value={chartShiftFilter} onValueChange={setChartShiftFilter}>
+                                                <SelectTrigger id="chart-shift-filter-summary" name="chart-shift-filter-summary" className="w-[120px]">
+                                                    <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><SelectValue /></div>
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="todos">Todos</SelectItem>
+                                                    <SelectItem value="Mañana">Mañana</SelectItem>
+                                                    <SelectItem value="Tarde">Tarde</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
                                 </div>
                             </CardHeader>
@@ -537,5 +546,3 @@ export default function ActivitySummaryPage() {
         </div>
     );
 }
-
-    

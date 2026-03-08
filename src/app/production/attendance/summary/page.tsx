@@ -162,7 +162,7 @@ function AttendanceSummaryContent() {
                 </PopoverTrigger>
                 <PopoverContent className="w-48 p-0" align="end">
                     <Select value={turnoFilter} onValueChange={setTurnoFilter}>
-                        <SelectTrigger className="border-0 focus:ring-0">
+                        <SelectTrigger id="turno-filter-summary" name="turno-filter-summary" className="border-0 focus:ring-0">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -210,8 +210,8 @@ function AttendanceSummaryContent() {
     
     const recordsForDay = recordsForSelectedDate;
     
-    const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const uniqueLotesInRecords = [...new Set(recordsForDay.map(r => r.lotName))].filter(Boolean) as string[];
+    uniqueLotesInRecords.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
     const loteHeaders: PivotData['loteHeaders'] = uniqueLotesInRecords
       .map(loteNum => {

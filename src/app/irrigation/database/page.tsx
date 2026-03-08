@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -309,20 +310,52 @@ export default function IrrigationDatabasePage() {
                                 <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
                                 <div className="grid gap-2">
                                     <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Campaña</Label>
-                                        <Select value={filters.campana} onValueChange={(value) => setFilters(f => ({...f, campana: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.campanas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        <Label htmlFor="campana-filter-select">Campaña</Label>
+                                        <Select value={filters.campana} onValueChange={(value) => setFilters(f => ({...f, campana: value === 'all' ? '' : value}))}>
+                                          <SelectTrigger id="campana-filter-select" name="campana-filter-select" className="col-span-2 h-8">
+                                            <SelectValue placeholder="Todas" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="all">Todas</SelectItem>
+                                            {filterOptions.campanas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                          </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Lote</Label>
-                                        <Select value={filters.lote} onValueChange={(value) => setFilters(f => ({...f, lote: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todos" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        <Label htmlFor="lote-filter-select">Lote</Label>
+                                        <Select value={filters.lote} onValueChange={(value) => setFilters(f => ({...f, lote: value === 'all' ? '' : value}))}>
+                                          <SelectTrigger id="lote-filter-select" name="lote-filter-select" className="col-span-2 h-8">
+                                            <SelectValue placeholder="Todos" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="all">Todos</SelectItem>
+                                            {filterOptions.lotes.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                          </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Etapa</Label>
-                                        <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        <Label htmlFor="etapa-filter-select">Etapa</Label>
+                                        <Select value={filters.etapa} onValueChange={(value) => setFilters(f => ({...f, etapa: value === 'all' ? '' : value}))}>
+                                          <SelectTrigger id="etapa-filter-select" name="etapa-filter-select" className="col-span-2 h-8">
+                                            <SelectValue placeholder="Todas" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="all">Todas</SelectItem>
+                                            {filterOptions.etapas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                          </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="grid grid-cols-3 items-center gap-4">
-                                        <Label>Fecha</Label>
-                                        <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}><SelectTrigger className="col-span-2 h-8"><SelectValue placeholder="Todas" /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                                        <Label htmlFor="fecha-filter-select">Fecha</Label>
+                                        <Select value={filters.fecha} onValueChange={(value) => setFilters(f => ({...f, fecha: value === 'all' ? '' : value}))}>
+                                          <SelectTrigger id="fecha-filter-select" name="fecha-filter-select" className="col-span-2 h-8">
+                                            <SelectValue placeholder="Todas" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="all">Todas</SelectItem>
+                                            {filterOptions.fechas.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                          </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                             </div>
@@ -406,14 +439,14 @@ export default function IrrigationDatabasePage() {
                         control={editHeaderForm.control}
                         name="newName"
                         render={({ field }) => (
-                            <FormItem><FormLabel>Nuevo Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel htmlFor="new-header-name">Nuevo Nombre</FormLabel><FormControl><Input id="new-header-name" name="new-header-name" {...field} /></FormControl><FormMessage /></FormItem>
                         )}
                     />
                     <FormField
                         control={editHeaderForm.control}
                         name="mergeWith"
                         render={({ field }) => (
-                            <FormItem><FormLabel>O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
+                            <FormItem><FormLabel htmlFor="merge-header-select">O fusionar con (opcional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger id="merge-header-select" name="merge-header-select"><SelectValue placeholder="Selecciona un encabezado para fusionar" /></SelectTrigger></FormControl><SelectContent>{savedRecordsHeaders.filter(h => h !== editingHeader).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select><FormDescription>Los datos de "{editingHeader}" se añadirán a esta columna.</FormDescription><FormMessage /></FormItem>
                         )}
                     />
                     <DialogFooter className="pt-4">

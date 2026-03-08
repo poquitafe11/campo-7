@@ -45,7 +45,7 @@ export function DetailedSummaryTable({ allActivities, allLotes, allPresupuestos,
         const variety = selectedLoteData.variedad;
 
         const varietyLotes = allLotes.filter(l => l.variedad === variety);
-        const uniqueLoteNumbers = [...new Set(varietyLotes.map(l => l.lote))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+        const uniqueLoteNumbers = [...new Set(varietyLotes.map(l => l.lote))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
         const filteredActivities = allActivities.filter(a =>
             (!activeFilters.campaign || a.campaign === activeFilters.campaign) &&

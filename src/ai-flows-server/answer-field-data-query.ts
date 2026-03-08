@@ -1,16 +1,12 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that answers questions about field data using tools to search the database.
  */
 
 import { ai } from '@/ai/genkit';
-import { getFirestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { getFirebaseAdmin } from './firebase-admin';
-
-const adminApp = getFirebaseAdmin();
-const db = getFirestore(adminApp);
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const AnswerFieldDataQueryInputSchema = z.object({
   query: z.string().describe('The question about the field data.'),
@@ -34,8 +30,8 @@ const getProductionActivities = ai.defineTool(
     outputSchema: z.string().describe('A JSON string of the found activity records.'),
   },
   async (input) => {
-    const activitiesRef = db.collection('actividades');
-    const snapshot = await activitiesRef.get();
+    const activitiesRef = collection(db, 'actividades');
+    const snapshot = await getDocs(activitiesRef);
     
     const allActivities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -64,8 +60,8 @@ const getHealthRecords = ai.defineTool(
     outputSchema: z.string().describe('A JSON string of the found health records.'),
   },
   async (input) => {
-    const healthRef = db.collection('registros-sanidad');
-    const snapshot = await healthRef.get();
+    const healthRef = collection(db, 'registros-sanidad');
+    const snapshot = await getDocs(healthRef);
     
     const allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -95,8 +91,8 @@ const getIrrigationRecords = ai.defineTool(
     outputSchema: z.string().describe('A JSON string of the found irrigation records.'),
   },
   async (input) => {
-    const irrigationRef = db.collection('registros-riego-01');
-    const snapshot = await irrigationRef.get();
+    const irrigationRef = collection(db, 'registros-riego-01');
+    const snapshot = await getDocs(irrigationRef);
     
     const allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 

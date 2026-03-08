@@ -38,7 +38,6 @@ export function getFirebase() {
         app = initializeApp(firebaseConfig);
         if (typeof window !== 'undefined') {
             auth = initializeAuth(app, { persistence: indexedDBLocalPersistence });
-            // Using modern persistent cache configuration to avoid deprecation warnings
             db = initializeFirestore(app, { 
                 localCache: persistentLocalCache({
                     tabManager: persistentMultipleTabManager()

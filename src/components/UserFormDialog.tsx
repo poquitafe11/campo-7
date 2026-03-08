@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -119,9 +120,9 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
               name="nombre"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre Completo</FormLabel>
+                  <FormLabel htmlFor="user-name">Nombre Completo</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Juan Pérez" {...field} />
+                    <Input id="user-name" name="nombre" placeholder="Ej: Juan Pérez" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -132,9 +133,9 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
               name="dni"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>DNI</FormLabel>
+                  <FormLabel htmlFor="user-dni">DNI</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: 12345678" {...field} maxLength={8} />
+                    <Input id="user-dni" name="dni" placeholder="Ej: 12345678" {...field} maxLength={8} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -145,9 +146,9 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
               name="celular"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Celular</FormLabel>
+                  <FormLabel htmlFor="user-cell">Celular</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: 987654321" {...field} maxLength={9} />
+                    <Input id="user-cell" name="celular" placeholder="Ej: 987654321" {...field} maxLength={9} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -158,9 +159,9 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel htmlFor="user-email">Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="ejemplo@correo.com" {...field} disabled={!!user} />
+                    <Input id="user-email" name="email" type="email" placeholder="ejemplo@correo.com" {...field} disabled={!!user} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -171,10 +172,10 @@ export default function UserFormDialog({ isOpen, onOpenChange, user, onSuccess, 
                 name="rol"
                 render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Rol</FormLabel>
+                    <FormLabel htmlFor="user-role-select">Rol</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger id="user-role-select" name="rol">
                         <SelectValue placeholder="Seleccione un rol" />
                         </SelectTrigger>
                     </FormControl>
