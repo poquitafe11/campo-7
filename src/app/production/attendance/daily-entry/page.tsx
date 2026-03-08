@@ -271,19 +271,60 @@ export default function DailyEntryPage() {
             });
             finalAssistants = mergedAssistants;
         }
+
+        // Sanitizar payload para evitar valores 'undefined' que rompen setDoc
         const assistantsPayload = finalAssistants.map(a => ({
-            id: a.id, assistantDni: a.assistantDni, assistantName: a.assistantName,
-            jaladores: (a.jaladores || []).map(j => ({ id: j.id, jaladorId: j.jaladorId, jaladorAlias: j.jaladorAlias, personnelCount: j.personnelCount, absentCount: j.absentCount, supportedLabor: j.supportedLabor })),
+            id: a.id || crypto.randomUUID(),
+            assistantDni: a.assistantDni || "N/A",
+            assistantName: a.assistantName || "N/A",
+            jaladores: (a.jaladores || []).map(j => ({
+                id: j.id || crypto.randomUUID(),
+                jaladorId: j.jaladorId || "N/A",
+                jaladorAlias: j.jaladorAlias || "N/A",
+                personnelCount: j.personnelCount || 0,
+                absentCount: j.absentCount || 0,
+                supportedLabor: j.supportedLabor || "" // Evitar undefined
+            })),
         }));
+
         const recordTotals = assistantsPayload.reduce((acc, a) => {
-            const jTotals = a.jaladores.reduce((jAcc, j) => { jAcc.personnelCount += j.personnelCount || 0; jAcc.absentCount += j.absentCount || 0; return jAcc; }, { personnelCount: 0, absentCount: 0 });
-            acc.personnelCount += jTotals.personnelCount; acc.absentCount += jTotals.absentCount; return acc;
+            const jTotals = a.jaladores.reduce((jAcc, j) => { 
+                jAcc.personnelCount += j.personnelCount || 0; 
+                jAcc.absentCount += j.absentCount || 0; 
+                return jAcc; 
+            }, { personnelCount: 0, absentCount: 0 });
+            acc.personnelCount += jTotals.personnelCount; 
+            acc.absentCount += jTotals.absentCount; 
+            return acc;
         }, { personnelCount: 0, absentCount: 0 });
 
+        const userEmail = auth.currentUser.email || "unknown";
+
         if (docSnap.exists()) {
-             await updateDoc(docRef, { assistants: assistantsPayload, totals: recordTotals, lastModifiedBy: auth.currentUser.email, lastModifiedAt: serverTimestamp() });
+             await updateDoc(docRef, { 
+                assistants: assistantsPayload, 
+                totals: recordTotals, 
+                lastModifiedBy: userEmail, 
+                lastModifiedAt: serverTimestamp() 
+            });
         } else {
-            await setDoc(docRef, { date: format(data.date, 'yyyy-MM-dd'), lote: data.lote, lotName: loteMasterData.lote, turno: data.turno, variedad: loteMasterData.variedad, fechaCianamida: loteMasterData.fechaCianamida, campana: loteMasterData.campana, code: laborCode, labor: laborDesc, assistants: assistantsPayload, totals: recordTotals, registeredBy: auth.currentUser.email, createdAt: serverTimestamp(), lastModifiedBy: auth.currentUser.email, lastModifiedAt: serverTimestamp() });
+            await setDoc(docRef, { 
+                date: format(data.date, 'yyyy-MM-dd'), 
+                lote: data.lote, 
+                lotName: loteMasterData.lote || "", 
+                turno: data.turno || "", 
+                variedad: loteMasterData.variedad || "N/A", 
+                fechaCianamida: loteMasterData.fechaCianamida || null, 
+                campana: loteMasterData.campana || "", 
+                code: laborCode || "", 
+                labor: laborDesc || "", 
+                assistants: assistantsPayload, 
+                totals: recordTotals, 
+                registeredBy: userEmail, 
+                createdAt: serverTimestamp(), 
+                lastModifiedBy: userEmail, 
+                lastModifiedAt: serverTimestamp() 
+            });
         }
         toast({ title: "Operación Completada", description: `Registro guardado con éxito.` });
         fetchLaborsOnSameDay();
