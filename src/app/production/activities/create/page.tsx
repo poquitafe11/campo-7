@@ -1,12 +1,12 @@
-
 "use client";
 
-import { useEffect, useMemo, useTransition, useState } from 'react';
+import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
+import html2canvas from 'html2canvas';
 import {
   Calendar as CalendarIcon,
   Users,
@@ -29,6 +29,7 @@ import {
   Wrench,
   FileInput,
   FileOutput,
+  Camera,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -139,6 +140,7 @@ export default function CreateActivityPage() {
   const [isAddActivityDialogOpen, setAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setActions({ title: "Crear Ficha de Actividad" });
@@ -253,6 +255,28 @@ export default function CreateActivityPage() {
   const performanceLabel = showExtraPerformanceField ? "Rdto (Plta)" : "Rdto";
   const extraPerformanceLabel = String(codeValue) === '46' ? "Racimos" : "Jabas";
   const ExtraPerformanceIcon = String(codeValue) === '46' ? Grape : Boxes;
+
+  const handleCaptureTable = async () => {
+    if (!tableRef.current || groupActivities.length === 0) return;
+    
+    try {
+      const canvas = await html2canvas(tableRef.current, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        logging: false,
+        useCORS: true
+      });
+      const link = document.createElement('a');
+      const dateStr = format(new Date(), 'ddMMyy_HHmm');
+      link.download = `Resumen_Grupal_${dateStr}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast({ title: "Captura Guardada", description: "La imagen se ha descargado correctamente." });
+    } catch (e) {
+      console.error("Error capturing table:", e);
+      toast({ variant: 'destructive', title: 'Error al capturar', description: "No se pudo generar la imagen de la tabla." });
+    }
+  };
 
   const onSingleSubmit = (data: SingleActivityFormValues) => {
     if (!profile?.email) {
@@ -570,7 +594,7 @@ export default function CreateActivityPage() {
                <div className="rounded-lg border bg-card text-card-foreground p-4 shadow-sm space-y-4">
                     {renderSharedHeader(headerForm)}
                     
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto" ref={tableRef}>
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -634,6 +658,9 @@ export default function CreateActivityPage() {
                     <div className="flex items-center gap-2 mt-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => setAddActivityDialogOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={handleCaptureTable} disabled={groupActivities.length === 0}>
+                            <Camera className="mr-2 h-4 w-4"/> Tomar Captura
                         </Button>
                     </div>
 
