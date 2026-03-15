@@ -1,4 +1,4 @@
 
 'use server';
-// File neutralized to stop firebase-admin from breaking client-side build.
-export async function askQuery() { return { answer: "<p>Neutralized</p>" }; }
+// Archivo neutralizado para evitar errores de compilación por firebase-admin
+export async function askQuery() { return { answer: "<p>Consulta deshabilitada en entorno de build.</p>" }; }

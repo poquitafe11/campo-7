@@ -41,7 +41,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ActivityRecordSchema, type LoteData } from '@/lib/types';
+import { ActivityRecordSchema } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
@@ -185,7 +185,6 @@ export default function CreateActivityPage() {
   const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
   const [isAddActivityDialogOpen, setIsAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -259,7 +258,7 @@ export default function CreateActivityPage() {
   }, [profile, singleForm]);
 
   const uniqueLotes = useMemo(() => {
-    const map = new Map<string, LoteData>();
+    const map = new Map<string, any>();
     lotes.forEach(lote => {
       if (!map.has(lote.lote)) map.set(lote.lote, lote);
     });
@@ -371,7 +370,7 @@ export default function CreateActivityPage() {
                   <FormField control={singleForm.control} name="registerDate" render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Fecha de Trabajo</FormLabel>
-                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                        <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                                 <Button variant={"outline"} className="w-full text-left font-normal border-muted-foreground/20">
@@ -381,7 +380,7 @@ export default function CreateActivityPage() {
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/>
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={es}/>
                           </PopoverContent>
                         </Popover>
                         <FormMessage />
@@ -445,11 +444,11 @@ export default function CreateActivityPage() {
                     <FormField control={headerForm.control} name="registerDate" render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>Fecha</FormLabel>
-                          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                          <Popover>
                             <PopoverTrigger asChild>
                                 <FormControl><Button variant={"outline"} className="w-full text-left font-normal border-muted-foreground/20">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
+                            <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={es}/></PopoverContent>
                           </Popover>
                         </FormItem>
                       )}

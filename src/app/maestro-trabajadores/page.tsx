@@ -36,19 +36,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const BATCH_SIZE = 450;
-
-const workerSchema = z.object({
-  dni: z.string().length(8, "El DNI debe tener 8 dígitos.").regex(/^\d{8}$/, "El DNI solo debe contener números."),
-  name: z.string().min(3, "El nombre debe tener al menos 3 caracteres.").max(100, "El nombre no debe exceder los 100 caracteres."),
-});
-
-type WorkerFormValues = z.infer<typeof workerSchema>;
 
 export default function WorkerMasterManagement() {
   const { toast } = useToast();
@@ -57,15 +49,10 @@ export default function WorkerMasterManagement() {
   const { setActions } = useHeaderActions();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingWorker, setEditingWorker] = useState<WorkerMasterItem | null>(null);
   const [workerToDelete, setWorkerToDelete] = useState<WorkerMasterItem | null>(null);
-  const [isDeleteAllAlertOpen, setIsDeleteAllAlertOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -107,9 +94,8 @@ export default function WorkerMasterManagement() {
           const dni = String(row[0] || '').trim();
           const name = String(row[1] || '').trim();
           if (!dni || !name || !/^\d{8}$/.test(dni)) return null;
-          const now = new Date().toISOString();
-          return { dni, name, createdAt: now, updatedAt: now };
-      }).filter((w): w is WorkerMasterItem => w !== null);
+          return { dni, name };
+      }).filter((w): w is { dni: string, name: string } => w !== null);
 
       if (newWorkers.length === 0) throw new Error("No hay datos válidos.");
 
@@ -119,7 +105,10 @@ export default function WorkerMasterManagement() {
           const chunk = newWorkers.slice(i, i + BATCH_SIZE);
           chunk.forEach(worker => {
               const docRef = doc(db, "maestro-trabajadores", worker.dni);
-              batch.set(docRef, worker, { merge: true });
+              batch.set(docRef, { 
+                ...worker, 
+                updatedAt: new Date().toISOString() 
+              }, { merge: true });
           });
           await batch.commit();
       }
@@ -142,51 +131,62 @@ export default function WorkerMasterManagement() {
     <div className="space-y-8 p-4">
       <Card className="w-full max-w-2xl mx-auto shadow-xl">
         <CardHeader>
-          <CardTitle className="text-xl font-headline text-center">Carga Masiva</CardTitle>
-          <CardDescription className="text-center">Seleccione un archivo Excel/CSV (DNI en col A, Nombre en col B).</CardDescription>
+          <CardTitle className="text-xl font-headline text-center">Carga Masiva de Trabajadores</CardTitle>
+          <CardDescription className="text-center">Seleccione un archivo Excel/CSV (Columna A: DNI, Columna B: Nombre).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input type="file" ref={fileInputRef} accept=".csv, .xls, .xlsx" onChange={e => setSelectedFile(e.target.files?.[0] || null)} className="hidden" />
           <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full" disabled={isProcessing}>
             <FileUp className="mr-2 h-4 w-4" /> Seleccionar Archivo
           </Button>
-          {selectedFile && <div className="text-sm p-2 border rounded">Archivo: {selectedFile.name}</div>}
+          {selectedFile && <div className="text-sm p-2 border rounded bg-muted/50 font-medium">Archivo: {selectedFile.name}</div>}
         </CardContent>
         <CardFooter>
-          <Button onClick={handleProcessFile} className="w-full" disabled={!selectedFile || isProcessing}>
-            {isProcessing ? <Loader2 className="animate-spin h-4 w-4 mr-2"/> : <UploadCloud className="h-4 w-4 mr-2"/>}
-            {isProcessing ? 'Subiendo...' : 'Confirmar Carga'}
+          <Button onClick={handleProcessFile} className="w-full h-12 text-lg" disabled={!selectedFile || isProcessing}>
+            {isProcessing ? <Loader2 className="animate-spin h-5 w-5 mr-2"/> : <UploadCloud className="h-5 w-5 mr-2"/>}
+            {isProcessing ? 'Procesando registros...' : 'Subir a la Base de Datos'}
           </Button>
         </CardFooter>
       </Card>
 
       <Card className="shadow-xl">
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl font-headline flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Lista</CardTitle>
-            <div className="relative w-64"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar..." className="pl-8" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/></div>
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <CardTitle className="text-2xl font-headline flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Lista de Trabajadores</CardTitle>
+            <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Buscar por DNI o nombre..." className="pl-8" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
-            <Table>
-              <TableHeader><TableRow><TableHead>DNI</TableHead><TableHead>Nombre</TableHead><TableHead className="text-right">Acción</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {filteredWorkers.map(w => (
-                  <TableRow key={w.dni}><TableCell>{w.dni}</TableCell><TableCell>{w.name}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => { setWorkerToDelete(w); }}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
+          <div className="rounded-md border">
+            <ScrollArea className="h-[400px]">
+                <Table>
+                <TableHeader><TableRow><TableHead>DNI</TableHead><TableHead>Nombre</TableHead><TableHead className="text-right">Acción</TableHead></TableRow></TableHeader>
+                <TableBody>
+                    {loading ? (
+                        <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary"/></TableCell></TableRow>
+                    ) : filteredWorkers.length > 0 ? (
+                        filteredWorkers.map(w => (
+                            <TableRow key={w.dni}><TableCell className="font-mono">{w.dni}</TableCell><TableCell>{w.name}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => { setWorkerToDelete(w); }}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>
+                        ))
+                    ) : (
+                        <TableRow><TableCell colSpan={3} className="text-center py-10 text-muted-foreground">No se encontraron trabajadores.</TableCell></TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
       <AlertDialog open={!!workerToDelete} onOpenChange={o => !o && setWorkerToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>¿Eliminar trabajador?</AlertDialogTitle><AlertDialogDescription>Eliminarás a {workerToDelete?.name}.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>¿Eliminar trabajador?</AlertDialogTitle><AlertDialogDescription>¿Estás seguro de eliminar a <strong>{workerToDelete?.name}</strong>? Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={async () => { if(workerToDelete) await deleteDoc(doc(db, "maestro-trabajadores", workerToDelete.dni)); setWorkerToDelete(null); }} className="bg-destructive">Eliminar</AlertDialogAction>
+            <AlertDialogAction onClick={async () => { if(workerToDelete) await deleteDoc(doc(db, "maestro-trabajadores", workerToDelete.dni)); setWorkerToDelete(null); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Eliminar permanentemente</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
