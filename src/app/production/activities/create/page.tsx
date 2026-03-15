@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
@@ -85,6 +86,8 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center gap-2 text-sm text-muted-foreground">{children}</div>
 );
 
+// --- Componentes Auxiliares fuera para evitar errores de anidamiento ---
+
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
     const totals = useMemo(() => {
       const summary = { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0, average: 0 };
@@ -126,7 +129,96 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
         <TableCell colSpan={2}></TableCell>
       </TableRow>
     );
-  }
+}
+
+function CaptureReport({ 
+  activities, 
+  header, 
+  showExtraPerformanceField, 
+  performanceLabel, 
+  extraPerformanceLabel,
+  loteLabel,
+  responsableName
+}: { 
+  activities: AssistantInGroup[], 
+  header: any, 
+  showExtraPerformanceField: boolean,
+  performanceLabel: string,
+  extraPerformanceLabel: string,
+  loteLabel: string,
+  responsableName: string
+}) {
+  const totals = {
+    performance: activities.reduce((sum, a) => sum + (Number(a.performance) || 0), 0),
+    extra: activities.reduce((sum, a) => sum + (Number(a.clustersOrJabas) || 0), 0),
+    jhu: activities.reduce((sum, a) => sum + (Number(a.workdayCount) || 0), 0),
+  };
+
+  const numerator = showExtraPerformanceField ? totals.extra : totals.performance;
+  const grandAverage = totals.jhu > 0 ? numerator / totals.jhu : 0;
+
+  return (
+    <div className="bg-white p-8 text-black font-sans border-2 border-black" style={{ width: '1000px' }}>
+      <div className="flex justify-between items-start mb-6">
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold border-b-2 border-black pb-1 uppercase">REPORTE DE CAMPO - FICHA DE ACTIVIDAD</h2>
+          <p className="text-sm"><strong>FECHA:</strong> {header.registerDate ? format(header.registerDate, "d 'de' MMMM, yyyy", { locale: es }) : '---'}</p>
+          <p className="text-sm"><strong>LABOR:</strong> {header.labor || '---'} ({header.code || '---'})</p>
+          <p className="text-sm"><strong>LOTE:</strong> {loteLabel || '---'} | <strong>PASADA:</strong> {header.pass || '0'}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-bold bg-gray-100 p-2 border border-black inline-block">RESPONSABLE: {responsableName || '---'}</p>
+          <p className="text-xs text-gray-500 mt-1 italic">Generado el {format(new Date(), 'Pp', { locale: es })}</p>
+        </div>
+      </div>
+
+      <table className="w-full border-collapse border-2 border-black text-sm">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border border-black p-2 text-left">ASISTENTE / ENCARGADO</th>
+            <th className="border border-black p-2 text-center w-24">{performanceLabel}</th>
+            {showExtraPerformanceField && <th className="border border-black p-2 text-center w-24">{extraPerformanceLabel}</th>}
+            <th className="border border-black p-2 text-center w-20">JHU</th>
+            <th className="border border-black p-2 text-center w-24">PROMEDIO</th>
+            <th className="border border-black p-2 text-center w-20">MIN</th>
+            <th className="border border-black p-2 text-center w-20">MAX</th>
+            <th className="border border-black p-2 text-left">OBSERVACIONES</th>
+          </tr>
+        </thead>
+        <tbody>
+          {activities.map((act) => {
+            const num = showExtraPerformanceField ? (Number(act.clustersOrJabas) || 0) : (Number(act.performance) || 0);
+            const avg = (Number(act.workdayCount) || 0) > 0 ? num / Number(act.workdayCount) : 0;
+            return (
+              <tr key={act.id}>
+                <td className="border border-black p-2 font-medium">{act.assistantName}</td>
+                <td className="border border-black p-2 text-center">{Number(act.performance || 0).toLocaleString('es-PE')}</td>
+                {showExtraPerformanceField && <td className="border border-black p-2 text-center">{Number(act.clustersOrJabas || 0).toLocaleString('es-PE')}</td>}
+                <td className="border border-black p-2 text-center font-bold">{Number(act.workdayCount || 0).toFixed(1)}</td>
+                <td className="border border-black p-2 text-center bg-blue-50">{avg.toFixed(2)}</td>
+                <td className="border border-black p-2 text-center text-red-600">{Number(act.minRange || 0)}</td>
+                <td className="border border-black p-2 text-center text-blue-600">{Number(act.maxRange || 0)}</td>
+                <td className="border border-black p-2 text-xs">{act.observations || '---'}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot className="bg-gray-100 font-bold border-t-2 border-black">
+          <tr>
+            <td className="border border-black p-2 text-right">TOTAL GENERAL</td>
+            <td className="border border-black p-2 text-center">{totals.performance.toLocaleString('es-PE')}</td>
+            {showExtraPerformanceField && <td className="border border-black p-2 text-center">{totals.extra.toLocaleString('es-PE')}</td>}
+            <td className="border border-black p-2 text-center text-primary">{totals.jhu.toFixed(1)}</td>
+            <td className="border border-black p-2 text-center bg-blue-100">{grandAverage.toFixed(2)}</td>
+            <td colSpan={3} className="border border-black p-2 bg-white"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+// --- Componente Principal ---
 
 export default function CreateActivityPage() {
   const { toast } = useToast();
@@ -139,7 +231,8 @@ export default function CreateActivityPage() {
   const [isAddActivityDialogOpen, setIsAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const tableRef = useRef<HTMLDivElement>(null);
+  
+  const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setActions({ title: "Crear Ficha de Actividad" });
@@ -256,26 +349,27 @@ export default function CreateActivityPage() {
   const ExtraPerformanceIcon = String(codeValue) === '46' ? Grape : Boxes;
 
   const handleCaptureTable = async () => {
-    if (!tableRef.current || groupActivities.length === 0) return;
+    if (!reportRef.current || groupActivities.length === 0) return;
     
     try {
-      // Dynamic import to avoid build errors if the module is resolved differently in various environments
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(tableRef.current, {
+      reportRef.current.style.display = 'block';
+      const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         backgroundColor: "#ffffff",
         logging: false,
         useCORS: true
       });
+      reportRef.current.style.display = 'none';
       const link = document.createElement('a');
       const dateStr = format(new Date(), 'ddMMyy_HHmm');
       link.download = `Resumen_Grupal_${dateStr}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      toast({ title: "Captura Guardada", description: "La imagen se ha descargado correctamente." });
+      toast({ title: "Captura Guardada", description: "Reporte profesional generado correctamente." });
     } catch (e) {
       console.error("Error capturing table:", e);
-      toast({ variant: 'destructive', title: 'Error al capturar', description: "No se pudo generar la imagen de la tabla." });
+      toast({ variant: 'destructive', title: 'Error al capturar', description: "No se pudo generar la imagen del reporte." });
     }
   };
 
@@ -337,7 +431,7 @@ export default function CreateActivityPage() {
     });
   };
   
- const handleGroupSave = async () => {
+  const handleGroupSave = async () => {
     const isValidHeader = await headerForm.trigger();
     if (!isValidHeader) {
       toast({ variant: 'destructive', title: 'Error', description: 'Por favor, complete todos los campos de la cabecera.' });
@@ -382,12 +476,12 @@ export default function CreateActivityPage() {
                     createdBy: profile.email,
                     assistantDni: activity.assistantDni,
                     assistantName: activity.assistantName,
-                    performance: activity.performance || 0,
-                    clustersOrJabas: activity.clustersOrJabas || 0,
-                    personnelCount: activity.personnelCount || 0,
-                    workdayCount: activity.workdayCount || 0,
-                    minRange: activity.minRange || 0,
-                    maxRange: activity.maxRange || 0,
+                    performance: Number(activity.performance) || 0,
+                    clustersOrJabas: Number(activity.clustersOrJabas) || 0,
+                    personnelCount: Number(activity.personnelCount) || 0,
+                    workdayCount: Number(activity.workdayCount) || 0,
+                    minRange: Number(activity.minRange) || 0,
+                    maxRange: Number(activity.maxRange) || 0,
                     observations: activity.observations || '',
                     createdAt: serverTimestamp(),
                 };
@@ -395,11 +489,6 @@ export default function CreateActivityPage() {
                 successCount++;
             } catch(error: any) {
                  console.error("Error saving group activity: ", error);
-                 toast({
-                    variant: 'destructive',
-                    title: `Error guardando registro para ${activity.assistantName}`,
-                    description: error.message,
-                });
             }
         }
 
@@ -418,7 +507,7 @@ export default function CreateActivityPage() {
             });
         }
     });
-};
+  };
   
   const handleAddAssistant = (assistant: { assistantDni: string, assistantName: string }) => {
     setGroupActivities(prev => [...prev, {
@@ -446,243 +535,76 @@ export default function CreateActivityPage() {
     });
   };
 
-  const handleRemoveActivity = (id: string) => {
-    setGroupActivities(prev => prev.filter(act => act.id !== id));
+  const renderSharedHeader = (formInstance: any, isSingle: boolean) => {
+    const prefix = isSingle ? 'single' : 'header';
+    return (
+      <div className="space-y-6">
+        <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
+            <FormItem><FormLabel htmlFor={`${prefix}-registerDate`}><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild><FormControl><Button id={`${prefix}-registerDate`} name={`${prefix}-registerDate`} variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value && isValid(field.value) ? format(field.value, "d 'de' MMMM 'de' yyyy", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); setIsCalendarOpen(false); }} initialFocus locale={es} />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-3 gap-4">
+            <FormField control={formInstance.control} name="campaign" render={({ field }) => (
+              <FormItem><FormLabel htmlFor={`${prefix}-campaign`}><IconWrapper><Briefcase/>Campaña</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id={`${prefix}-campaign`} name={`${prefix}-campaign`}><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem>
+            )}/>
+            <FormField control={formInstance.control} name="stage" render={({ field }) => (
+              <FormItem><FormLabel htmlFor={`${prefix}-stage`}><IconWrapper><Flame/>Etapa</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id={`${prefix}-stage`} name={`${prefix}-stage`}><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem>
+            )}/>
+            <FormField control={formInstance.control} name="lote" render={({ field }) => (
+              <FormItem><FormLabel htmlFor={`${prefix}-lote`}><IconWrapper><Sprout/>Lote</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id={`${prefix}-lote`} name={`${prefix}-lote`}><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+            )}/>
+        </div>
+         <div className="grid grid-cols-2 gap-4">
+          <FormField control={formInstance.control} name="code" render={({ field }) => (
+            <FormItem><FormLabel htmlFor={`${prefix}-code`}><IconWrapper><Tag/>Cód.</IconWrapper></FormLabel><FormControl><Input id={`${prefix}-code`} name={`${prefix}-code`} placeholder="Ej: 31" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>
+          )}/>
+          <FormField control={formInstance.control} name="labor" render={({ field }) => (
+            <FormItem><FormLabel htmlFor={`${prefix}-labor`}><IconWrapper><Wrench/>Labor</IconWrapper></FormLabel><FormControl><Input id={`${prefix}-labor`} name={`${prefix}-labor`} placeholder="Labor..." {...field} readOnly /></FormControl><FormMessage/></FormItem>
+          )}/>
+        </div>
+         <div className="grid grid-cols-3 gap-4">
+            <FormField control={formInstance.control} name="cost" render={({ field }) => (<FormItem><FormLabel htmlFor={`${prefix}-cost`}><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo</IconWrapper></FormLabel><FormControl><Input id={`${prefix}-cost`} name={`${prefix}-cost`} type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+            <FormField control={formInstance.control} name="shift" render={({ field }) => (
+                <FormItem><FormLabel htmlFor={`${prefix}-shift`}><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger id={`${prefix}-shift`} name={`${prefix}-shift`}><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl>
+                        <SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent>
+                    </Select>
+                <FormMessage/></FormItem>
+            )}/>
+            <FormField control={formInstance.control} name="pass" render={({ field }) => (<FormItem><FormLabel htmlFor={`${prefix}-pass`}><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input id={`${prefix}-pass`} name={`${prefix}-pass`} type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+        </div>
+      </div>
+    );
   };
 
-  const renderSharedHeader = (formInstance: any) => (
-    <>
-      <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
-          <FormItem><FormLabel htmlFor="registerDate-header"><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel>
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger asChild><FormControl><Button id="registerDate-header" name="registerDate-header" variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value && isValid(field.value) ? format(field.value, "d 'de' MMMM 'de' yyyy", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar 
-                  mode="single" 
-                  selected={field.value} 
-                  onSelect={(date) => {
-                    field.onChange(date);
-                    setIsCalendarOpen(false);
-                  }} 
-                  initialFocus 
-                  locale={es} 
-                />
-              </PopoverContent>
-            </Popover>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <div className="grid grid-cols-3 gap-4">
-          <FormField control={formInstance.control} name="campaign" render={({ field }) => (
-            <FormItem><FormLabel htmlFor="campaign-header"><IconWrapper><Briefcase/>Campaña</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id="campaign-header" name="campaign-header"><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem>
-          )}/>
-          <FormField control={formInstance.control} name="stage" render={({ field }) => (
-            <FormItem><FormLabel htmlFor="stage-header"><IconWrapper><Flame/>Etapa</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id="stage-header" name="stage-header"><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem>
-          )}/>
-          <FormField control={formInstance.control} name="lote" render={({ field }) => (
-            <FormItem><FormLabel htmlFor="lote-header"><IconWrapper><Sprout/>Lote</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id="lote-header" name="lote-header"><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
-          )}/>
-      </div>
-       <div className="grid grid-cols-2 gap-4">
-        <FormField control={formInstance.control} name="code" render={({ field }) => (
-          <FormItem><FormLabel htmlFor="code-header"><IconWrapper><Tag/>Cód.</IconWrapper></FormLabel><FormControl><Input id="code-header" name="code-header" placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>
-        )}/>
-        <FormField control={formInstance.control} name="labor" render={({ field }) => (
-          <FormItem><FormLabel htmlFor="labor-header"><IconWrapper><Wrench/>Labor</IconWrapper></FormLabel><FormControl><Input id="labor-header" name="labor-header" placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl><FormMessage/></FormItem>
-        )}/>
-      </div>
-       <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-          <FormField control={formInstance.control} name="cost" render={({ field }) => (<FormItem><FormLabel htmlFor="cost-header"><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input id="cost-header" name="cost-header" type="number" placeholder='0' {...field} /></FormControl><FormMessage/></FormItem>)}/>
-          <FormField control={formInstance.control} name="shift" render={({ field }) => (
-              <FormItem><FormLabel htmlFor="shift-header"><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger id="shift-header" name="shift-header"><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl>
-                      <SelectContent>
-                          <SelectItem value="Mañana">Mañana</SelectItem>
-                          <SelectItem value="Tarde">Tarde</SelectItem>
-                          <SelectItem value="Noche">Noche</SelectItem>
-                      </SelectContent>
-                  </Select>
-              <FormMessage/></FormItem>
-          )}/>
-          <FormField control={formInstance.control} name="pass" render={({ field }) => (<FormItem><FormLabel htmlFor="pass-header"><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input id="pass-header" name="pass-header" type="number" placeholder='0' {...field} /></FormControl><FormMessage/></FormItem>)}/>
-      </div>
-    </>
-  );
-
   return (
-    <>
-      <div className="mx-auto max-w-4xl">
-        <div className="flex items-center justify-center space-x-2 mb-6">
-            <Label htmlFor="form-mode-switch">Individual</Label>
-            <Switch
-                id="form-mode-switch"
-                checked={formMode === 'group'}
-                onCheckedChange={(checked) => setFormMode(checked ? 'group' : 'individual')}
-            />
-            <Label htmlFor="form-mode-switch">Grupos</Label>
-        </div>
-
-        {formMode === 'individual' ? (
-          <Form {...singleForm}>
-             <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
-                <div className="rounded-lg border bg-card text-card-foreground p-6 shadow-sm space-y-6">
-                  <FormField control={singleForm.control} name="registerDate" render={({ field }) => (
-                    <FormItem><FormLabel htmlFor="registerDate-single"><IconWrapper><CalendarIcon className="h-4 w-4"/>Fecha de Registro</IconWrapper></FormLabel>
-                      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                        <PopoverTrigger asChild><FormControl><Button id="registerDate-single" name="registerDate-single" variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value && isValid(field.value) ? format(field.value, "d 'de' MMMM 'de' yyyy", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar 
-                            mode="single" 
-                            selected={field.value} 
-                            onSelect={(date) => {
-                              field.onChange(date);
-                              setIsCalendarOpen(false);
-                            }} 
-                            initialFocus 
-                            locale={es} 
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage/></FormItem>
-                  )}/>
-
-                  <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-                      <FormField control={singleForm.control} name="campaign" render={({ field }) => (<FormItem><FormLabel htmlFor="campaign-single"><IconWrapper><Briefcase className="h-4 w-4"/>Campaña</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id="campaign-single" name="campaign-single"><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                      <FormField control={singleForm.control} name="stage" render={({ field }) => (<FormItem><FormLabel htmlFor="stage-single"><IconWrapper><Flame className="h-4 w-4"/>Etapa</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id="stage-single" name="stage-single"><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                      <FormField control={singleForm.control} name="lote" render={({ field }) => (<FormItem><FormLabel htmlFor="lote-single"><IconWrapper><Sprout className="h-4 w-4"/>Lote</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id="lote-single" name="lote-single"><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>)}/>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-2 gap-x-2 gap-y-4">
-                      <FormField control={singleForm.control} name="code" render={({ field }) => (<FormItem><FormLabel htmlFor="code-single"><IconWrapper><Tag className="h-4 w-4"/>Cód.</IconWrapper></FormLabel><FormControl><Input id="code-single" name="code-single" placeholder="Ej: 1001" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>)}/>
-                      <FormField control={singleForm.control} name="labor" render={({ field }) => (<FormItem><FormLabel htmlFor="labor-single"><IconWrapper><Wrench className="h-4 w-4"/>Labor</IconWrapper></FormLabel><FormControl><Input id="labor-single" name="labor-single" placeholder="Labor (auto-completado)" {...field} readOnly /></FormControl><FormMessage/></FormItem>)}/>
-                  </div>
-                  
-                   <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-                        <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel htmlFor="performance-single"><IconWrapper><TrendingUp className="h-4 w-4"/>{performanceLabel}</IconWrapper></FormLabel><FormControl><Input id="performance-single" name="performance-single" type="number" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                        {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel htmlFor="clustersOrJabas-single"><IconWrapper><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</IconWrapper></FormLabel><FormControl><Input id="clustersOrJabas-single" name="clustersOrJabas-single" type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/> )}
-                         <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel htmlFor="personnelCount-single"><IconWrapper><Users className="h-4 w-4"/># Peronas</IconWrapper></FormLabel><FormControl><Input id="personnelCount-single" name="personnelCount-single" type="number" placeholder="1" {...field}  /></FormControl><FormMessage/></FormItem>)}/>
-                        <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel htmlFor="workdayCount-single"><IconWrapper><ClipboardList className="h-4 w-4"/># Jornadas (JHU)</IconWrapper></FormLabel><FormControl><Input id="workdayCount-single" name="workdayCount-single" type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                    </div>
-                    
-                     <div className="grid grid-cols-3 md:grid-cols-3 gap-x-4 gap-y-6">
-                         <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel htmlFor="cost-single"><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo (PEN)</IconWrapper></FormLabel><FormControl><Input id="cost-single" name="cost-single" type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                         <FormField control={singleForm.control} name="shift" render={({ field }) => (<FormItem><FormLabel htmlFor="shift-single"><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger id="shift-single" name="shift-single"><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl>
-                            <SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem><SelectItem value="Noche">Noche</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
-                         <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel htmlFor="pass-single"><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input id="pass-single" name="pass-single" type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                     </div>
-                      
-                     <div className="grid grid-cols-2 md:grid-cols-2 gap-x-4 gap-y-6">
-                         <FormField control={singleForm.control} name="minRange" render={({ field }) => (<FormItem><FormLabel htmlFor="minRange-single"><IconWrapper><FileInput className="h-4 w-4"/>Min</IconWrapper></FormLabel><FormControl><Input id="minRange-single" name="minRange-single" type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                         <FormField control={singleForm.control} name="maxRange" render={({ field }) => (<FormItem><FormLabel htmlFor="maxRange-single"><IconWrapper><FileOutput className="h-4 w-4"/>Max</IconWrapper></FormLabel><FormControl><Input id="maxRange-single" name="maxRange-single" type="number" placeholder="0" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                     </div>
-                      
-                     <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel htmlFor="observations-single"><IconWrapper><Pencil className="h-4 w-4"/>Observaciones</IconWrapper></FormLabel> <FormControl><Textarea id="observations-single" name="observations-single" placeholder="Escribe aquí tus observaciones..." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-                  </div>
-                   <div className="flex justify-end pt-4">
-                       <Button type="submit" disabled={isPending || masterLoading}>
-                           {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
-                           Guardar Ficha
-                       </Button>
-                   </div>
-             </form>
-           </Form>
-        ) : (
-          <Form {...headerForm}>
-            <form className="space-y-6">
-               <div className="rounded-lg border bg-card text-card-foreground p-4 shadow-sm space-y-4">
-                    {renderSharedHeader(headerForm)}
-                    
-                    <div className="overflow-x-auto" ref={tableRef}>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[180px]">Asistente</TableHead>
-                                    <TableHead className="min-w-[120px]">{performanceLabel}</TableHead>
-                                    {showExtraPerformanceField && <TableHead className="min-w-[120px]">{extraPerformanceLabel}</TableHead>}
-                                    <TableHead className="min-w-[100px]">Personas</TableHead>
-                                    <TableHead className="min-w-[100px]">JHU</TableHead>
-                                    <TableHead className="min-w-[100px]">Prom.</TableHead>
-                                    <TableHead className="min-w-[100px]">Mínimo</TableHead>
-                                    <TableHead className="min-w-[100px]">Máximo</TableHead>
-                                    <TableHead className="min-w-[150px]">Obs.</TableHead>
-                                    <TableHead className="w-[80px] text-center">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {groupActivities.map((field, index) => {
-                                    const numerator = showExtraPerformanceField ? (field.clustersOrJabas || 0) : (field.performance || 0);
-                                    const average = (field.workdayCount || 0) > 0 ? (numerator / (field.workdayCount || 1)) : 0;
-                                    return (
-                                        <TableRow key={field.id}>
-                                            <TableCell className="font-medium whitespace-nowrap">{field.assistantName}</TableCell>
-                                            <TableCell>
-                                                <Input id={`perf-${index}`} name={`perf-${index}`} aria-label={`Rendimiento para ${field.assistantName}`} type="number" value={field.performance || ''} onChange={e => handleGroupActivityChange(index, 'performance', e.target.value)} className="w-24 h-8" />
-                                            </TableCell>
-                                            {showExtraPerformanceField && <TableCell>
-                                            <Input id={`clusters-${index}`} name={`clusters-${index}`} aria-label={`${extraPerformanceLabel} para ${field.assistantName}`} type="number" value={field.clustersOrJabas || ''} onChange={e => handleGroupActivityChange(index, 'clustersOrJabas', e.target.value)} className="w-24 h-8" />
-                                            </TableCell>}
-                                            <TableCell>
-                                                <Input id={`pers-${index}`} name={`pers-${index}`} aria-label={`# Personas para ${field.assistantName}`} type="number" value={field.personnelCount || ''} onChange={e => handleGroupActivityChange(index, 'personnelCount', e.target.value)} className="w-20 h-8" />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input id={`jhu-${index}`} name={`jhu-${index}`} aria-label={`# Jornadas para ${field.assistantName}`} type="number" value={field.workdayCount || ''} onChange={e => handleGroupActivityChange(index, 'workdayCount', e.target.value)} className="w-20 h-8" />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input id={`avg-${index}`} name={`avg-${index}`} aria-label={`Promedio para ${field.assistantName}`} type="number" value={average.toFixed(2)} readOnly disabled className="w-20 h-8 bg-muted/50" />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input id={`min-${index}`} name={`min-${index}`} aria-label={`Mínimo para ${field.assistantName}`} type="number" value={field.minRange || ''} onChange={e => handleGroupActivityChange(index, 'minRange', e.target.value)} className="w-20 h-8" />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input id={`max-${index}`} name={`max-${index}`} aria-label={`Máximo para ${field.assistantName}`} type="number" value={field.maxRange || ''} onChange={e => handleGroupActivityChange(index, 'maxRange', e.target.value)} className="w-20 h-8" />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input id={`obs-${index}`} name={`obs-${index}`} aria-label={`Observaciones para ${field.assistantName}`} value={field.observations || ''} onChange={e => handleGroupActivityChange(index, 'observations', e.target.value)} className="w-36 h-8" />
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <div className="flex gap-1 justify-center">
-                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveActivity(field.id)}><Trash2 className="h-4 w-4"/></Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-                            <TableFooter>
-                                <GroupFormTotals activities={groupActivities} showExtraPerformanceField={showExtraPerformanceField} />
-                            </TableFooter>
-                        </Table>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                        <Button type="button" variant="outline" size="sm" onClick={() => setIsAddActivityDialogOpen(true)}>
-                            <PlusCircle className="mr-2 h-4 w-4"/> Agregar Fila
-                        </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={handleCaptureTable} disabled={groupActivities.length === 0}>
-                            <Camera className="mr-2 h-4 w-4"/> Tomar Captura
-                        </Button>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
-                        <Button type="button" onClick={handleGroupSave} disabled={isPending || masterLoading || groupActivities.length === 0}>
-                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
-                            Guardar {groupActivities.length} Registros
-                        </Button>
-                    </div>
-               </div>
-            </form>
-          </Form>
-        )}
+    <div className="mx-auto max-w-4xl">
+      <div className="flex items-center justify-center space-x-2 mb-6">
+          <Label htmlFor="form-mode-switch">Individual</Label>
+          <Switch id="form-mode-switch" checked={formMode === 'group'} onCheckedChange={(checked) => setFormMode(checked ? 'group' : 'individual')} />
+          <Label htmlFor="form-mode-switch">Grupal</Label>
       </div>
 
-       <AddAssistantActivityDialog
-          isOpen={isAddActivityDialogOpen}
-          setIsOpen={setIsAddActivityDialogOpen}
-          onSelectAssistant={handleAddAssistant}
-          currentAssistantsDnis={groupActivities.map(f => f.assistantDni)}
-       />
-    </>
-  );
-}
+      {formMode === 'individual' ? (
+        <Form {...singleForm}>
+           <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
+              <div className="rounded-lg border bg-card p-6 shadow-sm">
+                {renderSharedHeader(singleForm, true)}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel>{performanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                    {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2"><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/> )}
+                    <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel># Peronas</FormLabel><FormControl><Input type="number" {...field}  /></FormControl><FormMessage/></FormItem>)}/>
+                    <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel># Jornadas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                    <FormField control={singleForm.control} name="minRange" render={({ field }) => (<FormItem><FormLabel>Mínimo</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+                    <FormField control={singleForm.control} name="maxRange" render={({ field }) => (<FormItem><FormLabel>Máximo</FormLabel><FormControl>
