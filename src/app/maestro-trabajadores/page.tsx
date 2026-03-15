@@ -3,28 +3,14 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { useForm, type SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import type { WorkerMasterItem } from '@/lib/types';
-import { Users, UserPlus, Search, Edit, Trash2, KeyRound, UserCircle, Loader2, FileUp, FileText, UploadCloud, Download, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
+import { Users, Search, Trash2, Loader2, FileUp, UploadCloud } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, writeBatch, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 
@@ -131,7 +117,7 @@ export default function WorkerMasterManagement() {
     <div className="space-y-8 p-4">
       <Card className="w-full max-w-2xl mx-auto shadow-xl">
         <CardHeader>
-          <CardTitle className="text-xl font-headline text-center">Carga Masiva de Trabajadores</CardTitle>
+          <CardTitle className="text-xl text-center">Carga Masiva de Trabajadores</CardTitle>
           <CardDescription className="text-center">Seleccione un archivo Excel/CSV (Columna A: DNI, Columna B: Nombre).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -152,7 +138,7 @@ export default function WorkerMasterManagement() {
       <Card className="shadow-xl">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <CardTitle className="text-2xl font-headline flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Lista de Trabajadores</CardTitle>
+            <CardTitle className="text-2xl flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Lista de Trabajadores</CardTitle>
             <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Buscar por DNI o nombre..." className="pl-8" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/>
