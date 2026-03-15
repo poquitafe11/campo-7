@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Loader2, Filter, RefreshCcw, Calendar as CalendarIcon, Clock, Camera, LayoutGrid, AlertCircle } from 'lucide-react';
-import { format, parseISO, isValid, startOfDay } from 'date-fns';
+import { format, parseISO, isValid, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Bar, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip as RechartsTooltip } from 'recharts';
 import { DateRange } from "react-day-picker";
@@ -121,7 +121,7 @@ function AssistantSummaryTable({
 }
 
 const formatAssistantName = (name: string) => {
-    if (!name) return '';
+    if (!name) return 'Desconocido';
     const parts = name.trim().split(' ');
     if (parts.length < 2) return name;
     const firstName = parts[0];
@@ -160,7 +160,15 @@ export default function ActivitySummaryPage() {
 
             const activitiesData = activitiesSnapshot.docs.map(doc => {
                 const data = doc.data();
-                const registerDate = data.registerDate?.toDate ? data.registerDate.toDate() : new Date();
+                // Parseo robusto de fecha para manejar Timestamps y Strings ISO
+                let registerDate: Date;
+                if (data.registerDate?.toDate) {
+                    registerDate = data.registerDate.toDate();
+                } else if (typeof data.registerDate === 'string' && isValid(parseISO(data.registerDate))) {
+                    registerDate = parseISO(data.registerDate);
+                } else {
+                    registerDate = new Date();
+                }
                 return { ...data, registerDate } as ActivityRecordData;
             });
             setAllActivities(activitiesData);
@@ -265,7 +273,7 @@ export default function ActivitySummaryPage() {
                 },
                 date: day.date
             };
-        }).sort((a, b) => b.date.getTime() - a.date.getTime());
+        }).sort((a, b) => b.date.getTime() - a.date.getTime()); // Ordenar por fecha descendente
 
         return summariesWithCumulative;
 
@@ -315,54 +323,51 @@ export default function ActivitySummaryPage() {
           filtered = filtered.filter(a => a.registerDate >= startOfDay(chartDateRange.from!));
         }
         if (chartDateRange?.to) {
-          filtered = filtered.filter(a => a.registerDate <= startOfDay(chartDateRange.to!));
+          filtered = filtered.filter(a => a.registerDate <= endOfDay(chartDateRange.to!));
         }
         if (chartShiftFilter !== 'todos') {
             filtered = filtered.filter(a => a.shift === chartShiftFilter);
         }
 
         const assistantData = new Map<string, {
+            name: string;
             performanceSum: number;
             workdaySum: number;
             specialPerformanceSum: number;
             promJhuValues: number[];
         }>();
         
-        const assistantNameMap = new Map<string, string>();
-        asistentes.forEach(a => {
-            assistantNameMap.set(a.id, a.assistantName);
-        });
-        
         filtered.forEach(activity => {
-            const assistantDni = activity.assistantDni;
-            if (assistantDni) {
-                if (!assistantData.has(assistantDni)) {
-                    assistantData.set(assistantDni, {
-                        performanceSum: 0,
-                        workdaySum: 0,
-                        specialPerformanceSum: 0,
-                        promJhuValues: [],
-                    });
-                }
-                const current = assistantData.get(assistantDni)!;
-                
-                const performance = activity.performance || 0;
-                const jhu = activity.workdayCount || 0;
-                
-                if (jhu > 0) {
-                    current.promJhuValues.push(performance / jhu);
-                }
-
-                current.performanceSum += performance;
-                current.specialPerformanceSum += (activity.clustersOrJabas || 0);
-                current.workdaySum += jhu;
+            const assistantId = activity.assistantDni || activity.assistantName || 'Desconocido';
+            const assistantName = activity.assistantName || asistentes.find(a => a.id === activity.assistantDni)?.assistantName || assistantId;
+            
+            if (!assistantData.has(assistantId)) {
+                assistantData.set(assistantId, {
+                    name: formatAssistantName(assistantName),
+                    performanceSum: 0,
+                    workdaySum: 0,
+                    specialPerformanceSum: 0,
+                    promJhuValues: [],
+                });
             }
+            const current = assistantData.get(assistantId)!;
+            
+            const performance = activity.performance || 0;
+            const jhu = activity.workdayCount || 0;
+            
+            if (jhu > 0) {
+                current.promJhuValues.push(performance / jhu);
+            }
+
+            current.performanceSum += performance;
+            current.specialPerformanceSum += (activity.clustersOrJabas || 0);
+            current.workdaySum += jhu;
         });
         
-        const chartData = Array.from(assistantData.entries()).map(([assistantId, data]) => {
+        const chartData = Array.from(assistantData.values()).map(data => {
             const promedio = data.workdaySum > 0 ? data.performanceSum / data.workdaySum : 0;
             return {
-                name: formatAssistantName(assistantNameMap.get(assistantId) || assistantId),
+                name: data.name,
                 promedio,
                 jornadas: data.workdaySum,
             }
@@ -386,7 +391,7 @@ export default function ActivitySummaryPage() {
           filtered = filtered.filter(a => a.registerDate >= startOfDay(chartDateRange.from!));
         }
         if (chartDateRange?.to) {
-          filtered = filtered.filter(a => a.registerDate <= startOfDay(chartDateRange.to!));
+          filtered = filtered.filter(a => a.registerDate <= endOfDay(chartDateRange.to!));
         }
         if (chartShiftFilter !== 'todos') {
             filtered = filtered.filter(a => a.shift === chartShiftFilter);
@@ -451,8 +456,8 @@ export default function ActivitySummaryPage() {
     
     const filterOptions = useMemo(() => {
       const campaigns = [...new Set(allActivities.map(r => r.campaign).filter(Boolean))].sort();
-      const lotes = [...new Set(allActivities.map(r => r.lote).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
-      const labors = [...new Set(allActivities.map(r => r.labor).filter(Boolean))].sort();
+      const lotes = [...new Set(allActivities.map(r => r.lote).filter(Boolean) as string[])].sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
+      const labors = [...new Set(allActivities.map(r => r.labor).filter(Boolean) as string[])].sort();
       const pasadas = [...new Set(allActivities.map(a => String(a.pass)))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
 
       return { campaigns, lotes, labors, pasadas };
@@ -467,12 +472,15 @@ export default function ActivitySummaryPage() {
         if (!ref.current) return;
         try {
             const html2canvas = (await import('html2canvas')).default;
+            const originalDisplay = ref.current.style.display;
+            ref.current.style.display = 'block';
             const canvas = await html2canvas(ref.current, {
                 scale: 2,
                 backgroundColor: "#ffffff",
                 logging: false,
                 useCORS: true
             });
+            ref.current.style.display = originalDisplay;
             const link = document.createElement('a');
             link.download = `${filename}_${format(new Date(), 'ddMMyy_HHmm')}.png`;
             link.href = canvas.toDataURL("image/png");
@@ -504,7 +512,7 @@ export default function ActivitySummaryPage() {
                       <div className="grid gap-2">
                         <div className="grid gap-1">
                             <Label htmlFor="campaign-filter-summary">Campaña</Label>
-                            <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v, lote: '' }))} value={popoverFilters.campaign}>
+                            <Select onValueChange={(v) => setPopoverFilters(p => ({ ...p, campaign: v === 'all' ? '' : v }))} value={popoverFilters.campaign}>
                             <SelectTrigger id="campaign-filter-summary" name="campaign-filter-summary"><SelectValue placeholder={loading ? "Cargando..." : "Todas"} /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Todas</SelectItem>
