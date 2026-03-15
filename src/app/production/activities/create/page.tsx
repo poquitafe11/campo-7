@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
@@ -8,21 +9,17 @@ import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon,
-  RotateCw,
-  Briefcase,
-  Calculator,
   Loader2,
-  Boxes,
-  Grape,
   PlusCircle,
   Trash2,
   Tag,
-  Pencil,
   Save,
   Wrench,
   Camera,
   Clock,
   Sprout,
+  Grape,
+  Boxes,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -40,7 +37,7 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -95,7 +92,7 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
     }, [activities]);
 
     return (
-      <TableRow className="bg-muted/50 font-bold">
+      <TableRow className="bg-muted/50 font-bold text-xs sm:text-sm">
         <TableCell className="text-right">Total</TableCell>
         <TableCell className="text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
         {showExtraPerformanceField && <TableCell className="text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
@@ -112,14 +109,16 @@ function CaptureReport({
   showExtraPerformanceField, 
   performanceLabel, 
   extraPerformanceLabel,
-  loteLabel
+  loteLabel,
+  userName
 }: { 
   activities: AssistantInGroup[], 
   header: any, 
   showExtraPerformanceField: boolean,
   performanceLabel: string,
   extraPerformanceLabel: string,
-  loteLabel: string
+  loteLabel: string,
+  userName: string
 }) {
   const totals = {
     performance: activities.reduce((sum, a) => sum + (Number(a.performance) || 0), 0),
@@ -139,7 +138,8 @@ function CaptureReport({
           <p className="text-sm"><strong>LABOR:</strong> {header.labor || '---'} ({header.code || '---'})</p>
           <p className="text-sm"><strong>LOTE:</strong> {loteLabel || '---'} | <strong>PASADA:</strong> {header.pass || '0'}</p>
         </div>
-        <div className="text-right">
+        <div className="text-right space-y-1">
+          <p className="text-sm"><strong>RESPONSABLE:</strong> {userName.toUpperCase()}</p>
           <p className="text-xs text-gray-500 italic">Generado el {format(new Date(), 'Pp', { locale: es })}</p>
         </div>
       </div>
@@ -482,6 +482,7 @@ export default function CreateActivityPage() {
             performanceLabel={performanceLabel}
             extraPerformanceLabel={extraPerformanceLabel}
             loteLabel={uniqueLotes.find(l => l.id === headerForm.getValues('lote'))?.lote || ''}
+            userName={profile?.nombre || 'N/A'}
           />
         </div>
       </div>
