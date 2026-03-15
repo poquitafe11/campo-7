@@ -23,7 +23,6 @@ import {
   Camera,
   Clock,
   Sprout,
-  Flame
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -84,31 +83,16 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
 // Componente para totales del formulario grupal
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
     const totals = useMemo(() => {
-      const summary = { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0, average: 0 };
+      const summary = { performance: 0, workdayCount: 0, clustersOrJabas: 0 };
       if (!activities || activities.length === 0) return summary;
       
       activities.forEach((curr) => {
         summary.performance += Number(curr.performance) || 0;
         summary.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
-        summary.personnelCount += Number(curr.personnelCount) || 0;
         summary.workdayCount += Number(curr.workdayCount) || 0;
-        
-        const min = Number(curr.minRange) || 0;
-        const max = Number(curr.maxRange) || 0;
-        
-        if (min > 0) {
-          summary.minRange = summary.minRange === 0 ? min : Math.min(summary.minRange, min);
-        }
-        if (max > 0) {
-          summary.maxRange = Math.max(summary.maxRange, max);
-        }
       });
-      
-      const numerator = showExtraPerformanceField ? summary.clustersOrJabas : summary.performance;
-      summary.average = summary.workdayCount > 0 ? numerator / summary.workdayCount : 0;
-      
       return summary;
-    }, [activities, showExtraPerformanceField]);
+    }, [activities]);
 
     return (
       <TableRow className="bg-muted/50 font-bold">
@@ -116,7 +100,7 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
         <TableCell className="text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
         {showExtraPerformanceField && <TableCell className="text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
         <TableCell className="text-center">{totals.workdayCount.toFixed(1)}</TableCell>
-        <TableCell colSpan={2}></TableCell>
+        <TableCell></TableCell>
       </TableRow>
     );
 }
@@ -128,16 +112,14 @@ function CaptureReport({
   showExtraPerformanceField, 
   performanceLabel, 
   extraPerformanceLabel,
-  loteLabel,
-  responsableName
+  loteLabel
 }: { 
   activities: AssistantInGroup[], 
   header: any, 
   showExtraPerformanceField: boolean,
   performanceLabel: string,
   extraPerformanceLabel: string,
-  loteLabel: string,
-  responsableName: string
+  loteLabel: string
 }) {
   const totals = {
     performance: activities.reduce((sum, a) => sum + (Number(a.performance) || 0), 0),
@@ -151,15 +133,14 @@ function CaptureReport({
   return (
     <div className="bg-white p-8 text-black font-sans border-2 border-black" style={{ width: '1000px' }}>
       <div className="flex justify-between items-start mb-6">
-        <div className="space-y-1 text-left">
+        <div className="space-y-1">
           <h2 className="text-xl font-bold border-b-2 border-black pb-1 uppercase">REPORTE DE CAMPO - FICHA DE ACTIVIDAD</h2>
           <p className="text-sm"><strong>FECHA:</strong> {header.registerDate ? format(header.registerDate, "d 'de' MMMM, yyyy", { locale: es }) : '---'}</p>
           <p className="text-sm"><strong>LABOR:</strong> {header.labor || '---'} ({header.code || '---'})</p>
           <p className="text-sm"><strong>LOTE:</strong> {loteLabel || '---'} | <strong>PASADA:</strong> {header.pass || '0'}</p>
         </div>
         <div className="text-right">
-          <p className="text-sm font-bold bg-gray-100 p-2 border border-black inline-block">RESPONSABLE: {responsableName || '---'}</p>
-          <p className="text-xs text-gray-500 mt-1 italic">Generado el {format(new Date(), 'Pp', { locale: es })}</p>
+          <p className="text-xs text-gray-500 italic">Generado el {format(new Date(), 'Pp', { locale: es })}</p>
         </div>
       </div>
 
@@ -213,10 +194,10 @@ export default function CreateActivityPage() {
   const { toast } = useToast();
   const { profile } = useAuth();
   const [isPending, startTransition] = useTransition();
-  const { labors, lotes, presupuestos, minMax, loading: masterLoading } = useMasterData();
+  const { labors, lotes, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
-  const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
   
+  const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
   const [isAddActivityDialogOpen, setIsAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -232,8 +213,8 @@ export default function CreateActivityPage() {
     resolver: zodResolver(ActivityRecordSchema),
     defaultValues: {
       registerDate: new Date(),
-      campaign: '',
-      stage: '',
+      campaign: '2025',
+      stage: 'produccion',
       lote: '',
       code: '',
       labor: '',
@@ -242,10 +223,10 @@ export default function CreateActivityPage() {
       personnelCount: 1,
       workdayCount: 0,
       cost: 0,
-      shift: '',
+      shift: 'Mañana',
       minRange: 0,
       maxRange: 0,
-      pass: 0,
+      pass: 1,
       observations: '',
       assistantDni: '',
       assistantName: '',
@@ -257,13 +238,13 @@ export default function CreateActivityPage() {
     resolver: zodResolver(headerSchema),
     defaultValues: {
       registerDate: new Date(),
-      campaign: '',
-      stage: '',
+      campaign: '2025',
+      stage: 'produccion',
       lote: '',
       code: '',
       labor: '',
-      shift: '',
-      pass: 0,
+      shift: 'Mañana',
+      pass: 1,
       cost: 0,
     }
   });
@@ -281,12 +262,6 @@ export default function CreateActivityPage() {
       } else {
         headerForm.setValue('labor', label, { shouldValidate: true });
       }
-    } else {
-      if (formMode === 'individual') {
-        singleForm.setValue('labor', '', { shouldValidate: true });
-      } else {
-        headerForm.setValue('labor', '', { shouldValidate: true });
-      }
     }
   }, [codeValue, labors, formMode, singleForm, headerForm]);
 
@@ -301,9 +276,7 @@ export default function CreateActivityPage() {
   const uniqueLotes = useMemo(() => {
     const map = new Map<string, LoteData>();
     lotes.forEach(lote => {
-      if (!map.has(lote.lote)) {
-        map.set(lote.lote, lote);
-      }
+      if (!map.has(lote.lote)) map.set(lote.lote, lote);
     });
     return Array.from(map.values());
   }, [lotes]);
@@ -311,7 +284,6 @@ export default function CreateActivityPage() {
   const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(String(codeValue) || ''), [codeValue]);
   const performanceLabel = showExtraPerformanceField ? "Rdto (Plta)" : "Rendimiento";
   const extraPerformanceLabel = String(codeValue) === '46' ? "Racimos" : "Jabas";
-  const ExtraPerformanceIcon = String(codeValue) === '46' ? Grape : Boxes;
 
   const handleCaptureTable = async () => {
     if (!reportRef.current || groupActivities.length === 0) return;
@@ -329,41 +301,26 @@ export default function CreateActivityPage() {
       link.download = `Reporte_${format(new Date(), 'ddMMyy_HHmm')}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      toast({ title: "Captura Guardada", description: "Reporte generado correctamente." });
+      toast({ title: "Captura Guardada" });
     } catch (e) {
-      console.error("Error capturing table:", e);
-      toast({ variant: 'destructive', title: 'Error al capturar', description: "No se pudo generar la imagen." });
+      toast({ variant: 'destructive', title: 'Error al capturar' });
     }
   };
 
   const onSingleSubmit = (data: SingleActivityFormValues) => {
-    if (!profile?.email) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
-      return;
-    }
+    if (!profile?.email) return;
     startTransition(async () => {
-        const loteId = data.lote;
-        const loteData = lotes.find(l => l.id === loteId);
-        if (!loteData) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Lote no encontrado.' });
-            return;
-        }
+        const loteData = lotes.find(l => l.id === data.lote);
+        if (!loteData) return;
         try {
-            const currentPresupuesto = presupuestos.find(p => p.lote === loteData.lote && p.descripcionLabor === data.labor && p.campana === data.campaign);
-            const currentMinMax = minMax.find(mm => mm.lote === loteData.lote && mm.labor === data.labor && mm.campana === data.campaign && mm.pasada === data.pass);
-
-            const dataToSave = {
+            await addDoc(collection(db, 'actividades'), {
                 ...data,
                 lote: loteData.lote,
                 variedad: loteData.variedad,
-                budgetJrnHa: currentPresupuesto?.jrnHa || 0,
-                minEstablished: currentMinMax?.min || 0,
-                maxEstablished: currentMinMax?.max || 0,
                 registerDate: Timestamp.fromDate(data.registerDate),
                 createdBy: profile.email,
                 createdAt: serverTimestamp(),
-            };
-            await addDoc(collection(db, 'actividades'), dataToSave);
+            });
             toast({ title: 'Éxito', description: 'Registro guardado.' });
             singleForm.reset({ ...singleForm.getValues(), code: '', labor: '', performance: 0, workdayCount: 0, observations: '' });
         } catch (error: any) {
@@ -375,95 +332,90 @@ export default function CreateActivityPage() {
   const handleGroupSave = async () => {
     const isValidHeader = await headerForm.trigger();
     if (!isValidHeader || groupActivities.length === 0 || !profile?.email) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Complete la cabecera y agregue asistentes.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'Complete los datos obligatorios.' });
       return;
     }
-    const validHeaderData = headerForm.getValues();
-    const loteData = lotes.find(l => l.id === validHeaderData.lote);
+    const headerValues = headerForm.getValues();
+    const loteData = lotes.find(l => l.id === headerValues.lote);
     if (!loteData) return;
 
     startTransition(async () => {
-        let successCount = 0;
+        let count = 0;
         for (const act of groupActivities) {
             try {
-                const dataToSave = {
-                    ...validHeaderData,
+                await addDoc(collection(db, 'actividades'), {
+                    ...headerValues,
                     lote: loteData.lote,
                     variedad: loteData.variedad,
-                    registerDate: Timestamp.fromDate(validHeaderData.registerDate),
+                    registerDate: Timestamp.fromDate(headerValues.registerDate),
                     assistantDni: act.assistantDni,
                     assistantName: act.assistantName,
                     performance: Number(act.performance) || 0,
                     clustersOrJabas: Number(act.clustersOrJabas) || 0,
-                    personnelCount: Number(act.personnelCount) || 1,
+                    personnelCount: 1,
                     workdayCount: Number(act.workdayCount) || 0,
-                    minRange: Number(act.minRange) || 0,
-                    maxRange: Number(act.maxRange) || 0,
                     observations: act.observations || '',
                     createdBy: profile.email,
                     createdAt: serverTimestamp(),
-                };
-                await addDoc(collection(db, 'actividades'), dataToSave);
-                successCount++;
+                });
+                count++;
             } catch (e) {}
         }
-        if (successCount > 0) {
-            toast({ title: 'Éxito', description: `${successCount} registros guardados.` });
-            headerForm.reset({ ...headerForm.getValues(), lote: '', code: '', labor: '' });
-            setGroupActivities([]);
-        }
+        toast({ title: 'Éxito', description: `${count} registros guardados.` });
+        setGroupActivities([]);
     });
   };
 
-  const renderSharedHeader = (formInstance: any) => {
-    const prefix = formMode === 'individual' ? 'ind' : 'grp';
-    return (
-      <div className="space-y-4">
-        <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
-            <FormItem className="flex flex-col"><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha</IconWrapper></FormLabel>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full text-left font-normal">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
-              </Popover>
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-3 gap-2">
-            <FormField control={formInstance.control} name="campaign" render={({ field }) => (
-              <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
-            )}/>
-            <FormField control={formInstance.control} name="stage" render={({ field }) => (
-              <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
-            )}/>
-            <FormField control={formInstance.control} name="lote" render={({ field }) => (
-              <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
-            )}/>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <FormField control={formInstance.control} name="code" render={({ field }) => (
-            <FormItem><FormLabel><IconWrapper><Tag className="h-3 w-3"/>Cód.</IconWrapper></FormLabel><FormControl><Input placeholder="31" {...field} /></FormControl></FormItem>
-          )}/>
-          <FormField control={formInstance.control} name="labor" render={({ field }) => (
-            <FormItem className="col-span-2"><FormLabel><IconWrapper><Wrench className="h-3 w-3"/>Labor</IconWrapper></FormLabel><FormControl><Input readOnly className="bg-muted" {...field} /></FormControl></FormItem>
-          )}/>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-            <FormField control={formInstance.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
-            <FormField control={formInstance.control} name="shift" render={({ field }) => (
-                <FormItem><FormLabel>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-"/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>
-            )}/>
-            <FormField control={formInstance.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
-        </div>
-      </div>
-    );
+  const handleAddAssistant = (a: { assistantDni: string, assistantName: string }) => {
+    setGroupActivities(prev => [...prev, { ...a, id: crypto.randomUUID(), performance: 0, workdayCount: 0 }]);
   };
+
+  const renderSharedHeader = (formInstance: any) => (
+    <div className="space-y-4">
+      <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
+          <FormItem className="flex flex-col"><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha</IconWrapper></FormLabel>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full text-left font-normal">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
+            </Popover>
+          </FormItem>
+        )}
+      />
+      <div className="grid grid-cols-3 gap-2">
+          <FormField control={formInstance.control} name="campaign" render={({ field }) => (
+            <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
+          )}/>
+          <FormField control={formInstance.control} name="stage" render={({ field }) => (
+            <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
+          )}/>
+          <FormField control={formInstance.control} name="lote" render={({ field }) => (
+            <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
+          )}/>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <FormField control={formInstance.control} name="code" render={({ field }) => (
+          <FormItem><FormLabel><IconWrapper><Tag className="h-3 w-3"/>Cód.</IconWrapper></FormLabel><FormControl><Input placeholder="31" {...field} /></FormControl></FormItem>
+        )}/>
+        <FormField control={formInstance.control} name="labor" render={({ field }) => (
+          <FormItem className="col-span-2"><FormLabel><IconWrapper><Wrench className="h-3 w-3"/>Labor</IconWrapper></FormLabel><FormControl><Input readOnly className="bg-muted" {...field} /></FormControl></FormItem>
+        )}/>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+          <FormField control={formInstance.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
+          <FormField control={formInstance.control} name="shift" render={({ field }) => (
+              <FormItem><FormLabel>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-"/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>
+          )}/>
+          <FormField control={formInstance.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
+      </div>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center justify-center space-x-2">
-          <Label>Individual</Label>
+      <div className="flex items-center justify-center space-x-2 p-2 bg-muted rounded-lg w-fit mx-auto">
+          <Label className={cn(formMode === 'individual' && "font-bold text-primary")}>Individual</Label>
           <Switch checked={formMode === 'group'} onCheckedChange={(c) => setFormMode(c ? 'group' : 'individual')} />
-          <Label>Grupal</Label>
+          <Label className={cn(formMode === 'group' && "font-bold text-primary")}>Grupal</Label>
       </div>
 
       {formMode === 'individual' ? (
@@ -471,14 +423,13 @@ export default function CreateActivityPage() {
            <form onSubmit={singleForm.handleSubmit(onSingleSubmit)}>
               <Card className="p-4 shadow-sm space-y-4">
                 {renderSharedHeader(singleForm)}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                     <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel>{performanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )}/>
                     {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel>{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/> )}
-                    <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel># Pers.</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
-                    <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel># Jorn.</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
+                    <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel>JHU</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl></FormItem>)}/>
                 </div>
                 <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel>Observaciones</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem> )}/>
-                <Button type="submit" className="w-full" disabled={isPending}>{isPending ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}Guardar</Button>
+                <Button type="submit" className="w-full" disabled={isPending}>{isPending ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}Guardar Registro</Button>
               </Card>
            </form>
          </Form>
@@ -502,9 +453,9 @@ export default function CreateActivityPage() {
                               {groupActivities.map((act, idx) => (
                                   <TableRow key={act.id}>
                                       <TableCell className="text-xs font-medium">{act.assistantName}</TableCell>
-                                      <TableCell><Input type="number" value={act.performance || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, performance: Number(e.target.value)} : a))} className="h-8 text-center"/></TableCell>
-                                      {showExtraPerformanceField && <TableCell><Input type="number" value={act.clustersOrJabas || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, clustersOrJabas: Number(e.target.value)} : a))} className="h-8 text-center"/></TableCell>}
-                                      <TableCell><Input type="number" value={act.workdayCount || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, workdayCount: Number(e.target.value)} : a))} className="h-8 text-center"/></TableCell>
+                                      <TableCell><Input type="number" value={act.performance || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, performance: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>
+                                      {showExtraPerformanceField && <TableCell><Input type="number" value={act.clustersOrJabas || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, clustersOrJabas: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>}
+                                      <TableCell><Input type="number" step="0.1" value={act.workdayCount || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, workdayCount: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>
                                       <TableCell><Button variant="ghost" size="icon" onClick={() => setGroupActivities(prev => prev.filter(a => a.id !== act.id))}><Trash2 className="h-4 text-destructive"/></Button></TableCell>
                                   </TableRow>
                               ))}
@@ -516,7 +467,7 @@ export default function CreateActivityPage() {
                       <Button variant="outline" onClick={() => setIsAddActivityDialogOpen(true)} className="flex-1"><PlusCircle className="mr-2 h-4"/>Asistente</Button>
                       <Button variant="outline" onClick={handleCaptureTable} disabled={groupActivities.length === 0}><Camera className="mr-2 h-4"/>Captura</Button>
                   </div>
-                  <Button onClick={handleGroupSave} className="w-full" disabled={isPending || groupActivities.length === 0}>{isPending ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}Guardar Todos</Button>
+                  <Button onClick={handleGroupSave} className="w-full" disabled={isPending || groupActivities.length === 0}>{isPending ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}Guardar Grupo</Button>
              </Card>
           </div>
         </Form>
@@ -531,7 +482,6 @@ export default function CreateActivityPage() {
             performanceLabel={performanceLabel}
             extraPerformanceLabel={extraPerformanceLabel}
             loteLabel={uniqueLotes.find(l => l.id === headerForm.getValues('lote'))?.lote || ''}
-            responsableName={profile?.nombre || ''}
           />
         </div>
       </div>
@@ -539,7 +489,7 @@ export default function CreateActivityPage() {
       <AddAssistantActivityDialog
           isOpen={isAddActivityDialogOpen}
           setIsOpen={setIsAddActivityDialogOpen}
-          onSelectAssistant={(a) => setGroupActivities(prev => [...prev, { ...a, id: crypto.randomUUID(), performance: 0, workdayCount: 0 }])}
+          onSelectAssistant={handleAddAssistant}
           currentAssistantsDnis={groupActivities.map(f => f.assistantDni)}
       />
     </div>
