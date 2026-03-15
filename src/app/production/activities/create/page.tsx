@@ -63,7 +63,7 @@ import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firesto
 import { db } from '@/lib/firebase';
 import { Calendar } from '@/components/ui/calendar';
 
-// --- Tipos y Esquemas ---
+// --- Esquemas ---
 type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
 const assistantInGroupSchema = z.object({
@@ -90,8 +90,7 @@ const headerSchema = ActivityRecordSchema.pick({
 });
 type HeaderFormValues = z.infer<typeof headerSchema>;
 
-// --- Componentes de Apoyo ---
-
+// --- Componente de Reporte Profesional para Captura ---
 function CaptureReport({ 
   activities, 
   header, 
@@ -176,7 +175,6 @@ function CaptureReport({
 }
 
 // --- Componente Principal ---
-
 export default function CreateActivityPage() {
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -195,6 +193,7 @@ export default function CreateActivityPage() {
     return () => setActions({});
   }, [setActions]);
 
+  // Formulario Individual
   const singleForm = useForm<SingleActivityFormValues>({
     resolver: zodResolver(ActivityRecordSchema),
     defaultValues: {
@@ -216,6 +215,7 @@ export default function CreateActivityPage() {
     },
   });
 
+  // Formulario de Cabecera Grupal
   const headerForm = useForm<HeaderFormValues>({
     resolver: zodResolver(headerSchema),
     defaultValues: {
@@ -234,6 +234,7 @@ export default function CreateActivityPage() {
   const singleCode = useWatch({ control: singleForm.control, name: 'code' });
   const headerCode = useWatch({ control: headerForm.control, name: 'code' });
 
+  // Auto-completado Labor Individual
   useEffect(() => {
     if (formMode === 'individual' && singleCode) {
       const matched = labors.find(l => String(l.codigo) === String(singleCode));
@@ -241,6 +242,7 @@ export default function CreateActivityPage() {
     }
   }, [singleCode, labors, formMode, singleForm]);
 
+  // Auto-completado Labor Grupal
   useEffect(() => {
     if (formMode === 'group' && headerCode) {
       const matched = labors.find(l => String(l.codigo) === String(headerCode));
@@ -360,7 +362,7 @@ export default function CreateActivityPage() {
 
       {formMode === 'individual' ? (
         <Form {...singleForm}>
-           <form onSubmit={singleForm.handleSubmit(onSingleSubmit)}>
+           <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
               <Card className="shadow-lg border-primary/10 overflow-hidden">
                 <CardHeader className="bg-primary/5 border-b pb-4">
                     <CardTitle className="text-lg flex items-center gap-2"><Sprout className="h-5 w-5 text-primary"/> Datos del Lote y Labor</CardTitle>
@@ -404,7 +406,7 @@ export default function CreateActivityPage() {
                       <FormItem className="col-span-1"><FormLabel>Cód.</FormLabel><FormControl><Input placeholder="31" {...field} className="text-center font-bold"/></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={singleForm.control} name="labor" render={({ field }) => (
-                      <FormItem className="col-span-3"><FormLabel>Descripción de Labor</FormLabel><FormControl><Input readOnly className="bg-muted font-medium" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem className="col-span-3"><FormLabel>Labor</FormLabel><FormControl><Input readOnly className="bg-muted font-medium" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                   </div>
 
@@ -540,6 +542,7 @@ export default function CreateActivityPage() {
         </Form>
       )}
 
+      {/* Renderizado oculto para la captura de pantalla profesional */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <div ref={reportRef}>
           <CaptureReport 
