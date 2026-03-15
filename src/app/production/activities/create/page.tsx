@@ -23,9 +23,22 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -36,8 +49,17 @@ import { useMasterData } from '@/context/MasterDataContext';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -51,10 +73,7 @@ const assistantInGroupSchema = z.object({
   assistantName: z.string(),
   performance: z.coerce.number().optional(),
   clustersOrJabas: z.coerce.number().optional(),
-  personnelCount: z.coerce.number().int().optional(),
   workdayCount: z.coerce.number().optional(),
-  minRange: z.coerce.number().optional(),
-  maxRange: z.coerce.number().optional(),
   observations: z.string().optional(),
 });
 type AssistantInGroup = z.infer<typeof assistantInGroupSchema>;
@@ -70,19 +89,13 @@ const headerSchema = ActivityRecordSchema.pick({
     pass: true,
     cost: true,
 });
-
 type HeaderFormValues = z.infer<typeof headerSchema>;
 
-const IconWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex items-center gap-2 text-sm text-muted-foreground">{children}</div>
-);
+// --- Componentes Auxiliares fuera de la función principal para estabilidad ---
 
-// Componente para totales del formulario grupal
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
     const totals = useMemo(() => {
       const summary = { performance: 0, workdayCount: 0, clustersOrJabas: 0 };
-      if (!activities || activities.length === 0) return summary;
-      
       activities.forEach((curr) => {
         summary.performance += Number(curr.performance) || 0;
         summary.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
@@ -102,7 +115,6 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
     );
 }
 
-// Componente para el reporte profesional de captura
 function CaptureReport({ 
   activities, 
   header, 
@@ -152,8 +164,6 @@ function CaptureReport({
             {showExtraPerformanceField && <th className="border border-black p-2 text-center w-24">{extraPerformanceLabel}</th>}
             <th className="border border-black p-2 text-center w-20">JHU</th>
             <th className="border border-black p-2 text-center w-24">PROMEDIO</th>
-            <th className="border border-black p-2 text-center w-20">MIN</th>
-            <th className="border border-black p-2 text-center w-20">MAX</th>
             <th className="border border-black p-2 text-left">OBSERVACIONES</th>
           </tr>
         </thead>
@@ -168,8 +178,6 @@ function CaptureReport({
                 {showExtraPerformanceField && <td className="border border-black p-2 text-center">{Number(act.clustersOrJabas || 0).toLocaleString('es-PE')}</td>}
                 <td className="border border-black p-2 text-center font-bold">{Number(act.workdayCount || 0).toFixed(1)}</td>
                 <td className="border border-black p-2 text-center bg-blue-50">{avg.toFixed(2)}</td>
-                <td className="border border-black p-2 text-center text-red-600">{Number(act.minRange || 0)}</td>
-                <td className="border border-black p-2 text-center text-blue-600">{Number(act.maxRange || 0)}</td>
                 <td className="border border-black p-2 text-xs">{act.observations || '---'}</td>
               </tr>
             );
@@ -182,13 +190,15 @@ function CaptureReport({
             {showExtraPerformanceField && <td className="border border-black p-2 text-center">{totals.extra.toLocaleString('es-PE')}</td>}
             <td className="border border-black p-2 text-center text-primary">{totals.jhu.toFixed(1)}</td>
             <td className="border border-black p-2 text-center bg-blue-100">{grandAverage.toFixed(2)}</td>
-            <td colSpan={3} className="border border-black p-2 bg-white"></td>
+            <td className="border border-black p-2 bg-white"></td>
           </tr>
         </tfoot>
       </table>
     </div>
   );
 }
+
+// --- Componente Principal ---
 
 export default function CreateActivityPage() {
   const { toast } = useToast();
@@ -224,12 +234,8 @@ export default function CreateActivityPage() {
       workdayCount: 0,
       cost: 0,
       shift: 'Mañana',
-      minRange: 0,
-      maxRange: 0,
       pass: 1,
       observations: '',
-      assistantDni: '',
-      assistantName: '',
       createdBy: '',
     },
   });
@@ -249,21 +255,23 @@ export default function CreateActivityPage() {
     }
   });
 
-  const singleCodeValue = useWatch({ control: singleForm.control, name: 'code' });
-  const headerCodeValue = useWatch({ control: headerForm.control, name: 'code' });
-  const codeValue = formMode === 'individual' ? singleCodeValue : headerCodeValue;
+  // Watchers para auto-completado de labor
+  const singleCode = useWatch({ control: singleForm.control, name: 'code' });
+  const headerCode = useWatch({ control: headerForm.control, name: 'code' });
 
   useEffect(() => {
-    if (codeValue) {
-      const matchedLabor = labors.find(l => String(l.codigo) === String(codeValue));
-      const label = matchedLabor?.descripcion || '';
-      if (formMode === 'individual') {
-        singleForm.setValue('labor', label, { shouldValidate: true });
-      } else {
-        headerForm.setValue('labor', label, { shouldValidate: true });
-      }
+    if (formMode === 'individual' && singleCode) {
+      const matched = labors.find(l => String(l.codigo) === String(singleCode));
+      singleForm.setValue('labor', matched?.descripcion || '', { shouldValidate: true });
     }
-  }, [codeValue, labors, formMode, singleForm, headerForm]);
+  }, [singleCode, labors, formMode, singleForm]);
+
+  useEffect(() => {
+    if (formMode === 'group' && headerCode) {
+      const matched = labors.find(l => String(l.codigo) === String(headerCode));
+      headerForm.setValue('labor', matched?.descripcion || '', { shouldValidate: true });
+    }
+  }, [headerCode, labors, formMode, headerForm]);
 
   useEffect(() => {
     if (profile) {
@@ -281,9 +289,10 @@ export default function CreateActivityPage() {
     return Array.from(map.values());
   }, [lotes]);
 
-  const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(String(codeValue) || ''), [codeValue]);
+  const currentCode = formMode === 'individual' ? singleCode : headerCode;
+  const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(String(currentCode) || ''), [currentCode]);
   const performanceLabel = showExtraPerformanceField ? "Rdto (Plta)" : "Rendimiento";
-  const extraPerformanceLabel = String(codeValue) === '46' ? "Racimos" : "Jabas";
+  const extraPerformanceLabel = String(currentCode) === '46' ? "Racimos" : "Jabas";
 
   const handleCaptureTable = async () => {
     if (!reportRef.current || groupActivities.length === 0) return;
@@ -370,46 +379,6 @@ export default function CreateActivityPage() {
     setGroupActivities(prev => [...prev, { ...a, id: crypto.randomUUID(), performance: 0, workdayCount: 0 }]);
   };
 
-  const renderSharedHeader = (formInstance: any) => (
-    <div className="space-y-4">
-      <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
-          <FormItem className="flex flex-col"><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha</IconWrapper></FormLabel>
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full text-left font-normal">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
-            </Popover>
-          </FormItem>
-        )}
-      />
-      <div className="grid grid-cols-3 gap-2">
-          <FormField control={formInstance.control} name="campaign" render={({ field }) => (
-            <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
-          )}/>
-          <FormField control={formInstance.control} name="stage" render={({ field }) => (
-            <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
-          )}/>
-          <FormField control={formInstance.control} name="lote" render={({ field }) => (
-            <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
-          )}/>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <FormField control={formInstance.control} name="code" render={({ field }) => (
-          <FormItem><FormLabel><IconWrapper><Tag className="h-3 w-3"/>Cód.</IconWrapper></FormLabel><FormControl><Input placeholder="31" {...field} /></FormControl></FormItem>
-        )}/>
-        <FormField control={formInstance.control} name="labor" render={({ field }) => (
-          <FormItem className="col-span-2"><FormLabel><IconWrapper><Wrench className="h-3 w-3"/>Labor</IconWrapper></FormLabel><FormControl><Input readOnly className="bg-muted" {...field} /></FormControl></FormItem>
-        )}/>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-          <FormField control={formInstance.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
-          <FormField control={formInstance.control} name="shift" render={({ field }) => (
-              <FormItem><FormLabel>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-"/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>
-          )}/>
-          <FormField control={formInstance.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
-      </div>
-    </div>
-  );
-
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-center space-x-2 p-2 bg-muted rounded-lg w-fit mx-auto">
@@ -422,7 +391,43 @@ export default function CreateActivityPage() {
         <Form {...singleForm}>
            <form onSubmit={singleForm.handleSubmit(onSingleSubmit)}>
               <Card className="p-4 shadow-sm space-y-4">
-                {renderSharedHeader(singleForm)}
+                <div className="space-y-4">
+                  <FormField control={singleForm.control} name="registerDate" render={({ field }) => (
+                      <FormItem className="flex flex-col"><FormLabel>Fecha</FormLabel>
+                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                          <PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full text-left font-normal">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
+                        </Popover>
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-3 gap-2">
+                      <FormField control={singleForm.control} name="campaign" render={({ field }) => (
+                        <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
+                      )}/>
+                      <FormField control={singleForm.control} name="stage" render={({ field }) => (
+                        <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
+                      )}/>
+                      <FormField control={singleForm.control} name="lote" render={({ field }) => (
+                        <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
+                      )}/>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <FormField control={singleForm.control} name="code" render={({ field }) => (
+                      <FormItem><FormLabel>Cód.</FormLabel><FormControl><Input placeholder="31" {...field} /></FormControl></FormItem>
+                    )}/>
+                    <FormField control={singleForm.control} name="labor" render={({ field }) => (
+                      <FormItem className="col-span-2"><FormLabel>Labor</FormLabel><FormControl><Input readOnly className="bg-muted" {...field} /></FormControl></FormItem>
+                    )}/>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                      <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
+                      <FormField control={singleForm.control} name="shift" render={({ field }) => (
+                          <FormItem><FormLabel>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-"/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>
+                      )}/>
+                      <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                     <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel>{performanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )}/>
                     {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel>{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/> )}
@@ -437,7 +442,43 @@ export default function CreateActivityPage() {
         <Form {...headerForm}>
           <div className="space-y-4">
              <Card className="p-4 shadow-sm space-y-4">
-                  {renderSharedHeader(headerForm)}
+                  <div className="space-y-4">
+                    <FormField control={headerForm.control} name="registerDate" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Fecha</FormLabel>
+                          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                            <PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full text-left font-normal">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
+                          </Popover>
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-3 gap-2">
+                        <FormField control={headerForm.control} name="campaign" render={({ field }) => (
+                          <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
+                        )}/>
+                        <FormField control={headerForm.control} name="stage" render={({ field }) => (
+                          <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
+                        )}/>
+                        <FormField control={headerForm.control} name="lote" render={({ field }) => (
+                          <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
+                        )}/>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <FormField control={headerForm.control} name="code" render={({ field }) => (
+                        <FormItem><FormLabel>Cód.</FormLabel><FormControl><Input placeholder="31" {...field} /></FormControl></FormItem>
+                      )}/>
+                      <FormField control={headerForm.control} name="labor" render={({ field }) => (
+                        <FormItem className="col-span-2"><FormLabel>Labor</FormLabel><FormControl><Input readOnly className="bg-muted" {...field} /></FormControl></FormItem>
+                      )}/>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <FormField control={headerForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
+                        <FormField control={headerForm.control} name="shift" render={({ field }) => (
+                            <FormItem><FormLabel>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-"/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>
+                        )}/>
+                        <FormField control={headerForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
+                    </div>
+                  </div>
                   <div className="overflow-x-auto mt-4">
                       <Table>
                           <TableHeader>
@@ -464,10 +505,10 @@ export default function CreateActivityPage() {
                       </Table>
                   </div>
                   <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => setIsAddActivityDialogOpen(true)} className="flex-1"><PlusCircle className="mr-2 h-4"/>Asistente</Button>
-                      <Button variant="outline" onClick={handleCaptureTable} disabled={groupActivities.length === 0}><Camera className="mr-2 h-4"/>Captura</Button>
+                      <Button variant="outline" type="button" onClick={() => setIsAddActivityDialogOpen(true)} className="flex-1"><PlusCircle className="mr-2 h-4"/>Asistente</Button>
+                      <Button variant="outline" type="button" onClick={handleCaptureTable} disabled={groupActivities.length === 0}><Camera className="mr-2 h-4"/>Captura</Button>
                   </div>
-                  <Button onClick={handleGroupSave} className="w-full" disabled={isPending || groupActivities.length === 0}>{isPending ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}Guardar Grupo</Button>
+                  <Button type="button" onClick={handleGroupSave} className="w-full" disabled={isPending || groupActivities.length === 0}>{isPending ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}Guardar Grupo</Button>
              </Card>
           </div>
         </Form>
