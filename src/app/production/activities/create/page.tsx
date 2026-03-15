@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
@@ -9,15 +8,9 @@ import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon,
-  Users,
-  Sprout,
   RotateCw,
-  ClipboardList,
-  Flame,
-  Clock,
   Briefcase,
   Calculator,
-  TrendingUp,
   Loader2,
   Boxes,
   Grape,
@@ -27,9 +20,10 @@ import {
   Pencil,
   Save,
   Wrench,
-  FileInput,
-  FileOutput,
   Camera,
+  Clock,
+  Sprout,
+  Flame
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -47,6 +41,7 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -86,14 +81,13 @@ const IconWrapper = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center gap-2 text-sm text-muted-foreground">{children}</div>
 );
 
-// --- Componentes Auxiliares fuera para evitar errores de anidamiento ---
-
+// Componente para totales del formulario grupal
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
     const totals = useMemo(() => {
       const summary = { performance: 0, personnelCount: 0, workdayCount: 0, clustersOrJabas: 0, minRange: 0, maxRange: 0, average: 0 };
       if (!activities || activities.length === 0) return summary;
       
-      activities.forEach((curr: any) => {
+      activities.forEach((curr) => {
         summary.performance += Number(curr.performance) || 0;
         summary.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
         summary.personnelCount += Number(curr.personnelCount) || 0;
@@ -117,20 +111,17 @@ function GroupFormTotals({ activities, showExtraPerformanceField }: { activities
     }, [activities, showExtraPerformanceField]);
 
     return (
-      <TableRow>
-        <TableCell colSpan={1} className="font-bold text-right">Total</TableCell>
-        <TableCell className="font-bold text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
-        {showExtraPerformanceField && <TableCell className="font-bold text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
-        <TableCell className="font-bold text-center">{totals.personnelCount}</TableCell>
-        <TableCell className="font-bold text-center">{totals.workdayCount.toFixed(1)}</TableCell>
-        <TableCell className="font-bold text-center">{totals.average.toFixed(2)}</TableCell>
-        <TableCell className="font-bold text-center">{totals.minRange}</TableCell>
-        <TableCell className="font-bold text-center">{totals.maxRange}</TableCell>
+      <TableRow className="bg-muted/50 font-bold">
+        <TableCell className="text-right">Total</TableCell>
+        <TableCell className="text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
+        {showExtraPerformanceField && <TableCell className="text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
+        <TableCell className="text-center">{totals.workdayCount.toFixed(1)}</TableCell>
         <TableCell colSpan={2}></TableCell>
       </TableRow>
     );
 }
 
+// Componente para el reporte profesional de captura
 function CaptureReport({ 
   activities, 
   header, 
@@ -160,7 +151,7 @@ function CaptureReport({
   return (
     <div className="bg-white p-8 text-black font-sans border-2 border-black" style={{ width: '1000px' }}>
       <div className="flex justify-between items-start mb-6">
-        <div className="space-y-1">
+        <div className="space-y-1 text-left">
           <h2 className="text-xl font-bold border-b-2 border-black pb-1 uppercase">REPORTE DE CAMPO - FICHA DE ACTIVIDAD</h2>
           <p className="text-sm"><strong>FECHA:</strong> {header.registerDate ? format(header.registerDate, "d 'de' MMMM, yyyy", { locale: es }) : '---'}</p>
           <p className="text-sm"><strong>LABOR:</strong> {header.labor || '---'} ({header.code || '---'})</p>
@@ -218,13 +209,11 @@ function CaptureReport({
   );
 }
 
-// --- Componente Principal ---
-
 export default function CreateActivityPage() {
   const { toast } = useToast();
   const { profile } = useAuth();
   const [isPending, startTransition] = useTransition();
-  const { labors, lotes, asistentes, presupuestos, minMax, loading: masterLoading } = useMasterData();
+  const { labors, lotes, presupuestos, minMax, loading: masterLoading } = useMasterData();
   const { setActions } = useHeaderActions();
   const [formMode, setFormMode] = useState<'individual' | 'group'>('individual');
   
@@ -279,41 +268,9 @@ export default function CreateActivityPage() {
     }
   });
 
-  useEffect(() => {
-    if (formMode === 'individual' && profile) {
-        singleForm.reset({
-          registerDate: new Date(),
-          campaign: '', stage: '', lote: '', code: '', labor: '',
-          performance: 0, clustersOrJabas: 0, personnelCount: 1, workdayCount: 0,
-          cost: 0, shift: '', minRange: 0, maxRange: 0, pass: 0,
-          observations: '',
-          assistantDni: profile.dni || '',
-          assistantName: profile.nombre || '',
-          createdBy: profile.email || '',
-        });
-    } else {
-        headerForm.reset({
-          registerDate: new Date(), campaign: '', stage: '', lote: '',
-          code: '', labor: '', shift: '', pass: 0, cost: 0,
-        });
-        setGroupActivities([]);
-    }
-  }, [formMode, singleForm, headerForm, profile]);
-
   const singleCodeValue = useWatch({ control: singleForm.control, name: 'code' });
   const headerCodeValue = useWatch({ control: headerForm.control, name: 'code' });
-  
   const codeValue = formMode === 'individual' ? singleCodeValue : headerCodeValue;
-  
-  const uniqueLotes = useMemo(() => {
-    const map = new Map<string, LoteData>();
-    lotes.forEach(lote => {
-      if (!map.has(lote.lote)) {
-        map.set(lote.lote, lote);
-      }
-    });
-    return Array.from(map.values());
-  }, [lotes]);
 
   useEffect(() => {
     if (codeValue) {
@@ -334,23 +291,30 @@ export default function CreateActivityPage() {
   }, [codeValue, labors, formMode, singleForm, headerForm]);
 
   useEffect(() => {
-    if (profile?.email) {
-      singleForm.setValue('createdBy', profile.email);
-    }
     if (profile) {
-       singleForm.setValue('assistantDni', profile.dni || '');
-       singleForm.setValue('assistantName', profile.nombre || '');
+      singleForm.setValue('createdBy', profile.email || '');
+      singleForm.setValue('assistantDni', profile.dni || '');
+      singleForm.setValue('assistantName', profile.nombre || '');
     }
   }, [profile, singleForm]);
-  
+
+  const uniqueLotes = useMemo(() => {
+    const map = new Map<string, LoteData>();
+    lotes.forEach(lote => {
+      if (!map.has(lote.lote)) {
+        map.set(lote.lote, lote);
+      }
+    });
+    return Array.from(map.values());
+  }, [lotes]);
+
   const showExtraPerformanceField = useMemo(() => ['46', '67'].includes(String(codeValue) || ''), [codeValue]);
-  const performanceLabel = showExtraPerformanceField ? "Rdto (Plta)" : "Rdto";
+  const performanceLabel = showExtraPerformanceField ? "Rdto (Plta)" : "Rendimiento";
   const extraPerformanceLabel = String(codeValue) === '46' ? "Racimos" : "Jabas";
   const ExtraPerformanceIcon = String(codeValue) === '46' ? Grape : Boxes;
 
   const handleCaptureTable = async () => {
     if (!reportRef.current || groupActivities.length === 0) return;
-    
     try {
       const html2canvas = (await import('html2canvas')).default;
       reportRef.current.style.display = 'block';
@@ -362,14 +326,13 @@ export default function CreateActivityPage() {
       });
       reportRef.current.style.display = 'none';
       const link = document.createElement('a');
-      const dateStr = format(new Date(), 'ddMMyy_HHmm');
-      link.download = `Resumen_Grupal_${dateStr}.png`;
+      link.download = `Reporte_${format(new Date(), 'ddMMyy_HHmm')}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      toast({ title: "Captura Guardada", description: "Reporte profesional generado correctamente." });
+      toast({ title: "Captura Guardada", description: "Reporte generado correctamente." });
     } catch (e) {
       console.error("Error capturing table:", e);
-      toast({ variant: 'destructive', title: 'Error al capturar', description: "No se pudo generar la imagen del reporte." });
+      toast({ variant: 'destructive', title: 'Error al capturar', description: "No se pudo generar la imagen." });
     }
   };
 
@@ -378,233 +341,207 @@ export default function CreateActivityPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
       return;
     }
-    
     startTransition(async () => {
         const loteId = data.lote;
         const loteData = lotes.find(l => l.id === loteId);
         if (!loteData) {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el lote seleccionado.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Lote no encontrado.' });
             return;
         }
-
-        const currentPresupuesto = presupuestos.find(p => p.lote === loteData.lote && p.descripcionLabor === data.labor && p.campana === data.campaign);
-        const currentMinMax = minMax.find(mm => mm.lote === loteData.lote && mm.labor === data.labor && mm.campana === data.campaign && mm.pasada === data.pass);
-
-        const dataToSave = {
-            ...data,
-            lote: loteData.lote,
-            variedad: loteData.variedad,
-            budgetJrnHa: currentPresupuesto?.jrnHa || 0,
-            minEstablished: currentMinMax?.min || 0,
-            maxEstablished: currentMinMax?.max || 0,
-            registerDate: Timestamp.fromDate(data.registerDate),
-            createdBy: profile.email,
-            assistantDni: data.assistantDni || profile.dni || 'N/A',
-            assistantName: data.assistantName || profile.nombre || 'N/A',
-            createdAt: serverTimestamp(),
-        };
-
         try {
+            const currentPresupuesto = presupuestos.find(p => p.lote === loteData.lote && p.descripcionLabor === data.labor && p.campana === data.campaign);
+            const currentMinMax = minMax.find(mm => mm.lote === loteData.lote && mm.labor === data.labor && mm.campana === data.campaign && mm.pasada === data.pass);
+
+            const dataToSave = {
+                ...data,
+                lote: loteData.lote,
+                variedad: loteData.variedad,
+                budgetJrnHa: currentPresupuesto?.jrnHa || 0,
+                minEstablished: currentMinMax?.min || 0,
+                maxEstablished: currentMinMax?.max || 0,
+                registerDate: Timestamp.fromDate(data.registerDate),
+                createdBy: profile.email,
+                createdAt: serverTimestamp(),
+            };
             await addDoc(collection(db, 'actividades'), dataToSave);
-            toast({ title: 'Éxito', description: 'Ficha de actividad guardada correctamente.' });
-            singleForm.reset({
-              ...singleForm.getValues(),
-              code: '',
-              labor: '',
-              performance: 0,
-              clustersOrJabas: 0,
-              personnelCount: 1,
-              workdayCount: 0,
-              minRange: 0,
-              maxRange: 0,
-              pass: (data.pass || 0),
-              observations: '',
-            });
-        } catch(error: any) {
-            console.error("Error saving activity: ", error);
-             toast({
-                variant: 'destructive',
-                title: 'Error al Guardar',
-                description: error.message || 'No se pudo guardar la ficha.',
-            });
+            toast({ title: 'Éxito', description: 'Registro guardado.' });
+            singleForm.reset({ ...singleForm.getValues(), code: '', labor: '', performance: 0, workdayCount: 0, observations: '' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
         }
     });
   };
-  
+
   const handleGroupSave = async () => {
     const isValidHeader = await headerForm.trigger();
-    if (!isValidHeader) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Por favor, complete todos los campos de la cabecera.' });
+    if (!isValidHeader || groupActivities.length === 0 || !profile?.email) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Complete la cabecera y agregue asistentes.' });
       return;
     }
-
-    if (groupActivities.length === 0) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Debe agregar al menos una fila de asistente.' });
-        return;
-    }
-    
-    if (!profile?.email) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo identificar al usuario.' });
-        return;
-    }
-
     const validHeaderData = headerForm.getValues();
-    const loteId = validHeaderData.lote;
-    const loteData = lotes.find(l => l.id === loteId);
-    
-    if (!loteData) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el lote seleccionado.' });
-        return;
-    }
-    const loteNumber = loteData.lote;
-
-    const currentPresupuesto = presupuestos.find(p => p.lote === loteNumber && p.descripcionLabor === validHeaderData.labor && p.campana === validHeaderData.campaign);
-    const currentMinMax = minMax.find(mm => mm.lote === loteNumber && mm.labor === validHeaderData.labor && mm.campana === validHeaderData.campaign && mm.pasada === validHeaderData.pass);
+    const loteData = lotes.find(l => l.id === validHeaderData.lote);
+    if (!loteData) return;
 
     startTransition(async () => {
         let successCount = 0;
-        for (const activity of groupActivities) {
+        for (const act of groupActivities) {
             try {
-                const fullActivityData = {
+                const dataToSave = {
                     ...validHeaderData,
+                    lote: loteData.lote,
                     variedad: loteData.variedad,
-                    budgetJrnHa: currentPresupuesto?.jrnHa || 0,
-                    minEstablished: currentMinMax?.min || 0,
-                    maxEstablished: currentMinMax?.max || 0,
                     registerDate: Timestamp.fromDate(validHeaderData.registerDate),
-                    lote: loteNumber,
+                    assistantDni: act.assistantDni,
+                    assistantName: act.assistantName,
+                    performance: Number(act.performance) || 0,
+                    clustersOrJabas: Number(act.clustersOrJabas) || 0,
+                    personnelCount: Number(act.personnelCount) || 1,
+                    workdayCount: Number(act.workdayCount) || 0,
+                    minRange: Number(act.minRange) || 0,
+                    maxRange: Number(act.maxRange) || 0,
+                    observations: act.observations || '',
                     createdBy: profile.email,
-                    assistantDni: activity.assistantDni,
-                    assistantName: activity.assistantName,
-                    performance: Number(activity.performance) || 0,
-                    clustersOrJabas: Number(activity.clustersOrJabas) || 0,
-                    personnelCount: Number(activity.personnelCount) || 0,
-                    workdayCount: Number(activity.workdayCount) || 0,
-                    minRange: Number(activity.minRange) || 0,
-                    maxRange: Number(activity.maxRange) || 0,
-                    observations: activity.observations || '',
                     createdAt: serverTimestamp(),
                 };
-                await addDoc(collection(db, 'actividades'), fullActivityData);
+                await addDoc(collection(db, 'actividades'), dataToSave);
                 successCount++;
-            } catch(error: any) {
-                 console.error("Error saving group activity: ", error);
-            }
+            } catch (e) {}
         }
-
-        if (successCount === groupActivities.length) {
-            toast({ title: 'Éxito', description: `${successCount} fichas de actividad han sido guardadas.` });
-            headerForm.reset({
-              registerDate: validHeaderData.registerDate, campaign: validHeaderData.campaign, stage: validHeaderData.stage, lote: '',
-              code: '', labor: '', shift: validHeaderData.shift, pass: validHeaderData.pass, cost: validHeaderData.cost,
-            });
+        if (successCount > 0) {
+            toast({ title: 'Éxito', description: `${successCount} registros guardados.` });
+            headerForm.reset({ ...headerForm.getValues(), lote: '', code: '', labor: '' });
             setGroupActivities([]);
-        } else {
-            toast({
-                variant: "destructive",
-                title: 'Error Parcial',
-                description: `Se guardaron ${successCount} de ${groupActivities.length} fichas.`,
-            });
         }
     });
   };
-  
-  const handleAddAssistant = (assistant: { assistantDni: string, assistantName: string }) => {
-    setGroupActivities(prev => [...prev, {
-        id: crypto.randomUUID(),
-        assistantDni: assistant.assistantDni,
-        assistantName: assistant.assistantName,
-        performance: 0,
-        clustersOrJabas: 0,
-        personnelCount: 1, 
-        workdayCount: 0,
-        minRange: 0,
-        maxRange: 0,
-        observations: '',
-    }]);
-  };
 
-  const handleGroupActivityChange = (index: number, field: keyof AssistantInGroup, value: any) => {
-    setGroupActivities(prev => {
-        const newActivities = [...prev];
-        const activityToUpdate = newActivities[index];
-        if (activityToUpdate) {
-            (activityToUpdate as any)[field] = value;
-        }
-        return newActivities;
-    });
-  };
-
-  const renderSharedHeader = (formInstance: any, isSingle: boolean) => {
-    const prefix = isSingle ? 'single' : 'header';
+  const renderSharedHeader = (formInstance: any) => {
+    const prefix = formMode === 'individual' ? 'ind' : 'grp';
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <FormField control={formInstance.control} name="registerDate" render={({ field }) => (
-            <FormItem><FormLabel htmlFor={`${prefix}-registerDate`}><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha de Registro</IconWrapper></FormLabel>
+            <FormItem className="flex flex-col"><FormLabel><IconWrapper><CalendarIcon className="h-4 w-4" />Fecha</IconWrapper></FormLabel>
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild><FormControl><Button id={`${prefix}-registerDate`} name={`${prefix}-registerDate`} variant={"outline"} className={cn("w-full justify-start pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value && isValid(field.value) ? format(field.value, "d 'de' MMMM 'de' yyyy", { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); setIsCalendarOpen(false); }} initialFocus locale={es} />
-                </PopoverContent>
+                <PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full text-left font-normal">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
               </Popover>
-              <FormMessage />
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2">
             <FormField control={formInstance.control} name="campaign" render={({ field }) => (
-              <FormItem><FormLabel htmlFor={`${prefix}-campaign`}><IconWrapper><Briefcase/>Campaña</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id={`${prefix}-campaign`} name={`${prefix}-campaign`}><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem><SelectItem value="2027">2027</SelectItem></SelectContent></Select><FormMessage/></FormItem>
+              <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
             )}/>
             <FormField control={formInstance.control} name="stage" render={({ field }) => (
-              <FormItem><FormLabel htmlFor={`${prefix}-stage`}><IconWrapper><Flame/>Etapa</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id={`${prefix}-stage`} name={`${prefix}-stage`}><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="formacion">Formacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select><FormMessage/></FormItem>
+              <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
             )}/>
             <FormField control={formInstance.control} name="lote" render={({ field }) => (
-              <FormItem><FormLabel htmlFor={`${prefix}-lote`}><IconWrapper><Sprout/>Lote</IconWrapper></FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger id={`${prefix}-lote`} name={`${prefix}-lote`}><SelectValue placeholder="Selecc." /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(lote => <SelectItem key={lote.id} value={lote.id}>{lote.lote}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+              <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
             )}/>
         </div>
-         <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-2">
           <FormField control={formInstance.control} name="code" render={({ field }) => (
-            <FormItem><FormLabel htmlFor={`${prefix}-code`}><IconWrapper><Tag/>Cód.</IconWrapper></FormLabel><FormControl><Input id={`${prefix}-code`} name={`${prefix}-code`} placeholder="Ej: 31" {...field} value={field.value || ''} /></FormControl><FormMessage/></FormItem>
+            <FormItem><FormLabel><IconWrapper><Tag className="h-3 w-3"/>Cód.</IconWrapper></FormLabel><FormControl><Input placeholder="31" {...field} /></FormControl></FormItem>
           )}/>
           <FormField control={formInstance.control} name="labor" render={({ field }) => (
-            <FormItem><FormLabel htmlFor={`${prefix}-labor`}><IconWrapper><Wrench/>Labor</IconWrapper></FormLabel><FormControl><Input id={`${prefix}-labor`} name={`${prefix}-labor`} placeholder="Labor..." {...field} readOnly /></FormControl><FormMessage/></FormItem>
+            <FormItem className="col-span-2"><FormLabel><IconWrapper><Wrench className="h-3 w-3"/>Labor</IconWrapper></FormLabel><FormControl><Input readOnly className="bg-muted" {...field} /></FormControl></FormItem>
           )}/>
         </div>
-         <div className="grid grid-cols-3 gap-4">
-            <FormField control={formInstance.control} name="cost" render={({ field }) => (<FormItem><FormLabel htmlFor={`${prefix}-cost`}><IconWrapper><Calculator className="h-4 w-4"/>S/ Costo</IconWrapper></FormLabel><FormControl><Input id={`${prefix}-cost`} name={`${prefix}-cost`} type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+        <div className="grid grid-cols-3 gap-2">
+            <FormField control={formInstance.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
             <FormField control={formInstance.control} name="shift" render={({ field }) => (
-                <FormItem><FormLabel htmlFor={`${prefix}-shift`}><IconWrapper><Clock className="h-4 w-4"/>Turno</IconWrapper></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger id={`${prefix}-shift`} name={`${prefix}-shift`}><SelectValue placeholder="Selecc."/></SelectTrigger></FormControl>
-                        <SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent>
-                    </Select>
-                <FormMessage/></FormItem>
+                <FormItem><FormLabel>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-"/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>
             )}/>
-            <FormField control={formInstance.control} name="pass" render={({ field }) => (<FormItem><FormLabel htmlFor={`${prefix}-pass`}><IconWrapper><RotateCw className="h-4 w-4"/>Pasada</IconWrapper></FormLabel><FormControl><Input id={`${prefix}-pass`} name={`${prefix}-pass`} type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+            <FormField control={formInstance.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="flex items-center justify-center space-x-2 mb-6">
-          <Label htmlFor="form-mode-switch">Individual</Label>
-          <Switch id="form-mode-switch" checked={formMode === 'group'} onCheckedChange={(checked) => setFormMode(checked ? 'group' : 'individual')} />
-          <Label htmlFor="form-mode-switch">Grupal</Label>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="flex items-center justify-center space-x-2">
+          <Label>Individual</Label>
+          <Switch checked={formMode === 'group'} onCheckedChange={(c) => setFormMode(c ? 'group' : 'individual')} />
+          <Label>Grupal</Label>
       </div>
 
       {formMode === 'individual' ? (
         <Form {...singleForm}>
-           <form onSubmit={singleForm.handleSubmit(onSingleSubmit)} className="space-y-6">
-              <div className="rounded-lg border bg-card p-6 shadow-sm">
-                {renderSharedHeader(singleForm, true)}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                    <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel>{performanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                    {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2"><ExtraPerformanceIcon className="h-4 w-4" />{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/> )}
-                    <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel># Peronas</FormLabel><FormControl><Input type="number" {...field}  /></FormControl><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel># Jornadas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
+           <form onSubmit={singleForm.handleSubmit(onSingleSubmit)}>
+              <Card className="p-4 shadow-sm space-y-4">
+                {renderSharedHeader(singleForm)}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel>{performanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )}/>
+                    {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel>{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/> )}
+                    <FormField control={singleForm.control} name="personnelCount" render={({ field }) => (<FormItem><FormLabel># Pers.</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
+                    <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel># Jorn.</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                    <FormField control={singleForm.control} name="minRange" render={({ field }) => (<FormItem><FormLabel>Mínimo</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)}/>
-                    <FormField control={singleForm.control} name="maxRange" render={({ field }) => (<FormItem><FormLabel>Máximo</FormLabel><FormControl>
+                <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel>Observaciones</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem> )}/>
+                <Button type="submit" className="w-full" disabled={isPending}>{isPending ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}Guardar</Button>
+              </Card>
+           </form>
+         </Form>
+      ) : (
+        <Form {...headerForm}>
+          <div className="space-y-4">
+             <Card className="p-4 shadow-sm space-y-4">
+                  {renderSharedHeader(headerForm)}
+                  <div className="overflow-x-auto mt-4">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Asistente</TableHead>
+                                  <TableHead className="w-24 text-center">{performanceLabel}</TableHead>
+                                  {showExtraPerformanceField && <TableHead className="w-24 text-center">{extraPerformanceLabel}</TableHead>}
+                                  <TableHead className="w-20 text-center">JHU</TableHead>
+                                  <TableHead className="w-10"></TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {groupActivities.map((act, idx) => (
+                                  <TableRow key={act.id}>
+                                      <TableCell className="text-xs font-medium">{act.assistantName}</TableCell>
+                                      <TableCell><Input type="number" value={act.performance || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, performance: Number(e.target.value)} : a))} className="h-8 text-center"/></TableCell>
+                                      {showExtraPerformanceField && <TableCell><Input type="number" value={act.clustersOrJabas || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, clustersOrJabas: Number(e.target.value)} : a))} className="h-8 text-center"/></TableCell>}
+                                      <TableCell><Input type="number" value={act.workdayCount || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, workdayCount: Number(e.target.value)} : a))} className="h-8 text-center"/></TableCell>
+                                      <TableCell><Button variant="ghost" size="icon" onClick={() => setGroupActivities(prev => prev.filter(a => a.id !== act.id))}><Trash2 className="h-4 text-destructive"/></Button></TableCell>
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                          <TableFooter><GroupFormTotals activities={groupActivities} showExtraPerformanceField={showExtraPerformanceField}/></TableFooter>
+                      </Table>
+                  </div>
+                  <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setIsAddActivityDialogOpen(true)} className="flex-1"><PlusCircle className="mr-2 h-4"/>Asistente</Button>
+                      <Button variant="outline" onClick={handleCaptureTable} disabled={groupActivities.length === 0}><Camera className="mr-2 h-4"/>Captura</Button>
+                  </div>
+                  <Button onClick={handleGroupSave} className="w-full" disabled={isPending || groupActivities.length === 0}>{isPending ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}Guardar Todos</Button>
+             </Card>
+          </div>
+        </Form>
+      )}
+
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        <div ref={reportRef} style={{ display: 'none' }}>
+          <CaptureReport 
+            activities={groupActivities} 
+            header={headerForm.getValues()} 
+            showExtraPerformanceField={showExtraPerformanceField}
+            performanceLabel={performanceLabel}
+            extraPerformanceLabel={extraPerformanceLabel}
+            loteLabel={uniqueLotes.find(l => l.id === headerForm.getValues('lote'))?.lote || ''}
+            responsableName={profile?.nombre || ''}
+          />
+        </div>
+      </div>
+
+      <AddAssistantActivityDialog
+          isOpen={isAddActivityDialogOpen}
+          setIsOpen={setIsAddActivityDialogOpen}
+          onSelectAssistant={(a) => setGroupActivities(prev => [...prev, { ...a, id: crypto.randomUUID(), performance: 0, workdayCount: 0 }])}
+          currentAssistantsDnis={groupActivities.map(f => f.assistantDni)}
+      />
+    </div>
+  );
+}
