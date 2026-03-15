@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Loader2, Filter, RefreshCcw, Calendar as CalendarIcon, Clock, Camera, LayoutGrid } from 'lucide-react';
+import { Loader2, Filter, RefreshCcw, Calendar as CalendarIcon, Clock, Camera, LayoutGrid, AlertCircle } from 'lucide-react';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Bar, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip as RechartsTooltip } from 'recharts';
@@ -44,7 +44,6 @@ function AssistantSummaryTable({
         const personas = data.reduce((s, d) => s + d.personas, 0);
         const jhu = data.reduce((s, d) => s + d.jhu, 0);
         
-        // CORRECCIÓN: El total debe mostrar el mínimo absoluto de todos y el máximo absoluto de todos
         const allMins = data.flatMap(d => d.mins).filter(v => v > 0);
         const allMaxs = data.flatMap(d => d.maxs).filter(v => v > 0);
         
@@ -613,40 +612,40 @@ export default function ActivitySummaryPage() {
                         </table>
                     </div>
 
-                    {assistantPerformanceData.length > 0 && (
-                         <Card className="border-2 shadow-md">
-                            <CardHeader>
-                                <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                                    <div>
-                                        <CardTitle className="text-2xl font-bold">Gráfico 1: Rendimiento Promedio</CardTitle>
-                                        <CardDescription>Comparativa por asistente basada en los filtros activos.</CardDescription>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button id="chart-date-range-summary" variant={"outline"} size="sm" className={cn("w-full sm:w-[240px] justify-start text-left font-normal", !chartDateRange && "text-muted-foreground")}>
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {chartDateRange?.from ? (chartDateRange.to ? (<>{format(chartDateRange.from, "LLL dd", {locale: es})} - {format(chartDateRange.to, "LLL dd", {locale: es})}</>) : (format(chartDateRange.from, "LLL dd, y", {locale: es}))) : (<span>Fecha</span>)}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="end">
-                                                <Calendar initialFocus mode="range" defaultMonth={chartDateRange?.from} selected={chartDateRange} onSelect={setChartDateRange} numberOfMonths={2} locale={es}/>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <Select value={chartShiftFilter} onValueChange={setChartShiftFilter}>
-                                            <SelectTrigger id="chart-shift-filter-summary" name="chart-shift-filter-summary" className="w-[120px]">
-                                                <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><SelectValue /></div>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="todos">Todos</SelectItem>
-                                                <SelectItem value="Mañana">Mañana</SelectItem>
-                                                <SelectItem value="Tarde">Tarde</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                    <Card className="border-2 shadow-md">
+                        <CardHeader>
+                            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                                <div>
+                                    <CardTitle className="text-2xl font-bold">Gráfico 1: Rendimiento Promedio</CardTitle>
+                                    <CardDescription>Comparativa por asistente basada en los filtros activos.</CardDescription>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="space-y-10">
+                                <div className="flex items-center gap-2">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button id="chart-date-range-summary" variant={"outline"} size="sm" className={cn("w-full sm:w-[240px] justify-start text-left font-normal", !chartDateRange && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {chartDateRange?.from ? (chartDateRange.to ? (<>{format(chartDateRange.from, "LLL dd", {locale: es})} - {format(chartDateRange.to, "LLL dd", {locale: es})}</>) : (format(chartDateRange.from, "LLL dd, y", {locale: es}))) : (<span>Fecha</span>)}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="end">
+                                            <Calendar initialFocus mode="range" defaultMonth={chartDateRange?.from} selected={chartDateRange} onSelect={setChartDateRange} numberOfMonths={2} locale={es}/>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <Select value={chartShiftFilter} onValueChange={setChartShiftFilter}>
+                                        <SelectTrigger id="chart-shift-filter-summary" name="chart-shift-filter-summary" className="w-[120px]">
+                                            <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><SelectValue /></div>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="todos">Todos</SelectItem>
+                                            <SelectItem value="Mañana">Mañana</SelectItem>
+                                            <SelectItem value="Tarde">Tarde</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-10">
+                            {assistantPerformanceData.length > 0 ? (
                                 <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
                                     <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
                                         <CartesianGrid vertical={false} />
@@ -661,55 +660,60 @@ export default function ActivitySummaryPage() {
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Jornadas"/>
                                     </ComposedChart>
                                 </ChartContainer>
+                            ) : (
+                                <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground border rounded-lg bg-slate-50/50 gap-2">
+                                    <AlertCircle className="h-8 w-8 opacity-20" />
+                                    <p>No hay datos para el rango de fechas o turno seleccionado en el gráfico.</p>
+                                </div>
+                            )}
 
-                                {assistantSummaryTableData.length > 0 && (
-                                    <div className="space-y-4 pt-6 border-t border-dashed">
-                                        <div className="flex justify-between items-center px-1">
-                                            <h3 className="text-xl font-bold flex items-center gap-2">
-                                                <LayoutGrid className="h-5 w-5 text-primary" />
-                                                Ficha de Actividad (Resumen Grupal)
-                                            </h3>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm" 
-                                                onClick={() => handleCaptureTable(assistantTableRef, `Ficha_Actividad_${activeFilters.lote}`)}
-                                                className="h-10 border-primary/50 text-primary hover:bg-primary/5 rounded-xl shadow-sm"
-                                            >
-                                                <Camera className="mr-2 h-5 w-5"/>
-                                                Capturar Ficha
-                                            </Button>
-                                        </div>
-                                        <div className="overflow-x-auto pb-4 rounded-xl border bg-slate-50/30">
-                                            <div ref={assistantTableRef} className="inline-block min-w-full p-4">
-                                                <AssistantSummaryTable 
-                                                    data={assistantSummaryTableData} 
-                                                    laborName={activeFilters.labor}
-                                                    lote={activeFilters.lote}
-                                                    pasada={activeFilters.pasada}
-                                                    responsibleName={profile?.nombre || 'N/A'}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="space-y-4 pt-10 border-t">
+                            {assistantSummaryTableData.length > 0 && (
+                                <div className="space-y-4 pt-6 border-t border-dashed">
                                     <div className="flex justify-between items-center px-1">
-                                        <h3 className="text-xl font-bold">Resumen Detallado por Lote</h3>
+                                        <h3 className="text-xl font-bold flex items-center gap-2">
+                                            <LayoutGrid className="h-5 w-5 text-primary" />
+                                            Ficha de Actividad (Resumen Grupal)
+                                        </h3>
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => handleCaptureTable(assistantTableRef, `Ficha_Actividad_${activeFilters.lote}`)}
+                                            className="h-10 border-primary/50 text-primary hover:bg-primary/5 rounded-xl shadow-sm"
+                                        >
+                                            <Camera className="mr-2 h-5 w-5"/>
+                                            Capturar Ficha
+                                        </Button>
                                     </div>
-                                    <div className="bg-white p-4 rounded-xl border shadow-sm overflow-x-auto">
-                                        <DetailedSummaryTable 
-                                            allActivities={allActivities} 
-                                            allLotes={allLotes} 
-                                            allPresupuestos={allPresupuestos} 
-                                            allMinMax={allMinMax}
-                                            activeFilters={activeFilters}
-                                        />
+                                    <div className="overflow-x-auto pb-4 rounded-xl border bg-slate-50/30">
+                                        <div ref={assistantTableRef} className="inline-block min-w-full p-4">
+                                            <AssistantSummaryTable 
+                                                data={assistantSummaryTableData} 
+                                                laborName={activeFilters.labor}
+                                                lote={activeFilters.lote}
+                                                pasada={activeFilters.pasada}
+                                                responsibleName={profile?.nombre || 'N/A'}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                            )}
+
+                            <div className="space-y-4 pt-10 border-t">
+                                <div className="flex justify-between items-center px-1">
+                                    <h3 className="text-xl font-bold">Resumen Detallado por Lote</h3>
+                                </div>
+                                <div className="bg-white p-4 rounded-xl border shadow-sm overflow-x-auto">
+                                    <DetailedSummaryTable 
+                                        allActivities={allActivities} 
+                                        allLotes={allLotes} 
+                                        allPresupuestos={allPresupuestos} 
+                                        allMinMax={allMinMax}
+                                        activeFilters={activeFilters}
+                                    />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             ) : (
                 <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
