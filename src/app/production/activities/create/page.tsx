@@ -16,10 +16,8 @@ import {
   Camera,
   Grape,
   Boxes,
-  Code,
-  Wrench,
-  Clock,
   Sprout,
+  Clock,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -58,14 +56,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Calendar } from '@/components/ui/calendar';
 
-// --- Esquemas y Tipos ---
+// --- Tipos y Esquemas ---
 type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
 const assistantInGroupSchema = z.object({
@@ -92,29 +90,7 @@ const headerSchema = ActivityRecordSchema.pick({
 });
 type HeaderFormValues = z.infer<typeof headerSchema>;
 
-// --- Componentes Auxiliares Fuera para Estabilidad ---
-
-function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
-    const totals = useMemo(() => {
-      const summary = { performance: 0, workdayCount: 0, clustersOrJabas: 0 };
-      activities.forEach((curr) => {
-        summary.performance += Number(curr.performance) || 0;
-        summary.clustersOrJabas += Number(curr.clustersOrJabas) || 0;
-        summary.workdayCount += Number(curr.workdayCount) || 0;
-      });
-      return summary;
-    }, [activities]);
-
-    return (
-      <TableRow className="bg-muted/50 font-bold text-xs sm:text-sm">
-        <TableCell className="text-right">Total</TableCell>
-        <TableCell className="text-center">{totals.performance.toLocaleString('es-PE')}</TableCell>
-        {showExtraPerformanceField && <TableCell className="text-center">{totals.clustersOrJabas.toLocaleString('es-PE')}</TableCell>}
-        <TableCell className="text-center">{totals.workdayCount.toFixed(1)}</TableCell>
-        <TableCell></TableCell>
-      </TableRow>
-    );
-}
+// --- Componentes de Apoyo ---
 
 function CaptureReport({ 
   activities, 
@@ -212,7 +188,6 @@ export default function CreateActivityPage() {
   const [isAddActivityDialogOpen, setIsAddActivityDialogOpen] = useState(false);
   const [groupActivities, setGroupActivities] = useState<AssistantInGroup[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -256,7 +231,6 @@ export default function CreateActivityPage() {
     }
   });
 
-  // --- Lógica de Auto-completado de Labor ---
   const singleCode = useWatch({ control: singleForm.control, name: 'code' });
   const headerCode = useWatch({ control: headerForm.control, name: 'code' });
 
@@ -287,7 +261,7 @@ export default function CreateActivityPage() {
     lotes.forEach(lote => {
       if (!map.has(lote.lote)) map.set(lote.lote, lote);
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true}));
   }, [lotes]);
 
   const currentCode = formMode === 'individual' ? singleCode : headerCode;
@@ -376,13 +350,8 @@ export default function CreateActivityPage() {
     });
   };
 
-  const handleAddAssistant = (a: { assistantDni: string, assistantName: string }) => {
-    setGroupActivities(prev => [...prev, { ...a, id: crypto.randomUUID(), performance: 0, workdayCount: 0 }]);
-  };
-
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      {/* Selector de Modo */}
       <div className="flex items-center justify-center space-x-4 p-3 bg-muted rounded-xl w-fit mx-auto shadow-inner">
           <Label className={cn("text-sm transition-all", formMode === 'individual' ? "font-bold text-primary scale-105" : "text-muted-foreground")}>Individual</Label>
           <Switch checked={formMode === 'group'} onCheckedChange={(c) => setFormMode(c ? 'group' : 'individual')} />
@@ -397,7 +366,6 @@ export default function CreateActivityPage() {
                     <CardTitle className="text-lg flex items-center gap-2"><Sprout className="h-5 w-5 text-primary"/> Datos del Lote y Labor</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
-                  {/* Fecha */}
                   <FormField control={singleForm.control} name="registerDate" render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Fecha de Trabajo</FormLabel>
@@ -419,7 +387,6 @@ export default function CreateActivityPage() {
                     )}
                   />
 
-                  {/* Campaña, Etapa, Lote */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <FormField control={singleForm.control} name="campaign" render={({ field }) => (
                         <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
@@ -428,11 +395,10 @@ export default function CreateActivityPage() {
                         <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
                       )}/>
                       <FormField control={singleForm.control} name="lote" render={({ field }) => (
-                        <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "-"}/></SelectTrigger></FormControl><SelectContent>{uniqueLotes.sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true})).map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
+                        <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "-"}/></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
                       )}/>
                   </div>
 
-                  {/* Código y Labor (Auto-completado) */}
                   <div className="grid grid-cols-4 gap-4">
                     <FormField control={singleForm.control} name="code" render={({ field }) => (
                       <FormItem className="col-span-1"><FormLabel>Cód.</FormLabel><FormControl><Input placeholder="31" {...field} className="text-center font-bold"/></FormControl><FormMessage /></FormItem>
@@ -442,7 +408,6 @@ export default function CreateActivityPage() {
                     )}/>
                   </div>
 
-                  {/* Costo, Turno, Pasada */}
                   <div className="grid grid-cols-3 gap-4">
                       <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
                       <FormField control={singleForm.control} name="shift" render={({ field }) => (
@@ -451,7 +416,6 @@ export default function CreateActivityPage() {
                       <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
                   </div>
 
-                  {/* Rendimiento y JHU */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t">
                     <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel className="text-primary font-bold">{performanceLabel}</FormLabel><FormControl><Input type="number" {...field} className="border-primary/30"/></FormControl></FormItem> )}/>
                     {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel className="text-primary font-bold">{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" {...field} className="border-primary/30"/></FormControl></FormItem>)}/> )}
@@ -496,7 +460,7 @@ export default function CreateActivityPage() {
                           <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
                         )}/>
                         <FormField control={headerForm.control} name="lote" render={({ field }) => (
-                          <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "-"}/></SelectTrigger></FormControl><SelectContent>{uniqueLotes.sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true})).map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
+                          <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "-"}/></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
                         )}/>
                     </div>
                     <div className="grid grid-cols-4 gap-4">
@@ -549,7 +513,15 @@ export default function CreateActivityPage() {
                               )}
                           </TableBody>
                           {groupActivities.length > 0 && (
-                            <TableFooter><GroupFormTotals activities={groupActivities} showExtraPerformanceField={showExtraPerformanceField}/></TableFooter>
+                            <TableFooter>
+                                <TableRow className="bg-muted/50 font-bold text-xs sm:text-sm">
+                                    <TableCell className="text-right">Total</TableCell>
+                                    <TableCell className="text-center">{groupActivities.reduce((sum, a) => sum + (Number(a.performance) || 0), 0).toLocaleString('es-PE')}</TableCell>
+                                    {showExtraPerformanceField && <TableCell className="text-center">{groupActivities.reduce((sum, a) => sum + (Number(a.clustersOrJabas) || 0), 0).toLocaleString('es-PE')}</TableCell>}
+                                    <TableCell className="text-center">{groupActivities.reduce((sum, a) => sum + (Number(a.workdayCount) || 0), 0).toFixed(1)}</TableCell>
+                                    <TableCell></TableCell>
+                                </TableRow>
+                            </TableFooter>
                           )}
                       </Table>
                   </div>
@@ -568,7 +540,6 @@ export default function CreateActivityPage() {
         </Form>
       )}
 
-      {/* Reporte Oculto para Captura */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <div ref={reportRef}>
           <CaptureReport 
@@ -583,11 +554,10 @@ export default function CreateActivityPage() {
         </div>
       </div>
 
-      {/* Diálogo de Selección de Asistentes */}
       <AddAssistantActivityDialog
           isOpen={isAddActivityDialogOpen}
           setIsOpen={setIsAddActivityDialogOpen}
-          onSelectAssistant={handleAddAssistant}
+          onSelectAssistant={(a) => setGroupActivities(prev => [...prev, { ...a, id: crypto.randomUUID(), performance: 0, workdayCount: 0 }])}
           currentAssistantsDnis={groupActivities.map(f => f.assistantDni)}
       />
     </div>
