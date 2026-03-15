@@ -55,7 +55,7 @@ function AssistantSummaryTable({
     }, [data]);
 
     return (
-        <div className="bg-white p-8 text-black border-2 border-black" style={{ minWidth: '1000px' }}>
+        <div className="bg-white p-8 text-black border-2 border-black" style={{ minWidth: '1100px' }}>
             <div className="flex justify-between items-start mb-6">
                 <div className="space-y-2">
                     <h2 className="text-2xl font-bold border-b-2 border-black pb-1 uppercase tracking-tight underline">REPORTE DE CAMPO - FICHA DE ACTIVIDAD</h2>
@@ -74,6 +74,7 @@ function AssistantSummaryTable({
             <table className="w-full border-collapse border-2 border-black text-sm">
                 <thead>
                     <tr className="bg-gray-200">
+                        <th className="border border-black p-3 text-center w-28 font-bold uppercase">FECHA</th>
                         <th className="border border-black p-3 text-left font-bold uppercase">ASISTENTE / ENCARGADO</th>
                         <th className="border border-black p-3 text-center w-32 font-bold uppercase">RDTO</th>
                         <th className="border border-black p-3 text-center w-32 font-bold uppercase">PERSONAS</th>
@@ -91,6 +92,7 @@ function AssistantSummaryTable({
                         const prom = (Number(row.rdto) || 0) / (Number(row.jhu) || 1);
                         return (
                             <tr key={i}>
+                                <td className="border border-black p-3 text-center font-mono">{row.date}</td>
                                 <td className="border border-black p-3 uppercase font-medium">{row.name}</td>
                                 <td className="border border-black p-3 text-center font-mono">{row.rdto.toLocaleString('es-PE')}</td>
                                 <td className="border border-black p-3 text-center font-mono">{row.personas}</td>
@@ -105,7 +107,7 @@ function AssistantSummaryTable({
                 </tbody>
                 <tfoot className="bg-white font-bold">
                     <tr className="border-t-2 border-black">
-                        <td className="border border-black p-3 text-right uppercase text-base">TOTAL GENERAL</td>
+                        <td colSpan={2} className="border border-black p-3 text-right uppercase text-base">TOTAL GENERAL</td>
                         <td className="border border-black p-3 text-center text-base">{totals.rdto.toLocaleString('es-PE')}</td>
                         <td className="border border-black p-3 text-center text-base">{totals.personas}</td>
                         <td className="border border-black p-3 text-center text-base text-[#7c3aed] font-bold">{totals.jhu.toFixed(1)}</td>
@@ -398,6 +400,7 @@ export default function ActivitySummaryPage() {
         }
 
         const assistantGroups = new Map<string, {
+            date: string;
             name: string;
             rdto: number;
             personas: number;
@@ -408,9 +411,13 @@ export default function ActivitySummaryPage() {
         }>();
 
         filtered.forEach(act => {
-            const key = act.assistantDni || act.assistantName || 'Unknown';
+            const dateStr = format(act.registerDate, 'dd/MM/yyyy');
+            const assistantKey = act.assistantDni || act.assistantName || 'Unknown';
+            const key = `${dateStr}-${assistantKey}`;
+            
             if (!assistantGroups.has(key)) {
                 assistantGroups.set(key, {
+                    date: dateStr,
                     name: act.assistantName || asistentes.find(a => a.id === act.assistantDni)?.assistantName || 'Desconocido',
                     rdto: 0,
                     personas: 0,
@@ -429,7 +436,8 @@ export default function ActivitySummaryPage() {
             if (act.observations) g.obs.push(act.observations);
         });
 
-        return Array.from(assistantGroups.values());
+        // Ordenar por fecha descendente
+        return Array.from(assistantGroups.values()).sort((a, b) => b.date.localeCompare(a.date));
     }, [allActivities, activeFilters, chartDateRange, chartShiftFilter, asistentes]);
     
     const chartConfig: ChartConfig = {
