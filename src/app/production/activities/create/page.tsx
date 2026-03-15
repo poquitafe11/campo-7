@@ -5,21 +5,21 @@ import { useEffect, useMemo, useTransition, useState, useRef } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
-import { format, isValid } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon,
   Loader2,
   PlusCircle,
   Trash2,
-  Tag,
   Save,
-  Wrench,
   Camera,
-  Clock,
-  Sprout,
   Grape,
   Boxes,
+  Code,
+  Wrench,
+  Clock,
+  Sprout,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -58,13 +58,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import AddAssistantActivityDialog from '@/components/AddAssistantActivityDialog';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Calendar } from '@/components/ui/calendar';
 
+// --- Esquemas y Tipos ---
 type SingleActivityFormValues = z.infer<typeof ActivityRecordSchema>;
 
 const assistantInGroupSchema = z.object({
@@ -91,7 +92,8 @@ const headerSchema = ActivityRecordSchema.pick({
 });
 type HeaderFormValues = z.infer<typeof headerSchema>;
 
-// Componentes Auxiliares
+// --- Componentes Auxiliares Fuera para Estabilidad ---
+
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
     const totals = useMemo(() => {
       const summary = { performance: 0, workdayCount: 0, clustersOrJabas: 0 };
@@ -197,6 +199,8 @@ function CaptureReport({
   );
 }
 
+// --- Componente Principal ---
+
 export default function CreateActivityPage() {
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -212,7 +216,7 @@ export default function CreateActivityPage() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setActions({ title: "Crear Ficha de Actividad" });
+    setActions({ title: "Ficha de Actividad" });
     return () => setActions({});
   }, [setActions]);
 
@@ -252,7 +256,7 @@ export default function CreateActivityPage() {
     }
   });
 
-  // Watchers para auto-completado de labor
+  // --- Lógica de Auto-completado de Labor ---
   const singleCode = useWatch({ control: singleForm.control, name: 'code' });
   const headerCode = useWatch({ control: headerForm.control, name: 'code' });
 
@@ -378,27 +382,45 @@ export default function CreateActivityPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center justify-center space-x-2 p-2 bg-muted rounded-lg w-fit mx-auto">
-          <Label className={cn(formMode === 'individual' && "font-bold text-primary")}>Individual</Label>
+      {/* Selector de Modo */}
+      <div className="flex items-center justify-center space-x-4 p-3 bg-muted rounded-xl w-fit mx-auto shadow-inner">
+          <Label className={cn("text-sm transition-all", formMode === 'individual' ? "font-bold text-primary scale-105" : "text-muted-foreground")}>Individual</Label>
           <Switch checked={formMode === 'group'} onCheckedChange={(c) => setFormMode(c ? 'group' : 'individual')} />
-          <Label className={cn(formMode === 'group' && "font-bold text-primary")}>Grupal</Label>
+          <Label className={cn("text-sm transition-all", formMode === 'group' ? "font-bold text-primary scale-105" : "text-muted-foreground")}>Grupal</Label>
       </div>
 
       {formMode === 'individual' ? (
         <Form {...singleForm}>
            <form onSubmit={singleForm.handleSubmit(onSingleSubmit)}>
-              <Card className="p-4 shadow-sm space-y-4">
-                <div className="space-y-4">
+              <Card className="shadow-lg border-primary/10 overflow-hidden">
+                <CardHeader className="bg-primary/5 border-b pb-4">
+                    <CardTitle className="text-lg flex items-center gap-2"><Sprout className="h-5 w-5 text-primary"/> Datos del Lote y Labor</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  {/* Fecha */}
                   <FormField control={singleForm.control} name="registerDate" render={({ field }) => (
-                      <FormItem className="flex flex-col"><FormLabel>Fecha</FormLabel>
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Fecha de Trabajo</FormLabel>
                         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                          <PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full text-left font-normal">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button variant={"outline"} className="w-full text-left font-normal border-muted-foreground/20">
+                                    {field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/>
+                          </PopoverContent>
                         </Popover>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <div className="grid grid-cols-3 gap-2">
+
+                  {/* Campaña, Etapa, Lote */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <FormField control={singleForm.control} name="campaign" render={({ field }) => (
                         <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
                       )}/>
@@ -406,50 +428,67 @@ export default function CreateActivityPage() {
                         <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
                       )}/>
                       <FormField control={singleForm.control} name="lote" render={({ field }) => (
-                        <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
+                        <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "-"}/></SelectTrigger></FormControl><SelectContent>{uniqueLotes.sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true})).map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
                       )}/>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+
+                  {/* Código y Labor (Auto-completado) */}
+                  <div className="grid grid-cols-4 gap-4">
                     <FormField control={singleForm.control} name="code" render={({ field }) => (
-                      <FormItem><FormLabel>Cód.</FormLabel><FormControl><Input placeholder="31" {...field} /></FormControl></FormItem>
+                      <FormItem className="col-span-1"><FormLabel>Cód.</FormLabel><FormControl><Input placeholder="31" {...field} className="text-center font-bold"/></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={singleForm.control} name="labor" render={({ field }) => (
-                      <FormItem className="col-span-2"><FormLabel>Labor</FormLabel><FormControl><Input readOnly className="bg-muted" {...field} /></FormControl></FormItem>
+                      <FormItem className="col-span-3"><FormLabel>Descripción de Labor</FormLabel><FormControl><Input readOnly className="bg-muted font-medium" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+
+                  {/* Costo, Turno, Pasada */}
+                  <div className="grid grid-cols-3 gap-4">
                       <FormField control={singleForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
                       <FormField control={singleForm.control} name="shift" render={({ field }) => (
                           <FormItem><FormLabel>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-"/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>
                       )}/>
                       <FormField control={singleForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
-                    <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel>{performanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )}/>
-                    {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel>{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/> )}
-                    <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel>JHU</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl></FormItem>)}/>
-                </div>
-                <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel>Observaciones</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem> )}/>
-                <Button type="submit" className="w-full" disabled={isPending}>{isPending ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}Guardar Registro</Button>
+
+                  {/* Rendimiento y JHU */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t">
+                    <FormField control={singleForm.control} name="performance" render={({ field }) => ( <FormItem><FormLabel className="text-primary font-bold">{performanceLabel}</FormLabel><FormControl><Input type="number" {...field} className="border-primary/30"/></FormControl></FormItem> )}/>
+                    {showExtraPerformanceField && (<FormField control={singleForm.control} name="clustersOrJabas" render={({ field }) => (<FormItem><FormLabel className="text-primary font-bold">{extraPerformanceLabel}</FormLabel><FormControl><Input type="number" {...field} className="border-primary/30"/></FormControl></FormItem>)}/> )}
+                    <FormField control={singleForm.control} name="workdayCount" render={({ field }) => (<FormItem><FormLabel className="font-bold">Jornadas (JHU)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl></FormItem>)}/>
+                  </div>
+
+                  <FormField control={singleForm.control} name="observations" render={({ field }) => ( <FormItem><FormLabel>Observaciones</FormLabel><FormControl><Textarea placeholder="Notas adicionales..." {...field} /></FormControl></FormItem> )}/>
+                  
+                  <Button type="submit" className="w-full h-12 text-lg shadow-md" disabled={isPending}>
+                    {isPending ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
+                    Guardar Ficha
+                  </Button>
+                </CardContent>
               </Card>
            </form>
          </Form>
       ) : (
         <Form {...headerForm}>
-          <div className="space-y-4">
-             <Card className="p-4 shadow-sm space-y-4">
-                  <div className="space-y-4">
+          <div className="space-y-6">
+             <Card className="shadow-lg border-primary/10">
+                <CardHeader className="bg-primary/5 border-b pb-4">
+                    <CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5 text-primary"/> Cabecera de Grupo</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
                     <FormField control={headerForm.control} name="registerDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Fecha</FormLabel>
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Fecha</FormLabel>
                           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                            <PopoverTrigger asChild><FormControl><Button variant={"outline"} className="w-full text-left font-normal">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
+                            <PopoverTrigger asChild>
+                                <FormControl><Button variant={"outline"} className="w-full text-left font-normal border-muted-foreground/20">{field.value ? format(field.value, "d 'de' MMMM, yyyy", { locale: es }) : "Elegir fecha"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl>
+                            </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); setIsCalendarOpen(false); }} initialFocus locale={es}/></PopoverContent>
                           </Popover>
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <FormField control={headerForm.control} name="campaign" render={({ field }) => (
                           <FormItem><FormLabel>Campaña</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2026">2026</SelectItem></SelectContent></Select></FormItem>
                         )}/>
@@ -457,60 +496,79 @@ export default function CreateActivityPage() {
                           <FormItem><FormLabel>Etapa</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent><SelectItem value="habilitacion">Habilitacion</SelectItem><SelectItem value="produccion">Produccion</SelectItem></SelectContent></Select></FormItem>
                         )}/>
                         <FormField control={headerForm.control} name="lote" render={({ field }) => (
-                          <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger></FormControl><SelectContent>{uniqueLotes.map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
+                          <FormItem><FormLabel>Lote</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "Cargando..." : "-"}/></SelectTrigger></FormControl><SelectContent>{uniqueLotes.sort((a,b) => a.lote.localeCompare(b.lote, undefined, {numeric: true})).map(l => <SelectItem key={l.id} value={l.id}>{l.lote}</SelectItem>)}</SelectContent></Select></FormItem>
                         )}/>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-4">
                       <FormField control={headerForm.control} name="code" render={({ field }) => (
-                        <FormItem><FormLabel>Cód.</FormLabel><FormControl><Input placeholder="31" {...field} /></FormControl></FormItem>
+                        <FormItem className="col-span-1"><FormLabel>Cód.</FormLabel><FormControl><Input placeholder="31" {...field} className="text-center font-bold"/></FormControl></FormItem>
                       )}/>
                       <FormField control={headerForm.control} name="labor" render={({ field }) => (
-                        <FormItem className="col-span-2"><FormLabel>Labor</FormLabel><FormControl><Input readOnly className="bg-muted" {...field} /></FormControl></FormItem>
+                        <FormItem className="col-span-3"><FormLabel>Labor</FormLabel><FormControl><Input readOnly className="bg-muted font-medium" {...field} /></FormControl></FormItem>
                       )}/>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-4">
                         <FormField control={headerForm.control} name="cost" render={({ field }) => (<FormItem><FormLabel>S/ Costo</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
                         <FormField control={headerForm.control} name="shift" render={({ field }) => (
                             <FormItem><FormLabel>Turno</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="-"/></SelectTrigger></FormControl><SelectContent><SelectItem value="Mañana">Mañana</SelectItem><SelectItem value="Tarde">Tarde</SelectItem></SelectContent></Select></FormItem>
                         )}/>
                         <FormField control={headerForm.control} name="pass" render={({ field }) => (<FormItem><FormLabel>Pasada</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
                     </div>
-                  </div>
-                  <div className="overflow-x-auto mt-4">
+                </CardContent>
+             </Card>
+
+             <Card className="shadow-lg overflow-hidden">
+                <CardHeader className="bg-primary/5 border-b flex flex-row items-center justify-between py-3">
+                    <CardTitle className="text-md flex items-center gap-2 font-semibold"><Clock className="h-4 w-4" /> Detalle de Asistentes</CardTitle>
+                    <Badge variant="outline" className="bg-background">{groupActivities.length} Miembros</Badge>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
                       <Table>
-                          <TableHeader>
+                          <TableHeader className="bg-muted/30">
                               <TableRow>
-                                  <TableHead>Asistente</TableHead>
-                                  <TableHead className="w-24 text-center">{performanceLabel}</TableHead>
-                                  {showExtraPerformanceField && <TableHead className="w-24 text-center">{extraPerformanceLabel}</TableHead>}
-                                  <TableHead className="w-20 text-center">JHU</TableHead>
+                                  <TableHead className="font-bold">Asistente</TableHead>
+                                  <TableHead className="w-24 text-center font-bold">{performanceLabel}</TableHead>
+                                  {showExtraPerformanceField && <TableHead className="w-24 text-center font-bold">{extraPerformanceLabel}</TableHead>}
+                                  <TableHead className="w-20 text-center font-bold">JHU</TableHead>
                                   <TableHead className="w-10"></TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
                               {groupActivities.map((act, idx) => (
-                                  <TableRow key={act.id}>
-                                      <TableCell className="text-xs font-medium">{act.assistantName}</TableCell>
-                                      <TableCell><Input type="number" value={act.performance || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, performance: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>
-                                      {showExtraPerformanceField && <TableCell><Input type="number" value={act.clustersOrJabas || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, clustersOrJabas: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>}
-                                      <TableCell><Input type="number" step="0.1" value={act.workdayCount || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, workdayCount: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>
-                                      <TableCell><Button variant="ghost" size="icon" onClick={() => setGroupActivities(prev => prev.filter(a => a.id !== act.id))}><Trash2 className="h-4 text-destructive"/></Button></TableCell>
+                                  <TableRow key={act.id} className="hover:bg-muted/20">
+                                      <TableCell className="text-xs font-medium py-2">{act.assistantName}</TableCell>
+                                      <TableCell className="py-2"><Input type="number" value={act.performance || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, performance: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>
+                                      {showExtraPerformanceField && <TableCell className="py-2"><Input type="number" value={act.clustersOrJabas || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, clustersOrJabas: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>}
+                                      <TableCell className="py-2"><Input type="number" step="0.1" value={act.workdayCount || ''} onChange={e => setGroupActivities(prev => prev.map((a, i) => i === idx ? {...a, workdayCount: Number(e.target.value)} : a))} className="h-8 text-center text-xs"/></TableCell>
+                                      <TableCell className="py-2"><Button variant="ghost" size="icon" onClick={() => setGroupActivities(prev => prev.filter(a => a.id !== act.id))} className="h-8 w-8"><Trash2 className="h-4 text-destructive"/></Button></TableCell>
                                   </TableRow>
                               ))}
+                              {groupActivities.length === 0 && (
+                                <TableRow><TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">No hay asistentes agregados. Use el botón "+" para empezar.</TableCell></TableRow>
+                              )}
                           </TableBody>
-                          <TableFooter><GroupFormTotals activities={groupActivities} showExtraPerformanceField={showExtraPerformanceField}/></TableFooter>
+                          {groupActivities.length > 0 && (
+                            <TableFooter><GroupFormTotals activities={groupActivities} showExtraPerformanceField={showExtraPerformanceField}/></TableFooter>
+                          )}
                       </Table>
                   </div>
-                  <div className="flex gap-2">
-                      <Button variant="outline" type="button" onClick={() => setIsAddActivityDialogOpen(true)} className="flex-1"><PlusCircle className="mr-2 h-4"/>Asistente</Button>
-                      <Button variant="outline" type="button" onClick={handleCaptureTable} disabled={groupActivities.length === 0}><Camera className="mr-2 h-4"/>Captura</Button>
-                  </div>
-                  <Button type="button" onClick={handleGroupSave} className="w-full" disabled={isPending || groupActivities.length === 0}>{isPending ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}Guardar Grupo</Button>
+                </CardContent>
+                <CardFooter className="bg-muted/10 p-4 gap-3 border-t">
+                    <Button variant="outline" type="button" onClick={() => setIsAddActivityDialogOpen(true)} className="flex-1 border-primary/20 hover:bg-primary/5"><PlusCircle className="mr-2 h-4"/>Añadir Asistente</Button>
+                    <Button variant="outline" type="button" onClick={handleCaptureTable} disabled={groupActivities.length === 0} className="border-primary/20 hover:bg-primary/5"><Camera className="mr-2 h-4"/>Captura</Button>
+                </CardFooter>
              </Card>
+
+             <Button type="button" onClick={handleGroupSave} className="w-full h-14 text-xl font-bold shadow-xl rounded-2xl" disabled={isPending || groupActivities.length === 0}>
+                {isPending ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}
+                Guardar Todo el Grupo
+             </Button>
           </div>
         </Form>
       )}
 
+      {/* Reporte Oculto para Captura */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <div ref={reportRef}>
           <CaptureReport 
@@ -525,6 +583,7 @@ export default function CreateActivityPage() {
         </div>
       </div>
 
+      {/* Diálogo de Selección de Asistentes */}
       <AddAssistantActivityDialog
           isOpen={isAddActivityDialogOpen}
           setIsOpen={setIsAddActivityDialogOpen}
