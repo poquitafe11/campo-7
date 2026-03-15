@@ -3,7 +3,7 @@
  * @fileOverview An AI agent that answers questions about field data using tools to search the database.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai/instance';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';

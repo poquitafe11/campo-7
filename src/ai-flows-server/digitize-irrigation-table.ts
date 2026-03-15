@@ -1,10 +1,9 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that digitizes a multi-section irrigation program table from a single image.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai/instance';
 import { z } from 'zod';
 
 
@@ -52,7 +51,7 @@ Example Output Format:
   "fecha": "29 de Agosto de 2025",
   "dia": "VIERNES",
   "eto": "5.8",
-  "tableContent": "[ { \\"Bomba N°\\": \\"001\\", \\"Sector\\": \\"Cotton candy\\", \\"Lote\\": \\"78\\", \\"Ha\\": \\"14.80\\", \\"m3Ha Hora\\": \\"10.3\\", \\"N\\": \\"4\\", \\"P2O5\\": \\"\\", \\"K\\": \\"\\", \\"Ca\\": \\"6\\", \\"Mg\\": \\"\\", \\"Zn\\": \\"\\", \\"Mn\\": \\"\\", \\"B\\": \\"\\", \\"Fe\\": \\"\\", \\"S\\": \\"\\" }, { \\"Bomba N°\\": \\"002\\", \\"Sector\\": \\"Autumn Crisp\\", \\"Lote\\": \\"072\\", \\"De\\": \\"10:00 a. m.\\", \\"Hasta\\": \\"6:00 p. m.\\", \\"Total Horas\\": \\"08:00\\", \\"Observaciones\\": \\"Fertilizar\\", \\"Kc\\": \\"1.8\\", \\"Total m3Dia\\": \\"2,007.6\\", \\"Ha\\": \\"31.00\\", \\"m3Ha Hora\\": \\"8.1\\", \\"Lps Ideal\\": \\"70\\", \\"Lps adicional 10%\\": \\"77\\", \\"N\\": \\"\\", \\"P2O5\\": \\"\\", \\"K\\": \\"18\\", \\"Ca\\": \\"\\", \\"Mg\\": \\"\\", \\"Zn\\": \\"\\", \\"Mn\\": \\"\\", \\"B\\": \\"\\", \\"Fe\\": \\"\\", \\"S\\": \\"\\" } ]"
+  "tableContent": "[ { \\"Bomba N°\\": \\"001\\", \\"Sector\\": \\"Cotton candy\\", \\"Lote\\": \\"78\\", \\"Ha\\": \\"14.80\\", \\"m3Ha Hora\\": \\"10.3\\", \\"N\\": \\"4\\", \\"P2O5\\": \\"\\", \\"K\\": \\"\\", \\"Ca\\": \\"6\\", \\"Mg\\": \\"\\", \\"Zn\\": \\"\\", \\"Mn\\": \\"\\", \\"B\\": \\"\\", \\"Fe\\": \\"\\", \\"S\\": \\"\\" }, { \\"Bomba N°\\": \\"002\\", \\"Sector\\": \\"Autumn Crisp\\", \\"Lote\\": \\"072\\", \\"De\\ : \\"10:00 a. m.\\", \\"Hasta\\": \\"6:00 p. m.\\", \\"Total Horas\\": \\"08:00\\", \\"Observaciones\\": \\"Fertilizar\\", \\"Kc\\": \\"1.8\\", \\"Total m3Dia\\": \\"2,007.6\\", \\"Ha\\": \\"31.00\\", \\"m3Ha Hora\\": \\"8.1\\", \\"Lps Ideal\\": \\"70\\", \\"Lps adicional 10%\\": \\"77\\", \\"N\\": \\"\\", \\"P2O5\\": \\"\\", \\"K\\": \\"18\\", \\"Ca\\": \\"\\", \\"Mg\\": \\"\\", \\"Zn\\": \\"\\", \\"Mn\\": \\"\\", \\"B\\": \\"\\", \\"Fe\\": \\"\\", \\"S\\": \\"\\" } ]"
 }
 
 

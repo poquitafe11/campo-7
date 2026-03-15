@@ -1,10 +1,9 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that digitizes a multi-section irrigation program table from a single image.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai/instance';
 import { z } from 'zod';
 
 

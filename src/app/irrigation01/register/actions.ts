@@ -3,7 +3,7 @@
 import { digitizeIrrigationTable } from '@/ai/flows/digitize-irrigation-table';
 import type { DigitizeIrrigationTableInput, DigitizeIrrigationTableOutput } from '@/ai/flows/digitize-irrigation-table';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, deleteField, doc } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, deleteField } from 'firebase/firestore';
 
 export async function digitizeIrrigationTableAction(input: DigitizeIrrigationTableInput): Promise<DigitizeIrrigationTableOutput> {
   return digitizeIrrigationTable(input);

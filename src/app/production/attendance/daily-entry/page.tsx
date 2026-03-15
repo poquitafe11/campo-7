@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -272,7 +273,6 @@ export default function DailyEntryPage() {
             finalAssistants = mergedAssistants;
         }
 
-        // Sanitizar payload para evitar valores 'undefined' que rompen setDoc
         const assistantsPayload = finalAssistants.map(a => ({
             id: a.id || crypto.randomUUID(),
             assistantDni: a.assistantDni || "N/A",
@@ -283,7 +283,7 @@ export default function DailyEntryPage() {
                 jaladorAlias: j.jaladorAlias || "N/A",
                 personnelCount: j.personnelCount || 0,
                 absentCount: j.absentCount || 0,
-                supportedLabor: j.supportedLabor || "" // Evitar undefined
+                supportedLabor: j.supportedLabor || "" 
             })),
         }));
 

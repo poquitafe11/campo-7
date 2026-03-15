@@ -1,10 +1,9 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that digitizes a table from an image.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai/instance';
 import { z } from 'zod';
 
 const DigitizeHealthTableInputSchema = z.object({

@@ -1,17 +1,17 @@
+
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, Filter, RefreshCcw, User as UserIcon, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Loader2, Filter, RefreshCcw, Calendar as CalendarIcon, Clock, Camera, LayoutGrid } from 'lucide-react';
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip, ResponsiveContainer } from 'recharts';
+import { Bar, CartesianGrid, Legend, XAxis, YAxis, LabelList, Line, ComposedChart, Tooltip as RechartsTooltip } from 'recharts';
 import { DateRange } from "react-day-picker";
 
-import { type ActivityRecordData, type LoteData, Presupuesto, MinMax, Assistant } from '@/lib/types';
+import { type ActivityRecordData, Presupuesto, MinMax } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { useMasterData } from '@/context/MasterDataContext';
 import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -20,27 +20,105 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DetailedSummaryTable } from '@/components/DetailedSummaryTable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
+// --- Sub-componente para la Tabla de Ficha de Actividad (Diseño Imagen 1) ---
+function AssistantSummaryTable({ 
+  data, 
+  laborName, 
+  lote, 
+  pasada,
+  responsibleName 
+}: { 
+  data: any[], 
+  laborName: string, 
+  lote: string, 
+  pasada: string,
+  responsibleName: string
+}) {
+    const totals = useMemo(() => {
+        const rdto = data.reduce((s, d) => s + d.rdto, 0);
+        const personas = data.reduce((s, d) => s + d.personas, 0);
+        const jhu = data.reduce((s, d) => s + d.jhu, 0);
+        
+        // CORRECCIÓN: El total debe mostrar el mínimo absoluto de todos y el máximo absoluto de todos
+        const allMins = data.flatMap(d => d.mins).filter(v => v > 0);
+        const allMaxs = data.flatMap(d => d.maxs).filter(v => v > 0);
+        
+        const min = allMins.length > 0 ? Math.min(...allMins) : 0;
+        const max = allMaxs.length > 0 ? Math.max(...allMaxs) : 0;
+        
+        const prom = jhu > 0 ? rdto / jhu : 0;
+        return { rdto, personas, jhu, prom, min, max };
+    }, [data]);
 
-interface SummaryValues {
-    lote: string;
-    pasada: number;
-    fecha: string;
-    personas: number;
-    plantas: number;
-    clustersOrJabas: number;
-    jhu: number;
-    promedio: number;
-    promedioRacimos: number;
-    plantasHora: number;
-    has: number;
-    avance: string;
-    haPorTrabajar: number;
-    minimo: number;
-    maximo: number;
+    return (
+        <div className="bg-white p-8 text-black border-2 border-black" style={{ minWidth: '1000px' }}>
+            <div className="flex justify-between items-start mb-6">
+                <div className="space-y-2">
+                    <h2 className="text-2xl font-bold border-b-2 border-black pb-1 uppercase tracking-tight underline">REPORTE DE CAMPO - FICHA DE ACTIVIDAD</h2>
+                    <div className="mt-3 space-y-1 text-sm font-bold uppercase">
+                        <p>FECHA: {format(new Date(), "d 'de' MMMM, yyyy", { locale: es })}</p>
+                        <p>LABOR: {laborName || '---'}</p>
+                        <p>LOTE: {lote || '---'} | PASADA: {pasada || '0'}</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <p className="text-sm font-bold uppercase">RESPONSABLE: {responsibleName.toUpperCase()}</p>
+                    <p className="text-xs text-gray-500 italic mt-2">Generado el {format(new Date(), 'dd/MM/yyyy, HH:mm')}</p>
+                </div>
+            </div>
+
+            <table className="w-full border-collapse border-2 border-black text-sm">
+                <thead>
+                    <tr className="bg-gray-200">
+                        <th className="border border-black p-3 text-left font-bold uppercase">ASISTENTE / ENCARGADO</th>
+                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">RDTO</th>
+                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">PERSONAS</th>
+                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">JHU</th>
+                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">PROM.</th>
+                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">MÍNIMO</th>
+                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">MÁXIMO</th>
+                        <th className="border border-black p-3 text-left font-bold uppercase">OBS.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {data.map((row, i) => {
+                        const rowMin = row.mins.length > 0 ? Math.min(...row.mins) : 0;
+                        const rowMax = row.maxs.length > 0 ? Math.max(...row.maxs) : 0;
+                        const prom = (Number(row.rdto) || 0) / (Number(row.jhu) || 1);
+                        return (
+                            <tr key={i}>
+                                <td className="border border-black p-3 uppercase font-medium">{row.name}</td>
+                                <td className="border border-black p-3 text-center font-mono">{row.rdto.toLocaleString('es-PE')}</td>
+                                <td className="border border-black p-3 text-center font-mono">{row.personas}</td>
+                                <td className="border border-black p-3 text-center font-mono">{row.jhu.toFixed(1)}</td>
+                                <td className="border border-black p-3 text-center font-mono">{prom.toFixed(2)}</td>
+                                <td className="border border-black p-3 text-center font-mono">{rowMin}</td>
+                                <td className="border border-black p-3 text-center font-mono">{rowMax}</td>
+                                <td className="border border-black p-3 text-[10px] text-gray-600 italic">{row.obs[0] || '---'}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+                <tfoot className="bg-white font-bold">
+                    <tr className="border-t-2 border-black">
+                        <td className="border border-black p-3 text-right uppercase text-base">TOTAL GENERAL</td>
+                        <td className="border border-black p-3 text-center text-base">{totals.rdto.toLocaleString('es-PE')}</td>
+                        <td className="border border-black p-3 text-center text-base">{totals.personas}</td>
+                        <td className="border border-black p-3 text-center text-base text-[#7c3aed] font-bold">{totals.jhu.toFixed(1)}</td>
+                        <td className="border border-black p-3 text-center text-base font-bold">{totals.prom.toFixed(2)}</td>
+                        <td className="border border-black p-3 text-center text-base font-bold">{totals.min}</td>
+                        <td className="border border-black p-3 text-center text-base font-bold">{totals.max}</td>
+                        <td className="border border-black p-3 bg-white"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    );
 }
 
 const formatAssistantName = (name: string) => {
@@ -55,30 +133,30 @@ const formatAssistantName = (name: string) => {
 
 export default function ActivitySummaryPage() {
     const { toast } = useToast();
+    const { profile } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [allActivities, setAllActivities] = useState<ActivityRecordData[]>([]);
     const [allPresupuestos, setAllPresupuestos] = useState<Presupuesto[]>([]);
     const [allMinMax, setAllMinMax] = useState<MinMax[]>([]);
     const { lotes: allLotes, labors: allLabors, asistentes, loading: masterLoading, refreshData: refreshMasterData } = useMasterData();
-    const [users, setUsers] = useState<any[]>([]);
     
     const [activeFilters, setActiveFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
     const [popoverFilters, setPopoverFilters] = useState({ campaign: '', lote: '', labor: '', pasada: '' });
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const { setActions } = useHeaderActions();
     
-    // New state for chart-specific date range
+    const assistantTableRef = useRef<HTMLDivElement>(null);
+
     const [chartDateRange, setChartDateRange] = useState<DateRange | undefined>(undefined);
     const [chartShiftFilter, setChartShiftFilter] = useState('todos');
 
     const loadData = useCallback(async (showToast = false) => {
         setIsLoading(true);
         try {
-            const [activitiesSnapshot, presupuestosSnapshot, minMaxSnapshot, usersSnapshot] = await Promise.all([
+            const [activitiesSnapshot, presupuestosSnapshot, minMaxSnapshot] = await Promise.all([
                 getDocs(collection(db, 'actividades')),
                 getDocs(collection(db, 'presupuesto')),
                 getDocs(collection(db, 'min-max')),
-                getDocs(collection(db, 'usuarios')),
             ]);
 
             const activitiesData = activitiesSnapshot.docs.map(doc => {
@@ -93,19 +171,16 @@ export default function ActivitySummaryPage() {
 
             const minMaxData = minMaxSnapshot.docs.map(doc => doc.data() as MinMax);
             setAllMinMax(minMaxData);
-
-            const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setUsers(usersData);
             
             await refreshMasterData();
 
             if(showToast) {
-                toast({ title: "Éxito", description: "Los datos del resumen han sido actualizados." });
+                toast({ title: "Éxito", description: "Datos actualizados." });
             }
 
         } catch (error) {
             console.error("Error loading summary data:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos para el resumen." });
+            toast({ variant: "destructive", title: "Error", description: "No se pudieron cargar los datos." });
         } finally {
             setIsLoading(false);
         }
@@ -113,8 +188,7 @@ export default function ActivitySummaryPage() {
 
     useEffect(() => {
         loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [loadData]);
 
     const multiDaySummary = useMemo(() => {
         const filteredActivities = allActivities.filter(a => {
@@ -151,8 +225,8 @@ export default function ActivitySummaryPage() {
         const dailyData = Array.from(dateMap.entries()).map(([dateStr, data]) => {
             const hasDia = densidad > 0 ? data.plantas / densidad : 0;
             
-            const minRanges = data.activities.map(a => a.minRange || 0);
-            const maxRanges = data.activities.map(a => a.maxRange || 0);
+            const minRanges = data.activities.map(a => a.minRange || 0).filter(v => v > 0);
+            const maxRanges = data.activities.map(a => a.maxRange || 0).filter(v => v > 0);
             
             const min = minRanges.length > 0 ? Math.min(...minRanges) : 0;
             const max = maxRanges.length > 0 ? Math.max(...maxRanges) : 0;
@@ -229,7 +303,7 @@ export default function ActivitySummaryPage() {
         return '';
     }, [isSpecialLabor, activeFilters.labor, allLabors]);
     
-   const {data: assistantPerformanceData, maxRendimiento} = useMemo(() => {
+   const {data: assistantPerformanceData} = useMemo(() => {
         let filtered = allActivities.filter(a => {
             const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
             const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
@@ -288,34 +362,81 @@ export default function ActivitySummaryPage() {
         
         const chartData = Array.from(assistantData.entries()).map(([assistantId, data]) => {
             const promedio = data.workdaySum > 0 ? data.performanceSum / data.workdaySum : 0;
-            const min = data.promJhuValues.length > 0 ? Math.min(...data.promJhuValues) : 0;
-            const max = data.promJhuValues.length > 0 ? Math.max(...data.promJhuValues) : 0;
-            
             return {
                 name: formatAssistantName(assistantNameMap.get(assistantId) || assistantId),
                 promedio,
-                min,
-                max,
-                rendimiento: isSpecialLabor ? data.specialPerformanceSum : data.performanceSum,
                 jornadas: data.workdaySum,
             }
         });
 
-        const maxRendimiento = Math.max(0, ...chartData.map(d => d.rendimiento));
+        return { data: chartData };
 
-        return { data: chartData, maxRendimiento };
+    }, [allActivities, asistentes, activeFilters, chartDateRange, chartShiftFilter]);
 
-    }, [allActivities, asistentes, activeFilters, isSpecialLabor, chartDateRange, chartShiftFilter]);
+    // --- Memo para la Tabla Grupal (Ficha de Actividad) ---
+    const assistantSummaryTableData = useMemo(() => {
+        let filtered = allActivities.filter(a => {
+            const campaignMatch = !activeFilters.campaign || (a.campaign === activeFilters.campaign);
+            const loteMatch = !activeFilters.lote || a.lote === activeFilters.lote;
+            const laborMatch = !activeFilters.labor || a.labor === activeFilters.labor;
+            const pasadaMatch = !activeFilters.pasada || String(a.pass) === activeFilters.pasada;
+            return campaignMatch && loteMatch && laborMatch && pasadaMatch;
+        });
+        
+        if (chartDateRange?.from) {
+          filtered = filtered.filter(a => a.registerDate >= startOfDay(chartDateRange.from!));
+        }
+        if (chartDateRange?.to) {
+          filtered = filtered.filter(a => a.registerDate <= startOfDay(chartDateRange.to!));
+        }
+        if (chartShiftFilter !== 'todos') {
+            filtered = filtered.filter(a => a.shift === chartShiftFilter);
+        }
+
+        const assistantGroups = new Map<string, {
+            name: string;
+            rdto: number;
+            personas: number;
+            jhu: number;
+            mins: number[];
+            maxs: number[];
+            obs: string[];
+        }>();
+
+        filtered.forEach(act => {
+            const key = act.assistantDni || act.assistantName || 'Unknown';
+            if (!assistantGroups.has(key)) {
+                assistantGroups.set(key, {
+                    name: act.assistantName || asistentes.find(a => a.id === act.assistantDni)?.assistantName || 'Desconocido',
+                    rdto: 0,
+                    personas: 0,
+                    jhu: 0,
+                    mins: [],
+                    maxs: [],
+                    obs: []
+                });
+            }
+            const g = assistantGroups.get(key)!;
+            g.rdto += (act.performance || 0);
+            g.personas += (act.personnelCount || 0);
+            g.jhu += (act.workdayCount || 0);
+            if (act.minRange) g.mins.push(act.minRange);
+            if (act.maxRange) g.maxs.push(act.maxRange);
+            if (act.observations) g.obs.push(act.observations);
+        });
+
+        return Array.from(assistantGroups.values());
+    }, [allActivities, activeFilters, chartDateRange, chartShiftFilter, asistentes]);
     
     const chartConfig: ChartConfig = {
         promedio: { label: "Promedio", color: "hsl(var(--primary))" },
         jornadas: { label: "Jornadas", color: "hsl(var(--secondary))" },
     };
 
-    const summaryRows: { label: React.ReactNode; key: keyof SummaryValues; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
+    const summaryRows: { label: React.ReactNode; key: any; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
         { label: "N° PERS.", key: "personas" },
-        { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-ES') },
-        { label: specialLaborName, key: "clustersOrJabas", special: true, format: (v) => v.toLocaleString('es-ES') },
+        { label: "PLANTAS", key: "plantas", format: (v) => v.toLocaleString('es-PE') },
+        { label: specialLaborName, key: "clustersOrJabas", special: true, format: (v) => v.toLocaleString('es-PE') },
         { label: "JHU", key: "jhu", format: (v) => v.toFixed(2) },
         { label: "PROMEDIO", key: "promedio", format: (v) => Math.round(v) },
         { label: `PROM. ${specialLaborName ? specialLaborName.substring(0,3) : ''}`, key: "promedioRacimos", special: true, format: (v) => Math.round(v) },
@@ -343,6 +464,27 @@ export default function ActivitySummaryPage() {
         setIsFilterOpen(false);
     }, [popoverFilters]);
 
+    const handleCaptureTable = async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
+        if (!ref.current) return;
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const canvas = await html2canvas(ref.current, {
+                scale: 2,
+                backgroundColor: "#ffffff",
+                logging: false,
+                useCORS: true
+            });
+            const link = document.createElement('a');
+            link.download = `${filename}_${format(new Date(), 'ddMMyy_HHmm')}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            toast({ title: "Captura Guardada", description: "El reporte se ha descargado como imagen." });
+        } catch (e) {
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Error al capturar' });
+        }
+    };
+
     useEffect(() => {
         setActions({
             title: <b>Resumen de Actividades</b>,
@@ -359,9 +501,7 @@ export default function ActivitySummaryPage() {
                   </PopoverTrigger>
                   <PopoverContent className="w-80" align="end">
                     <div className="grid gap-4">
-                      <div className="space-y-2">
-                        <h4 className="font-medium leading-none">Filtros de Resumen</h4>
-                      </div>
+                      <div className="space-y-2"><h4 className="font-medium leading-none">Filtros</h4></div>
                       <div className="grid gap-2">
                         <div className="grid gap-1">
                             <Label htmlFor="campaign-filter-summary">Campaña</Label>
@@ -421,7 +561,7 @@ export default function ActivitySummaryPage() {
              {loading ? (
                 <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : multiDaySummary && multiDaySummary.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-8">
                     <div className="inline-block">
                           <table className="border-collapse border border-black text-[10px] table-auto">
                               <thead className="text-left font-bold text-black">
@@ -459,7 +599,7 @@ export default function ActivitySummaryPage() {
                                         <tr key={String(row.key)}>
                                             <td className={`border border-black p-1 font-bold w-24 whitespace-nowrap ${row.bgClass || ''}`}>{row.label}</td>
                                             {multiDaySummary.map((day, index) => {
-                                                const value = day.summary[row.key];
+                                                const value = (day.summary as any)[row.key];
                                                 return (
                                                     <td key={index} className={`border border-black p-1 text-center ${row.bgClass || ''}`}>
                                                         {row.format ? row.format(value) : value}
@@ -474,14 +614,12 @@ export default function ActivitySummaryPage() {
                     </div>
 
                     {assistantPerformanceData.length > 0 && (
-                         <Card>
+                         <Card className="border-2 shadow-md">
                             <CardHeader>
                                 <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                                     <div>
-                                        <CardTitle>Gráfico 1: Promedio de Rendimiento por Asistente</CardTitle>
-                                        <CardDescription>
-                                            Comparativa del rendimiento promedio y jornadas por asistente.
-                                        </CardDescription>
+                                        <CardTitle className="text-2xl font-bold">Gráfico 1: Rendimiento Promedio</CardTitle>
+                                        <CardDescription>Comparativa por asistente basada en los filtros activos.</CardDescription>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Popover>
@@ -495,29 +633,27 @@ export default function ActivitySummaryPage() {
                                                 <Calendar initialFocus mode="range" defaultMonth={chartDateRange?.from} selected={chartDateRange} onSelect={setChartDateRange} numberOfMonths={2} locale={es}/>
                                             </PopoverContent>
                                         </Popover>
-                                        <div className="grid gap-1">
-                                            <Select value={chartShiftFilter} onValueChange={setChartShiftFilter}>
-                                                <SelectTrigger id="chart-shift-filter-summary" name="chart-shift-filter-summary" className="w-[120px]">
-                                                    <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><SelectValue /></div>
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="todos">Todos</SelectItem>
-                                                    <SelectItem value="Mañana">Mañana</SelectItem>
-                                                    <SelectItem value="Tarde">Tarde</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        <Select value={chartShiftFilter} onValueChange={setChartShiftFilter}>
+                                            <SelectTrigger id="chart-shift-filter-summary" name="chart-shift-filter-summary" className="w-[120px]">
+                                                <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><SelectValue /></div>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="todos">Todos</SelectItem>
+                                                <SelectItem value="Mañana">Mañana</SelectItem>
+                                                <SelectItem value="Tarde">Tarde</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="space-y-10">
                                 <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
-                                      <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
+                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
                                         <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
                                         <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
-                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <RechartsTooltip content={<ChartTooltipContent />} />
                                         <Legend />
                                         <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" name="Promedio" barSize={50} radius={[4,4,0,0]} >
                                             <LabelList dataKey="promedio" position="top" formatter={(value: number) => Math.round(value)} />
@@ -525,24 +661,61 @@ export default function ActivitySummaryPage() {
                                         <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Jornadas"/>
                                     </ComposedChart>
                                 </ChartContainer>
+
+                                {assistantSummaryTableData.length > 0 && (
+                                    <div className="space-y-4 pt-6 border-t border-dashed">
+                                        <div className="flex justify-between items-center px-1">
+                                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                                <LayoutGrid className="h-5 w-5 text-primary" />
+                                                Ficha de Actividad (Resumen Grupal)
+                                            </h3>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={() => handleCaptureTable(assistantTableRef, `Ficha_Actividad_${activeFilters.lote}`)}
+                                                className="h-10 border-primary/50 text-primary hover:bg-primary/5 rounded-xl shadow-sm"
+                                            >
+                                                <Camera className="mr-2 h-5 w-5"/>
+                                                Capturar Ficha
+                                            </Button>
+                                        </div>
+                                        <div className="overflow-x-auto pb-4 rounded-xl border bg-slate-50/30">
+                                            <div ref={assistantTableRef} className="inline-block min-w-full p-4">
+                                                <AssistantSummaryTable 
+                                                    data={assistantSummaryTableData} 
+                                                    laborName={activeFilters.labor}
+                                                    lote={activeFilters.lote}
+                                                    pasada={activeFilters.pasada}
+                                                    responsibleName={profile?.nombre || 'N/A'}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="space-y-4 pt-10 border-t">
+                                    <div className="flex justify-between items-center px-1">
+                                        <h3 className="text-xl font-bold">Resumen Detallado por Lote</h3>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl border shadow-sm overflow-x-auto">
+                                        <DetailedSummaryTable 
+                                            allActivities={allActivities} 
+                                            allLotes={allLotes} 
+                                            allPresupuestos={allPresupuestos} 
+                                            allMinMax={allMinMax}
+                                            activeFilters={activeFilters}
+                                        />
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     )}
-                    
                 </div>
             ) : (
                 <div className="flex h-64 items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg">
                     <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir Lote, Labor y Pasada.</p>
                 </div>
             )}
-            
-            <DetailedSummaryTable 
-                allActivities={allActivities} 
-                allLotes={allLotes} 
-                allPresupuestos={allPresupuestos} 
-                allMinMax={allMinMax}
-                activeFilters={activeFilters}
-            />
         </div>
     );
 }
