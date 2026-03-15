@@ -91,8 +91,7 @@ const headerSchema = ActivityRecordSchema.pick({
 });
 type HeaderFormValues = z.infer<typeof headerSchema>;
 
-// --- Componentes Auxiliares fuera de la función principal para estabilidad ---
-
+// Componentes Auxiliares
 function GroupFormTotals({ activities, showExtraPerformanceField }: { activities: AssistantInGroup[], showExtraPerformanceField: boolean }) {
     const totals = useMemo(() => {
       const summary = { performance: 0, workdayCount: 0, clustersOrJabas: 0 };
@@ -197,8 +196,6 @@ function CaptureReport({
     </div>
   );
 }
-
-// --- Componente Principal ---
 
 export default function CreateActivityPage() {
   const { toast } = useToast();
@@ -515,7 +512,7 @@ export default function CreateActivityPage() {
       )}
 
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-        <div ref={reportRef} style={{ display: 'none' }}>
+        <div ref={reportRef}>
           <CaptureReport 
             activities={groupActivities} 
             header={headerForm.getValues()} 
