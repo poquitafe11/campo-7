@@ -55,7 +55,7 @@ function AssistantSummaryTable({
     }, [data]);
 
     return (
-        <div className="bg-white p-8 text-black border-2 border-black" style={{ minWidth: '1100px' }}>
+        <div className="bg-white p-8 text-black border-2 border-black" style={{ width: 'fit-content', minWidth: '100%' }}>
             <div className="flex justify-between items-start mb-6">
                 <div className="space-y-2">
                     <h2 className="text-2xl font-bold border-b-2 border-black pb-1 uppercase tracking-tight underline">REPORTE DE CAMPO - FICHA DE ACTIVIDAD</h2>
@@ -77,11 +77,11 @@ function AssistantSummaryTable({
                         <th className="border border-black p-3 text-center w-28 font-bold uppercase">FECHA</th>
                         <th className="border border-black p-3 text-left font-bold uppercase">ASISTENTE / ENCARGADO</th>
                         <th className="border border-black p-3 text-center w-32 font-bold uppercase">RDTO</th>
-                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">PERSONAS</th>
-                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">JHU</th>
-                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">PROM.</th>
-                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">MÍNIMO</th>
-                        <th className="border border-black p-3 text-center w-32 font-bold uppercase">MÁXIMO</th>
+                        <th className="border border-black p-3 text-center w-24 font-bold uppercase">PERSONAS</th>
+                        <th className="border border-black p-3 text-center w-24 font-bold uppercase">JHU</th>
+                        <th className="border border-black p-3 text-center w-24 font-bold uppercase">PROM.</th>
+                        <th className="border border-black p-3 text-center w-24 font-bold uppercase">MÍNIMO</th>
+                        <th className="border border-black p-3 text-center w-24 font-bold uppercase">MÁXIMO</th>
                         <th className="border border-black p-3 text-left font-bold uppercase">OBS.</th>
                     </tr>
                 </thead>
@@ -92,7 +92,7 @@ function AssistantSummaryTable({
                         const prom = (Number(row.rdto) || 0) / (Number(row.jhu) || 1);
                         return (
                             <tr key={i}>
-                                <td className="border border-black p-3 text-center font-mono">{row.date}</td>
+                                <td className="border border-black p-3 text-center font-mono whitespace-nowrap">{row.date}</td>
                                 <td className="border border-black p-3 uppercase font-medium">{row.name}</td>
                                 <td className="border border-black p-3 text-center font-mono">{row.rdto.toLocaleString('es-PE')}</td>
                                 <td className="border border-black p-3 text-center font-mono">{row.personas}</td>
@@ -100,7 +100,7 @@ function AssistantSummaryTable({
                                 <td className="border border-black p-3 text-center font-mono">{prom.toFixed(2)}</td>
                                 <td className="border border-black p-3 text-center font-mono">{rowMin}</td>
                                 <td className="border border-black p-3 text-center font-mono">{rowMax}</td>
-                                <td className="border border-black p-3 text-[10px] text-gray-600 italic">{row.obs[0] || '---'}</td>
+                                <td className="border border-black p-3 text-[10px] text-gray-600 italic min-w-[150px]">{row.obs[0] || '---'}</td>
                             </tr>
                         );
                     })}
@@ -162,7 +162,6 @@ export default function ActivitySummaryPage() {
 
             const activitiesData = activitiesSnapshot.docs.map(doc => {
                 const data = doc.data();
-                // Parseo robusto de fecha para manejar Timestamps y Strings ISO
                 let registerDate: Date;
                 if (data.registerDate?.toDate) {
                     registerDate = data.registerDate.toDate();
@@ -437,7 +436,7 @@ export default function ActivitySummaryPage() {
         });
 
         // Ordenar por fecha descendente
-        return Array.from(assistantGroups.values()).sort((a, b) => b.date.localeCompare(a.date));
+        return Array.from(assistantGroups.values()).sort((a, b) => b.date.split('/').reverse().join('-').localeCompare(a.date.split('/').reverse().join('-')));
     }, [allActivities, activeFilters, chartDateRange, chartShiftFilter, asistentes]);
     
     const chartConfig: ChartConfig = {
@@ -478,25 +477,30 @@ export default function ActivitySummaryPage() {
 
     const handleCaptureTable = async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
         if (!ref.current) return;
+        const element = ref.current;
         try {
             const html2canvas = (await import('html2canvas')).default;
-            const originalDisplay = ref.current.style.display;
-            ref.current.style.display = 'block';
-            const canvas = await html2canvas(ref.current, {
-                scale: 2,
+            
+            // Forzar renderizado para captura de ancho completo
+            const canvas = await html2canvas(element, {
+                scale: 3, // Calidad superior
                 backgroundColor: "#ffffff",
+                useCORS: true,
                 logging: false,
-                useCORS: true
+                width: element.scrollWidth,
+                height: element.scrollHeight,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight,
             });
-            ref.current.style.display = originalDisplay;
+            
             const link = document.createElement('a');
             link.download = `${filename}_${format(new Date(), 'ddMMyy_HHmm')}.png`;
-            link.href = canvas.toDataURL("image/png");
+            link.href = canvas.toDataURL("image/png", 1.0);
             link.click();
-            toast({ title: "Captura Guardada", description: "El reporte se ha descargado como imagen." });
+            toast({ title: "Captura Guardada", description: "El reporte se ha descargado como imagen completa." });
         } catch (e) {
             console.error(e);
-            toast({ variant: 'destructive', title: 'Error al capturar' });
+            toast({ variant: 'destructive', title: 'Error al capturar reporte' });
         }
     };
 
@@ -697,11 +701,11 @@ export default function ActivitySummaryPage() {
                                             className="h-10 border-primary/50 text-primary hover:bg-primary/5 rounded-xl shadow-sm"
                                         >
                                             <Camera className="mr-2 h-5 w-5"/>
-                                            Capturar Ficha
+                                            Capturar Ficha Completa
                                         </Button>
                                     </div>
                                     <div className="overflow-x-auto pb-4 rounded-xl border bg-slate-50/30">
-                                        <div ref={assistantTableRef} className="inline-block min-w-full p-4">
+                                        <div className="inline-block min-w-full p-4">
                                             <AssistantSummaryTable 
                                                 data={assistantSummaryTableData} 
                                                 laborName={activeFilters.labor}
@@ -736,6 +740,19 @@ export default function ActivitySummaryPage() {
                     <p>Seleccione los filtros para ver un resumen.<br />Asegúrese de elegir Lote, Labor y Pasada.</p>
                 </div>
             )}
+
+            {/* Contenedor oculto para la captura perfecta */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0, width: 'max-content' }}>
+                <div ref={assistantTableRef} style={{ width: 'max-content', background: 'white' }}>
+                    <AssistantSummaryTable 
+                        data={assistantSummaryTableData} 
+                        laborName={activeFilters.labor}
+                        lote={activeFilters.lote}
+                        pasada={activeFilters.pasada}
+                        responsibleName={profile?.nombre || 'N/A'}
+                    />
+                </div>
+            </div>
         </div>
     );
 }
