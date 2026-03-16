@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -303,7 +304,20 @@ function AttendanceSummaryContent() {
                         </tr>
                     </thead>
                     <tbody className="text-center bg-white">
-                        {Object.entries(pivotData.labors).map(([labor, data]) => (
+                        {Object.entries(pivotData.labors)
+                            .sort(([labelA, dataA], [labelB, dataB]) => {
+                                const codeA = String(dataA.code);
+                                const codeB = String(dataB.code);
+                                
+                                // Regla: 902 primero, luego 903, luego el resto
+                                if (codeA === '902') return -1;
+                                if (codeB === '902') return 1;
+                                if (codeA === '903') return -1;
+                                if (codeB === '903') return 1;
+                                
+                                return labelA.localeCompare(labelB);
+                            })
+                            .map(([labor, data]) => (
                             <tr key={labor}>
                                 <td className="p-1 border border-black">{data.code}</td>
                                 <td colSpan={2} className="w-auto p-1 text-left whitespace-normal border border-black">{labor}</td>

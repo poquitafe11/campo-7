@@ -116,18 +116,21 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
         });
         
         const sortedData = Object.values(data).sort((a, b) => {
-            const isA902 = a.codLabor === '902';
-            const isB902 = b.codLabor === '902';
-            if (isA902 !== isB902) {
-                return isA902 ? -1 : 1;
-            }
+            // Regla: 902 primero, luego 903
+            const codeA = String(a.codLabor);
+            const codeB = String(b.codLabor);
+            
+            if (codeA === '902') return -1;
+            if (codeB === '902') return 1;
+            if (codeA === '903') return -1;
+            if (codeB === '903') return 1;
 
             const loteComparison = a.lote.localeCompare(b.lote, undefined, { numeric: true });
             if (loteComparison !== 0) return loteComparison;
             
-            const codeA = Number(a.codLabor) || Infinity;
-            const codeB = Number(b.codLabor) || Infinity;
-            return codeA - codeB;
+            const nCodeA = Number(a.codLabor) || Infinity;
+            const nCodeB = Number(b.codLabor) || Infinity;
+            return nCodeA - nCodeB;
         });
         
         const columnTotals = {
@@ -200,13 +203,17 @@ export function ResumenTablasAdicionales({ allRecords, allLotes, allLabors, sele
         });
         
         const sortedData = Object.values(data).sort((a, b) => {
-            const isA902 = a.codLabor === '902';
-            const isB902 = b.codLabor === '902';
-            if (isA902 !== isB902) return isA902 ? -1 : 1;
+            const codeA = String(a.codLabor);
+            const codeB = String(b.codLabor);
+            
+            if (codeA === '902') return -1;
+            if (codeB === '902') return 1;
+            if (codeA === '903') return -1;
+            if (codeB === '903') return 1;
              
-            const codeA = Number(a.codLabor) || Infinity;
-            const codeB = Number(b.codLabor) || Infinity;
-            return codeA - codeB;
+            const nCodeA = Number(a.codLabor) || Infinity;
+            const nCodeB = Number(b.codLabor) || Infinity;
+            return nCodeA - nCodeB;
         });
         
         const columnTotals = {
