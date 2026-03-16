@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -41,7 +42,6 @@ interface PivotData {
   grandTotalAbsent: number;
 }
 
-// Helper para formatear nombres: "Maria Allcarima" -> "Maria A."
 const formatAssistantName = (name: string) => {
     if (!name) return '';
     const parts = name.trim().split(' ');
@@ -133,7 +133,7 @@ function AttendanceSummaryContent() {
 
     const rightComponent = (
         <div className="flex justify-end items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => router.push(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={() => router.replace(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-8 w-8">
                 <RefreshCcw className="h-5 w-5" />
             </Button>
             <Popover>
@@ -147,7 +147,7 @@ function AttendanceSummaryContent() {
                     <Calendar
                         mode="single"
                         selected={selectedDate}
-                        onSelect={(date) => router.push(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
+                        onSelect={(date) => router.replace(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
                         initialFocus
                     />
                 </PopoverContent>
@@ -160,17 +160,13 @@ function AttendanceSummaryContent() {
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-48 p-0" align="end">
-                    <Select value={turnoFilter} onValueChange={setTurnoFilter}>
-                        <SelectTrigger id="turno-filter-summary" name="turno-filter-summary" className="border-0 focus:ring-0">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="todos">Todos los Turnos</SelectItem>
-                            <SelectItem value="Mañana">Mañana</SelectItem>
-                            <SelectItem value="Tarde">Tarde</SelectItem>
-                            <SelectItem value="Noche">Noche</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="p-2">
+                        {['todos', 'Mañana', 'Tarde', 'Noche'].map(turno => (
+                            <div key={turno} onClick={() => setTurnoFilter(turno)} className="px-2 py-1.5 text-sm rounded-sm hover:bg-accent cursor-pointer">
+                                {turno === 'todos' ? 'Todos los Turnos' : turno}
+                            </div>
+                        ))}
+                    </div>
                 </PopoverContent>
             </Popover>
         </div>
@@ -274,67 +270,6 @@ function AttendanceSummaryContent() {
     return { loteHeaders, labors, columnTotals, absentTotalsByLote, grandTotalPersonnel, grandTotalAbsent };
   }, [recordsForSelectedDate, selectedDate, lotesMaestro]);
 
-  const table4And5Data = useMemo(() => {
-      const uniqueJaladores = Array.from(new Set(recordsForSelectedDate.flatMap(r => r.assistants.flatMap(a => a.jaladores?.map(j => j.jaladorAlias.toUpperCase()) || [a.personnelCount > 0 ? 'EMPRESA' : ''])).filter(Boolean))).sort();
-      const uniqueAssistants = Array.from(new Set(recordsForSelectedDate.flatMap(r => r.assistants.map(a => a.assistantName))));
-
-      const table4Data: { [assistant: string]: { [jalador: string]: number } } = {};
-      const table5Data: { [jalador: string]: number } = {};
-
-      uniqueAssistants.forEach(asistente => {
-          table4Data[asistente] = {};
-          uniqueJaladores.forEach(jalador => {
-              table4Data[asistente][jalador] = 0;
-          });
-      });
-      uniqueJaladores.forEach(jalador => {
-          table5Data[jalador] = 0;
-      });
-
-      recordsForSelectedDate.forEach(record => {
-          record.assistants.forEach(assistant => {
-              if (assistant.jaladores && assistant.jaladores.length > 0) {
-                  assistant.jaladores.forEach(jalador => {
-                      const aliasUpper = jalador.jaladorAlias.toUpperCase();
-                      table4Data[assistant.assistantName][aliasUpper] += jalador.personnelCount;
-                      table5Data[aliasUpper] += jalador.personnelCount;
-                  });
-              } else if (assistant.personnelCount > 0) {
-                  table4Data[assistant.assistantName]['EMPRESA'] += assistant.personnelCount;
-                  table5Data['EMPRESA'] += assistant.personnelCount;
-              }
-          });
-      });
-
-      const table4Rows = Object.entries(table4Data).map(([assistant, jaladores]) => ({
-          assistant: formatAssistantName(assistant),
-          ...jaladores
-      }));
-
-      const table5Rows = Object.entries(table5Data).map(([jalador, total]) => ({
-          jalador,
-          total
-      }));
-      
-      const table4ColumnTotals = uniqueJaladores.reduce((acc, jalador) => {
-          acc[jalador] = table4Rows.reduce((sum, row) => sum + (row[jalador] || 0), 0);
-          return acc;
-      }, {} as {[key: string]: number});
-      
-      const grandTotalTable4 = Object.values(table4ColumnTotals).reduce((sum, val) => sum + val, 0);
-
-      return {
-          uniqueJaladores,
-          table4Rows,
-          table4ColumnTotals,
-          grandTotalTable4,
-          table5Rows,
-          grandTotalTable5: grandTotalTable4 // Same total
-      };
-
-  }, [recordsForSelectedDate]);
-
-
   if (isLoading) {
       return (
            <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
@@ -342,17 +277,6 @@ function AttendanceSummaryContent() {
            </div>
       )
   }
-
-  const verticalHeaderStyle: React.CSSProperties = {
-        writingMode: 'vertical-rl',
-        transform: 'rotate(180deg)',
-        height: '100px',
-        textAlign: 'center',
-        padding: '4px 2px',
-        minWidth: '24px',
-        whiteSpace: 'nowrap',
-  };
-
 
   return (
     <div className="space-y-6">
@@ -390,41 +314,18 @@ function AttendanceSummaryContent() {
                         </tr>
                     </thead>
                     <tbody className="text-center bg-white">
-                        {Object.keys(pivotData.labors).length > 0 ? (
-                            Object.entries(pivotData.labors)
-                                .sort(([, valA], [, valB]) => {
-                                    const codeA = valA.code;
-                                    const codeB = valB.code;
-                                    
-                                    const getSortPriority = (code?: string) => {
-                                        if (code === '902') return 1;
-                                        if (code === '903') return 2;
-                                        const num = Number(code);
-                                        return isNaN(num) ? 9999 : num + 2;
-                                    };
-
-                                    const priorityA = getSortPriority(codeA);
-                                    const priorityB = getSortPriority(codeB);
-
-                                    return priorityA - priorityB;
-                                })
-                                .map(([labor, data]) => (
-                                <tr key={labor}>
-                                    <td className="p-1 border border-black">{data.code}</td>
-                                    <td colSpan={2} className="w-auto p-1 text-left whitespace-normal border border-black">{labor}</td>
-                                    {pivotData.loteHeaders.map(h => (
-                                        <td key={`${labor}-${h.lote}`} className="p-1 text-center border border-black">
-                                            {data.lotes[h.lote] > 0 ? data.lotes[h.lote] : ''}
-                                        </td>
-                                    ))}
-                                    <td className="p-1 font-bold text-center border border-black">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={4 + pivotData.loteHeaders.length} className="h-24 text-center text-muted-foreground">No hay datos de labores para este día.</td>
+                        {Object.entries(pivotData.labors).map(([labor, data]) => (
+                            <tr key={labor}>
+                                <td className="p-1 border border-black">{data.code}</td>
+                                <td colSpan={2} className="w-auto p-1 text-left whitespace-normal border border-black">{labor}</td>
+                                {pivotData.loteHeaders.map(h => (
+                                    <td key={`${labor}-${h.lote}`} className="p-1 text-center border border-black">
+                                        {data.lotes[h.lote] > 0 ? data.lotes[h.lote] : ''}
+                                    </td>
+                                ))}
+                                <td className="p-1 font-bold text-center border border-black">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
                             </tr>
-                        )}
+                        ))}
                     </tbody>
                     <tfoot className="font-bold text-black text-center">
                         <tr className="bg-[#fce5cd]">
@@ -436,17 +337,6 @@ function AttendanceSummaryContent() {
                             ))}
                             <td className="p-2 text-center border border-black">
                                 {pivotData.grandTotalPersonnel > 0 ? pivotData.grandTotalPersonnel : ''}
-                            </td>
-                        </tr>
-                        <tr className="bg-[#fce5cd]">
-                            <td colSpan={3} className="p-2 text-center border border-black">FALTOS</td>
-                            {pivotData.loteHeaders.map(h => (
-                                <td key={`faltos-${h.lote}`} className="p-2 text-center border border-black">
-                                    {pivotData.absentTotalsByLote[h.lote] > 0 ? pivotData.absentTotalsByLote[h.lote] : ''}
-                                </td>
-                            ))}
-                            <td className="p-2 text-center border border-black">
-                                {pivotData.grandTotalAbsent > 0 ? pivotData.grandTotalAbsent : ''}
                             </td>
                         </tr>
                     </tfoot>
@@ -467,76 +357,6 @@ function AttendanceSummaryContent() {
           <ResumenTablasAdicionales allRecords={allRecords} allLotes={lotesMaestro} allLabors={labors} selectedDate={selectedDate}/>
         </Suspense>
       </div>
-
-       {(table4And5Data.table4Rows.length > 0) && (
-        <div className="space-y-6">
-            <div className="overflow-x-auto max-w-full">
-                <h3 className="font-semibold text-lg mb-2 mt-4">Tabla 4: Personal por Asistente y Jalador</h3>
-                 <div className="bg-white p-2 rounded-lg shadow-sm border inline-block">
-                    <table className="text-xs w-full table-auto border-collapse">
-                        <thead>
-                            <tr>
-                                <th className="p-1 border border-black bg-gray-200">ASISTENTE</th>
-                                {table4And5Data.uniqueJaladores.map(jalador => (
-                                    <th key={jalador} className="p-1 border border-black bg-orange-200" style={verticalHeaderStyle}>{jalador}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {table4And5Data.table4Rows.map((row, idx) => (
-                                <tr key={idx}>
-                                    <td className="p-1 border border-black text-left">{row.assistant}</td>
-                                    {table4And5Data.uniqueJaladores.map(jalador => (
-                                        <td key={`${row.assistant}-${jalador}`} className="p-1 border border-black text-center">
-                                            {row[jalador] > 0 ? row[jalador] : ''}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td className="p-1 border border-black font-bold text-center bg-blue-300">TOTAL</td>
-                                {table4And5Data.uniqueJaladores.map(jalador => (
-                                    <td key={`total-t4-${jalador}`} className="p-1 border border-black font-bold text-center bg-blue-300">
-                                        {table4And5Data.table4ColumnTotals[jalador] > 0 ? table4And5Data.table4ColumnTotals[jalador] : ''}
-                                    </td>
-                                ))}
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-            
-            <div className="overflow-x-auto max-w-full">
-                 <h3 className="font-semibold text-lg mb-2 mt-4">Tabla 5: Total Personas por Jalador</h3>
-                 <div className="bg-white p-2 rounded-lg shadow-sm border inline-block">
-                    <table className="text-xs w-full table-auto border-collapse">
-                        <thead>
-                            <tr>
-                                <th className="p-1 border border-black bg-orange-200">JALADOR</th>
-                                <th className="p-1 border border-black bg-blue-300">TOTAL PERSONAS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {table4And5Data.table5Rows.map((row, idx) => (
-                                <tr key={idx}>
-                                    <td className="p-1 border border-black text-left">{row.jalador}</td>
-                                    <td className="p-1 border border-black text-center">{row.total}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                         <tfoot>
-                            <tr>
-                                <td className="p-1 border border-black bg-blue-300 font-bold text-center">TOTAL</td>
-                                <td className="p-1 border border-black bg-blue-300 font-bold text-center">{table4And5Data.grandTotalTable5}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                 </div>
-            </div>
-        </div>
-       )}
     </div>
   );
 }

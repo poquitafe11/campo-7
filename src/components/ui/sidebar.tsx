@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -8,13 +9,11 @@ import { SidebarNav } from "@/components/SidebarNav";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useHeaderActions } from "@/contexts/HeaderActionsContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "./sheet";
 import { DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
 import { goOnline, goOffline, isOffline } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { onSnapshot, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useMasterData } from "@/context/MasterDataContext";
 
 
@@ -39,8 +38,7 @@ function SidebarContent() {
 
   const handleSync = async () => {
     try {
-      await goOnline(); // This will trigger the event and update state
-      // Force a server refresh immediately after going online
+      await goOnline();
       await refreshData(true); 
       toast({ title: "Sincronización Activada", description: "Los datos se están sincronizando con la nube." });
     } catch (error) {
@@ -50,7 +48,7 @@ function SidebarContent() {
 
   const handleGoOffline = async () => {
     try {
-      await goOffline(); // This will trigger the event and update state
+      await goOffline();
       toast({ title: "Modo Offline Activado", description: "La aplicación ahora trabaja sin conexión." });
     } catch (error) {
        toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo desactivar la sincronización." });
@@ -120,6 +118,7 @@ function SidebarContent() {
 function Header() {
   const { actions } = useHeaderActions();
   const router = useRouter();
+  const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const renderTitle = () => {
@@ -130,9 +129,24 @@ function Header() {
   };
 
   const handleBack = () => {
+    // Si la página ha definido una ruta de retroceso específica (navegación jerárquica), la usamos.
     if (actions.backUrl) {
       router.push(actions.backUrl);
+      return;
+    }
+
+    // Si no hay backUrl, calculamos la ruta jerárquica para evitar retroceder 
+    // acciones de estado (filtros, popovers, etc.) que se guardan en el historial del navegador.
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length > 1) {
+      // Navegamos al nivel superior de la ruta actual
+      const parentPath = '/' + segments.slice(0, -1).join('/');
+      router.push(parentPath);
+    } else if (pathname !== '/dashboard') {
+      // Si estamos en un primer nivel que no es el dashboard, volvemos al inicio
+      router.push('/dashboard');
     } else {
+      // Comportamiento estándar si ya estamos en la raíz o dashboard
       router.back();
     }
   };

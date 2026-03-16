@@ -1,4 +1,6 @@
 
+"use client";
+
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppDataProvider } from '@/context/AppDataContext';
@@ -6,33 +8,28 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import AuthWrapper from '@/components/AuthWrapper';
 import { MasterDataProvider } from '@/context/MasterDataContext';
-import AppLayout from './AppLayout';
 import { HeaderActionsProvider } from '@/contexts/HeaderActionsContext';
+import { Sidebar } from '@/components/ui/sidebar';
+import { usePathname } from 'next/navigation';
 
-const APP_NAME = "Campo 7";
-const APP_DESCRIPTION = "Gestiona de forma eficiente los datos de tu campo.";
+function AppContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
 
-export const metadata: Metadata = {
-  applicationName: APP_NAME,
-  title: {
-    default: APP_NAME,
-    template: `%s - ${APP_NAME}`,
-  },
-  description: APP_DESCRIPTION,
-  icons: [
-    { rel: "icon", url: "/icon-7.svg" },
-    { rel: "apple-touch-icon", url: "/icon-7.svg" },
-  ],
-};
+  if (pathname === '/login') {
+      return <>{children}</>;
+  }
 
-export const viewport: Viewport = {
-  themeColor: "#6d28d9",
-  width: 'device-width',
-  initialScale: 1,
-  minimumScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-};
+  return (
+      <div className="w-full bg-background min-h-screen">
+        <Sidebar />
+        <main className="pt-16">
+          <div className="overflow-x-auto p-4 md:p-8">
+              {children}
+          </div>
+        </main>
+      </div>
+  );
+}
 
 export default function RootLayout({
   children,
@@ -52,9 +49,9 @@ export default function RootLayout({
             <MasterDataProvider>
               <AppDataProvider>
                 <HeaderActionsProvider>
-                  <AppLayout>
+                  <AppContent>
                     {children}
-                  </AppLayout>
+                  </AppContent>
                 </HeaderActionsProvider>
                 <Toaster />
               </AppDataProvider>
