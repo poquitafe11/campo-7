@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -507,6 +506,7 @@ export default function ActivitySummaryPage() {
     useEffect(() => {
         setActions({
             title: <b>Resumen de Actividades</b>,
+            backUrl: '/production/activities',
             right: (
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" onClick={() => loadData(true)} disabled={loading} className="h-9 w-9">

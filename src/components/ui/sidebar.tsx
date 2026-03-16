@@ -129,6 +129,14 @@ function Header() {
     return actions.title;
   };
 
+  const handleBack = () => {
+    if (actions.backUrl) {
+      router.push(actions.backUrl);
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between p-2 h-16 bg-background border-b">
       <div className="flex items-center gap-1">
@@ -146,7 +154,7 @@ function Header() {
             <SidebarContent />
           </SheetContent>
         </Sheet>
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={handleBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
       </div>

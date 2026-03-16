@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -179,6 +178,7 @@ function AttendanceSummaryContent() {
     
     setActions({
         title: headerTitle,
+        backUrl: '/production/attendance',
         right: rightComponent,
     });
   

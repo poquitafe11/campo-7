@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -400,6 +399,7 @@ export default function AttendanceDatabasePage() {
   useEffect(() => {
     setActions({
       title: "Historial de Asistencia",
+      backUrl: "/production/attendance",
       right: (
         <div className="flex items-center gap-1">
            <Button onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button>
@@ -603,6 +603,3 @@ export default function AttendanceDatabasePage() {
     </div>
   );
 }
-
-    
-

@@ -256,7 +256,7 @@ export default function ActivityDatabasePage() {
     },
   ], [userMap, lotesMap, loteHaProdMap, presupuestoMap, cumulativeJrHaMap, minMaxMap, assistantMap]);
 
-  useEffect(() => { setActions({ title: "Base de Datos de Actividades", right: <Button id="db-refresh-btn" name="db-refresh-btn" onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button> }); return () => setActions({}); }, [setActions, fetchData, loading]);
+  useEffect(() => { setActions({ title: "Base de Datos de Actividades", backUrl: "/production/activities", right: <Button id="db-refresh-btn" name="db-refresh-btn" onClick={() => fetchData()} disabled={loading} variant="ghost" size="icon"><RefreshCcw className="h-5 w-5"/></Button> }); return () => setActions({}); }, [setActions, fetchData, loading]);
 
   const handleEdit = (activity: ActivityRecordWithId) => { setSelectedActivity(activity); setIsEditDialogOpen(true); };
   const handleDelete = (id: string) => { startTransition(async () => { try { await deleteDoc(doc(db, 'actividades', id)); toast({ title: "Éxito", description: "Actividad eliminada correctamente." }); setData(prev => prev.filter(item => item.id !== id)); } catch(e) { toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la actividad." }); } }); };
