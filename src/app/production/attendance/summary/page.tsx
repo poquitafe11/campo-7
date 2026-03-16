@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -34,7 +33,6 @@ interface PivotData {
       code?: string;
       lotes: { [lote: string]: number }; 
       totalPersonnel: number;
-      totalAbsent: number;
     };
   };
   columnTotals: { [lote: string]: number };
@@ -42,16 +40,6 @@ interface PivotData {
   grandTotalPersonnel: number;
   grandTotalAbsent: number;
 }
-
-const formatAssistantName = (name: string) => {
-    if (!name) return '';
-    const parts = name.trim().split(' ');
-    if (parts.length < 2) return name;
-    const firstName = parts[0];
-    const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase() + '.';
-    return `${firstName} ${lastNameInitial}`;
-};
-
 
 function AttendanceSummaryContent() {
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
@@ -252,7 +240,6 @@ function AttendanceSummaryContent() {
                 code: record.code,
                 lotes: {},
                 totalPersonnel: 0,
-                totalAbsent: 0,
             };
             loteHeaders.forEach(h => labors[laborKey].lotes[h.lote] = 0);
         }
@@ -265,7 +252,6 @@ function AttendanceSummaryContent() {
         absentTotalsByLote[loteKey] += absent;
         
         labors[laborKey].totalPersonnel += personnel;
-        labors[laborKey].totalAbsent += absent;
         grandTotalPersonnel += personnel;
         grandTotalAbsent += absent;
     });
@@ -289,7 +275,7 @@ function AttendanceSummaryContent() {
                 <table className="table-auto border-collapse text-xs w-full">
                     <thead className="text-center font-bold text-black">
                         <tr>
-                            <th colSpan={3 + pivotData.loteHeaders.length + 3} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs">
+                            <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs">
                             ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
                             </th>
                         </tr>
@@ -299,8 +285,6 @@ function AttendanceSummaryContent() {
                             {pivotData.loteHeaders.map(h => (
                                 <th key={`ddc-h-${h.lote}`} className="border border-black bg-[#fff2cc] p-1 align-middle">{h.ddc}</th>
                             ))}
-                            <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={3}>FALTOS</th>
-                            <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={3}>PERS.</th>
                             <th className="border border-black bg-[#d9e2f3] p-1 align-middle" rowSpan={3}>TOTAL</th>
                         </tr>
                         <tr>
@@ -328,9 +312,7 @@ function AttendanceSummaryContent() {
                                         {data.lotes[h.lote] > 0 ? data.lotes[h.lote] : ''}
                                     </td>
                                 ))}
-                                <td className="p-1 border border-black">{data.totalAbsent > 0 ? data.totalAbsent : ''}</td>
-                                <td className="p-1 border border-black">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
-                                <td className="p-1 font-bold border border-black">{(data.totalPersonnel + data.totalAbsent) > 0 ? (data.totalPersonnel + data.totalAbsent) : ''}</td>
+                                <td className="p-1 font-bold border border-black">{data.totalPersonnel > 0 ? data.totalPersonnel : ''}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -342,18 +324,16 @@ function AttendanceSummaryContent() {
                                     {pivotData.columnTotals[h.lote] > 0 ? pivotData.columnTotals[h.lote] : ''}
                                 </td>
                             ))}
-                            <td className="p-2 text-center border border-black">{pivotData.grandTotalAbsent}</td>
                             <td className="p-2 text-center border border-black">{pivotData.grandTotalPersonnel}</td>
-                            <td className="p-2 text-center border border-black">{pivotData.grandTotalPersonnel + pivotData.grandTotalAbsent}</td>
                         </tr>
                         <tr className="bg-[#fce5cd]">
-                            <td colSpan={3} className="p-2 text-center border border-black uppercase">Faltos por Lote</td>
+                            <td colSpan={3} className="p-2 text-center border border-black uppercase">FALTOS</td>
                             {pivotData.loteHeaders.map(h => (
                                 <td key={`absent-f-${h.lote}`} className="p-2 text-center border border-black">
                                     {pivotData.absentTotalsByLote[h.lote] > 0 ? pivotData.absentTotalsByLote[h.lote] : ''}
                                 </td>
                             ))}
-                            <td colSpan={3} className="p-2 text-center border border-black">{pivotData.grandTotalAbsent}</td>
+                            <td className="p-2 text-center border border-black">{pivotData.grandTotalAbsent}</td>
                         </tr>
                     </tfoot>
                 </table>
