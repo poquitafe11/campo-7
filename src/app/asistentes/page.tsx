@@ -338,9 +338,9 @@ export default function AsistentesPage() {
 
   const renderFormFields = () => (
     <div className="grid grid-cols-1 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel htmlFor="dni">DNI / ID</FormLabel><FormControl><Input id="dni" name="dni" {...field} disabled={!!editingAsistente} /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem><FormLabel htmlFor="nombre">Nombre</FormLabel><FormControl><Input id="nombre" name="nombre" {...field} /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="cargo" render={({ field }) => ( <FormItem><FormLabel htmlFor="cargo">Cargo</FormLabel><FormControl><Input id="cargo" name="cargo" {...field} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="dni" render={({ field }) => ( <FormItem><FormLabel htmlFor="dni">DNI / ID</FormLabel><FormControl><Input id="dni" {...field} disabled={!!editingAsistente} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem><FormLabel htmlFor="nombre">Nombre</FormLabel><FormControl><Input id="nombre" {...field} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="cargo" render={({ field }) => ( <FormItem><FormLabel htmlFor="cargo">Cargo</FormLabel><FormControl><Input id="cargo" {...field} /></FormControl><FormMessage /></FormItem> )} />
     </div>
   );
 

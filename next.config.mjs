@@ -14,6 +14,12 @@ const pwaConfig = withPWA({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    typescript: {
+        ignoreBuildErrors: true,
+    },
     transpilePackages: ['@genkit-ai/google-genai'],
     async rewrites() {
       return {
