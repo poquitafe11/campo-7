@@ -1,7 +1,6 @@
 
 "use client";
 
-import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppDataProvider } from '@/context/AppDataContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -39,6 +38,9 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/icon-7.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/icon-7.svg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />

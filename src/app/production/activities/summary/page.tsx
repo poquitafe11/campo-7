@@ -439,8 +439,8 @@ export default function ActivitySummaryPage() {
     }, [allActivities, activeFilters, chartDateRange, chartShiftFilter, asistentes]);
     
     const chartConfig: ChartConfig = {
-        promedio: { label: "Promedio", color: "hsl(var(--primary))" },
-        jornadas: { label: "Jornadas", color: "hsl(var(--secondary))" },
+        promedio: { label: "Promedio", color: "#2563eb" },
+        jornadas: { label: "Jornadas", color: "#f59e0b" },
     };
 
     const summaryRows: { label: React.ReactNode; key: any; bgClass?: string, format?: (val: any) => string | number, special?: boolean }[] = [
@@ -477,26 +477,50 @@ export default function ActivitySummaryPage() {
     const handleCaptureTable = async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
         if (!ref.current) return;
         const element = ref.current;
+        
         try {
+            toast({ title: "Generando Imagen", description: "Procesando reporte completo, por favor espera..." });
             const html2canvas = (await import('html2canvas')).default;
             
-            // Forzar renderizado para captura de ancho completo
+            // Aseguramos que el elemento sea visible para la captura y tenga dimensiones reales
             const canvas = await html2canvas(element, {
-                scale: 3, // Calidad superior
+                scale: 3, 
                 backgroundColor: "#ffffff",
                 useCORS: true,
                 logging: false,
-                width: element.scrollWidth,
-                height: element.scrollHeight,
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight,
+                allowTaint: true,
+                onclone: (clonedDoc) => {
+                    // Forzamos al clon a mostrarse completamente
+                    const el = clonedDoc.querySelector('[ref-capture="assistant-table"]') as HTMLElement;
+                    if (el) {
+                        el.style.width = 'max-content';
+                        el.style.height = 'auto';
+                        el.style.position = 'relative';
+                        el.style.left = '0';
+                    }
+                }
             });
             
-            const link = document.createElement('a');
-            link.download = `${filename}_${format(new Date(), 'ddMMyy_HHmm')}.png`;
-            link.href = canvas.toDataURL("image/png", 1.0);
-            link.click();
-            toast({ title: "Captura Guardada", description: "El reporte se ha descargado como imagen completa." });
+            const dataUrl = canvas.toDataURL("image/png", 1.0);
+            const blob = await (await fetch(dataUrl)).blob();
+            const file = new File([blob], `${filename}.png`, { type: 'image/png' });
+
+            // Intentar usar la API de compartir (ideal para móviles)
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Ficha de Actividad',
+                    text: `Reporte de Campo - ${filename}`
+                });
+                toast({ title: "Reporte Compartido", description: "Puedes guardarlo en tu galería o enviarlo." });
+            } else {
+                // Fallback para descarga tradicional
+                const link = document.createElement('a');
+                link.download = `${filename}_${format(new Date(), 'ddMMyy_HHmm')}.png`;
+                link.href = dataUrl;
+                link.click();
+                toast({ title: "Captura Guardada", description: "Busca la imagen en la carpeta de Descargas de tu dispositivo." });
+            }
         } catch (e) {
             console.error(e);
             toast({ variant: 'destructive', title: 'Error al capturar reporte' });
@@ -666,18 +690,26 @@ export default function ActivitySummaryPage() {
                         </CardHeader>
                         <CardContent className="space-y-10">
                             {assistantPerformanceData.length > 0 ? (
-                                <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
-                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
-                                        <CartesianGrid vertical={false} />
-                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" interval={0} />
-                                        <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" />
-                                        <RechartsTooltip content={<ChartTooltipContent />} />
-                                        <Legend />
-                                        <Bar yAxisId="left" dataKey="promedio" fill="var(--color-promedio)" name="Promedio" barSize={50} radius={[4,4,0,0]} >
-                                            <LabelList dataKey="promedio" position="top" formatter={(value: number) => Math.round(value)} />
+                                <ChartContainer config={chartConfig} className="min-h-[420px] w-full pt-4">
+                                    <ComposedChart data={assistantPerformanceData} margin={{ top: 20, right: 20, bottom: 85, left: 20 }}>
+                                        <defs>
+                                            <linearGradient id="colorPromedio" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="var(--color-promedio)" stopOpacity={0.9}/>
+                                                <stop offset="95%" stopColor="var(--color-promedio)" stopOpacity={0.6}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.4} />
+                                        <XAxis dataKey="name" tick={{ fontSize: 13, fill: '#4b5563' }} angle={-45} textAnchor="end" interval={0} tickMargin={12} />
+                                        <YAxis yAxisId="left" orientation="left" stroke="var(--color-promedio)" tick={{ fill: 'var(--color-promedio)', fontWeight: 500 }} axisLine={false} tickLine={false} domain={[0, (dataMax: number) => dataMax === 0 ? 100 : Math.ceil(dataMax * 1.2)]} />
+                                        <YAxis yAxisId="right" orientation="right" stroke="var(--color-jornadas)" tick={{ fill: 'var(--color-jornadas)', fontWeight: 500 }} axisLine={false} tickLine={false} domain={[0, (dataMax: number) => dataMax === 0 ? 10 : Math.ceil(dataMax * 3)]} />
+                                        <RechartsTooltip content={<ChartTooltipContent />} cursor={{ fill: 'rgba(0,0,0,0.05)' }} />
+                                        <Legend verticalAlign="top" align="center" height={40} wrapperStyle={{ paddingBottom: '20px', fontWeight: 500 }} />
+                                        <Bar yAxisId="left" dataKey="promedio" fill="url(#colorPromedio)" name="Promedio" maxBarSize={45} radius={[6,6,0,0]} >
+                                            <LabelList dataKey="promedio" position="top" offset={8} formatter={(value: number) => Math.round(value)} fill="var(--color-promedio)" fontSize={13} fontWeight={700} />
                                         </Bar>
-                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Jornadas"/>
+                                        <Line yAxisId="right" type="monotone" dataKey="jornadas" stroke="var(--color-jornadas)" strokeWidth={3} dot={{ r: 5, fill: '#fff', strokeWidth: 2 }} activeDot={{ r: 7, strokeWidth: 0, fill: 'var(--color-jornadas)' }} name="Jornadas">
+                                            <LabelList dataKey="jornadas" position="top" offset={12} fill="var(--color-jornadas)" stroke="#ffffff" strokeWidth={3} paintOrder="stroke" fontSize={13} fontWeight={800} formatter={(value: number) => Number(value).toFixed(1)} />
+                                        </Line>
                                     </ComposedChart>
                                 </ChartContainer>
                             ) : (
@@ -742,8 +774,8 @@ export default function ActivitySummaryPage() {
             )}
 
             {/* Contenedor oculto para la captura perfecta */}
-            <div style={{ position: 'absolute', left: '-9999px', top: 0, width: 'max-content' }}>
-                <div ref={assistantTableRef} style={{ width: 'max-content', background: 'white' }}>
+            <div style={{ position: 'absolute', left: '-9999px', top: 0, width: 'max-content', height: 'auto', overflow: 'visible' }}>
+                <div ref={assistantTableRef} ref-capture="assistant-table" style={{ width: 'max-content', background: 'white' }}>
                     <AssistantSummaryTable 
                         data={assistantSummaryTableData} 
                         laborName={activeFilters.labor}

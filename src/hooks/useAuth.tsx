@@ -59,7 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 logout();
             }
             setLoading(false);
-        }, (error) => {
+        }, (error: any) => {
+            // Silenciamos el error si es por falta de permisos al cerrar sesión
+            if (error.code === 'permission-denied') {
+                return;
+            }
             console.error("Error listening to user profile:", error);
             logout();
             setLoading(false);

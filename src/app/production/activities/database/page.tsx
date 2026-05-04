@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -63,7 +64,6 @@ const getInitialFilters = (): Filters => ({
     dateRange: { from: undefined, to: undefined },
 });
 
-// Funciones de utilidad movidas fuera para evitar problemas de inicialización
 const calculateCostoLabor = (reg: ActivityRecordWithId): number => {
   const cost = reg.cost || 0;
   const specialLabors = ['46', '67'];

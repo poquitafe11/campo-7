@@ -91,7 +91,11 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
             const newData = snapshot.docs.map(processor);
             setData(prev => ({ ...prev, [key]: newData }));
             setLoading(false);
-        }, (err) => {
+        }, (err: any) => {
+            // Silenciamos el error si es por falta de permisos al cerrar sesión
+            if (err.code === 'permission-denied') {
+                return;
+            }
             console.error(`Error en tiempo real para ${name}:`, err);
         });
     });

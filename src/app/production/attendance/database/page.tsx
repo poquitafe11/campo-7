@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition, useCallback } from 'react';
@@ -545,7 +546,7 @@ export default function AttendanceDatabasePage() {
                                                                                                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditAssistant(turnoData.recordId, assistant as Assistant)} disabled={isPending}><Pencil className="h-4 w-4" /></Button>
                                                                                                                 <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" disabled={isPending}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                                                                                                                     <AlertDialogContent>
-                                                                                                                        <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Se eliminará al asistente <strong>{assistant.assistantName}</strong> y todo su personal de este registro. Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
+                                                                                                                        <AlertDialogHeader><AlertDialogTitle>¿Estás seguro?</AlertDialogTitle><AlertDialogDescription>Se eliminará al asistente <strong>{assistant.assistantName}</strong> y todo su personal de este registro. Esta acción es permanente.</AlertDialogDescription></AlertDialogHeader>
                                                                                                                         <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteAssistant(turnoData.recordId, assistant.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
                                                                                                                     </AlertDialogContent>
                                                                                                                 </AlertDialog>

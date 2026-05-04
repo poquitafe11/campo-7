@@ -27,19 +27,15 @@ function SidebarContent() {
     const updateOnlineStatus = () => {
       setIsOnlineState(!isOffline());
     };
-    
-    // Set initial state
     updateOnlineStatus();
-    
     window.addEventListener('online-status-changed', updateOnlineStatus);
-    
     return () => window.removeEventListener('online-status-changed', updateOnlineStatus);
   }, []);
 
   const handleSync = async () => {
     try {
       await goOnline();
-      await refreshData(true); 
+      await refreshData(); 
       toast({ title: "Sincronización Activada", description: "Los datos se están sincronizando con la nube." });
     } catch (error) {
       toast({ variant: "destructive", title: "Error de Sincronización", description: "No se pudo activar la sincronización." });
@@ -57,6 +53,11 @@ function SidebarContent() {
 
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+      <div className="p-6 border-b border-sidebar-accent/10 flex flex-col items-center gap-3 flex-shrink-0 bg-sidebar/50">
+        <img src="/icon-7.svg" alt="campo 7" className="h-16 w-16 rounded-xl shadow-inner border border-sidebar-accent/30" />
+        <h2 className="text-xl font-black tracking-tighter text-sidebar-foreground uppercase">campo 7</h2>
+      </div>
+
       <div className="p-4 border-b border-sidebar-accent/20 flex items-center gap-3 h-[73px] flex-shrink-0">
         <Avatar className="h-10 w-10 border-2 border-sidebar-accent flex-shrink-0">
           <AvatarImage src={user?.photoURL || ""} />
@@ -129,24 +130,18 @@ function Header() {
   };
 
   const handleBack = () => {
-    // Si la página ha definido una ruta de retroceso específica (navegación jerárquica), la usamos.
     if (actions.backUrl) {
-      router.push(actions.backUrl);
+      router.replace(actions.backUrl);
       return;
     }
 
-    // Si no hay backUrl, calculamos la ruta jerárquica para evitar retroceder 
-    // acciones de estado (filtros, popovers, etc.) que se guardan en el historial del navegador.
-    const segments = pathname.split('/').filter(Boolean);
-    if (segments.length > 1) {
-      // Navegamos al nivel superior de la ruta actual
-      const parentPath = '/' + segments.slice(0, -1).join('/');
-      router.push(parentPath);
+    const pathParts = pathname.split('/').filter(Boolean);
+    if (pathParts.length > 1) {
+      const parentPath = '/' + pathParts.slice(0, -1).join('/');
+      router.replace(parentPath);
     } else if (pathname !== '/dashboard') {
-      // Si estamos en un primer nivel que no es el dashboard, volvemos al inicio
-      router.push('/dashboard');
+      router.replace('/dashboard');
     } else {
-      // Comportamiento estándar si ya estamos en la raíz o dashboard
       router.back();
     }
   };
@@ -181,7 +176,7 @@ function Header() {
 
       <div className="flex items-center gap-1 flex-shrink-0">
           {actions.right ? actions.right : (
-             <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}>
+             <Button variant="ghost" size="icon" onClick={() => router.replace('/dashboard')}>
                 <LayoutGrid className="h-5 w-5" />
              </Button>
           )}

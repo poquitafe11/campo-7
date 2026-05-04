@@ -3,11 +3,11 @@
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, RefreshCcw, Calendar as CalendarIcon, ArrowLeft, LayoutGrid, Clock } from 'lucide-react';
+import { Loader2, RefreshCcw, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { format, parseISO, isValid, differenceInDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-import { type AttendanceRecord, type LoteData, type Labor } from '@/lib/types';
+import { type AttendanceRecord, type LoteData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -15,12 +15,8 @@ import { useHeaderActions } from '@/contexts/HeaderActionsContext';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import Link from 'next/link';
 import { ResumenTablasAdicionales } from '@/components/ResumenTablasAdicionales';
 import { useMasterData } from '@/context/MasterDataContext';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-
 
 interface PivotData {
   loteHeaders: {
@@ -54,7 +50,6 @@ function AttendanceSummaryContent() {
   const [turnoFilter, setTurnoFilter] = useState('todos');
   
   const selectedDateParam = searchParams.get('date');
-  const refreshParam = searchParams.get('refresh'); 
   
   const selectedDate = useMemo(() => {
     if (selectedDateParam && isValid(parseISO(selectedDateParam))) {
@@ -65,15 +60,6 @@ function AttendanceSummaryContent() {
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
-    if (!db) {
-        toast({ 
-            variant: 'destructive',
-            title: 'Error de Conexión', 
-            description: 'No se pudieron cargar los datos.' 
-        });
-        setIsLoading(false);
-        return;
-    }
     try {
         const [recordsSnapshot, lotesSnapshot] = await Promise.all([
           getDocs(collection(db, 'asistencia')),
@@ -111,65 +97,59 @@ function AttendanceSummaryContent() {
   
   useEffect(() => {
     loadData();
-  }, [loadData, refreshParam]);
+  }, [loadData]);
 
   useEffect(() => {
-    const headerTitle = (
-        <div className="flex flex-col items-center justify-center leading-tight">
-            <span className="text-sm font-normal text-muted-foreground whitespace-nowrap">Resumen de</span>
-            <h1 className="text-lg font-bold text-foreground">Asistencia</h1>
-        </div>
-    );
-
-    const rightComponent = (
-        <div className="flex justify-end items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => router.replace(`/production/attendance/summary?date=${format(selectedDate, 'yyyy-MM-dd')}&refresh=${Date.now()}`)} className="h-8 w-8">
-                <RefreshCcw className="h-5 w-5" />
-            </Button>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="ghost" className="gap-1 px-2 h-8">
-                        <CalendarIcon className="h-5 w-5" />
-                        <span className="text-sm">{format(selectedDate, "d MMM yyyy", { locale: es })}</span>
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => router.replace(`/production/attendance/summary?date=${format(date!, 'yyyy-MM-dd')}`)}
-                        initialFocus
-                    />
-                </PopoverContent>
-            </Popover>
-             <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="ghost" className="gap-1 px-2 h-8">
-                        <Clock className="h-5 w-5" />
-                        <span className="text-sm capitalize">{turnoFilter === 'todos' ? 'Todos' : turnoFilter}</span>
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-0" align="end">
-                    <div className="p-2">
-                        {['todos', 'Mañana', 'Tarde', 'Noche'].map(turno => (
-                            <div key={turno} onClick={() => setTurnoFilter(turno)} className="px-2 py-1.5 text-sm rounded-sm hover:bg-accent cursor-pointer">
-                                {turno === 'todos' ? 'Todos los Turnos' : turno}
-                            </div>
-                        ))}
-                    </div>
-                </PopoverContent>
-            </Popover>
-        </div>
-    );
-    
     setActions({
-        title: headerTitle,
+        title: "Resumen de Asistencia",
         backUrl: '/production/attendance',
-        right: rightComponent,
+        right: (
+            <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={() => loadData()} disabled={isLoading} className="h-9 w-9">
+                    <RefreshCcw className="h-5 w-5" />
+                </Button>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" className="gap-1 px-2 h-9">
+                            <CalendarIcon className="h-5 w-5" />
+                            <span className="text-sm">{format(selectedDate, "d MMM yyyy", { locale: es })}</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={(date) => {
+                                if (date) {
+                                    router.replace(`/production/attendance/summary?date=${format(date, 'yyyy-MM-dd')}`);
+                                }
+                            }}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+                 <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" className="gap-1 px-2 h-9">
+                            <Clock className="h-5 w-5" />
+                            <span className="text-sm capitalize">{turnoFilter === 'todos' ? 'Todos' : turnoFilter}</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-0" align="end">
+                        <div className="p-2">
+                            {['todos', 'Mañana', 'Tarde', 'Noche'].map(turno => (
+                                <div key={turno} onClick={() => setTurnoFilter(turno)} className="px-2 py-1.5 text-sm rounded-sm hover:bg-accent cursor-pointer">
+                                    {turno === 'todos' ? 'Todos los Turnos' : turno}
+                                </div>
+                            ))}
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            </div>
+        ),
     });
-  
     return () => setActions({});
-  }, [setActions, selectedDate, router, turnoFilter]);
+  }, [setActions, selectedDate, router, turnoFilter, isLoading, loadData]);
 
 
   const recordsForSelectedDate = useMemo(() => {
@@ -261,11 +241,7 @@ function AttendanceSummaryContent() {
   }, [recordsForSelectedDate, selectedDate, lotesMaestro]);
 
   if (isLoading) {
-      return (
-           <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
-               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-           </div>
-      )
+      return <div className="flex h-48 items-center justify-center rounded-lg border border-dashed"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   return (
@@ -276,7 +252,7 @@ function AttendanceSummaryContent() {
                 <table className="table-auto border-collapse text-xs w-full">
                     <thead className="text-center font-bold text-black">
                         <tr>
-                            <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs">
+                            <th colSpan={3 + pivotData.loteHeaders.length + 1} className="h-8 border border-black bg-[#fce5cd] p-1 text-xs uppercase">
                             ASISTENCIA PRODUCCION LOS BRUJOS - CAMPO 7
                             </th>
                         </tr>
@@ -306,15 +282,12 @@ function AttendanceSummaryContent() {
                     <tbody className="text-center bg-white">
                         {Object.entries(pivotData.labors)
                             .sort(([labelA, dataA], [labelB, dataB]) => {
-                                const codeA = String(dataA.code);
-                                const codeB = String(dataB.code);
-                                
-                                // Regla: 902 primero, luego 903, luego el resto
-                                if (codeA === '902') return -1;
-                                if (codeB === '902') return 1;
-                                if (codeA === '903') return -1;
-                                if (codeB === '903') return 1;
-                                
+                                const codeA = String(dataA.code || '').trim();
+                                const codeB = String(dataB.code || '').trim();
+                                if (codeA === '902' && codeB !== '902') return -1;
+                                if (codeB === '902' && codeA !== '902') return 1;
+                                if (codeA === '903' && codeB !== '903') return -1;
+                                if (codeB === '903' && codeA !== '903') return 1;
                                 return labelA.localeCompare(labelB);
                             })
                             .map(([labor, data]) => (
@@ -332,7 +305,7 @@ function AttendanceSummaryContent() {
                     </tbody>
                     <tfoot className="font-bold text-black text-center">
                         <tr className="bg-[#fce5cd]">
-                            <td colSpan={3} className="p-2 text-center border border-black">TOTAL</td>
+                            <td colSpan={3} className="p-2 text-center border border-black uppercase">TOTAL</td>
                             {pivotData.loteHeaders.map(h => (
                                 <td key={`total-${h.lote}`} className="p-2 text-center border border-black">
                                     {pivotData.columnTotals[h.lote] > 0 ? pivotData.columnTotals[h.lote] : ''}

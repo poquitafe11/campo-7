@@ -22,7 +22,12 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import InstallButton from "@/components/InstallButton";
+import dynamic from 'next/dynamic';
+
+const InstallButton = dynamic(() => import("@/components/InstallButton"), { 
+  ssr: false 
+});
+import LoadingScreen from "@/components/LoadingScreen";
 
 const loginSchema = z.object({
   email: z.string().email("Por favor, introduce un correo electrónico válido."),
@@ -93,31 +98,18 @@ export default function LoginPage() {
   }
 
   if (loading) {
-     return (
-        <div className="flex h-screen items-center justify-center bg-background">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </div>
-      );
+     return <LoadingScreen />;
   }
 
   if (user) {
-    return (
-       <div className="flex h-screen items-center justify-center bg-background">
-         <div className="flex flex-col items-center gap-4">
-           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-           <p className="text-muted-foreground">Redirigiendo...</p>
-         </div>
-       </div>
-     );
+    return <LoadingScreen message="Redirigiendo..." />;
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Bienvenido</CardTitle>
+          <CardTitle className="text-3xl font-extrabold tracking-tight text-primary uppercase">campo 7</CardTitle>
           <CardDescription>Inicia sesión para acceder al sistema</CardDescription>
         </CardHeader>
         <CardContent>
@@ -168,7 +160,7 @@ export default function LoginPage() {
                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Iniciar Sesión
                 </Button>
-                {isClient && <InstallButton />}
+                <InstallButton />
               </div>
             </form>
           </Form>

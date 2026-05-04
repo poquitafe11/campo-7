@@ -32,6 +32,8 @@ const adminRoutes = [
     '/users'
 ];
 
+import LoadingScreen from '@/components/LoadingScreen';
+
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
@@ -80,11 +82,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
   // Only show the main loader ONCE on the very first load of the app.
   if (loading && !initialAuthPassed) {
-     return (
-        <div className="flex h-screen items-center justify-center bg-background">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </div>
-      );
+     return <LoadingScreen message="Iniciando sesión..." />;
   }
   
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));

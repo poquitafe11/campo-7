@@ -1,11 +1,22 @@
+import withPWA from "@ducanh2912/next-pwa";
+
+const pwaConfig = withPWA({
+  dest: "public",
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: false, // Desactivado para evitar pérdida de datos al reconectar
+  swMinify: true,
+  disable: false, // Habilitado siempre para pruebas
+  workboxOptions: {
+    disableDevLogs: true,
+  },
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Required to enable genkit to work in the app
     transpilePackages: ['@genkit-ai/google-genai'],
     async rewrites() {
       return {
-        // We need to proxy the Genkit API to avoid CORS issues.
-        // This is not needed in production if the app and the API are on the same domain.
         beforeFiles: [
           {
             source: '/api/ai/:path*',
@@ -16,4 +27,4 @@ const nextConfig = {
     },
 };
 
-export default nextConfig;
+export default pwaConfig(nextConfig);

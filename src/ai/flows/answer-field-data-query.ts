@@ -115,6 +115,7 @@ const getIrrigationRecords = ai.defineTool(
 // Main prompt that uses the tools
 const answerer = ai.definePrompt({
   name: 'answerFieldDataQueryPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: AnswerFieldDataQueryInputSchema },
   output: { schema: AnswerFieldDataQueryOutputSchema },
   tools: [getProductionActivities, getHealthRecords, getIrrigationRecords],
